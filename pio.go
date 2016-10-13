@@ -261,7 +261,7 @@ func explodeStages(drivers []Driver) ([][]Driver, error) {
 		for _, depName := range d.Prerequisites() {
 			dep, ok := byName[depName]
 			if !ok {
-				return nil, fmt.Errorf("drivers: unsatified dependency %q->%q; it is missing; skipping", name, depName)
+				return nil, fmt.Errorf("drivers: unsatisfied dependency %q->%q; it is missing; skipping", name, depName)
 			}
 			dt := dep.Type()
 			if dt > t {
