@@ -1,4 +1,4 @@
-// Copyright 2016 Thorsten von Eicken. All rights reserved.
+// Copyright 2016 Google Inc. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -8,15 +8,14 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/tve/pio-chip/allwinner"
-	"github.com/tve/pio-chip/host"
-
-	"github.com/maruel/dlibox/go/pio"
-	"github.com/maruel/dlibox/go/pio/host/headers"
-	"github.com/maruel/dlibox/go/pio/host/sysfs"
-	"github.com/maruel/dlibox/go/pio/protocols/analog"
-	"github.com/maruel/dlibox/go/pio/protocols/gpio"
-	"github.com/maruel/dlibox/go/pio/protocols/pins"
+	"github.com/google/pio"
+	"github.com/google/pio/conn/analog"
+	"github.com/google/pio/conn/gpio"
+	"github.com/google/pio/conn/pins"
+	"github.com/google/pio/host/allwinner"
+	"github.com/google/pio/host/distro"
+	"github.com/google/pio/host/headers"
+	"github.com/google/pio/host/sysfs"
 )
 
 var (
@@ -303,5 +302,5 @@ func (d *driver) Init() (bool, error) {
 //
 // https://www.getchip.com/
 func IsCHIP() bool {
-	return strings.Contains(host.DTModel(), "C.H.I.P")
+	return strings.Contains(distro.DTModel(), "C.H.I.P")
 }
