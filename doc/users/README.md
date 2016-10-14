@@ -39,8 +39,8 @@ sudo pio-setup
 
 To have faster builds, you may wish to build on a desktop and send the
 executables to your ARM based micro computer (e.g.  Raspberry Pi).
-[push.sh](https://github.com/maruel/dlibox/blob/master/go/pio/cmd/push.sh) is
-included to wrap this:
+[push.sh](https://github.com/google/pio/blob/master/cmd/push.sh) is included to
+wrap this:
 
 ```bash
 cd $GOPATH/src/github.com/google/pio/cmd
