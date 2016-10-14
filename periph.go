@@ -39,22 +39,33 @@ import (
 
 // Type represent the type of driver.
 //
-// Lower is more important.
+// Drivers with a lower Type value are loaded first.
 type Type int
 
 const (
-	// Processor is the first driver to be loaded.
-	Processor Type = iota
-	// Pins is basic pin functionality driver, additional to Processor.
+	// Root is for a driver that directly describe hardware without an
+	// interfacing bus.
 	//
-	// This includes all headers description.
-	Pins
-	// Functional is for functionality pin driver, additional to Pins.
+	// It can be used for CPU drivers, USB hub, etc. These drivers require no
+	// assumption about the existence of previous drivers to be loaded.
+	Root Type = iota
+
+	// Second is for higher level features that leverage OS abstractions.
+	//
+	// These drivers implement that may build upon the previously loaded drivers
+	// or that may represent lower priority in term of usefulness compared to
+	// Root. This includes OS provided drivers like sysfs; a GPIO pin exposed by
+	// sysfs is less useful than one exposed by the native CPU driver, thus this
+	// is important that this driver is loaded later.
+	Second
+
+	// Functional is for higher level drivers.
+	//
+	// These drivers require all enumeration (USB devices, GPIO pins exposed over
+	// I²C, etc) to be already loaded. Board headers lookup table should use this
+	// category.
 	Functional
-	// Bus is higher level protocol drivers.
-	Bus
-	// Device is drivers connecting to buses.
-	Device
+
 	nbPriorities
 )
 

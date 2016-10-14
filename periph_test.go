@@ -46,13 +46,13 @@ func TestInitSimple(t *testing.T) {
 	initTest([]Driver{
 		&driver{
 			name:    "CPU",
-			t:       Processor,
+			t:       Root,
 			prereqs: nil,
 			ok:      true,
 			err:     nil,
 		},
 	})
-	if len(allDrivers[Processor]) != 1 {
+	if len(allDrivers[Root]) != 1 {
 		t.Fatalf("%v", allDrivers)
 	}
 	if len(byName) != 1 {
@@ -74,7 +74,7 @@ func TestInitSkip(t *testing.T) {
 	initTest([]Driver{
 		&driver{
 			name:    "CPU",
-			t:       Processor,
+			t:       Root,
 			prereqs: nil,
 			ok:      false,
 			err:     nil,
@@ -89,7 +89,7 @@ func TestInitErr(t *testing.T) {
 	initTest([]Driver{
 		&driver{
 			name:    "CPU",
-			t:       Processor,
+			t:       Root,
 			prereqs: nil,
 			ok:      true,
 			err:     errors.New("oops"),
@@ -104,14 +104,14 @@ func TestInitBadOrder(t *testing.T) {
 	initTest([]Driver{
 		&driver{
 			name:    "CPU",
-			t:       Processor,
+			t:       Root,
 			prereqs: []string{"Board"},
 			ok:      true,
 			err:     nil,
 		},
 		&driver{
 			name:    "Board",
-			t:       Pins,
+			t:       Functional,
 			prereqs: nil,
 			ok:      true,
 			err:     nil,
@@ -126,7 +126,7 @@ func TestInitMissing(t *testing.T) {
 	initTest([]Driver{
 		&driver{
 			name:    "CPU",
-			t:       Processor,
+			t:       Root,
 			prereqs: []string{"Board"},
 			ok:      true,
 			err:     nil,
@@ -144,7 +144,7 @@ func TestRegisterLate(t *testing.T) {
 	}
 	d := &driver{
 		name:    "CPU",
-		t:       Processor,
+		t:       Root,
 		prereqs: nil,
 		ok:      true,
 		err:     nil,
@@ -158,7 +158,7 @@ func TestRegisterTwice(t *testing.T) {
 	reset()
 	d := &driver{
 		name:    "CPU",
-		t:       Processor,
+		t:       Root,
 		prereqs: nil,
 		ok:      true,
 		err:     nil,
@@ -175,7 +175,7 @@ func TestMustRegisterPanic(t *testing.T) {
 	reset()
 	d := &driver{
 		name:    "CPU",
-		t:       Processor,
+		t:       Root,
 		prereqs: nil,
 		ok:      true,
 		err:     nil,
@@ -199,7 +199,7 @@ func TestExplodeStagesSimple(t *testing.T) {
 	d := []Driver{
 		&driver{
 			name:    "CPU",
-			t:       Processor,
+			t:       Root,
 			prereqs: nil,
 			ok:      true,
 			err:     nil,
@@ -220,14 +220,14 @@ func TestExplodeStages1Dep(t *testing.T) {
 	d := []Driver{
 		&driver{
 			name:    "CPU-specialized",
-			t:       Processor,
+			t:       Root,
 			prereqs: []string{"CPU-generic"},
 			ok:      true,
 			err:     nil,
 		},
 		&driver{
 			name:    "CPU-generic",
-			t:       Processor,
+			t:       Root,
 			prereqs: nil,
 			ok:      true,
 			err:     nil,
@@ -244,14 +244,14 @@ func TestExplodeStagesDifferentType(t *testing.T) {
 	d := []Driver{
 		&driver{
 			name:    "CPU",
-			t:       Processor,
+			t:       Root,
 			prereqs: nil,
 			ok:      true,
 			err:     nil,
 		},
 		&driver{
 			name:    "pins",
-			t:       Pins,
+			t:       Functional,
 			prereqs: []string{"CPU"},
 			ok:      true,
 			err:     nil,
@@ -272,21 +272,21 @@ func TestExplodeStagesCycle(t *testing.T) {
 	d := []Driver{
 		&driver{
 			name:    "A",
-			t:       Processor,
+			t:       Root,
 			prereqs: []string{"B"},
 			ok:      true,
 			err:     nil,
 		},
 		&driver{
 			name:    "B",
-			t:       Processor,
+			t:       Root,
 			prereqs: []string{"C"},
 			ok:      true,
 			err:     nil,
 		},
 		&driver{
 			name:    "C",
-			t:       Processor,
+			t:       Root,
 			prereqs: []string{"A"},
 			ok:      true,
 			err:     nil,
@@ -307,28 +307,28 @@ func TestExplodeStages3Dep(t *testing.T) {
 	d := []Driver{
 		&driver{
 			name:    "base2",
-			t:       Processor,
+			t:       Root,
 			prereqs: []string{"root"},
 			ok:      true,
 			err:     nil,
 		},
 		&driver{
 			name:    "base1",
-			t:       Processor,
+			t:       Root,
 			prereqs: []string{"root"},
 			ok:      true,
 			err:     nil,
 		},
 		&driver{
 			name:    "root",
-			t:       Processor,
+			t:       Root,
 			prereqs: nil,
 			ok:      true,
 			err:     nil,
 		},
 		&driver{
 			name:    "super",
-			t:       Processor,
+			t:       Root,
 			prereqs: []string{"base1", "base2"},
 			ok:      true,
 			err:     nil,

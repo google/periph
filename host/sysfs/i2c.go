@@ -309,7 +309,7 @@ func (d *driverI2C) String() string {
 }
 
 func (d *driverI2C) Type() periph.Type {
-	return periph.Bus
+	return periph.Second
 }
 
 func (d *driverI2C) Prerequisites() []string {

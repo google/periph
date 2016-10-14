@@ -204,7 +204,7 @@ import (
 type driver struct{}
 
 func (d *driver) String() string          { return "virtual_i2c" }
-func (d *driver) Type() periph.Type          { return periph.Bus }
+func (d *driver) Type() periph.Type       { return periph.Second }
 func (d *driver) Prerequisites() []string { return nil }
 
 func (d *driver) Init() (bool, error) {

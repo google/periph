@@ -359,7 +359,7 @@ func (d *driver) String() string {
 }
 
 func (d *driver) Type() periph.Type {
-	return periph.Processor
+	return periph.Root
 }
 
 func (d *driver) Prerequisites() []string {

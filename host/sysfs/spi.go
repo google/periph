@@ -218,7 +218,7 @@ func (d *driverSPI) String() string {
 }
 
 func (d *driverSPI) Type() periph.Type {
-	return periph.Bus
+	return periph.Second
 }
 
 func (d *driverSPI) Prerequisites() []string {
