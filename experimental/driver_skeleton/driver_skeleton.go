@@ -13,8 +13,7 @@ import (
 )
 
 // FIXME: Expose public symbols as relevant. Do not export more than needed!
-// See
-// https://github.com/maruel/dlibox/blob/master/go/pio/DESIGN.md#requirements
+// See https://github.com/google/pio/tree/master/doc/drivers#requirements
 // for the expectations.
 
 // Dev is a handle to the device. FIXME.
