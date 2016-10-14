@@ -60,4 +60,10 @@ func TestSplitNull(t *testing.T) {
 	if actual := splitNull(data); !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("%# v != %# v", expected, actual)
 	}
+
+	data = []byte("")
+	expected = []string{}
+	if actual := splitNull(data); !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("%# v != %# v", expected, actual)
+	}
 }
