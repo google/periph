@@ -53,3 +53,11 @@ HOME_URL="http://www.raspbian.org/"
 		t.Fatalf("%# v != %# v", expected, actual)
 	}
 }
+
+func TestSplitNull(t *testing.T) {
+	data := []byte("line 1\x00line 2\x00line 3\x00")
+	expected := []string{"line 1", "line 2", "line 3"}
+	if actual := splitNull(data); !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("%# v != %# v", expected, actual)
+	}
+}
