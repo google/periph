@@ -125,6 +125,7 @@ type Opts struct {
 	Humidity    Oversampling
 	Standby     Standby
 	Filter      Filter
+	Address     uint16
 }
 
 // NewI2C returns an object that communicates over I²C to BME280 environmental
@@ -133,7 +134,18 @@ type Opts struct {
 // It is recommended to call Stop() when done with the device so it stops
 // sampling.
 func NewI2C(i i2c.Conn, opts *Opts) (*Dev, error) {
-	d := &Dev{d: &i2c.Dev{Conn: i, Addr: 0x76}, isSPI: false}
+	validaddr := map[uint16]uint16{0x00: 0x76, 0x76: 0x76, 0x77: 0x77}
+	var addr uint16
+	if opts != nil {
+		if oaddr, ok := validaddr[opts.Address]; ok {
+			addr = oaddr
+		} else {
+			return nil, errors.New("Given address not supported by device.")
+		}
+	} else {
+		addr = 0x76
+	}
+	d := &Dev{d: &i2c.Dev{Conn: i, Addr: addr}, isSPI: false}
 	if err := d.makeDev(opts); err != nil {
 		return nil, err
 	}
