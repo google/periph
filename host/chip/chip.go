@@ -221,18 +221,16 @@ func (d *driver) Init() (bool, error) {
 		return false, errors.New("NextThing Co. CHIP board not detected")
 	}
 
-	var err error
-	if XIO0, err = sysfs.PinByNumber(1016); err != nil {
-		return false, err
-	}
-	// assume that if XIO0 succeeds the others will too...
-	XIO1, _ = sysfs.PinByNumber(1017)
-	XIO2, _ = sysfs.PinByNumber(1018)
-	XIO3, _ = sysfs.PinByNumber(1019)
-	XIO4, _ = sysfs.PinByNumber(1020)
-	XIO5, _ = sysfs.PinByNumber(1021)
-	XIO6, _ = sysfs.PinByNumber(1022)
-	XIO7, _ = sysfs.PinByNumber(1023)
+	// at this point the sysfs driver has initialized and discovered its pins,
+	// we can now hook-up the appropriate CHIP pins to sysfs gpio pins
+	XIO0 = sysfs.Pins[1016]
+	XIO1 = sysfs.Pins[1017]
+	XIO2 = sysfs.Pins[1018]
+	XIO3 = sysfs.Pins[1019]
+	XIO4 = sysfs.Pins[1020]
+	XIO5 = sysfs.Pins[1021]
+	XIO6 = sysfs.Pins[1022]
+	XIO7 = sysfs.Pins[1023]
 	// need to set header pins too 'cause XIOn are interfaces, hence pointers
 	U14_13 = XIO0
 	U14_14 = XIO1
