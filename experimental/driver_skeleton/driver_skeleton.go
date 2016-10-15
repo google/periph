@@ -1,4 +1,4 @@
-// Copyright 2016 Google Inc. All rights reserved.
+// Copyright 2016 The PIO Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -13,8 +13,7 @@ import (
 )
 
 // FIXME: Expose public symbols as relevant. Do not export more than needed!
-// See
-// https://github.com/google/pio/blob/master/DESIGN.md#requirements
+// See https://github.com/google/pio/tree/master/doc/drivers#requirements
 // for the expectations.
 
 // Dev is a handle to the device. FIXME.
