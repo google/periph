@@ -88,7 +88,7 @@ func (p *Pin) Name() string {
 	return p.name
 }
 
-// String returns the pin name and number, ex: "PL5(352)"
+// String returns the pin name and number, ex: "PL5(352)".
 func (p *Pin) String() string {
 	return fmt.Sprintf("%s(%d)", p.name, p.Number())
 }

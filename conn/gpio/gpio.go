@@ -207,12 +207,12 @@ func (b *BasicPin) Pull() Pull {
 	return PullNoChange
 }
 
-// Out returns an error since the pin is non-functional.<Paste>
+// Out returns an error since the pin is non-functional.
 func (b *BasicPin) Out(Level) error {
 	return fmt.Errorf("%s cannot be used as output", b.N)
 }
 
-// PWM returns an error since the pin is non-functional.<Paste>
+// PWM returns an error since the pin is non-functional.
 func (b *BasicPin) PWM(duty int) error {
 	return fmt.Errorf("%s cannot be used as PWM", b.N)
 }
