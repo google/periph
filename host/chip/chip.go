@@ -6,6 +6,7 @@ package chip
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/google/pio"
@@ -241,7 +242,7 @@ func (d *driver) Init() (bool, error) {
 	U14_19 = XIO6
 	U14_20 = XIO7
 
-	if err := headers.Register("U13", [][]pins.Pin{
+	U13 := [][]pins.Pin{
 		{U13_1, U13_2},
 		{U13_3, U13_4},
 		{U13_5, U13_6},
@@ -262,11 +263,23 @@ func (d *driver) Init() (bool, error) {
 		{U13_35, U13_36},
 		{U13_37, U13_38},
 		{U13_39, U13_40},
-	}); err != nil {
+	}
+	if err := headers.Register("U13", U13); err != nil {
 		return true, err
 	}
+	// Register all gpiomem pins on the header.
+	for _, r := range U13 {
+		for _, p := range r {
+			// FIXME(TvE): Register only Allwinner gpiomem pins
+			if gp, ok := p.(gpio.PinIO); ok && strings.HasPrefix(p.String(), "P") {
+				if err := gpio.Register(gp); err != nil {
+					fmt.Printf("Registering %s failed: %s\n", gp, err)
+				}
+			}
+		}
+	}
 
-	if err := headers.Register("U14", [][]pins.Pin{
+	U14 := [][]pins.Pin{
 		{U14_1, U14_2},
 		{U14_3, U14_4},
 		{U14_5, U14_6},
@@ -287,8 +300,20 @@ func (d *driver) Init() (bool, error) {
 		{U14_35, U14_36},
 		{U14_37, U14_38},
 		{U14_39, U14_40},
-	}); err != nil {
+	}
+	if err := headers.Register("U14", U14); err != nil {
 		return true, err
+	}
+	// Register all gpiomem pins on the header.
+	for _, r := range U14 {
+		for _, p := range r {
+			// FIXME(TvE): Register only Allwinner gpiomem pins
+			if gp, ok := p.(gpio.PinIO); ok && strings.HasPrefix(p.String(), "P") {
+				if err := gpio.Register(gp); err != nil {
+					fmt.Printf("Registering %s failed: %s\n", gp, err)
+				}
+			}
+		}
 	}
 
 	return true, nil
