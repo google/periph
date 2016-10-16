@@ -216,7 +216,7 @@ func (d *driver) Prerequisites() []string {
 }
 
 func (d *driver) Init() (bool, error) {
-	if !IsCHIP() {
+	if !Present() {
 		zapPins()
 		return false, errors.New("NextThing Co. CHIP board not detected")
 	}
@@ -296,9 +296,9 @@ func (d *driver) Init() (bool, error) {
 
 // var _ pio.Driver = &driver{}
 
-// IsCHIP returns true if running on a NextThing Co's C.H.I.P. board.
+// Present returns true if running on a NextThing Co's C.H.I.P. board.
 //
 // https://www.getchip.com/
-func IsCHIP() bool {
+func Present() bool {
 	return strings.Contains(distro.DTModel(), "C.H.I.P")
 }
