@@ -6,6 +6,7 @@ package chip
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/google/pio"
@@ -19,12 +20,12 @@ import (
 )
 
 var (
-	DC_IN    pins.Pin = &pins.BasicPin{Name: "DC_IN"}
-	BAT_PLUS pins.Pin = &pins.BasicPin{Name: "BAT_PLUS"}
-	V1_8     pins.Pin = &pins.BasicPin{Name: "V1_8"} // 1.8 volt output
+	DC_IN    pins.Pin = &pins.BasicPin{"DC_IN"}
+	BAT_PLUS pins.Pin = &pins.BasicPin{"BAT_PLUS"}
+	V1_8     pins.Pin = &pins.BasicPin{"V1_8"} // 1.8 volt output
 
-	TEMP_SENSOR gpio.PinIO = &gpio.BasicPin{Name: "TEMP_SENSOR"}
-	PWR_SWITCH  gpio.PinIO = &gpio.BasicPin{Name: "PWR_SWITCH"}
+	TEMP_SENSOR gpio.PinIO = &gpio.BasicPin{"TEMP_SENSOR"}
+	PWR_SWITCH  gpio.PinIO = &gpio.BasicPin{"PWR_SWITCH"}
 
 	// XIO "gpio" pins attached to the pcf75.. I2c port extender, these get initialized in the
 	// Init function
@@ -266,17 +267,6 @@ func (d *driver) Init() (bool, error) {
 	if err := headers.Register("U13", U13); err != nil {
 		return true, err
 	}
-	/* // Register all gpiomem pins on the header.
-	for _, r := range U13 {
-		for _, p := range r {
-			// FIXME(TvE): Register only Allwinner gpiomem pins
-			if gp, ok := p.(gpio.PinIO); ok && strings.HasPrefix(p.String(), "P") {
-				if err := gpio.Register(gp); err != nil {
-					fmt.Printf("Registering %s failed: %s\n", gp, err)
-				}
-			}
-		}
-	}*/
 
 	U14 := [][]pins.Pin{
 		{U14_1, U14_2},
@@ -303,17 +293,23 @@ func (d *driver) Init() (bool, error) {
 	if err := headers.Register("U14", U14); err != nil {
 		return true, err
 	}
-	/* // Register all gpiomem pins on the header.
-	for _, r := range U14 {
-		for _, p := range r {
-			// FIXME(TvE): Register only Allwinner gpiomem pins
-			if gp, ok := p.(gpio.PinIO); ok && strings.HasPrefix(p.String(), "P") {
-				if err := gpio.Register(gp); err != nil {
-					fmt.Printf("Registering %s failed: %s\n", gp, err)
-				}
-			}
+
+	// Register explicit pin aliases.
+	for alias, real := range aliases {
+		fmt.Printf("Registering alias %s for %s\n", alias, real)
+		r := gpio.ByName(real)
+		if r == nil {
+			fmt.Printf("Cannot create alias for %s: it doesn't exist", real)
+			return true, fmt.Errorf("Cannot create alias for %s: it doesn't exist",
+				real)
 		}
-	}*/
+		a := &gpio.PinAlias{alias, r}
+		if err := gpio.RegisterAlias(a); err != nil {
+			fmt.Printf("Cannot create alias %s for %s: %s", alias, real, err)
+			return true, fmt.Errorf("Cannot create alias %s for %s: %s",
+				alias, real, err)
+		}
+	}
 
 	return true, nil
 }
@@ -325,4 +321,19 @@ func (d *driver) Init() (bool, error) {
 // https://www.getchip.com/
 func Present() bool {
 	return strings.Contains(distro.DTModel(), "C.H.I.P")
+}
+
+// aliases is a list of aliases for the various gpio pins, this allows users to refer to pins
+// using the documented and labeled names instead of some GPIOnnn name. The map key is the
+// alias and the value is the real pin name.
+var aliases = map[string]string{
+	"XIO-P0": "GPIO1016",
+	"XIO-P1": "GPIO1017",
+	"XIO-P2": "GPIO1018",
+	"XIO-P3": "GPIO1019",
+	"XIO-P4": "GPIO1020",
+	"XIO-P5": "GPIO1021",
+	"XIO-P6": "GPIO1022",
+	"XIO-P7": "GPIO1023",
+	"LCD-D2": "PD2",
 }

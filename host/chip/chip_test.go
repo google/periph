@@ -71,23 +71,23 @@ func TestChipHeaders(t *testing.T) {
 	}*/
 
 	u13_17 := h["U13"][8][0]
-	if u13_17.String() != "PD2(98)" {
-		t.Errorf("Expected U13_17 to be PD2(98), not %s\n", u13_17.String())
+	if u13_17.Name() != "PD2" {
+		t.Errorf("Expected U13_17 to be PD2, not %s\n", u13_17.Name())
 	}
-	p := gpio.ByName("PD2(98)")
-	if p.String() != u13_17.String() { // p is gpio.PinIO while u13_17 is pins.Pin
-		t.Errorf(`Expected gpio.ByName("PD2(98)") to equal h["U13"][8][0], instead `+
+	p := gpio.ByName("PD2")
+	if p == nil || p.Name() != u13_17.Name() { // p is gpio.PinIO while u13_17 is pins.Pin
+		t.Errorf(`Expected gpio.ByName("PD2") to equal h["U13"][8][0], instead `+
 			"got %s and %s", p, u13_17)
 	}
 
 	u14_24 := h["U14"][11][1]
-	if u14_24.String() != "PB3(35)" {
-		t.Errorf("Expected U14_24 to be PB3(35), not %s\n", u14_24.String())
+	if p == nil || u14_24.Name() != "PB3" {
+		t.Errorf("Expected U14_24 to be PB3, not %s\n", u14_24.Name())
 	}
 
 	u14_17 := h["U14"][8][0]
-	if u14_17.String() != "GPIO1020" {
-		t.Errorf("Expected U14_17 to be GPIO1020, not %s\n", u14_17.String())
+	if p == nil || u14_17.Name() != "GPIO1020" {
+		t.Errorf("Expected U14_17 to be GPIO1020, not %s\n", u14_17.Name())
 	}
 }
 
@@ -96,7 +96,7 @@ func TestChipGpioNames(t *testing.T) {
 	host.Init()
 	all := []string{}
 	for _, p := range gpio.All() {
-		all = append(all, p.String())
+		all = append(all, p.Name())
 	}
 	sort.Strings(all)
 
@@ -110,16 +110,48 @@ func TestChipGpioNames(t *testing.T) {
 		}
 	}
 
-	must("PB2(34)")
-	must("PE11(139)")
+	must("PB2")
+	must("PE11")
 	must("GPIO1022")
+}
+
+// TestChipAliases tests that the various gpio pin aliases get set-up
+func TestChipAliases(t *testing.T) {
+	host.Init()
+	tests := map[string]string{ // alias->real
+		"XIO-P4": "GPIO1020", "LCD-D2": "PD2", "GPIO98": "PD2",
+	}
+	for a, r := range tests {
+		p := gpio.ByName(a)
+		if p == nil {
+			t.Errorf("Failed to open %s", a)
+			continue
+		}
+		pa, ok := p.(*gpio.PinAlias)
+		if !ok {
+			t.Fatalf("Expected that pin %s is an alias, not %T", a, pa)
+			continue
+		}
+		if pa.Name() != a {
+			t.Errorf("The name of alias %s is %s not %s", a, pa.Name(), a)
+		}
+		pr, ok := p.(gpio.RealPin)
+		if !ok {
+			t.Errorf("Expected that pin alias %s implement RealPin", a)
+			continue
+		}
+		if pr.Real().Name() != r {
+			t.Errorf("Expected that alias %s have real pin %s but it's %s",
+				a, r, pr.Real().Name())
+		}
+	}
 }
 
 // TestChipGpioMem tests two connected pins using memory-mapped gpio
 func TestChipGpioMem(t *testing.T) {
 	host.Init()
-	p1 := pinByName(t, "PB2(34)")
-	p2 := pinByName(t, "PB3(35)")
+	p1 := pinByName(t, "PB2")
+	p2 := pinByName(t, "PB3")
 	testGpioPair(t, p1, p2)
 	testGpioPair(t, p2, p1)
 }
@@ -192,6 +224,7 @@ func testGpioPair(t *testing.T, p1, p2 gpio.PinIO) {
 	}
 	// Make sure there's no pending edge.
 	for p2.WaitForEdge(time.Millisecond) {
+		p2.Read()
 	}
 	// Toggle a few times.
 	for i := 0; i < 10; i++ {
