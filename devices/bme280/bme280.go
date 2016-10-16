@@ -141,8 +141,10 @@ func NewI2C(i i2c.Conn, opts *Opts) (*Dev, error) {
 	addr := uint16(0x76)
 	if opts != nil {
 		switch opts.Address {
-		case 0x00, 0x76, 0x77:
+		case 0x76, 0x77:
 			addr = opts.Address
+		case 0x00:
+			// do not do anything
 		default:
 			return nil, errors.New("given address not supported by device")
 		}
