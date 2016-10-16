@@ -137,7 +137,7 @@ type Opts struct {
 // It is recommended to call Stop() when done with the device so it stops
 // sampling.
 func NewI2C(i i2c.Conn, opts *Opts) (*Dev, error) {
-	var addr uint16
+	var addr uint16 = 0x76
 	if opts != nil {
 		switch opts.Address {
 		case 0x00, 0x76, 0x77:
@@ -145,8 +145,6 @@ func NewI2C(i i2c.Conn, opts *Opts) (*Dev, error) {
 		default:
 			return nil, errors.New("Given address not supported by device.")
 		}
-	} else {
-		addr = 0x76
 	}
 	d := &Dev{d: &i2c.Dev{Conn: i, Addr: addr}, isSPI: false}
 	if err := d.makeDev(opts); err != nil {
