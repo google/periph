@@ -116,6 +116,9 @@ func (d *Dev) Stop() error {
 // Recommended (and default) values are O4x for oversampling, S20ms for standby
 // and FOff for filter if planing to call frequently, else use S500ms to get a
 // bit more than one reading per second.
+// Address is only used on creation of an i2c-device. Its default value is 0x76.
+// It can be set to 0x77. Both values depend on HW configuration of the sensor's
+// SDO pin.
 //
 // BUG(maruel): Remove the Standby flag and replace with a
 // WaitForNextSample(time.Duration). Then use the closest value automatically.
@@ -134,12 +137,12 @@ type Opts struct {
 // It is recommended to call Stop() when done with the device so it stops
 // sampling.
 func NewI2C(i i2c.Conn, opts *Opts) (*Dev, error) {
-	validaddr := map[uint16]uint16{0x00: 0x76, 0x76: 0x76, 0x77: 0x77}
 	var addr uint16
 	if opts != nil {
-		if oaddr, ok := validaddr[opts.Address]; ok {
-			addr = oaddr
-		} else {
+		switch opts.Address {
+		case 0x00, 0x76, 0x77:
+			addr = opts.Address
+		default:
 			return nil, errors.New("Given address not supported by device.")
 		}
 	} else {
