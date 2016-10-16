@@ -244,16 +244,22 @@ var (
 
 // PinIO implementation.
 
+// String returns the pin name and number, ex: "GPIO10(10)".
 func (p *Pin) String() string {
+	return fmt.Sprintf("%s(%d)", p.name, p.number)
+}
+
+// Name returns the pin name, ex: "GPIO10".
+func (p *Pin) Name() string {
 	return p.name
 }
 
-// Number implements pins.Pin.
+// Number returns the pin number as assigned by gpio sysfs.
 func (p *Pin) Number() int {
 	return p.number
 }
 
-// Function implements pins.Pin.
+// Function returns the current pin function, ex: "In/PullUp".
 func (p *Pin) Function() string {
 	switch f := p.function(); f {
 	case in:

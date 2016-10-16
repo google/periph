@@ -13,17 +13,17 @@ import (
 
 // pins that are in the R8 datasheet but not generic (?)
 var (
-	FEL      pins.Pin   = &pins.BasicPin{Name: "FEL"}
-	MIC_IN   gpio.PinIO = &gpio.BasicPin{Name: "MIX_IN"}
-	MIC_GND  pins.Pin   = &pins.BasicPin{Name: "MIC_GND"}
-	HP_LEFT  gpio.PinIO = &gpio.BasicPin{Name: "HP_LEFT"}
-	HP_RIGHT gpio.PinIO = &gpio.BasicPin{Name: "HP_RIGHT"}
-	HP_COM   pins.Pin   = &pins.BasicPin{Name: "HP_COM"}
+	FEL      pins.Pin   = &pins.BasicPin{"FEL"}
+	MIC_IN   gpio.PinIO = &gpio.BasicPin{"MIX_IN"}
+	MIC_GND  pins.Pin   = &pins.BasicPin{"MIC_GND"}
+	HP_LEFT  gpio.PinIO = &gpio.BasicPin{"HP_LEFT"}
+	HP_RIGHT gpio.PinIO = &gpio.BasicPin{"HP_RIGHT"}
+	HP_COM   pins.Pin   = &pins.BasicPin{"HP_COM"}
 
-	X1 gpio.PinIO = &gpio.BasicPin{Name: "X1"} // touch screen
-	X2 gpio.PinIO = &gpio.BasicPin{Name: "X2"} // touch screen
-	Y1 gpio.PinIO = &gpio.BasicPin{Name: "Y1"} // touch screen
-	Y2 gpio.PinIO = &gpio.BasicPin{Name: "Y2"} // touch screen
+	X1 gpio.PinIO = &gpio.BasicPin{"X1"} // touch screen
+	X2 gpio.PinIO = &gpio.BasicPin{"X2"} // touch screen
+	Y1 gpio.PinIO = &gpio.BasicPin{"Y1"} // touch screen
+	Y2 gpio.PinIO = &gpio.BasicPin{"Y2"} // touch screen
 )
 
 // mappingR8 for Allwinner R8.

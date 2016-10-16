@@ -7,6 +7,7 @@ package gpiotest
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -17,9 +18,9 @@ import (
 //
 // Modify its members to simulate hardware events.
 type Pin struct {
-	Name string // Should be immutable
-	Num  int    // Should be immutable
-	Fn   string // Should be immutable
+	N   string // Should be immutable
+	Num int    // Should be immutable
+	Fn  string // Should be immutable
 
 	sync.Mutex            // Grab the Mutex before modifying the members to keep it concurrent safe
 	L          gpio.Level // Used for both input and output
@@ -28,7 +29,12 @@ type Pin struct {
 }
 
 func (p *Pin) String() string {
-	return p.Name
+	return fmt.Sprintf("%s(%d)", p.N, p.Num)
+}
+
+// Name implements pins.Pin.
+func (p *Pin) Name() string {
+	return p.N
 }
 
 // Number implements pins.Pin.

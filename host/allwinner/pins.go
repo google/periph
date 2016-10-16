@@ -309,7 +309,7 @@ func initPins() error {
 // Page 560 UART
 // Page 621 I2S/PCM
 
-// Number returns the GPIO pin number as represented by gpio sysfs
+// Number returns the GPIO pin number as represented by gpio sysfs.
 func (p *Pin) Number() int {
 	if p == nil {
 		return -1
@@ -317,7 +317,15 @@ func (p *Pin) Number() int {
 	return int(p.group)*32 + int(p.offset)
 }
 
-// String returns the name of the pin in the processor and the GPIO pin number
+// Name returns the pin name.
+func (p *Pin) Name() string {
+	if p == nil {
+		return ""
+	}
+	return p.name
+}
+
+// String returns the name of the pin in the processor and the GPIO pin number.
 func (p *Pin) String() string {
 	if p == nil {
 		return "INVALID"
@@ -325,7 +333,7 @@ func (p *Pin) String() string {
 	return fmt.Sprintf("%s(%d)", p.name, p.Number())
 }
 
-// Function returns the current function of the pin in printable form
+// Function returns the current function of the pin in printable form.
 func (p *Pin) Function() string {
 	if p == nil {
 		return ""
