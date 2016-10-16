@@ -15,7 +15,7 @@ func DTModel() string {
 	defer lock.Unlock()
 
 	if dtModel == "" {
-		dtModel = "unknown"
+		dtModel = "<unknown>"
 		if isLinux {
 			// Read model from device tree.
 			if bytes, err := ioutil.ReadFile("/proc/device-tree/model"); err == nil {
