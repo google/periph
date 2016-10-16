@@ -6,7 +6,6 @@ package chip
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/google/pio"
@@ -267,7 +266,7 @@ func (d *driver) Init() (bool, error) {
 	if err := headers.Register("U13", U13); err != nil {
 		return true, err
 	}
-	// Register all gpiomem pins on the header.
+	/* // Register all gpiomem pins on the header.
 	for _, r := range U13 {
 		for _, p := range r {
 			// FIXME(TvE): Register only Allwinner gpiomem pins
@@ -277,7 +276,7 @@ func (d *driver) Init() (bool, error) {
 				}
 			}
 		}
-	}
+	}*/
 
 	U14 := [][]pins.Pin{
 		{U14_1, U14_2},
@@ -304,7 +303,7 @@ func (d *driver) Init() (bool, error) {
 	if err := headers.Register("U14", U14); err != nil {
 		return true, err
 	}
-	// Register all gpiomem pins on the header.
+	/* // Register all gpiomem pins on the header.
 	for _, r := range U14 {
 		for _, p := range r {
 			// FIXME(TvE): Register only Allwinner gpiomem pins
@@ -314,7 +313,7 @@ func (d *driver) Init() (bool, error) {
 				}
 			}
 		}
-	}
+	}*/
 
 	return true, nil
 }

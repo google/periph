@@ -110,7 +110,7 @@ var mappingR8 = map[string][5]string{
 }
 
 func mapR8Pins() {
-	// set the altFunc fields of all pins that are on the R8
+	// Set the altFunc fields of all pins that are on the R8.
 	for name, altFuncs := range mappingR8 {
 		if pin := pinByName(name); pin != nil {
 			pin.altFunc = altFuncs
