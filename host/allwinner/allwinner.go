@@ -501,6 +501,10 @@ func (p *Pin) String() string {
 	return fmt.Sprintf("%s(%d)", p.name, p.Number())
 }
 
+func (p *Pin) Name() string {
+	return p.name
+}
+
 // Number implements pins.Pin.
 //
 // It returns the GPIO pin number as represented by gpio sysfs.

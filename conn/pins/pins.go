@@ -13,17 +13,20 @@ import "fmt"
 
 // These are well known pins.
 var (
-	INVALID Pin = &BasicPin{Name: "INVALID"} // Either floating or invalid pin
-	GROUND  Pin = &BasicPin{Name: "GROUND"}  // Ground
-	V1_8    Pin = &BasicPin{Name: "V1_8"}    // 1.8 volt
-	V3_3    Pin = &BasicPin{Name: "V3_3"}    // 3.3 volt
-	V5      Pin = &BasicPin{Name: "V5"}      // 5 vol
+	INVALID Pin = &BasicPin{"INVALID"} // Either floating or invalid pin
+	GROUND  Pin = &BasicPin{"GROUND"}  // Ground
+	V1_8    Pin = &BasicPin{"V1_8"}    // 1.8 volt
+	V3_3    Pin = &BasicPin{"V3_3"}    // 3.3 volt
+	V5      Pin = &BasicPin{"V5"}      // 5 vol
 )
 
 // Pin is the minimal common interface shared between gpio.PinIO and
 // analog.PinIO.
 type Pin interface {
+	// String() typically returns the pin name and number, ex: "PD6(45)"
 	fmt.Stringer
+	// Name returns the name of the pin.
+	Name() string
 	// Number returns the logical pin number or a negative number if the pin is
 	// not a GPIO, e.g. GROUND, V3_3, etc.
 	Number() int
@@ -37,19 +40,25 @@ type Pin interface {
 
 // BasicPin implements Pin as a non-functional pin.
 type BasicPin struct {
-	Name string
+	N string
 }
 
+// String returns the pin name.
 func (b *BasicPin) String() string {
-	return b.Name
+	return b.N
 }
 
-// Number implements Pin.
+// Name returns the pin name.
+func (b *BasicPin) Name() string {
+	return b.N
+}
+
+// Number returns -1 as pin number.
 func (b *BasicPin) Number() int {
 	return -1
 }
 
-// Function implements Pin.
+// Function returns "" as pin function.
 func (b *BasicPin) Function() string {
 	return ""
 }
