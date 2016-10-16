@@ -117,6 +117,10 @@ func (d *Dev) Stop() error {
 // and FOff for filter if planing to call frequently, else use S500ms to get a
 // bit more than one reading per second.
 //
+// Address is only used on creation of an I²C-device. Its default value is 0x76.
+// It can be set to 0x77. Both values depend on HW configuration of the sensor's
+// SDO pin. This has no effect with NewSPI()
+//
 // BUG(maruel): Remove the Standby flag and replace with a
 // WaitForNextSample(time.Duration). Then use the closest value automatically.
 type Opts struct {
@@ -125,6 +129,7 @@ type Opts struct {
 	Humidity    Oversampling
 	Standby     Standby
 	Filter      Filter
+	Address     uint16
 }
 
 // NewI2C returns an object that communicates over I²C to BME280 environmental
@@ -133,7 +138,18 @@ type Opts struct {
 // It is recommended to call Stop() when done with the device so it stops
 // sampling.
 func NewI2C(i i2c.Conn, opts *Opts) (*Dev, error) {
-	d := &Dev{d: &i2c.Dev{Conn: i, Addr: 0x76}, isSPI: false}
+	addr := uint16(0x76)
+	if opts != nil {
+		switch opts.Address {
+		case 0x76, 0x77:
+			addr = opts.Address
+		case 0x00:
+			// do not do anything
+		default:
+			return nil, errors.New("given address not supported by device")
+		}
+	}
+	d := &Dev{d: &i2c.Dev{Conn: i, Addr: addr}, isSPI: false}
 	if err := d.makeDev(opts); err != nil {
 		return nil, err
 	}
