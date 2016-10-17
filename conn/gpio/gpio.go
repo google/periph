@@ -346,7 +346,6 @@ func RegisterAlias(pin *PinAlias) error {
 		return fmt.Errorf("registering the same pin %s twice", name)
 	}
 
-	fmt.Printf("Registered alias %s for %s\n", name, pin.Real())
 	byName[name] = PinIO(pin)
 	return nil
 }
