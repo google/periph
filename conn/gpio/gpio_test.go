@@ -31,6 +31,18 @@ func ExampleByName() {
 	fmt.Printf("%s: %s\n", p, p.Function())
 }
 
+func ExampleByAlias() {
+	p := ByName("LCD-D2")
+	if p == nil {
+		log.Fatal("Failed to find LCD-D2")
+	}
+	if rp, ok := p.(*PinAlias); ok {
+		fmt.Printf("%s is an alias for %s\n", p, rp.Real())
+	} else {
+		fmt.Printf("%s is not an alias!\n", p)
+	}
+}
+
 func ExampleByNumber() {
 	p := ByNumber(6)
 	if p == nil {

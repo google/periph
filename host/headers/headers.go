@@ -29,7 +29,7 @@ func All() map[string][][]pins.Pin {
 func Position(p pins.Pin) (string, int) {
 	lock.Lock()
 	defer lock.Unlock()
-	pos := byPin[p.String()]
+	pos := byPin[p.Name()]
 	return pos.name, pos.number
 }
 
@@ -37,7 +37,7 @@ func Position(p pins.Pin) (string, int) {
 func IsConnected(p pins.Pin) bool {
 	lock.Lock()
 	defer lock.Unlock()
-	return connected[p.String()]
+	return connected[p.Name()]
 }
 
 // Register registers a physical header.
@@ -50,7 +50,7 @@ func Register(name string, pins [][]pins.Pin) error {
 	}
 	for i, line := range pins {
 		for j, pin := range line {
-			if pin == nil || len(pin.String()) == 0 {
+			if pin == nil || len(pin.Name()) == 0 {
 				return fmt.Errorf("missing pin on header %s[%d][%d]\n", name, i+1, j+1)
 			}
 		}
@@ -60,7 +60,7 @@ func Register(name string, pins [][]pins.Pin) error {
 	number := 1
 	for _, line := range pins {
 		for _, pin := range line {
-			n := pin.String()
+			n := pin.Name()
 			byPin[n] = position{name, number}
 			connected[n] = true
 			number++

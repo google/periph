@@ -164,51 +164,90 @@ var INVALID PinIO = invalidPin{}
 
 // BasicPin implements Pin as a non-functional pin.
 type BasicPin struct {
-	Name string
+	N string
 }
 
+// String returns the pin name.
 func (b *BasicPin) String() string {
-	return b.Name
+	return b.N
 }
 
-// Number implements pins.Pin.
+// Name returns the pin name.
+func (b *BasicPin) Name() string {
+	return b.N
+}
+
+// Number returns a pin number of -1.
 func (b *BasicPin) Number() int {
 	return -1
 }
 
-// Function implements pins.Pin.
+// Function returns a pin function of "".
 func (b *BasicPin) Function() string {
 	return ""
 }
 
-// In implements gpio.PinIn.
+// In returns an error since the pin is non-functional.
 func (b *BasicPin) In(Pull, Edge) error {
-	return fmt.Errorf("%s cannot be used as input", b.Name)
+	return fmt.Errorf("%s cannot be used as input", b.N)
 }
 
-// Read implements gpio.PinIn.
+// Read always returns Low.
 func (b *BasicPin) Read() Level {
 	return Low
 }
 
-// WaitForEdge implements gpio.PinIn.
+// WaitForEdge always returns false since the pin is non-functional.
 func (b *BasicPin) WaitForEdge(timeout time.Duration) bool {
 	return false
 }
 
-// Pull implements gpio.PinIn.
+// Pull always returns PullNoChange.
 func (b *BasicPin) Pull() Pull {
 	return PullNoChange
 }
 
-// Out implements gpio.PinOut.
+// Out returns an error since the pin is non-functional.
 func (b *BasicPin) Out(Level) error {
-	return fmt.Errorf("%s cannot be used as output", b.Name)
+	return fmt.Errorf("%s cannot be used as output", b.N)
 }
 
-// PWM implements gpio.PinOut.
+// PWM returns an error since the pin is non-functional.
 func (b *BasicPin) PWM(duty int) error {
-	return fmt.Errorf("%s cannot be used as PWM", b.Name)
+	return fmt.Errorf("%s cannot be used as PWM", b.N)
+}
+
+// PinAlias creates an alias for a PinIO and itself implements PinIO by forwarding
+// calls to the original pin. PinAlias also implements the RealPin interface, which
+// allows querying for the real pin under the alias. In order to register a PinAlias
+// with gpio use RegisterAlias to avoid an error due to duplicate pin numbers.
+//
+// Note that currently only PinIO's can be aliased, not PinIn's or PinOut's.
+type PinAlias struct {
+	PinIO
+	N string
+}
+
+// String returns the PinAlias's name with the real pin's String() in parenthesis.
+func (a *PinAlias) String() string {
+	return fmt.Sprintf("%s(%s)", a.N, a.PinIO)
+}
+
+// Name returns the PinAlias's name.
+func (a *PinAlias) Name() string {
+	return a.N
+}
+
+// Real returns the real pin behind the alias
+func (a *PinAlias) Real() PinIO {
+	return a.PinIO
+}
+
+// RealPin is implemented by PinAlias and allows the retrieval of the real pin underlying
+// an alias. The purpose of the alias is to be able to cleanly test whether an arbitrary
+// gpio.PinIO returned by ByName is really an alias for another pin.
+type RealPin interface {
+	Real() PinIO // Real returns the real pin behind an Alias
 }
 
 //
@@ -285,13 +324,29 @@ func Register(pin PinIO) error {
 	if _, ok := byNumber[number]; ok {
 		return fmt.Errorf("registering the same pin %d twice", number)
 	}
-	name := pin.String()
+	name := pin.Name()
 	if _, ok := byName[name]; ok {
 		return fmt.Errorf("registering the same pin %s twice", name)
 	}
 
 	byNumber[number] = pin
 	byName[name] = pin
+	return nil
+}
+
+// RegisterAlias registers an alias for a GPIO pin.
+//
+// RegisterAlias differs from Register in that it does not register the pin by number,
+// only by name and thereby can allow duplicate numbers, which happens when using PinAlias.
+func RegisterAlias(pin *PinAlias) error {
+	lock.Lock()
+	defer lock.Unlock()
+	name := pin.Name()
+	if _, ok := byName[name]; ok {
+		return fmt.Errorf("registering the same pin %s twice", name)
+	}
+
+	byName[name] = PinIO(pin)
 	return nil
 }
 
@@ -340,6 +395,10 @@ type invalidPin struct {
 
 func (invalidPin) Number() int {
 	return -1
+}
+
+func (invalidPin) Name() string {
+	return "INVALID"
 }
 
 func (invalidPin) String() string {

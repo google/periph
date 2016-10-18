@@ -56,16 +56,21 @@ var INVALID PinIO = invalidPin{}
 
 // BasicPin implements Pin as a non-functional pin.
 type BasicPin struct {
-	Name string
+	N string
 }
 
 func (b *BasicPin) String() string {
-	return b.Name
+	return b.N
 }
 
 // Number implements pins.Pin.
 func (b *BasicPin) Number() int {
 	return -1
+}
+
+// Name implements pins.Pin.
+func (b *BasicPin) Name() string {
+	return b.N
 }
 
 // Function implements pins.Pin.
@@ -75,7 +80,7 @@ func (b *BasicPin) Function() string {
 
 // ADC implements ADC.
 func (b *BasicPin) ADC() error {
-	return fmt.Errorf("%s cannot be used as ADC", b.Name)
+	return fmt.Errorf("%s cannot be used as ADC", b.N)
 }
 
 // Range implements ADC.
@@ -90,7 +95,7 @@ func (b *BasicPin) Measure() int32 {
 
 // DAC implements DAC.
 func (b *BasicPin) DAC(v int32) error {
-	return fmt.Errorf("%s cannot be used as DAC", b.Name)
+	return fmt.Errorf("%s cannot be used as DAC", b.N)
 }
 
 //
@@ -104,6 +109,10 @@ type invalidPin struct {
 
 func (invalidPin) Number() int {
 	return -1
+}
+
+func (invalidPin) Name() string {
+	return "INVALID"
 }
 
 func (invalidPin) String() string {

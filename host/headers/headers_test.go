@@ -32,8 +32,8 @@ func TestIsConnected(t *testing.T) {
 //
 
 var (
-	gpio2 = &gpiotest.Pin{Name: "GPIO2", Num: 2, Fn: "I2C1_SDA"}
-	gpio3 = &gpiotest.Pin{Name: "GPIO3", Num: 3, Fn: "I2C1_SCL"}
+	gpio2 = &gpiotest.Pin{N: "GPIO2", Num: 2, Fn: "I2C1_SDA"}
+	gpio3 = &gpiotest.Pin{N: "GPIO3", Num: 3, Fn: "I2C1_SCL"}
 )
 
 func init() {

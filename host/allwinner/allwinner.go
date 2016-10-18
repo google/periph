@@ -38,10 +38,10 @@ func Present() bool {
 
 // CPU specific pins.
 var (
-	X32KFOUT gpio.PinIO   = &gpio.BasicPin{Name: "X32KFOUT"}  // Clock output of 32Khz crystal
-	KEY_ADC  analog.PinIO = &analog.BasicPin{Name: "KEY_ADC"} // 6 bits resolution ADC for key application; can work up to 250Hz conversion rate; reference voltage is 2.0V
-	EAROUTP  analog.PinIO = &analog.BasicPin{Name: "EAROUTP"} // Earpiece amplifier negative differential output
-	EAROUTN  analog.PinIO = &analog.BasicPin{Name: "EAROUTN"} // Earpiece amplifier positive differential output
+	X32KFOUT gpio.PinIO   = &gpio.BasicPin{N: "X32KFOUT"}  // Clock output of 32Khz crystal
+	KEY_ADC  analog.PinIO = &analog.BasicPin{N: "KEY_ADC"} // 6 bits resolution ADC for key application; can work up to 250Hz conversion rate; reference voltage is 2.0V
+	EAROUTP  analog.PinIO = &analog.BasicPin{N: "EAROUTP"} // Earpiece amplifier negative differential output
+	EAROUTN  analog.PinIO = &analog.BasicPin{N: "EAROUTN"} // Earpiece amplifier positive differential output
 )
 
 // 0x24/4 = 9
@@ -499,6 +499,10 @@ var (
 
 func (p *Pin) String() string {
 	return fmt.Sprintf("%s(%d)", p.name, p.Number())
+}
+
+func (p *Pin) Name() string {
+	return p.name
 }
 
 // Number implements pins.Pin.

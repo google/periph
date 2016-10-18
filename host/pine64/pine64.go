@@ -31,16 +31,16 @@ func Present() bool {
 
 // Pine64 specific pins.
 var (
-	VCC      pins.Pin = &pins.BasicPin{Name: "VCC"}      //
-	IOVCC    pins.Pin = &pins.BasicPin{Name: "IOVCC"}    // Power supply for port A
-	DC_IN    pins.Pin = &pins.BasicPin{Name: "DC_IN"}    //
-	BAT_PLUS pins.Pin = &pins.BasicPin{Name: "BAT_PLUS"} //
+	VCC      pins.Pin = &pins.BasicPin{N: "VCC"}      //
+	IOVCC    pins.Pin = &pins.BasicPin{N: "IOVCC"}    // Power supply for port A
+	DC_IN    pins.Pin = &pins.BasicPin{N: "DC_IN"}    //
+	BAT_PLUS pins.Pin = &pins.BasicPin{N: "BAT_PLUS"} //
 
-	TEMP_SENSOR gpio.PinIO = &gpio.BasicPin{Name: "TEMP_SENSOR"} //
-	IR_RX       gpio.PinIO = &gpio.BasicPin{Name: "IR_RX"}       // IR Data Receive
-	CHARGER_LED gpio.PinIO = &gpio.BasicPin{Name: "CHARGER_LED"} //
-	RESET       gpio.PinIO = &gpio.BasicPin{Name: "RESET"}       //
-	PWR_SWITCH  gpio.PinIO = &gpio.BasicPin{Name: "PWR_SWITCH"}  //
+	TEMP_SENSOR gpio.PinIO = &gpio.BasicPin{N: "TEMP_SENSOR"} //
+	IR_RX       gpio.PinIO = &gpio.BasicPin{N: "IR_RX"}       // IR Data Receive
+	CHARGER_LED gpio.PinIO = &gpio.BasicPin{N: "CHARGER_LED"} //
+	RESET       gpio.PinIO = &gpio.BasicPin{N: "RESET"}       //
+	PWR_SWITCH  gpio.PinIO = &gpio.BasicPin{N: "PWR_SWITCH"}  //
 )
 
 // All the individual pins on the headers.
@@ -159,8 +159,8 @@ var (
 	WIFI_BT_25 pins.Pin   = VCC                //
 	WIFI_BT_26 pins.Pin   = IOVCC              //
 
-	AUDIO_LEFT  analog.PinIO = &analog.BasicPin{Name: "TODO_AUDIO_LEFT"}  // TODO(maruel): Figure out, is that EAROUT?
-	AUDIO_RIGHT analog.PinIO = &analog.BasicPin{Name: "TODO_AUDIO_RIGHT"} //
+	AUDIO_LEFT  analog.PinIO = &analog.BasicPin{N: "TODO_AUDIO_LEFT"}  // TODO(maruel): Figure out, is that EAROUT?
+	AUDIO_RIGHT analog.PinIO = &analog.BasicPin{N: "TODO_AUDIO_RIGHT"} //
 )
 
 func zapPins() {

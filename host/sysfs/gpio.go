@@ -50,8 +50,12 @@ type Pin struct {
 	event      event     // Initialized once
 }
 
-func (p *Pin) String() string {
+func (p *Pin) Name() string {
 	return p.name
+}
+
+func (p *Pin) String() string {
+	return fmt.Sprintf("%s(%d)", p.name, p.number)
 }
 
 // Number implements pins.Pin.
@@ -407,9 +411,13 @@ func (d *driverGPIO) parseGPIOChip(path string) error {
 			root:   fmt.Sprintf("/sys/class/gpio/gpio%d/", i),
 		}
 		Pins[i] = p
-		// Intentionally ignore any error. In that case, a Processor driver already
-		// registered the pin.
-		_ = gpio.Register(p)
+		// Try to register real pin, but it may already be registered by the processor
+		// driver. In that case register an alias instead.
+		if gpio.Register(p) != nil {
+			realPin := gpio.ByNumber(i)
+			alias := &gpio.PinAlias{N: p.name, PinIO: realPin}
+			gpio.RegisterAlias(alias)
+		}
 		// We cannot use gpio.MapFunction() since there is no API to determine this.
 	}
 	return nil
