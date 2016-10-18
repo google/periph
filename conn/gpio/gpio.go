@@ -224,13 +224,8 @@ func (b *BasicPin) PWM(duty int) error {
 //
 // Note that currently only PinIO's can be aliased, not PinIn's or PinOut's.
 type PinAlias struct {
-	N string
 	PinIO
-}
-
-// Name returns the PinAlias's name.
-func (a *PinAlias) Name() string {
-	return a.N
+	N string
 }
 
 // String returns the PinAlias's name with the real pin's String() in parenthesis.
@@ -238,12 +233,17 @@ func (a *PinAlias) String() string {
 	return fmt.Sprintf("%s(%s)", a.N, a.PinIO)
 }
 
+// Name returns the PinAlias's name.
+func (a *PinAlias) Name() string {
+	return a.N
+}
+
 // Real returns the real pin behind the alias
 func (a *PinAlias) Real() PinIO {
 	return a.PinIO
 }
 
-// RealPin is implemented by PinAlias and allows the rtrieval of the real pin underlying
+// RealPin is implemented by PinAlias and allows the retrieval of the real pin underlying
 // an alias. The purpose of the alias is to be able to cleanly test whether an arbitrary
 // gpio.PinIO returned by ByName is really an alias for another pin.
 type RealPin interface {

@@ -13,11 +13,11 @@ import "fmt"
 
 // These are well known pins.
 var (
-	INVALID Pin = &BasicPin{"INVALID"} // Either floating or invalid pin
-	GROUND  Pin = &BasicPin{"GROUND"}  // Ground
-	V1_8    Pin = &BasicPin{"V1_8"}    // 1.8 volt
-	V3_3    Pin = &BasicPin{"V3_3"}    // 3.3 volt
-	V5      Pin = &BasicPin{"V5"}      // 5 vol
+	INVALID Pin = &BasicPin{N: "INVALID"} // Either floating or invalid pin
+	GROUND  Pin = &BasicPin{N: "GROUND"}  // Ground
+	V1_8    Pin = &BasicPin{N: "V1_8"}    // 1.8 volt
+	V3_3    Pin = &BasicPin{N: "V3_3"}    // 3.3 volt
+	V5      Pin = &BasicPin{N: "V5"}      // 5 vol
 )
 
 // Pin is the minimal common interface shared between gpio.PinIO and
