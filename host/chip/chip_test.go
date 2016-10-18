@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// +build arm
+
 package chip
 
 import (
@@ -56,10 +58,12 @@ func TestChipHeaders(t *testing.T) {
 
 	for r := range h["U13"] {
 		if len(h["U13"][r]) != 2 {
-			t.Errorf("Expected row %d of U13 to have 2 pins, not %d\n", len(h["U13"][r]))
+			t.Errorf("Expected row %d of U13 to have 2 pins, not %d\n",
+				r, len(h["U13"][r]))
 		}
 		if len(h["U14"][r]) != 2 {
-			t.Errorf("Expected row %d of U14 to have 2 pins, not %d\n", len(h["U14"][r]))
+			t.Errorf("Expected row %d of U14 to have 2 pins, not %d\n",
+				r, len(h["U14"][r]))
 		}
 	}
 

@@ -31,7 +31,7 @@ func ExampleByName() {
 	fmt.Printf("%s: %s\n", p, p.Function())
 }
 
-func ExampleByAlias() {
+func ExampleByName_alias() {
 	p := ByName("LCD-D2")
 	if p == nil {
 		log.Fatal("Failed to find LCD-D2")

@@ -20,12 +20,12 @@ import (
 )
 
 var (
-	DC_IN    pins.Pin = &pins.BasicPin{"DC_IN"}
-	BAT_PLUS pins.Pin = &pins.BasicPin{"BAT_PLUS"}
-	V1_8     pins.Pin = &pins.BasicPin{"V1_8"} // 1.8 volt output
+	DC_IN    pins.Pin = &pins.BasicPin{N: "DC_IN"}
+	BAT_PLUS pins.Pin = &pins.BasicPin{N: "BAT_PLUS"}
+	V1_8     pins.Pin = &pins.BasicPin{N: "V1_8"} // 1.8 volt output
 
-	TEMP_SENSOR gpio.PinIO = &gpio.BasicPin{"TEMP_SENSOR"}
-	PWR_SWITCH  gpio.PinIO = &gpio.BasicPin{"PWR_SWITCH"}
+	TEMP_SENSOR gpio.PinIO = &gpio.BasicPin{N: "TEMP_SENSOR"}
+	PWR_SWITCH  gpio.PinIO = &gpio.BasicPin{N: "PWR_SWITCH"}
 
 	// XIO "gpio" pins attached to the pcf75.. I2c port extender, these get initialized in the
 	// Init function
@@ -303,7 +303,7 @@ func (d *driver) Init() (bool, error) {
 			return true, fmt.Errorf("Cannot create alias for %s: it doesn't exist",
 				real)
 		}
-		a := &gpio.PinAlias{alias, r}
+		a := &gpio.PinAlias{N: alias, PinIO: r}
 		if err := gpio.RegisterAlias(a); err != nil {
 			fmt.Printf("Cannot create alias %s for %s: %s", alias, real, err)
 			return true, fmt.Errorf("Cannot create alias %s for %s: %s",

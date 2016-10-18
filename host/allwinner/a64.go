@@ -12,10 +12,10 @@ import (
 )
 
 var (
-	X32KFOUT gpio.PinIO   = &gpio.BasicPin{"X32KFOUT"}  // Clock output of 32Khz crystal
-	KEY_ADC  analog.PinIO = &analog.BasicPin{"KEY_ADC"} // 6 bits resolution ADC for key application; can work up to 250Hz conversion rate; reference voltage is 2.0V
-	EAROUTP  analog.PinIO = &analog.BasicPin{"EAROUTP"} // Earpiece amplifier negative differential output
-	EAROUTN  analog.PinIO = &analog.BasicPin{"EAROUTN"} // Earpiece amplifier positive differential output
+	X32KFOUT gpio.PinIO   = &gpio.BasicPin{N: "X32KFOUT"}  // Clock output of 32Khz crystal
+	KEY_ADC  analog.PinIO = &analog.BasicPin{N: "KEY_ADC"} // 6 bits resolution ADC for key application; can work up to 250Hz conversion rate; reference voltage is 2.0V
+	EAROUTP  analog.PinIO = &analog.BasicPin{N: "EAROUTP"} // Earpiece amplifier negative differential output
+	EAROUTN  analog.PinIO = &analog.BasicPin{N: "EAROUTN"} // Earpiece amplifier positive differential output
 )
 
 // mapping excludes functions in and out.
