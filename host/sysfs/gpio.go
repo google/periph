@@ -415,7 +415,7 @@ func (d *driverGPIO) parseGPIOChip(path string) error {
 		// driver. In that case register an alias instead.
 		if gpio.Register(p) != nil {
 			realPin := gpio.ByNumber(i)
-			alias := &gpio.PinAlias{p.name, realPin}
+			alias := &gpio.PinAlias{N: p.name, PinIO: realPin}
 			gpio.RegisterAlias(alias)
 		}
 		// We cannot use gpio.MapFunction() since there is no API to determine this.
