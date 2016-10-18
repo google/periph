@@ -19,9 +19,9 @@ headers-list
 ```
 
 
-## Application developpers
+## Application developers
 
-For [application developpers](doc/apps/), `pio` provides OS-independent bus
+For [application developers](doc/apps/), `pio` provides OS-independent bus
 interfacing. The following gets the current temperature, barometric pressure and
 relative humidity using a bme280:
 
@@ -43,7 +43,7 @@ func main() {
         log.Fatal(err)
     }
 
-    // Open a handle to the first available I²C bus. It could be a via FT232H
+    // Open a handle to the first available I²C bus. It could be via a FT232H
     // over USB or an I²C bus exposed on the host's headers, it doesn't matter.
     bus, err := i2c.New(-1)
     if err != nil {
@@ -75,9 +75,9 @@ See more examples at [doc/apps/SAMPLES.md](doc/apps/SAMPLES.md)!
 `pio` provides an extensible driver registry and common bus interfaces which are
 explained in more details at [doc/drivers/](doc/drivers/). `pio` is designed to
 work well with drivers living in external repositories so you are not _required_
-to fork to load drivers for your platform.
+to fork the pio repository to load out-of-tree drivers for your platform.
 
-We gladly accept contributions from device driver developpers via GitHub pull
+We gladly accept contributions from device driver developers via GitHub pull
 requests, as long as the author has signed the Google Contributor License.
 Please see [doc/drivers/CONTRIBUTING.md](doc/drivers/CONTRIBUTING.md) for more
 details.
@@ -112,11 +112,11 @@ details.
    responsibility.
    * e.g. instead of having a driver per "platform", there's a driver per
      "component": one for the CPU, one for the board headers, one for each
-     buses and sensors, etc.
+     bus and sensor, etc.
 5. Extensible via a [driver
    registry](https://godoc.org/github.com/google/pio#Register).
    * e.g. a user can inject a custom driver to expose more pins, headers, etc.
-     An USB device (like an FT232H) can expose headers _in addition_ to the
+     A USB device (like an FT232H) can expose headers _in addition_ to the
      headers found on the host.
 6. The drivers must use the fastest possible implementation.
    * e.g. both
@@ -124,7 +124,7 @@ details.
      and
      [bcm283x](https://godoc.org/github.com/google/pio/host/bcm283x)
      leverage sysfs gpio to expose interrupt driven edge detection, yet use
-     memory mapped GPIO registers to single-cycle reads and writes.
+     memory mapped GPIO registers to perform single-cycle reads and writes.
 
 
 ## Authors
