@@ -157,7 +157,8 @@ func splitStrict(content string) map[string]string {
 // splitNull returns the null-terminated strings in the data
 func splitNull(data []byte) []string {
 	ss := strings.Split(string(data), "\x00")
-	// the last string is typically null-terminated, so remove empty string from end of array
+	// The last string is typically null-terminated, so remove empty string
+	// from end of array.
 	if len(ss) > 0 && len(ss[len(ss)-1]) == 0 {
 		ss = ss[:len(ss)-1]
 	}

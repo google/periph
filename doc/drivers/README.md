@@ -156,3 +156,14 @@ experience.
 * Struct implementing an interface must validate at compile time with `var _
   <Interface> = &<Type>{}`.
 * License is Apache v2.0.
+
+
+## Code style
+
+* The code tries to follow Go code style as described at
+  https://github.com/golang/go/wiki/CodeReviewComments
+* Top level comments are expected to be wrapped at 80 cols. Indented comments
+  should be wrapped at reasonable width.
+* Comments should start with a capitalized letter and end with a period.
+* Markdown tries to follow [Google Markdown
+  style](https://github.com/google/styleguide/blob/gh-pages/docguide/style.md)

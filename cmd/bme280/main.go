@@ -49,6 +49,7 @@ func read(e devices.Environmental, loop bool) error {
 
 func mainImpl() error {
 	i2cID := flag.Int("i", -1, "I²C bus to use")
+	i2cADDR := flag.Uint("ia", 0, "I²C bus address to use")
 	spiID := flag.Int("s", -1, "SPI bus to use")
 	cs := flag.Int("cs", -1, "SPI chip select (CS) line to use")
 	sample1x := flag.Bool("s1", false, "sample at 1x")
@@ -93,6 +94,9 @@ func mainImpl() error {
 		opts.Filter = bme280.F8
 	} else if *filter16x {
 		opts.Filter = bme280.F16
+	}
+	if *i2cADDR != 0 {
+		opts.Address = uint16(*i2cADDR)
 	}
 
 	if _, err := host.Init(); err != nil {
