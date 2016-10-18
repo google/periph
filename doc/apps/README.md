@@ -1,4 +1,4 @@
-# pio - Application developpers
+# pio - Application developers
 
 Documentation for _application developers_ who want to write Go applications
 leveraging `pio`.
@@ -29,24 +29,24 @@ and PWM.
 * The device drivers _using_ these interfaces are located in
   [devices/](../../devices/).
 
-A device can be connected on a bus, let's say a LEDs strip connected over SPI.
-You need to connect the device driver of the LEDs to the SPI bus handle in your
-application.
+A device can be connected on a bus, let's say an LED strip connected over SPI.
+In this case the application needs to obtain a handle to the SPI bus and then
+connect the LED device driver to the SPI bus handle.
 
 
 ## Project state
 
-The library is **not stable** yet and breaking changes continously happen.
-Please version the libary using [one of go vendoring
+The library is **not stable** yet and breaking changes continuously happen.
+Please version the libary using [one of the go vendoring
 tools](https://github.com/golang/go/wiki/PackageManagementTools) and sync
 frequently.
 
 
 ## Initialization
 
-The function to initialize the default registered drivers is
+The function to initialize the drivers registered by default is
 [host.Init()](https://godoc.org/github.com/google/pio/host#Init). It
-returns at
+returns a
 [pio.State](https://godoc.org/github.com/google/pio#State):
 
 ```go
@@ -58,12 +58,12 @@ information about:
 
 * The drivers loaded and active.
 * The drivers skipped, because the relevant hardware wasn't found.
-* The drivers that failed to load. The app may still run without these drivers.
+* The drivers that failed to load due to an error. The app may still run without these drivers.
 
 In addition,
 [host.Init()](https://godoc.org/github.com/google/pio/host#Init) may
 return an error when there's a structural issue, for example two drivers with
-the same name were registered. This is a catastrophic failure. The package
+the same name were registered. This is a fatal failure. The package
 [host](https://godoc.org/github.com/google/pio/host) registers all the
 drivers under [host/](../../host/).
 
@@ -72,64 +72,20 @@ drivers under [host/](../../host/).
 
 A connection
 [conn.Conn](https://godoc.org/github.com/google/pio/conn#Conn)
-is a **point-to-point** connection between the host and a device where you are
-the master driving the I/O.
+is a **point-to-point** connection between the host and a device where the
+application is the master driving the I/O.
 
 [conn.Conn](https://godoc.org/github.com/google/pio/conn#Conn)
 implements [io.Writer](https://golang.org/pkg/io/#Writer) for write-only
-devices, so you can use functions like
+devices, so it is possible to use functions like
 [io.Copy()](https://golang.org/pkg/io/#Copy) to push data over a connection.
 
 A `Conn` can be multiplexed over the underlying bus. For example an I²C bus may
 have multiple connections (slaves) to the master, each addressed by the device
-address. The same is true on SPI via the `CS` line. On the other hand, UART
+address. The same is true on SPI via the `CS` line. On the other hand, a UART
 connection is always point-to-point. A `Conn` can even be created out of gpio
 pins via bit banging.
 
-
-### I²C connection
-
-An
-[i2c.Conn](https://godoc.org/github.com/google/pio/conn/i2c#Conn)
-is **not** a
-[conn.Conn](https://godoc.org/github.com/google/pio/conn#Conn).
-This is because an I²C bus is **not** a point-to-point connection but instead is
-a real bus where multiple devices can be connected simultaneously, like an USB
-bus. To create a virtual connection to a device, the device address is required
-via
-[i2c.Dev](https://godoc.org/github.com/google/pio/conn/i2c#Dev):
-
-```go
-// Open the first available I²C bus:
-bus, _ := i2c.New(-1)
-// Address the device with address 0x76 on the I²C bus:
-dev := i2c.Dev{bus, 0x76}
-// This is effectively a point-to-point connection:
-var _ conn.Conn = &dev
-```
-
-Since many devices have their address hardcoded, it's up to the device driver to
-specify the address.
-
-
-#### exp/io compatibility
-
-To convert a
-[i2c.Dev](https://godoc.org/github.com/google/pio/conn/i2c#Dev)
-to a
-[exp/io/i2c/driver.Conn](https://godoc.org/golang.org/x/exp/io/i2c/driver#Conn),
-use the following:
-
-```go
-type adaptor struct {
-    conn.Conn
-}
-
-func (a *adaptor) Close() error {
-    // It's not to the device to close the bus.
-    return nil
-}
-```
 
 ### SPI connection
 
@@ -168,12 +124,56 @@ func (a *adaptor) Close() error {
 ```
 
 
+### I²C connection
+
+An
+[i2c.Conn](https://godoc.org/github.com/google/pio/conn/i2c#Conn)
+is **not** a
+[conn.Conn](https://godoc.org/github.com/google/pio/conn#Conn).
+This is because an I²C bus is **not** a point-to-point connection but instead is
+a real bus where multiple devices can be connected simultaneously, like a USB
+bus. To create a point-to-point connection to a device which does implement
+[conn.Conn](https://godoc.org/github.com/google/pio/conn#Conn) use
+[i2c.Dev](https://godoc.org/github.com/google/pio/conn/i2c#Dev), which embeds
+the device's address:
+
+```go
+// Open the first available I²C bus:
+bus, _ := i2c.New(-1)
+// Address the device with address 0x76 on the I²C bus:
+dev := i2c.Dev{bus, 0x76}
+// This is now a point-to-point connection and implements conn.Conn:
+var _ conn.Conn = &dev
+```
+
+Since many devices have their address hardcoded, it's up to the device driver to
+specify the address.
+
+
+#### exp/io compatibility
+
+To convert a
+[i2c.Dev](https://godoc.org/github.com/google/pio/conn/i2c#Dev)
+to a
+[exp/io/i2c/driver.Conn](https://godoc.org/golang.org/x/exp/io/i2c/driver#Conn),
+use the following:
+
+```go
+type adaptor struct {
+    conn.Conn
+}
+
+func (a *adaptor) Close() error {
+    // It's not to the device to close the bus.
+    return nil
+}
+```
+
 ### GPIO
 
-[gpio
-pins](https://godoc.org/github.com/google/pio/conn/gpio#PinIO)
-can be leveraged for arbitrary use, like buttons, control LEDs, etc. You may
-construct an I²C or a SPI bus over raw GPIO pins via
+[gpio pins](https://godoc.org/github.com/google/pio/conn/gpio#PinIO)
+can be leveraged for arbitrary uses, such as buttons, LEDs, relays, etc. 
+It is also possible to construct an I²C or a SPI bus over raw GPIO pins via
 [experimental/bitbang](https://godoc.org/github.com/google/pio/experimental/devices/bitbang).
 
 
@@ -184,10 +184,11 @@ See [SAMPLES.md](SAMPLES.md) for various examples.
 
 ## Using out-of-tree drivers
 
-You can load out of tree drivers for devices but more importantly even for
-buses, GPIO pins, headers, etc. Let's say you have a driver that exposes an I²C
-bus over a REST API to a remote device, that lives in repository
-github.com/example/virtual_i2c, you can do the following:
+Out of tree drivers can be loaded for new devices but more importantly even for
+buses, GPIO pins, headers, etc. The example below shows a driver in a repository
+at github.com/example/virtual_i2c that exposes an I²C
+bus over a REST API to a remote device.
+This driver can be used with pio as if it were built into pio as follows:
 
 ```go
 package main

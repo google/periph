@@ -1,6 +1,6 @@
 # pio
 
-pio is a peripherals I/O library in Go.
+pio is a Peripheral I/O library in Go.
 
 The documentation is split into 3 sections:
 * [users/](users/) for ready-to-use tools.
