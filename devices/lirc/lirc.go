@@ -21,9 +21,10 @@ import (
 
 // Conn is an open port to lirc.
 type Conn struct {
-	w           net.Conn
-	c           chan ir.Message
-	lock        sync.Mutex
+	w net.Conn
+	c chan ir.Message
+
+	mu          sync.Mutex
 	list        map[string][]string // list of remotes and associated keys
 	pendingList map[string][]string // list of remotes and associated keys being created.
 }
@@ -66,8 +67,8 @@ func (c *Conn) Channel() <-chan ir.Message {
 //
 // Empty if the list was not retrieved yet.
 func (c *Conn) Codes() map[string][]string {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	return c.list
 }
 
@@ -176,10 +177,10 @@ func (c *Conn) readData(r *bufio.Reader) error {
 					}
 				}
 				if all {
-					c.lock.Lock()
+					c.mu.Lock()
 					c.list = c.pendingList
 					c.pendingList = nil
-					c.lock.Unlock()
+					c.mu.Unlock()
 				}
 			}
 		default:

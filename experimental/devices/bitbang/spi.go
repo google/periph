@@ -28,7 +28,7 @@ type SPI struct {
 	sdi       gpio.PinIn  // MISO
 	sdo       gpio.PinOut // MOSI
 	csn       gpio.PinOut // CS
-	lock      sync.Mutex
+	mu        sync.Mutex
 	mode      spi.Mode
 	bits      int
 	halfCycle time.Duration
@@ -45,16 +45,16 @@ func (s *SPI) Close() error {
 
 // Speed implements spi.Conn.
 func (s *SPI) Speed(hz int64) error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.halfCycle = time.Second / time.Duration(hz) / time.Duration(2)
 	return nil
 }
 
 // Configure implements spi.Conn.
 func (s *SPI) Configure(mode spi.Mode, bits int) error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if mode != spi.Mode3 {
 		return errors.New("not implemented")
 	}
@@ -72,8 +72,8 @@ func (s *SPI) Tx(w, r []byte) error {
 	if len(r) != 0 && len(w) != len(r) {
 		return errors.New("write and read buffers must be the same length")
 	}
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if s.csn != nil {
 		s.csn.Out(gpio.Low)
 		s.sleepHalfCycle()

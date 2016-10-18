@@ -17,8 +17,8 @@ import (
 
 // RecordRaw implements conn.Conn. It sends everything written to it to W.
 type RecordRaw struct {
-	Lock sync.Mutex
-	W    io.Writer
+	sync.Mutex
+	W io.Writer
 }
 
 func (r *RecordRaw) String() string {
@@ -27,8 +27,8 @@ func (r *RecordRaw) String() string {
 
 // Write implements conn.Conn.
 func (r *RecordRaw) Write(b []byte) (int, error) {
-	r.Lock.Lock()
-	defer r.Lock.Unlock()
+	r.Lock()
+	defer r.Unlock()
 	return r.W.Write(b)
 }
 
@@ -51,8 +51,8 @@ type IO struct {
 //
 // This can then be used to feed to Playback to do "replay" based unit tests.
 type Record struct {
+	sync.Mutex
 	Conn conn.Conn // Conn can be nil if only writes are being recorded.
-	Lock sync.Mutex
 	Ops  []IO
 }
 
@@ -70,8 +70,8 @@ func (r *Record) Write(d []byte) (int, error) {
 
 // Tx implements conn.Conn.
 func (r *Record) Tx(w, read []byte) error {
-	r.Lock.Lock()
-	defer r.Lock.Unlock()
+	r.Lock()
+	defer r.Unlock()
 	if r.Conn == nil {
 		if len(read) != 0 {
 			return errors.New("read unsupported when no bus is connected")
@@ -96,8 +96,8 @@ func (r *Record) Tx(w, read []byte) error {
 // While "replay" type of unit tests are of limited value, they still present
 // an easy way to do basic code coverage.
 type Playback struct {
-	Lock sync.Mutex
-	Ops  []IO
+	sync.Mutex
+	Ops []IO
 }
 
 func (p *Playback) String() string {
@@ -114,8 +114,8 @@ func (p *Playback) Write(d []byte) (int, error) {
 
 // Tx implements conn.Conn.
 func (p *Playback) Tx(w, r []byte) error {
-	p.Lock.Lock()
-	defer p.Lock.Unlock()
+	p.Lock()
+	defer p.Unlock()
 	if len(p.Ops) == 0 {
 		// log.Fatal() ?
 		return errors.New("unexpected Tx()")

@@ -39,7 +39,7 @@ type ThermalSensor struct {
 	name string
 	root string
 
-	lock     sync.Mutex
+	mu       sync.Mutex
 	nameType string
 	fTemp    *os.File
 }
@@ -50,8 +50,8 @@ func (t *ThermalSensor) String() string {
 
 // Type returns the type of sensor as exported by sysfs.
 func (t *ThermalSensor) Type() string {
-	t.lock.Lock()
-	defer t.lock.Unlock()
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	if t.nameType == "" {
 		f, err := os.OpenFile(t.root+"type", os.O_RDONLY, 0600)
 		if err != nil {
@@ -77,8 +77,8 @@ func (t *ThermalSensor) Sense(env *devices.Environment) error {
 	if err := t.open(); err != nil {
 		return err
 	}
-	t.lock.Lock()
-	defer t.lock.Unlock()
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	if _, err := t.fTemp.Seek(0, 0); err != nil {
 		return err
 	}
@@ -104,8 +104,8 @@ func (t *ThermalSensor) Sense(env *devices.Environment) error {
 //
 
 func (t *ThermalSensor) open() error {
-	t.lock.Lock()
-	defer t.lock.Unlock()
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	var err error
 	if t.fTemp == nil {
 		t.fTemp, err = os.OpenFile(t.root+"temp", os.O_RDONLY, 0600)

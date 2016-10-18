@@ -26,8 +26,8 @@ type IO struct {
 //
 // This can then be used to feed to Playback to do "replay" based unit tests.
 type Record struct {
+	sync.Mutex
 	Conn i2c.Conn // Conn can be nil if only writes are being recorded.
-	Lock sync.Mutex
 	Ops  []IO
 }
 
@@ -37,8 +37,8 @@ func (r *Record) String() string {
 
 // Tx implements i2c.Conn.
 func (r *Record) Tx(addr uint16, w, read []byte) error {
-	r.Lock.Lock()
-	defer r.Lock.Unlock()
+	r.Lock()
+	defer r.Unlock()
 	if r.Conn == nil {
 		if len(read) != 0 {
 			return errors.New("read unsupported when no bus is connected")
@@ -87,8 +87,8 @@ func (r *Record) SDA() gpio.PinIO {
 // While "replay" type of unit tests are of limited value, they still present
 // an easy way to do basic code coverage.
 type Playback struct {
-	Lock sync.Mutex
-	Ops  []IO
+	sync.Mutex
+	Ops []IO
 }
 
 func (p *Playback) String() string {
@@ -97,8 +97,8 @@ func (p *Playback) String() string {
 
 // Close implements i2c.ConnCloser.
 func (p *Playback) Close() error {
-	p.Lock.Lock()
-	defer p.Lock.Unlock()
+	p.Lock()
+	defer p.Unlock()
 	if len(p.Ops) != 0 {
 		return fmt.Errorf("expected playback to be empty:\n%#v", p.Ops)
 	}
@@ -107,8 +107,8 @@ func (p *Playback) Close() error {
 
 // Tx implements i2c.Conn.
 func (p *Playback) Tx(addr uint16, w, r []byte) error {
-	p.Lock.Lock()
-	defer p.Lock.Unlock()
+	p.Lock()
+	defer p.Unlock()
 	if len(p.Ops) == 0 {
 		// log.Fatal() ?
 		return errors.New("unexpected Tx()")
