@@ -159,8 +159,8 @@ var (
 	WIFI_BT_25 pins.Pin   = VCC                //
 	WIFI_BT_26 pins.Pin   = IOVCC              //
 
-	AUDIO_LEFT  analog.PinIO = &analog.BasicPin{"TODO_AUDIO_LEFT"}  // TODO(maruel): Figure out, is that EAROUT?
-	AUDIO_RIGHT analog.PinIO = &analog.BasicPin{"TODO_AUDIO_RIGHT"} //
+	AUDIO_LEFT  analog.PinIO = &analog.BasicPin{N: "TODO_AUDIO_LEFT"}  // TODO(maruel): Figure out, is that EAROUT?
+	AUDIO_RIGHT analog.PinIO = &analog.BasicPin{N: "TODO_AUDIO_RIGHT"} //
 )
 
 func zapPins() {
