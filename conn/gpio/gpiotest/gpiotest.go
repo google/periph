@@ -32,17 +32,17 @@ func (p *Pin) String() string {
 	return fmt.Sprintf("%s(%d)", p.N, p.Num)
 }
 
-// Name implements pins.Pin.
+// Name returns the name of the pin.
 func (p *Pin) Name() string {
 	return p.N
 }
 
-// Number implements pins.Pin.
+// Number returns the pin number.
 func (p *Pin) Number() int {
 	return p.Num
 }
 
-// Function implements pins.Pin.
+// Function return the value of the Fn fielf of the pin.
 func (p *Pin) Function() string {
 	return p.Fn
 }
