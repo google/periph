@@ -24,10 +24,11 @@ import (
 
 // SPI represents a SPI master implemented as bit-banging on 3 or 4 GPIO pins.
 type SPI struct {
-	sck       gpio.PinOut // Clock
-	sdi       gpio.PinIn  // MISO
-	sdo       gpio.PinOut // MOSI
-	csn       gpio.PinOut // CS
+	sck gpio.PinOut // Clock
+	sdi gpio.PinIn  // MISO
+	sdo gpio.PinOut // MOSI
+	csn gpio.PinOut // CS
+
 	mu        sync.Mutex
 	mode      spi.Mode
 	bits      int
