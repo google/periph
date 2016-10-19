@@ -65,8 +65,8 @@ type Pins interface {
 
 // All returns all the SPI buses available on this host.
 func All() map[string]Opener {
-	lock.Lock()
-	defer lock.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 	out := make(map[string]Opener, len(byName))
 	for k, v := range byName {
 		out[k] = v
@@ -93,8 +93,8 @@ type Opener func() (ConnCloser, error)
 //
 // Registering the same bus name twice is an error.
 func Register(name string, busNumber, cs int, opener Opener) error {
-	lock.Lock()
-	defer lock.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 	if _, ok := byName[name]; ok {
 		return fmt.Errorf("registering the same SPI bus %s twice", name)
 	}
@@ -122,8 +122,8 @@ func Register(name string, busNumber, cs int, opener Opener) error {
 // This can happen when a SPI bus is exposed via an USB device and the device is
 // unplugged.
 func Unregister(name string, busNumber int) error {
-	lock.Lock()
-	defer lock.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 	_, ok := byName[name]
 	if !ok {
 		return errors.New("unknown name")
@@ -153,8 +153,8 @@ func Unregister(name string, busNumber int) error {
 //
 
 func find(busNumber, cs int) (Opener, error) {
-	lock.Lock()
-	defer lock.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 	if busNumber == -1 {
 		if first == nil {
 			return nil, errors.New("no SPI bus found")
@@ -173,7 +173,7 @@ func find(busNumber, cs int) (Opener, error) {
 }
 
 var (
-	lock     sync.Mutex
+	mu       sync.Mutex
 	byName   = map[string]Opener{}
 	byNumber = map[int]map[int]Opener{}
 	first    Opener

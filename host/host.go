@@ -49,13 +49,13 @@ func Nanospin(d time.Duration) {
 //
 
 var (
-	lock     sync.Mutex
+	mu       sync.Mutex
 	maxSpeed int64 = -1
 )
 
 func getMaxSpeedLinux() int64 {
-	lock.Lock()
-	defer lock.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 	if maxSpeed == -1 {
 		if bytes, err := ioutil.ReadFile("/sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq"); err == nil {
 			s := strings.TrimSpace(string(bytes))

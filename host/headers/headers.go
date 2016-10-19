@@ -17,8 +17,8 @@ import (
 // slice of slice of pins. For a 2x20 header, it's going to be a slice of
 // [20][2]pins.Pin.
 func All() map[string][][]pins.Pin {
-	lock.Lock()
-	defer lock.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 	// TODO(maruel): Return a copy?
 	return allHeaders
 }
@@ -27,23 +27,23 @@ func All() map[string][][]pins.Pin {
 //
 // The header and the pin number. Pin numbers are 1-based.
 func Position(p pins.Pin) (string, int) {
-	lock.Lock()
-	defer lock.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 	pos := byPin[p.Name()]
 	return pos.name, pos.number
 }
 
 // IsConnected returns true if the pin is on a header.
 func IsConnected(p pins.Pin) bool {
-	lock.Lock()
-	defer lock.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 	return connected[p.Name()]
 }
 
 // Register registers a physical header.
 func Register(name string, pins [][]pins.Pin) error {
-	lock.Lock()
-	defer lock.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 	// TODO(maruel): Copy the slices?
 	if _, ok := allHeaders[name]; ok {
 		return fmt.Errorf("header %q was already registered", name)
@@ -77,7 +77,7 @@ type position struct {
 }
 
 var (
-	lock       sync.Mutex
+	mu         sync.Mutex
 	allHeaders = map[string][][]pins.Pin{} // every known headers as per internal lookup table
 	byPin      = map[string]position{}     // GPIO pin name to position
 	connected  = map[string]bool{}         // GPIO pin name to position

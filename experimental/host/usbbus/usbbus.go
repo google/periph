@@ -25,8 +25,8 @@ type Desc struct {
 
 // All returns all the USB devices detected.
 func All() []Desc {
-	lock.Lock()
-	defer lock.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 	// TODO(maruel): driver.Init() should skip scanning the USB bus unless
 	// there's at least one USB driver registered. So in this case an USB scan
 	// should be done synchronously.
@@ -38,10 +38,11 @@ func All() []Desc {
 //
 
 var (
-	lock      sync.Mutex
-	all       descriptors
 	newDriver = make(chan usb.Driver)
-	drivers   = map[usb.ID]usb.Opener{}
+
+	mu      sync.Mutex
+	all     descriptors
+	drivers = map[usb.ID]usb.Opener{}
 )
 
 type descriptors []Desc
@@ -117,7 +118,7 @@ func (d *driver) Prerequisites() []string {
 
 func onNewDriver() {
 	for d := range newDriver {
-		lock.Lock()
+		mu.Lock()
 		// The items are guaranteed to not have duplicates.
 		drivers[d.ID] = d.Opener
 		for _, devices := range all {
@@ -127,7 +128,7 @@ func onNewDriver() {
 				break
 			}
 		}
-		lock.Unlock()
+		mu.Unlock()
 	}
 }
 
@@ -140,8 +141,8 @@ func (d *driver) Init() (bool, error) {
 	wg.Add(1)
 	quit := make(chan struct{})
 	go func() {
-		lock.Lock()
-		defer lock.Unlock()
+		mu.Lock()
+		defer mu.Unlock()
 		wg.Done()
 		for {
 			select {
@@ -157,8 +158,8 @@ func (d *driver) Init() (bool, error) {
 	usb.RegisterBus(newDriver)
 	quit <- struct{}{}
 
-	lock.Lock()
-	defer lock.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 	scanDevices(drivers)
 
 	// After this initial scan, scan asynchronously when drivers are registered.

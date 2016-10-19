@@ -40,7 +40,7 @@ type Pin struct {
 	name   string
 	root   string // Something like /sys/class/gpio/gpio%d/
 
-	lock       sync.Mutex
+	mu         sync.Mutex
 	direction  direction // Cache of the last known direction
 	edge       gpio.Edge //
 	fDirection *os.File  // handle to /sys/class/gpio/gpio*/direction; never closed
@@ -65,8 +65,8 @@ func (p *Pin) Number() int {
 
 // Function implements pins.Pin.
 func (p *Pin) Function() string {
-	p.lock.Lock()
-	defer p.lock.Unlock()
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	// TODO(maruel): There's an internal bug which causes p.direction to be
 	// invalid (!?) Need to figure it out ASAP.
 	if err := p.open(); err != nil {
@@ -94,8 +94,8 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	if pull != gpio.PullNoChange && pull != gpio.Float {
 		return errors.New("not implemented")
 	}
-	p.lock.Lock()
-	defer p.lock.Unlock()
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	changed := false
 	if p.direction != dIn {
 		if err := p.open(); err != nil {
@@ -216,8 +216,8 @@ func (p *Pin) Pull() gpio.Pull {
 
 // Out sets a pin as output; implements gpio.PinOut.
 func (p *Pin) Out(l gpio.Level) error {
-	p.lock.Lock()
-	defer p.lock.Unlock()
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	if p.direction != dOut {
 		if err := p.open(); err != nil {
 			return err

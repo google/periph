@@ -45,7 +45,7 @@ type LED struct {
 	name   string
 	root   string
 
-	lock        sync.Mutex
+	mu          sync.Mutex
 	fBrightness *os.File // handle to /sys/class/gpio/gpio*/direction; never closed
 }
 
@@ -89,8 +89,8 @@ func (l *LED) Read() gpio.Level {
 	if err != nil {
 		return gpio.Low
 	}
-	l.lock.Lock()
-	defer l.lock.Unlock()
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	if _, err := l.fBrightness.Seek(0, 0); err != nil {
 		return gpio.Low
 	}
@@ -120,8 +120,8 @@ func (l *LED) Out(level gpio.Level) error {
 	if err != nil {
 		return err
 	}
-	l.lock.Lock()
-	defer l.lock.Unlock()
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	if _, err = l.fBrightness.Seek(0, 0); err != nil {
 		return err
 	}
@@ -141,8 +141,8 @@ func (l *LED) PWM(duty int) error {
 //
 
 func (l *LED) open() error {
-	l.lock.Lock()
-	defer l.lock.Unlock()
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	// trigger, max_brightness.
 	var err error
 	if l.fBrightness == nil {

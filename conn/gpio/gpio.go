@@ -256,8 +256,8 @@ type RealPin interface {
 //
 // Returns nil in case the pin is not present.
 func ByNumber(number int) PinIO {
-	lock.Lock()
-	defer lock.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 	pin, _ := byNumber[number]
 	return pin
 }
@@ -268,8 +268,8 @@ func ByNumber(number int) PinIO {
 //
 // Returns nil in case the pin is not present.
 func ByName(name string) PinIO {
-	lock.Lock()
-	defer lock.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 	pin, _ := byName[name]
 	return pin
 }
@@ -280,8 +280,8 @@ func ByName(name string) PinIO {
 //
 // Returns nil in case there is no pin setup with this function.
 func ByFunction(fn string) PinIO {
-	lock.Lock()
-	defer lock.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 	pin, _ := byFunction[fn]
 	return pin
 }
@@ -292,8 +292,8 @@ func ByFunction(fn string) PinIO {
 //
 // This list excludes non-GPIO pins like GROUND, V3_3, etc.
 func All() []PinIO {
-	lock.Lock()
-	defer lock.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 	out := make(pinList, 0, len(byNumber))
 	for _, p := range byNumber {
 		out = append(out, p)
@@ -305,8 +305,8 @@ func All() []PinIO {
 // Functional returns a map of all pins implementing hardware provided
 // special functionality, like I²C, SPI, ADC.
 func Functional() map[string]PinIO {
-	lock.Lock()
-	defer lock.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 	out := make(map[string]PinIO, len(byFunction))
 	for k, v := range byFunction {
 		out[k] = v
@@ -318,8 +318,8 @@ func Functional() map[string]PinIO {
 //
 // Registering the same pin number or name twice is an error.
 func Register(pin PinIO) error {
-	lock.Lock()
-	defer lock.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 	number := pin.Number()
 	if _, ok := byNumber[number]; ok {
 		return fmt.Errorf("registering the same pin %d twice", number)
@@ -339,8 +339,8 @@ func Register(pin PinIO) error {
 // RegisterAlias differs from Register in that it does not register the pin by number,
 // only by name and thereby can allow duplicate numbers, which happens when using PinAlias.
 func RegisterAlias(pin *PinAlias) error {
-	lock.Lock()
-	defer lock.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 	name := pin.Name()
 	if _, ok := byName[name]; ok {
 		return fmt.Errorf("registering the same pin %s twice", name)
@@ -355,8 +355,8 @@ func RegisterAlias(pin *PinAlias) error {
 // This can happen when a pin is exposed via an USB device and the device is
 // unplugged.
 func Unregister(name string, number int, function string) error {
-	lock.Lock()
-	defer lock.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 	if _, ok := byName[name]; !ok {
 		return errors.New("unknown name")
 	}
@@ -379,8 +379,8 @@ func Unregister(name string, number int, function string) error {
 
 // MapFunction registers a GPIO pin for a specific function.
 func MapFunction(function string, pin PinIO) {
-	lock.Lock()
-	defer lock.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 	byFunction[function] = pin
 }
 
@@ -434,7 +434,7 @@ func (invalidPin) PWM(duty int) error {
 }
 
 var (
-	lock       sync.Mutex
+	mu         sync.Mutex
 	byNumber   = map[int]PinIO{}
 	byName     = map[string]PinIO{}
 	byFunction = map[string]PinIO{}
