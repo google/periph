@@ -7,9 +7,11 @@
 
 # *** This Makefile is a work in progress, please help impove it! ***
 
+# not sure yet what all should do...
 all:
+	@echo Available targets: test build
 
-.PHONY: all test cross clean
+.PHONY: all test clean
 
 # test runs the platform independent tests
 # (gofmt|grep is used to obtain a non-zero exit status if the formatting is off)
@@ -28,13 +30,13 @@ test:
 # this relatively simple and not descend into makefile hell...
 
 # Get a list of all main.go in cmd subdirs
-# MAINS becomes cmd/pio-setup/main.go cmd/pio-info/main.go ...
+# MAINS becomes: cmd/pio-setup/main.go cmd/pio-info/main.go ...
 MAINS := $(wildcard cmd/*/main.go)
 # Get a list of all the commands, i.e. names of dirs that contain a main.go
-# CMDS becomes pio-setup pio-info ...
+# CMDS becomes: pio-setup pio-info ...
 CMDS  := $(patsubst cmd/%/main.go,%,$(MAINS))
 # Get a list of binaries to build
-# BINS becomes bin/pio-setup-arm bin/pio-info-arm ... bin/pio-setup-arm64 bin/pio-info-arm64 ...
+# BINS becomes: bin/pio-setup-arm bin/pio-info-arm ... bin/pio-setup-arm64 bin/pio-info-arm64 ...
 ARCHS := arm arm64 amd64 win64.exe
 BINS=$(foreach arch,$(ARCHS),$(foreach cmd,$(CMDS),bin/$(cmd)-$(arch)))
 
