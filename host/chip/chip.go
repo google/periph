@@ -1,4 +1,4 @@
-// Copyright 2016 Google Inc. All rights reserved.
+// Copyright 2016 The PIO Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -199,6 +199,13 @@ func zapPins() {
 	U14_40 = pins.INVALID
 }
 
+// Present returns true if running on a NextThing Co's C.H.I.P. board.
+//
+// https://www.getchip.com/
+func Present() bool {
+	return strings.Contains(distro.DTModel(), "C.H.I.P")
+}
+
 // driver implements drivers.Driver.
 type driver struct {
 }
@@ -222,8 +229,8 @@ func (d *driver) Init() (bool, error) {
 		return false, errors.New("NextThing Co. CHIP board not detected")
 	}
 
-	// at this point the sysfs driver has initialized and discovered its pins,
-	// we can now hook-up the appropriate CHIP pins to sysfs gpio pins
+	// At this point the sysfs driver has initialized and discovered its pins,
+	// we can now hook-up the appropriate CHIP pins to sysfs gpio pins.
 	XIO0 = sysfs.Pins[1016]
 	XIO1 = sysfs.Pins[1017]
 	XIO2 = sysfs.Pins[1018]
@@ -232,7 +239,7 @@ func (d *driver) Init() (bool, error) {
 	XIO5 = sysfs.Pins[1021]
 	XIO6 = sysfs.Pins[1022]
 	XIO7 = sysfs.Pins[1023]
-	// need to set header pins too 'cause XIOn are interfaces, hence pointers
+	// Need to set header pins too 'cause XIOn are interfaces, i.e. pointers.
 	U14_13 = XIO0
 	U14_14 = XIO1
 	U14_15 = XIO2
@@ -242,6 +249,7 @@ func (d *driver) Init() (bool, error) {
 	U14_19 = XIO6
 	U14_20 = XIO7
 
+	// U13 is one of the 20x2 connectors.
 	U13 := [][]pins.Pin{
 		{U13_1, U13_2},
 		{U13_3, U13_4},
@@ -268,6 +276,7 @@ func (d *driver) Init() (bool, error) {
 		return true, err
 	}
 
+	// U14 is one of the 20x2 connectors.
 	U14 := [][]pins.Pin{
 		{U14_1, U14_2},
 		{U14_3, U14_4},
@@ -296,16 +305,16 @@ func (d *driver) Init() (bool, error) {
 
 	// Register explicit pin aliases.
 	for alias, real := range aliases {
-		fmt.Printf("Registering alias %s for %s\n", alias, real)
+		//fmt.Printf("Registering alias %s for %s\n", alias, real)
 		r := gpio.ByName(real)
 		if r == nil {
-			fmt.Printf("Cannot create alias for %s: it doesn't exist", real)
+			//fmt.Printf("Cannot create alias for %s: it doesn't exist", real)
 			return true, fmt.Errorf("Cannot create alias for %s: it doesn't exist",
 				real)
 		}
 		a := &gpio.PinAlias{N: alias, PinIO: r}
 		if err := gpio.RegisterAlias(a); err != nil {
-			fmt.Printf("Cannot create alias %s for %s: %s", alias, real, err)
+			//fmt.Printf("Cannot create alias %s for %s: %s", alias, real, err)
 			return true, fmt.Errorf("Cannot create alias %s for %s: %s",
 				alias, real, err)
 		}
@@ -314,14 +323,8 @@ func (d *driver) Init() (bool, error) {
 	return true, nil
 }
 
-// var _ pio.Driver = &driver{}
-
-// Present returns true if running on a NextThing Co's C.H.I.P. board.
-//
-// https://www.getchip.com/
-func Present() bool {
-	return strings.Contains(distro.DTModel(), "C.H.I.P")
-}
+// ensure that the driver implements the interface it's supposed to.
+var _ pio.Driver = &driver{}
 
 // aliases is a list of aliases for the various gpio pins, this allows users to refer to pins
 // using the documented and labeled names instead of some GPIOnnn name. The map key is the

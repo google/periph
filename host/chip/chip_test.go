@@ -1,4 +1,4 @@
-// Copyright 2016 Google Inc. All rights reserved.
+// Copyright 2016 The PIO Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -18,7 +18,7 @@ import (
 	"github.com/google/pio/host/sysfs"
 )
 
-// TestChipPresent verifies that CHIP and Allwinner are indeed detected
+// TestChipPresent verifies that CHIP and Allwinner are indeed detected.
 func TestChipPresent(t *testing.T) {
 	if !Present() {
 		t.Fatalf("Did not detect presence of CHIP")
@@ -28,7 +28,7 @@ func TestChipPresent(t *testing.T) {
 	}
 }
 
-// TestChipLoading versifies that no error occurs when loading all the drivers for chip
+// TestChipLoading versifies that no error occurs when loading all the drivers for chip.
 func TestChipLoading(t *testing.T) {
 	state, err := host.Init()
 	if err != nil {
@@ -41,8 +41,8 @@ func TestChipLoading(t *testing.T) {
 	}
 }
 
-// TestChipHeaders verifies that the appropriate headers with the right pin count show up and point
-// checks that a couple of pins are correct.
+// TestChipHeaders verifies that the appropriate headers with the right pin count show
+// up and point checks that a couple of pins are correct.
 func TestChipHeaders(t *testing.T) {
 	host.Init()
 	h := headers.All()
@@ -95,7 +95,7 @@ func TestChipHeaders(t *testing.T) {
 	}
 }
 
-// TestChipGpioNames tests that the gpio pins get the right names
+// TestChipGpioNames tests that the gpio pins get the right names.
 func TestChipGpioNames(t *testing.T) {
 	host.Init()
 	all := []string{}
