@@ -1,4 +1,4 @@
-// Copyright 2016 Google Inc. All rights reserved.
+// Copyright 2016 The PIO Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -18,16 +18,17 @@ var (
 	EAROUTN  analog.PinIO = &analog.BasicPin{N: "EAROUTN"} // Earpiece amplifier positive differential output
 )
 
-// mapping excludes functions in and out.
-// Datasheet, page 23.
+// mappingA64 describes the mapping of each processor pin to its alternate functions. It omits the
+// in & out functions which are available on all pins. The mapping comes from the datasheet
+// page 23:
 // http://files.pine64.org/doc/datasheet/pine64/A64_Datasheet_V1.1.pdf
 //
 // - The datasheet uses TWI instead of I2C but it is renamed here for consistency.
-// - AIF is audio interface, i.e. to connect to S/PDIF
-// - RGMII means Reduced gigabit media-independent interface
+// - AIF is an audio interface, i.e. to connect to S/PDIF.
+// - RGMII means Reduced gigabit media-independent interface.
 // - SDC means SDCard?
-// - NAND is for NAND flash controller
-// - CSI and CCI are for video capture
+// - NAND connects to a NAND flash controller.
+// - CSI and CCI are for video capture.
 var mappingA64 = map[string][5]string{
 	"PB0":  {"UART2_TX", "", "JTAG_MS0", "", "PB_EINT0"},
 	"PB1":  {"UART2_RX", "", "JTAG_CK0", "SIM_PWREN", "PB_EINT1"},
@@ -134,6 +135,8 @@ var mappingA64 = map[string][5]string{
 	"PH11": {"MIC_DATA", "", "", "", "PH_EINT11"},
 }
 
+// mapA64Pins uses mappingA64 to actually set the altFunc fields of all pins. It is called by the
+// generic allwinner processor code if an A64 is indeed detected.
 func mapA64Pins() {
 	// set the altFunc fields of all pins that are on the A64
 	for name, altFuncs := range mappingA64 {

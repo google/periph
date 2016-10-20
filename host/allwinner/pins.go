@@ -1,4 +1,4 @@
-// Copyright 2016 Google Inc. All rights reserved.
+// Copyright 2016 The PIO Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -18,7 +18,9 @@ import (
 
 // Pins that may be implemented by a generic Allwinner CPU. Not all pins will be present on all
 // models and even if the CPU model supports them they may not be connected to anything on the
-// board.
+// board. The net effect is that it may look like more pins are available than really are, but
+// trying to get the pin list 100% correct on all platforms seems futile, hence pio errs on the
+// side of caution.
 //
 // Group/offset calculation from http://forum.pine64.org/showthread.php?tid=474
 var Pins = []Pin{
@@ -139,164 +141,6 @@ var Pins = []Pin{
 	{group: 7, offset: 11, name: "PH11", defaultPull: gpio.Float},
 }
 
-// Pin implements the gpio.PinIO interface for generic Allwinner CPU pins using memory mapping
-// for gpio in/out functionality.
-type Pin struct {
-	group       uint8      // as per register offset calculation
-	offset      uint8      // as per register offset calculation
-	name        string     // name as per datasheet
-	defaultPull gpio.Pull  // default pull at startup
-	altFunc     [5]string  // alternate functions
-	isOut       bool       // whether the pin is currently an output
-	edge        *sysfs.Pin // mutable, set once, then never set back to nil
-}
-
-// pinByName returns the Pin that has the specified name. Used to define the PB0... variables
-func pinByName(name string) *Pin {
-	for _, p := range Pins {
-		if p.name == name {
-			return &p
-		}
-	}
-	panic("Pin " + name + " is not defined")
-}
-
-var (
-	PB0  gpio.PinIO = pinByName("PB0")
-	PB1  gpio.PinIO = pinByName("PB1")
-	PB2  gpio.PinIO = pinByName("PB2")
-	PB3  gpio.PinIO = pinByName("PB3")
-	PB4  gpio.PinIO = pinByName("PB4")
-	PB5  gpio.PinIO = pinByName("PB5")
-	PB6  gpio.PinIO = pinByName("PB6")
-	PB7  gpio.PinIO = pinByName("PB7")
-	PB8  gpio.PinIO = pinByName("PB8")
-	PB9  gpio.PinIO = pinByName("PB9")
-	PB10 gpio.PinIO = pinByName("PB10")
-	PB11 gpio.PinIO = pinByName("PB11")
-	PB12 gpio.PinIO = pinByName("PB12")
-	PB13 gpio.PinIO = pinByName("PB13")
-	PB14 gpio.PinIO = pinByName("PB14")
-	PB15 gpio.PinIO = pinByName("PB15")
-	PB16 gpio.PinIO = pinByName("PB16")
-	PB17 gpio.PinIO = pinByName("PB17")
-	PB18 gpio.PinIO = pinByName("PB18")
-	PC0  gpio.PinIO = pinByName("PC0")
-	PC1  gpio.PinIO = pinByName("PC1")
-	PC2  gpio.PinIO = pinByName("PC2")
-	PC3  gpio.PinIO = pinByName("PC3")
-	PC4  gpio.PinIO = pinByName("PC4")
-	PC5  gpio.PinIO = pinByName("PC5")
-	PC6  gpio.PinIO = pinByName("PC6")
-	PC7  gpio.PinIO = pinByName("PC7")
-	PC8  gpio.PinIO = pinByName("PC8")
-	PC9  gpio.PinIO = pinByName("PC9")
-	PC10 gpio.PinIO = pinByName("PC10")
-	PC11 gpio.PinIO = pinByName("PC11")
-	PC12 gpio.PinIO = pinByName("PC12")
-	PC13 gpio.PinIO = pinByName("PC13")
-	PC14 gpio.PinIO = pinByName("PC14")
-	PC15 gpio.PinIO = pinByName("PC15")
-	PC16 gpio.PinIO = pinByName("PC16")
-	PD0  gpio.PinIO = pinByName("PD0")
-	PD1  gpio.PinIO = pinByName("PD1")
-	PD2  gpio.PinIO = pinByName("PD2")
-	PD3  gpio.PinIO = pinByName("PD3")
-	PD4  gpio.PinIO = pinByName("PD4")
-	PD5  gpio.PinIO = pinByName("PD5")
-	PD6  gpio.PinIO = pinByName("PD6")
-	PD7  gpio.PinIO = pinByName("PD7")
-	PD8  gpio.PinIO = pinByName("PD8")
-	PD9  gpio.PinIO = pinByName("PD9")
-	PD10 gpio.PinIO = pinByName("PD10")
-	PD11 gpio.PinIO = pinByName("PD11")
-	PD12 gpio.PinIO = pinByName("PD12")
-	PD13 gpio.PinIO = pinByName("PD13")
-	PD14 gpio.PinIO = pinByName("PD14")
-	PD15 gpio.PinIO = pinByName("PD15")
-	PD16 gpio.PinIO = pinByName("PD16")
-	PD17 gpio.PinIO = pinByName("PD17")
-	PD18 gpio.PinIO = pinByName("PD18")
-	PD19 gpio.PinIO = pinByName("PD19")
-	PD20 gpio.PinIO = pinByName("PD20")
-	PD21 gpio.PinIO = pinByName("PD21")
-	PD22 gpio.PinIO = pinByName("PD22")
-	PD23 gpio.PinIO = pinByName("PD23")
-	PD24 gpio.PinIO = pinByName("PD24")
-	PD25 gpio.PinIO = pinByName("PD25")
-	PD26 gpio.PinIO = pinByName("PD26")
-	PD27 gpio.PinIO = pinByName("PD27")
-	PE0  gpio.PinIO = pinByName("PE0")
-	PE1  gpio.PinIO = pinByName("PE1")
-	PE2  gpio.PinIO = pinByName("PE2")
-	PE3  gpio.PinIO = pinByName("PE3")
-	PE4  gpio.PinIO = pinByName("PE4")
-	PE5  gpio.PinIO = pinByName("PE5")
-	PE6  gpio.PinIO = pinByName("PE6")
-	PE7  gpio.PinIO = pinByName("PE7")
-	PE8  gpio.PinIO = pinByName("PE8")
-	PE9  gpio.PinIO = pinByName("PE9")
-	PE10 gpio.PinIO = pinByName("PE10")
-	PE11 gpio.PinIO = pinByName("PE11")
-	PE12 gpio.PinIO = pinByName("PE12")
-	PE13 gpio.PinIO = pinByName("PE13")
-	PE14 gpio.PinIO = pinByName("PE14")
-	PE15 gpio.PinIO = pinByName("PE15")
-	PE16 gpio.PinIO = pinByName("PE16")
-	PE17 gpio.PinIO = pinByName("PE17")
-	PF0  gpio.PinIO = pinByName("PF0")
-	PF1  gpio.PinIO = pinByName("PF1")
-	PF2  gpio.PinIO = pinByName("PF2")
-	PF3  gpio.PinIO = pinByName("PF3")
-	PF4  gpio.PinIO = pinByName("PF4")
-	PF5  gpio.PinIO = pinByName("PF5")
-	PF6  gpio.PinIO = pinByName("PF6")
-	PG0  gpio.PinIO = pinByName("PG0")
-	PG1  gpio.PinIO = pinByName("PG1")
-	PG2  gpio.PinIO = pinByName("PG2")
-	PG3  gpio.PinIO = pinByName("PG3")
-	PG4  gpio.PinIO = pinByName("PG4")
-	PG5  gpio.PinIO = pinByName("PG5")
-	PG6  gpio.PinIO = pinByName("PG6")
-	PG7  gpio.PinIO = pinByName("PG7")
-	PG8  gpio.PinIO = pinByName("PG8")
-	PG9  gpio.PinIO = pinByName("PG9")
-	PG10 gpio.PinIO = pinByName("PG10")
-	PG11 gpio.PinIO = pinByName("PG11")
-	PG12 gpio.PinIO = pinByName("PG12")
-	PG13 gpio.PinIO = pinByName("PG13")
-	PH0  gpio.PinIO = pinByName("PH0")
-	PH1  gpio.PinIO = pinByName("PH1")
-	PH2  gpio.PinIO = pinByName("PH2")
-	PH3  gpio.PinIO = pinByName("PH3")
-	PH4  gpio.PinIO = pinByName("PH4")
-	PH5  gpio.PinIO = pinByName("PH5")
-	PH6  gpio.PinIO = pinByName("PH6")
-	PH7  gpio.PinIO = pinByName("PH7")
-	PH8  gpio.PinIO = pinByName("PH8")
-	PH9  gpio.PinIO = pinByName("PH9")
-	PH10 gpio.PinIO = pinByName("PH10")
-	PH11 gpio.PinIO = pinByName("PH11")
-)
-
-// initPins initializes the mapping of pins by function, sets the alternate functions of each
-// pin, and registers all the pins with gpio
-func initPins() error {
-	for i := range Pins {
-		// register the pin with gpio
-		if err := gpio.Register(&Pins[i]); err != nil {
-			return err
-		}
-		// iterate through alternate functions and register function->pin mapping
-		for _, f := range Pins[i].altFunc {
-			if f != "" {
-				gpio.MapFunction(f, &Pins[i])
-			}
-		}
-	}
-	return nil
-}
-
 // ===== PinIO implementation.
 // Page 73 for memory mapping overview.
 // Page 194 for PWM.
@@ -308,6 +152,18 @@ func initPins() error {
 // Page 545 SPI
 // Page 560 UART
 // Page 621 I2S/PCM
+
+// Pin implements the gpio.PinIO interface for generic Allwinner CPU pins using memory mapping
+// for gpio in/out functionality.
+type Pin struct {
+	group       uint8      // as per register offset calculation
+	offset      uint8      // as per register offset calculation
+	name        string     // name as per datasheet
+	defaultPull gpio.Pull  // default pull at startup
+	altFunc     [5]string  // alternate functions
+	isOut       bool       // whether the pin is currently an output
+	edge        *sysfs.Pin // mutable, set once, then never set back to nil
+}
 
 // Number returns the GPIO pin number as represented by gpio sysfs.
 func (p *Pin) Number() int {
@@ -445,7 +301,7 @@ func (p *Pin) WaitForEdge(timeout time.Duration) bool {
 	return false
 }
 
-// Pull returns the current pull-up/down registor setting
+// Pull returns the current pull-up/down registor setting.
 func (p *Pin) Pull() gpio.Pull {
 	if p == nil {
 		return gpio.PullNoChange
@@ -464,7 +320,7 @@ func (p *Pin) Pull() gpio.Pull {
 	}
 }
 
-// Out ensures that the pin is configured as an output and outputs the value
+// Out ensures that the pin is configured as an output and outputs the value.
 func (p *Pin) Out(l gpio.Level) error {
 	if gpioMemory == nil {
 		return errors.New("subsystem not initialized")
@@ -484,12 +340,12 @@ func (p *Pin) Out(l gpio.Level) error {
 	return nil
 }
 
-// PWM is not supported
+// PWM is not supported.
 func (p *Pin) PWM(duty int) error {
 	return errors.New("pwm is not supported")
 }
 
-// function returns the current GPIO pin function
+// function returns the current GPIO pin function.
 func (p *Pin) function() function {
 	if gpioMemory == nil {
 		return disabled
@@ -527,7 +383,155 @@ func (p *Pin) setFunction(f function) bool {
 	return true
 }
 
-// function encodes the active functionality of a pin. The alternate functions are GPIO pin dependent.
+// pinByName is a small local helper that returns the Pin that has the specified name. Used to
+// define the PB0... variables just below.
+func pinByName(name string) *Pin {
+	for _, p := range Pins {
+		if p.name == name {
+			return &p
+		}
+	}
+	panic("Pin " + name + " is not defined")
+}
+
+var (
+	PB0  gpio.PinIO = pinByName("PB0")
+	PB1  gpio.PinIO = pinByName("PB1")
+	PB2  gpio.PinIO = pinByName("PB2")
+	PB3  gpio.PinIO = pinByName("PB3")
+	PB4  gpio.PinIO = pinByName("PB4")
+	PB5  gpio.PinIO = pinByName("PB5")
+	PB6  gpio.PinIO = pinByName("PB6")
+	PB7  gpio.PinIO = pinByName("PB7")
+	PB8  gpio.PinIO = pinByName("PB8")
+	PB9  gpio.PinIO = pinByName("PB9")
+	PB10 gpio.PinIO = pinByName("PB10")
+	PB11 gpio.PinIO = pinByName("PB11")
+	PB12 gpio.PinIO = pinByName("PB12")
+	PB13 gpio.PinIO = pinByName("PB13")
+	PB14 gpio.PinIO = pinByName("PB14")
+	PB15 gpio.PinIO = pinByName("PB15")
+	PB16 gpio.PinIO = pinByName("PB16")
+	PB17 gpio.PinIO = pinByName("PB17")
+	PB18 gpio.PinIO = pinByName("PB18")
+	PC0  gpio.PinIO = pinByName("PC0")
+	PC1  gpio.PinIO = pinByName("PC1")
+	PC2  gpio.PinIO = pinByName("PC2")
+	PC3  gpio.PinIO = pinByName("PC3")
+	PC4  gpio.PinIO = pinByName("PC4")
+	PC5  gpio.PinIO = pinByName("PC5")
+	PC6  gpio.PinIO = pinByName("PC6")
+	PC7  gpio.PinIO = pinByName("PC7")
+	PC8  gpio.PinIO = pinByName("PC8")
+	PC9  gpio.PinIO = pinByName("PC9")
+	PC10 gpio.PinIO = pinByName("PC10")
+	PC11 gpio.PinIO = pinByName("PC11")
+	PC12 gpio.PinIO = pinByName("PC12")
+	PC13 gpio.PinIO = pinByName("PC13")
+	PC14 gpio.PinIO = pinByName("PC14")
+	PC15 gpio.PinIO = pinByName("PC15")
+	PC16 gpio.PinIO = pinByName("PC16")
+	PD0  gpio.PinIO = pinByName("PD0")
+	PD1  gpio.PinIO = pinByName("PD1")
+	PD2  gpio.PinIO = pinByName("PD2")
+	PD3  gpio.PinIO = pinByName("PD3")
+	PD4  gpio.PinIO = pinByName("PD4")
+	PD5  gpio.PinIO = pinByName("PD5")
+	PD6  gpio.PinIO = pinByName("PD6")
+	PD7  gpio.PinIO = pinByName("PD7")
+	PD8  gpio.PinIO = pinByName("PD8")
+	PD9  gpio.PinIO = pinByName("PD9")
+	PD10 gpio.PinIO = pinByName("PD10")
+	PD11 gpio.PinIO = pinByName("PD11")
+	PD12 gpio.PinIO = pinByName("PD12")
+	PD13 gpio.PinIO = pinByName("PD13")
+	PD14 gpio.PinIO = pinByName("PD14")
+	PD15 gpio.PinIO = pinByName("PD15")
+	PD16 gpio.PinIO = pinByName("PD16")
+	PD17 gpio.PinIO = pinByName("PD17")
+	PD18 gpio.PinIO = pinByName("PD18")
+	PD19 gpio.PinIO = pinByName("PD19")
+	PD20 gpio.PinIO = pinByName("PD20")
+	PD21 gpio.PinIO = pinByName("PD21")
+	PD22 gpio.PinIO = pinByName("PD22")
+	PD23 gpio.PinIO = pinByName("PD23")
+	PD24 gpio.PinIO = pinByName("PD24")
+	PD25 gpio.PinIO = pinByName("PD25")
+	PD26 gpio.PinIO = pinByName("PD26")
+	PD27 gpio.PinIO = pinByName("PD27")
+	PE0  gpio.PinIO = pinByName("PE0")
+	PE1  gpio.PinIO = pinByName("PE1")
+	PE2  gpio.PinIO = pinByName("PE2")
+	PE3  gpio.PinIO = pinByName("PE3")
+	PE4  gpio.PinIO = pinByName("PE4")
+	PE5  gpio.PinIO = pinByName("PE5")
+	PE6  gpio.PinIO = pinByName("PE6")
+	PE7  gpio.PinIO = pinByName("PE7")
+	PE8  gpio.PinIO = pinByName("PE8")
+	PE9  gpio.PinIO = pinByName("PE9")
+	PE10 gpio.PinIO = pinByName("PE10")
+	PE11 gpio.PinIO = pinByName("PE11")
+	PE12 gpio.PinIO = pinByName("PE12")
+	PE13 gpio.PinIO = pinByName("PE13")
+	PE14 gpio.PinIO = pinByName("PE14")
+	PE15 gpio.PinIO = pinByName("PE15")
+	PE16 gpio.PinIO = pinByName("PE16")
+	PE17 gpio.PinIO = pinByName("PE17")
+	PF0  gpio.PinIO = pinByName("PF0")
+	PF1  gpio.PinIO = pinByName("PF1")
+	PF2  gpio.PinIO = pinByName("PF2")
+	PF3  gpio.PinIO = pinByName("PF3")
+	PF4  gpio.PinIO = pinByName("PF4")
+	PF5  gpio.PinIO = pinByName("PF5")
+	PF6  gpio.PinIO = pinByName("PF6")
+	PG0  gpio.PinIO = pinByName("PG0")
+	PG1  gpio.PinIO = pinByName("PG1")
+	PG2  gpio.PinIO = pinByName("PG2")
+	PG3  gpio.PinIO = pinByName("PG3")
+	PG4  gpio.PinIO = pinByName("PG4")
+	PG5  gpio.PinIO = pinByName("PG5")
+	PG6  gpio.PinIO = pinByName("PG6")
+	PG7  gpio.PinIO = pinByName("PG7")
+	PG8  gpio.PinIO = pinByName("PG8")
+	PG9  gpio.PinIO = pinByName("PG9")
+	PG10 gpio.PinIO = pinByName("PG10")
+	PG11 gpio.PinIO = pinByName("PG11")
+	PG12 gpio.PinIO = pinByName("PG12")
+	PG13 gpio.PinIO = pinByName("PG13")
+	PH0  gpio.PinIO = pinByName("PH0")
+	PH1  gpio.PinIO = pinByName("PH1")
+	PH2  gpio.PinIO = pinByName("PH2")
+	PH3  gpio.PinIO = pinByName("PH3")
+	PH4  gpio.PinIO = pinByName("PH4")
+	PH5  gpio.PinIO = pinByName("PH5")
+	PH6  gpio.PinIO = pinByName("PH6")
+	PH7  gpio.PinIO = pinByName("PH7")
+	PH8  gpio.PinIO = pinByName("PH8")
+	PH9  gpio.PinIO = pinByName("PH9")
+	PH10 gpio.PinIO = pinByName("PH10")
+	PH11 gpio.PinIO = pinByName("PH11")
+)
+
+// initPins initializes the mapping of pins by function, sets the alternate functions of each
+// pin, and registers all the pins with gpio.
+func initPins() error {
+	for i := range Pins {
+		// register the pin with gpio
+		if err := gpio.Register(&Pins[i]); err != nil {
+			return err
+		}
+		// iterate through alternate functions and register function->pin mapping
+		for _, f := range Pins[i].altFunc {
+			if f != "" {
+				gpio.MapFunction(f, &Pins[i])
+			}
+		}
+	}
+	return nil
+}
+
+// function encodes the active functionality of a pin. The alternate functions
+// are GPIO pin dependent.
 type function uint8
 
 // Page 23~24
@@ -543,11 +547,12 @@ const (
 	disabled function = 7
 )
 
+// gpioGroup is a memory-mapped structure for the hardware registers that control a
+// group of at most 32 pins. In practice the number of valid pins per group varies
+// between 10 and 27.
+//
 // http://files.pine64.org/doc/datasheet/pine64/Allwinner_A64_User_Manual_V1.0.pdf
 // Page 376 GPIO PB to PH.
-//
-// Each group can have at most 32 pins. In practice the number of valid pins
-// per group varies between 10 and 25.
 type gpioGroup struct {
 	// Pn_CFGx n*0x24+x*4       Port n Configure Register x (n from 1(B) to 7(H))
 	cfg [4]uint32
@@ -559,6 +564,7 @@ type gpioGroup struct {
 	pull [2]uint32
 }
 
+// gpioMap memory-maps all the gpio pin groups.
 type gpioMap struct {
 	// PB to PH. The first group is unused.
 	groups [8]gpioGroup

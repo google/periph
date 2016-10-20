@@ -1,8 +1,8 @@
-// Copyright 2016 Google Inc. All rights reserved.
+// Copyright 2016 The PIO Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// This file container the CPU detection logic that determines whether we have an Allwinner CPU and
+// This file contains the CPU detection logic that determines whether we have an Allwinner CPU and
 // if so, which exact model. Sadly there is no science behind this, it's more of a trial and error
 // using as many boards and OS flavors as possible.
 

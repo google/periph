@@ -1,4 +1,4 @@
-// Copyright 2016 Google Inc. All rights reserved.
+// Copyright 2016 The PIO Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -36,6 +36,9 @@ func (d *driver) Prerequisites() []string {
 	return nil
 }
 
+// Init does nothing if an allwinner processor is not detected. If one is detected it opens the
+// gpiomem device (or /dev/mem) to memory map gpio pins and then sets up the pin mapping for the
+// exact processor model detected.
 func (d *driver) Init() (bool, error) {
 	if !Present() {
 		return false, errors.New("Allwinner CPU not detected")
@@ -88,7 +91,8 @@ func getBaseAddress() uint64 {
 	return base2
 }
 
-// what is this needed for?
+// Ensure that the various structs implement the interfaces they're supposed to.
+
 var _ pio.Driver = &driver{}
 var _ gpio.PinIn = &Pin{}
 var _ gpio.PinOut = &Pin{}

@@ -26,8 +26,9 @@ var (
 	Y2 gpio.PinIO = &gpio.BasicPin{N: "Y2"} // touch screen
 )
 
-// mappingR8 for Allwinner R8.
-// Datasheet, page 18:
+// mappingR8 describes the mapping of each processor pin to its alternate functions. It omits the
+// in & out functions which are available on all pins. The mapping comes from the datasheet
+// page 18:
 // https://github.com/NextThingCo/CHIP-Hardware/raw/master/CHIP%5Bv1_0%5D/CHIPv1_0-BOM-Datasheets/Allwinner%20R8%20Datasheet%20V1.2.pdf
 //
 // - The datasheet uses TWI instead of I2C but this is renamed here for consistency.
@@ -109,6 +110,8 @@ var mappingR8 = map[string][5]string{
 	"PG12": {"SPI1_MISO", "UART3_RTS", "", "", "PG_EINT12"},
 }
 
+// mapR8Pins uses mappingR8 to actually set the altFunc fields of all pins. It is called by the
+// generic allwinner processor code if an R8 is indeed detected.
 func mapR8Pins() {
 	// Set the altFunc fields of all pins that are on the R8.
 	for name, altFuncs := range mappingR8 {
