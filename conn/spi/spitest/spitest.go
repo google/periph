@@ -27,8 +27,8 @@ func NewRecordRaw(w io.Writer) *RecordRaw {
 
 // Close is a no-op.
 func (r *RecordRaw) Close() error {
-	r.Lock.Lock()
-	defer r.Lock.Unlock()
+	r.Lock()
+	defer r.Unlock()
 	return nil
 }
 
@@ -46,8 +46,8 @@ func (r *RecordRaw) Configure(mode spi.Mode, bits int) error {
 //
 // This can then be used to feed to Playback to do "replay" based unit tests.
 type Record struct {
+	sync.Mutex
 	Conn spi.Conn // Conn can be nil if only writes are being recorded.
-	Lock sync.Mutex
 	Ops  []conntest.IO
 }
 
@@ -65,8 +65,8 @@ func (r *Record) Write(d []byte) (int, error) {
 
 // Tx implements spi.Conn.
 func (r *Record) Tx(w, read []byte) error {
-	r.Lock.Lock()
-	defer r.Lock.Unlock()
+	r.Lock()
+	defer r.Unlock()
 	if r.Conn == nil {
 		if len(read) != 0 {
 			return errors.New("read unsupported when no bus is connected")

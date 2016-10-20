@@ -26,10 +26,11 @@ import (
 type I2C struct {
 	f         *os.File
 	busNumber int
-	l         sync.Mutex // In theory the kernel probably has an internal lock but not taking any chance.
-	fn        functionality
-	scl       gpio.PinIO
-	sda       gpio.PinIO
+
+	mu  sync.Mutex // In theory the kernel probably has an internal lock but not taking any chance.
+	fn  functionality
+	scl gpio.PinIO
+	sda gpio.PinIO
 }
 
 // NewI2C opens an I²C bus via its sysfs interface as described at
@@ -75,8 +76,8 @@ func newI2C(busNumber int) (*I2C, error) {
 // Close closes the handle to the I²C driver. It is not a requirement to close
 // before process termination.
 func (i *I2C) Close() error {
-	i.l.Lock()
-	defer i.l.Unlock()
+	i.mu.Lock()
+	defer i.mu.Unlock()
 	err := i.f.Close()
 	i.f = nil
 	return err
@@ -110,15 +111,15 @@ func (i *I2C) Tx(addr uint16, w, r []byte) error {
 		nmsgs: uint32(len(msgs)),
 	}
 	pp := uintptr(unsafe.Pointer(&p))
-	i.l.Lock()
-	defer i.l.Unlock()
+	i.mu.Lock()
+	defer i.mu.Unlock()
 	return i.ioctl(ioctlRdwr, pp)
 }
 
 // Speed implements i2c.Conn.
 func (i *I2C) Speed(hz int64) error {
-	i.l.Lock()
-	defer i.l.Unlock()
+	i.mu.Lock()
+	defer i.mu.Unlock()
 	// One has to resort to kernel driver specific value to be able to achieve
 	// this.
 	//
@@ -160,7 +161,7 @@ func (i *I2C) ioctl(op uint, arg uintptr) error {
 }
 
 func (i *I2C) initPins() {
-	i.l.Lock()
+	i.mu.Lock()
 	if i.scl == nil {
 		if i.scl = gpio.ByFunction(fmt.Sprintf("I2C%d_SCL", i.busNumber)); i.scl == nil {
 			i.scl = gpio.INVALID
@@ -169,7 +170,7 @@ func (i *I2C) initPins() {
 			i.sda = gpio.INVALID
 		}
 	}
-	i.l.Unlock()
+	i.mu.Unlock()
 }
 
 // i2cdev driver IOCTL control codes.

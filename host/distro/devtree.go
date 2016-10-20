@@ -11,8 +11,8 @@ import (
 // DTModel returns platform model info from the Linux device tree (/proc/device-tree/model), and
 // returns "unknown" on non-linux systems or if the file is missing.
 func DTModel() string {
-	lock.Lock()
-	defer lock.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 
 	if dtModel == "" {
 		dtModel = "<unknown>"
@@ -32,8 +32,8 @@ func DTModel() string {
 // (/proc/device-tree/compatible), and returns []{"unknown"} on non-linux systems or if the file is
 // missing.
 func DTCompatible() []string {
-	lock.Lock()
-	defer lock.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 
 	if dtCompatible == nil {
 		dtCompatible = []string{}

@@ -42,7 +42,7 @@ func (p *Pin) Number() int {
 	return p.Num
 }
 
-// Function return the value of the Fn fielf of the pin.
+// Function return the value of the Fn field of the pin.
 func (p *Pin) Function() string {
 	return p.Fn
 }

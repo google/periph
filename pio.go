@@ -128,8 +128,8 @@ type State struct {
 // Users will want to use host.Init(), which guarantees a baseline of included
 // drivers.
 func Init() (*State, error) {
-	lockState.Lock()
-	defer lockState.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 	if state != nil {
 		return state, nil
 	}
@@ -181,15 +181,12 @@ func Init() (*State, error) {
 //
 // It is an error to call Register() after Init() was called.
 func Register(d Driver) error {
-	lockState.Lock()
-	loaded := state != nil
-	lockState.Unlock()
-	if loaded {
+	mu.Lock()
+	defer mu.Unlock()
+	if state != nil {
 		return errors.New("drivers: can't call Register() after Init()")
 	}
 
-	lockDrivers.Lock()
-	defer lockDrivers.Unlock()
 	n := d.String()
 	if _, ok := byName[n]; ok {
 		return fmt.Errorf("drivers.Register(%q): driver with same name was already registered", d)
@@ -210,11 +207,10 @@ func MustRegister(d Driver) {
 //
 
 var (
-	lockDrivers sync.Mutex
-	allDrivers  [nbPriorities][]Driver
-	byName      = map[string]Driver{}
-	lockState   sync.Mutex
-	state       *State
+	mu         sync.Mutex
+	allDrivers [nbPriorities][]Driver
+	byName     = map[string]Driver{}
+	state      *State
 )
 
 // getStages returns a set of stages to load the drivers.
@@ -227,8 +223,6 @@ var (
 // This cannot be done in Register() since the drivers are not registered in
 // order.
 func getStages() ([][]Driver, error) {
-	lockDrivers.Lock()
-	defer lockDrivers.Unlock()
 	var stages [][]Driver
 	for _, drivers := range allDrivers {
 		if len(drivers) == 0 {

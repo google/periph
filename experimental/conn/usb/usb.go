@@ -45,8 +45,8 @@ type Opener func(dev ConnCloser) error
 //
 // When this device is found, the factory will be called with a device handle.
 func Register(id ID, opener Opener) error {
-	lock.Lock()
-	defer lock.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 	if _, ok := byID[id]; ok {
 		return fmt.Errorf("registering the same USB id %s twice", id)
 	}
@@ -67,8 +67,8 @@ type Driver struct {
 // RegisterBus is called by a bus that will send a notification everytime
 // there's a new driver being registered.
 func RegisterBus(c chan<- Driver) {
-	lock.Lock()
-	defer lock.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 	buses = append(buses, c)
 	// First start by sending all the known drivers.
 	for id, opener := range byID {
@@ -79,7 +79,7 @@ func RegisterBus(c chan<- Driver) {
 //
 
 var (
-	lock  sync.Mutex
+	mu    sync.Mutex
 	byID  = map[ID]Opener{} //
-	buses []chan<- Driver   // That's highly unlike that the number of items is not exactly 1.
+	buses []chan<- Driver   // That's highly unlikely that the number of items is not exactly 1.
 )
