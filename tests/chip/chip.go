@@ -97,6 +97,24 @@ func testChipHeaders() error {
 	return nil
 }
 
+// testChipGpioNumbers tests that the gpio pins get the right numbers.
+func testChipGpioNumbers() error {
+	//t.Log("Pins:", strings.Join(all, ","))
+
+	must := map[int]string{34: "PB2", 108: "PD12", 139: "PE11", 1022: "GPIO1022"}
+	for number, name := range must {
+		pin := gpio.ByNumber(number)
+		if pin == nil {
+			return fmt.Errorf("Could not get gpio pin %d (should be %s)\n", number, name)
+		}
+		if pin.Name() != name {
+			return fmt.Errorf("Expected gpio pin %s to be %s but it's %s",
+				number, name, pin.Name())
+		}
+	}
+	return nil
+}
+
 // testChipGpioNames tests that the gpio pins get the right names.
 func testChipGpioNames() error {
 	all := []string{}
