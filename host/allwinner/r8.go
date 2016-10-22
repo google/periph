@@ -11,19 +11,18 @@ import (
 	"github.com/google/pio/conn/pins"
 )
 
-// pins that are in the R8 datasheet but not generic (?)
 var (
-	FEL      pins.Pin   = &pins.BasicPin{N: "FEL"}
-	MIC_IN   gpio.PinIO = &gpio.BasicPin{N: "MIX_IN"}
-	MIC_GND  pins.Pin   = &pins.BasicPin{N: "MIC_GND"}
-	HP_LEFT  gpio.PinIO = &gpio.BasicPin{N: "HP_LEFT"}
-	HP_RIGHT gpio.PinIO = &gpio.BasicPin{N: "HP_RIGHT"}
-	HP_COM   pins.Pin   = &pins.BasicPin{N: "HP_COM"}
+	FEL      pins.Pin   = &pins.BasicPin{N: "FEL"}      // R8 Boot mode selection
+	MIC_IN   gpio.PinIO = &gpio.BasicPin{N: "MIC_IN"}   // R8 Microphone In
+	MIC_GND  pins.Pin   = &pins.BasicPin{N: "MIC_GND"}  // R8 Microphone out
+	HP_LEFT  gpio.PinIO = &gpio.BasicPin{N: "HP_LEFT"}  // R8 left speaker out
+	HP_RIGHT gpio.PinIO = &gpio.BasicPin{N: "HP_RIGHT"} // R8 right speaker out
+	HP_COM   pins.Pin   = &pins.BasicPin{N: "HP_COM"}   // R8 speaker common
 
-	X1 gpio.PinIO = &gpio.BasicPin{N: "X1"} // touch screen
-	X2 gpio.PinIO = &gpio.BasicPin{N: "X2"} // touch screen
-	Y1 gpio.PinIO = &gpio.BasicPin{N: "Y1"} // touch screen
-	Y2 gpio.PinIO = &gpio.BasicPin{N: "Y2"} // touch screen
+	X1 gpio.PinIO = &gpio.BasicPin{N: "X1"} // R8 touch screen
+	X2 gpio.PinIO = &gpio.BasicPin{N: "X2"} // R8 touch screen
+	Y1 gpio.PinIO = &gpio.BasicPin{N: "Y1"} // R8 touch screen
+	Y2 gpio.PinIO = &gpio.BasicPin{N: "Y2"} // R8 touch screen
 )
 
 // mappingR8 describes the mapping of each processor pin to its alternate functions. It omits the
@@ -115,7 +114,7 @@ var mappingR8 = map[string][5]string{
 func mapR8Pins() {
 	// Set the altFunc fields of all pins that are on the R8.
 	for name, altFuncs := range mappingR8 {
-		if pin := pinByName(name); pin != nil {
+		if pin := cpupins[name]; pin != nil {
 			pin.altFunc = altFuncs
 		}
 	}

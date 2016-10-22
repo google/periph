@@ -27,8 +27,8 @@ var (
 	TEMP_SENSOR gpio.PinIO = &gpio.BasicPin{N: "TEMP_SENSOR"}
 	PWR_SWITCH  gpio.PinIO = &gpio.BasicPin{N: "PWR_SWITCH"}
 
-	// XIO "gpio" pins attached to the pcf75.. I2c port extender, these get initialized in the
-	// Init function
+	// XIO "gpio" pins attached to the pcf8574 I2c port extender, these get
+	// initialized in the Init function
 	XIO0, XIO1, XIO2, XIO3, XIO4, XIO5, XIO6, XIO7 gpio.PinIO
 )
 
@@ -116,94 +116,26 @@ var (
 	U14_40 pins.Pin     = pins.GROUND        //
 )
 
-func zapPins() {
-	U13_1 = pins.INVALID
-	U13_2 = pins.INVALID
-	U13_3 = pins.INVALID
-	U13_4 = pins.INVALID
-	U13_5 = pins.INVALID
-	U13_6 = gpio.INVALID
-	U13_7 = pins.INVALID
-	U13_8 = pins.INVALID
-	U13_9 = gpio.INVALID
-	U13_10 = pins.INVALID
-	U13_11 = gpio.INVALID
-	U13_12 = pins.INVALID
-	U13_13 = gpio.INVALID
-	U13_14 = gpio.INVALID
-	U13_15 = gpio.INVALID
-	U13_16 = gpio.INVALID
-	U13_17 = gpio.INVALID
-	U13_18 = gpio.INVALID
-	U13_19 = gpio.INVALID
-	U13_20 = gpio.INVALID
-	U13_21 = gpio.INVALID
-	U13_22 = gpio.INVALID
-	U13_23 = gpio.INVALID
-	U13_24 = gpio.INVALID
-	U13_25 = gpio.INVALID
-	U13_26 = gpio.INVALID
-	U13_27 = gpio.INVALID
-	U13_28 = gpio.INVALID
-	U13_29 = gpio.INVALID
-	U13_30 = gpio.INVALID
-	U13_31 = gpio.INVALID
-	U13_32 = gpio.INVALID
-	U13_33 = gpio.INVALID
-	U13_34 = gpio.INVALID
-	U13_35 = gpio.INVALID
-	U13_36 = gpio.INVALID
-	U13_37 = gpio.INVALID
-	U13_38 = gpio.INVALID
-	U13_39 = pins.INVALID
-	U13_40 = pins.INVALID
-	U14_1 = pins.INVALID
-	U14_2 = pins.INVALID
-	U14_3 = gpio.INVALID
-	U14_4 = gpio.INVALID
-	U14_5 = gpio.INVALID
-	U14_6 = pins.INVALID
-	U14_7 = pins.INVALID
-	U14_8 = gpio.INVALID
-	U14_9 = pins.INVALID
-	U14_10 = pins.INVALID
-	U14_11 = analog.INVALID
-	U14_12 = gpio.INVALID
-	U14_13 = gpio.INVALID
-	U14_14 = gpio.INVALID
-	U14_15 = gpio.INVALID
-	U14_16 = gpio.INVALID
-	U14_17 = gpio.INVALID
-	U14_18 = gpio.INVALID
-	U14_19 = gpio.INVALID
-	U14_20 = gpio.INVALID
-	U14_21 = pins.INVALID
-	U14_22 = pins.INVALID
-	U14_23 = gpio.INVALID
-	U14_24 = gpio.INVALID
-	U14_25 = gpio.INVALID
-	U14_26 = gpio.INVALID
-	U14_27 = gpio.INVALID
-	U14_28 = gpio.INVALID
-	U14_29 = gpio.INVALID
-	U14_30 = gpio.INVALID
-	U14_31 = gpio.INVALID
-	U14_32 = gpio.INVALID
-	U14_33 = gpio.INVALID
-	U14_34 = gpio.INVALID
-	U14_35 = gpio.INVALID
-	U14_36 = gpio.INVALID
-	U14_37 = gpio.INVALID
-	U14_38 = gpio.INVALID
-	U14_39 = pins.INVALID
-	U14_40 = pins.INVALID
-}
-
 // Present returns true if running on a NextThing Co's C.H.I.P. board.
 //
 // https://www.getchip.com/
 func Present() bool {
 	return strings.Contains(distro.DTModel(), "C.H.I.P")
+}
+
+// aliases is a list of aliases for the various gpio pins, this allows users to refer to pins
+// using the documented and labeled names instead of some GPIOnnn name. The map key is the
+// alias and the value is the real pin name.
+var aliases = map[string]string{
+	"XIO-P0": "GPIO1016",
+	"XIO-P1": "GPIO1017",
+	"XIO-P2": "GPIO1018",
+	"XIO-P3": "GPIO1019",
+	"XIO-P4": "GPIO1020",
+	"XIO-P5": "GPIO1021",
+	"XIO-P6": "GPIO1022",
+	"XIO-P7": "GPIO1023",
+	"LCD-D2": "PD2",
 }
 
 // driver implements drivers.Driver.
@@ -225,7 +157,6 @@ func (d *driver) Prerequisites() []string {
 
 func (d *driver) Init() (bool, error) {
 	if !Present() {
-		zapPins()
 		return false, errors.New("NextThing Co. CHIP board not detected")
 	}
 
@@ -305,16 +236,13 @@ func (d *driver) Init() (bool, error) {
 
 	// Register explicit pin aliases.
 	for alias, real := range aliases {
-		//fmt.Printf("Registering alias %s for %s\n", alias, real)
 		r := gpio.ByName(real)
 		if r == nil {
-			//fmt.Printf("Cannot create alias for %s: it doesn't exist", real)
 			return true, fmt.Errorf("Cannot create alias for %s: it doesn't exist",
 				real)
 		}
 		a := &gpio.PinAlias{N: alias, PinIO: r}
 		if err := gpio.RegisterAlias(a); err != nil {
-			//fmt.Printf("Cannot create alias %s for %s: %s", alias, real, err)
 			return true, fmt.Errorf("Cannot create alias %s for %s: %s",
 				alias, real, err)
 		}
@@ -323,20 +251,8 @@ func (d *driver) Init() (bool, error) {
 	return true, nil
 }
 
-// ensure that the driver implements the interface it's supposed to.
-var _ pio.Driver = &driver{}
-
-// aliases is a list of aliases for the various gpio pins, this allows users to refer to pins
-// using the documented and labeled names instead of some GPIOnnn name. The map key is the
-// alias and the value is the real pin name.
-var aliases = map[string]string{
-	"XIO-P0": "GPIO1016",
-	"XIO-P1": "GPIO1017",
-	"XIO-P2": "GPIO1018",
-	"XIO-P3": "GPIO1019",
-	"XIO-P4": "GPIO1020",
-	"XIO-P5": "GPIO1021",
-	"XIO-P6": "GPIO1022",
-	"XIO-P7": "GPIO1023",
-	"LCD-D2": "PD2",
+func init() {
+	if isArm {
+		pio.MustRegister(&driver{})
+	}
 }

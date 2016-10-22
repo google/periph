@@ -12,10 +12,10 @@ import (
 )
 
 var (
-	X32KFOUT gpio.PinIO   = &gpio.BasicPin{N: "X32KFOUT"}  // Clock output of 32Khz crystal
-	KEY_ADC  analog.PinIO = &analog.BasicPin{N: "KEY_ADC"} // 6 bits resolution ADC for key application; can work up to 250Hz conversion rate; reference voltage is 2.0V
-	EAROUTP  analog.PinIO = &analog.BasicPin{N: "EAROUTP"} // Earpiece amplifier negative differential output
-	EAROUTN  analog.PinIO = &analog.BasicPin{N: "EAROUTN"} // Earpiece amplifier positive differential output
+	X32KFOUT gpio.PinIO   = &gpio.BasicPin{N: "X32KFOUT"}  // A64 Clock output of 32Khz crystal
+	KEY_ADC  analog.PinIO = &analog.BasicPin{N: "KEY_ADC"} // A64 6 bits resolution ADC for key application; can work up to 250Hz conversion rate; reference voltage is 2.0V
+	EAROUTP  analog.PinIO = &analog.BasicPin{N: "EAROUTP"} // A64 Earpiece amplifier negative differential output
+	EAROUTN  analog.PinIO = &analog.BasicPin{N: "EAROUTN"} // A64 Earpiece amplifier positive differential output
 )
 
 // mappingA64 describes the mapping of each processor pin to its alternate functions. It omits the
@@ -140,7 +140,7 @@ var mappingA64 = map[string][5]string{
 func mapA64Pins() {
 	// set the altFunc fields of all pins that are on the A64
 	for name, altFuncs := range mappingA64 {
-		if pin := pinByName(name); pin != nil {
+		if pin := cpupins[name]; pin != nil {
 			pin.altFunc = altFuncs
 		}
 	}

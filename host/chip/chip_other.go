@@ -6,6 +6,4 @@
 
 package chip
 
-func init() {
-	zapPins()
-}
+const isArm = false

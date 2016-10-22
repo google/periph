@@ -4,8 +4,4 @@
 
 package chip
 
-import "github.com/google/pio"
-
-func init() {
-	pio.MustRegister(&driver{})
-}
+const isArm = true
