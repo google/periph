@@ -383,17 +383,6 @@ func (p *Pin) setFunction(f function) bool {
 	return true
 }
 
-/*// pinByName is a small local helper that returns the Pin that has the specified name. Used to
-// define the PB0... variables just below.
-func pinByName(name string) *Pin {
-	for _, p := range Pins {
-		if p.name == name {
-			return &p
-		}
-	}
-	panic("Pin " + name + " is not defined")
-}*/
-
 var (
 	PB0  gpio.PinIO = cpupins["PB0"]
 	PB1  gpio.PinIO = cpupins["PB1"]

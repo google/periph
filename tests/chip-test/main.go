@@ -21,10 +21,10 @@ import (
 // testChipPresent verifies that CHIP and Allwinner are indeed detected.
 func testChipPresent() error {
 	if !chip.Present() {
-		return fmt.Errorf("Did not detect presence of CHIP")
+		return fmt.Errorf("did not detect presence of CHIP")
 	}
 	if !allwinner.Present() {
-		return fmt.Errorf("Did not detect presence of Allwinner CPU")
+		return fmt.Errorf("did not detect presence of Allwinner CPU")
 	}
 	return nil
 }
@@ -33,7 +33,7 @@ func testChipPresent() error {
 func testChipLoading() error {
 	state, err := host.Init()
 	if err != nil {
-		return fmt.Errorf("Error loading drivers: %s", err)
+		return fmt.Errorf("error loading drivers: %s", err)
 	}
 	if len(state.Failed) > 0 {
 		for _, failure := range state.Failed {
@@ -48,67 +48,58 @@ func testChipLoading() error {
 func testChipHeaders() error {
 	h := headers.All()
 	if len(h) != 2 {
-		return fmt.Errorf("Expected to find 2 headers, not %d\n", len(h))
+		return fmt.Errorf("expected to find 2 headers, not %d\n", len(h))
 	}
 	if len(h["U13"]) != 20 {
-		return fmt.Errorf("Expected U13 to have 20 rows, not %d\n", len(h["U13"]))
+		return fmt.Errorf("expected U13 to have 20 rows, not %d\n", len(h["U13"]))
 	}
 	if len(h["U14"]) != 20 {
-		return fmt.Errorf("Expected U13 to have 20 rows, not %d\n", len(h["U13"]))
+		return fmt.Errorf("expected U13 to have 20 rows, not %d\n", len(h["U13"]))
 	}
 
 	for r := range h["U13"] {
 		if len(h["U13"][r]) != 2 {
-			return fmt.Errorf("Expected row %d of U13 to have 2 pins, not %d\n",
+			return fmt.Errorf("expected row %d of U13 to have 2 pins, not %d\n",
 				r, len(h["U13"][r]))
 		}
 		if len(h["U14"][r]) != 2 {
-			return fmt.Errorf("Expected row %d of U14 to have 2 pins, not %d\n",
+			return fmt.Errorf("expected row %d of U14 to have 2 pins, not %d\n",
 				r, len(h["U14"][r]))
 		}
 	}
 
-	/* for debugging
-	for i := range h["U13"] {
-		for j := range h["U13"][i] {
-			fmt.Printf("U13[%d][%d] is %s\n", i, j, h["U13"][i][j])
-		})
-	}*/
-
 	u13_17 := h["U13"][8][0]
 	if u13_17.Name() != "PD2" {
-		return fmt.Errorf("Expected U13_17 to be PD2, not %s\n", u13_17.Name())
+		return fmt.Errorf("expected U13_17 to be PD2, not %s\n", u13_17.Name())
 	}
 	p := gpio.ByName("PD2")
 	if p == nil || p.Name() != u13_17.Name() { // p is gpio.PinIO while u13_17 is pins.Pin
-		return fmt.Errorf(`Expected gpio.ByName("PD2") to equal h["U13"][8][0], instead `+
+		return fmt.Errorf(`expected gpio.ByName("PD2") to equal h["U13"][8][0], instead `+
 			"got %s and %s", p, u13_17)
 	}
 
 	u14_24 := h["U14"][11][1]
 	if p == nil || u14_24.Name() != "PB3" {
-		return fmt.Errorf("Expected U14_24 to be PB3, not %s\n", u14_24.Name())
+		return fmt.Errorf("expected U14_24 to be PB3, not %s\n", u14_24.Name())
 	}
 
 	u14_17 := h["U14"][8][0]
 	if p == nil || u14_17.Name() != "GPIO1020" {
-		return fmt.Errorf("Expected U14_17 to be GPIO1020, not %s\n", u14_17.Name())
+		return fmt.Errorf("expected U14_17 to be GPIO1020, not %s\n", u14_17.Name())
 	}
 	return nil
 }
 
 // testChipGpioNumbers tests that the gpio pins get the right numbers.
 func testChipGpioNumbers() error {
-	//t.Log("Pins:", strings.Join(all, ","))
-
 	must := map[int]string{34: "PB2", 108: "PD12", 139: "PE11", 1022: "GPIO1022"}
 	for number, name := range must {
 		pin := gpio.ByNumber(number)
 		if pin == nil {
-			return fmt.Errorf("Could not get gpio pin %d (should be %s)\n", number, name)
+			return fmt.Errorf("could not get gpio pin %d (should be %s)\n", number, name)
 		}
 		if pin.Name() != name {
-			return fmt.Errorf("Expected gpio pin %s to be %s but it's %s",
+			return fmt.Errorf("expected gpio pin %s to be %s but it's %s",
 				number, name, pin.Name())
 		}
 	}
@@ -123,13 +114,11 @@ func testChipGpioNames() error {
 	}
 	sort.Strings(all)
 
-	//t.Log("Pins:", strings.Join(all, ","))
-
 	must := []string{"PB2", "PE11", "GPIO1022"}
 	for _, name := range must {
 		ix := sort.SearchStrings(all, name)
 		if ix >= len(all) || all[ix] != name {
-			return fmt.Errorf("Expected to find gpio pin %s but it's missing", name)
+			return fmt.Errorf("expected to find gpio pin %s but it's missing", name)
 		}
 	}
 	return nil
@@ -143,21 +132,21 @@ func testChipAliases() error {
 	for a, r := range tests {
 		p := gpio.ByName(a)
 		if p == nil {
-			return fmt.Errorf("Failed to open %s", a)
+			return fmt.Errorf("failed to open %s", a)
 		}
 		pa, ok := p.(*gpio.PinAlias)
 		if !ok {
-			return fmt.Errorf("Expected that pin %s is an alias, not %T", a, pa)
+			return fmt.Errorf("expected that pin %s is an alias, not %T", a, pa)
 		}
 		if pa.Name() != a {
-			return fmt.Errorf("The name of alias %s is %s not %s", a, pa.Name(), a)
+			return fmt.Errorf("the name of alias %s is %s not %s", a, pa.Name(), a)
 		}
 		pr, ok := p.(gpio.RealPin)
 		if !ok {
-			return fmt.Errorf("Expected that pin alias %s implement RealPin", a)
+			return fmt.Errorf("expected that pin alias %s implement RealPin", a)
 		}
 		if pr.Real().Name() != r {
-			return fmt.Errorf("Expected that alias %s have real pin %s but it's %s",
+			return fmt.Errorf("expected that alias %s have real pin %s but it's %s",
 				a, r, pr.Real().Name())
 		}
 	}
