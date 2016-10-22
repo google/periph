@@ -2,7 +2,7 @@
 
 Documentation for _device driver developers_ who either want to develop a
 device driver in their own code base or want to submit a contribution to extend
-the hardware supported by pio.
+the hardware supported by `pio`.
 
 
 ## Background
@@ -152,8 +152,9 @@ experience.
   * Benchmark must be implemented for non trivial processing running on the host.
 * Code must compile on all OSes, with minimal use of OS-specific thunk as
   strictly needed. Take advantage of constructs like `if isArm { ...}` where the
-  conditional is optimized away at compile time and `isArm` is a simple boolean
-  constant defined in relevant .go files having a build constraint.
+  conditional is optimized away at compile time via dead code elimination
+  and `isArm` is a simple boolean constant defined in relevant .go files
+  having a build constraint.
 * Struct implementing an interface must validate at compile time with `var _
   <Interface> = &<Type>{}`.
 * License is Apache v2.0.
