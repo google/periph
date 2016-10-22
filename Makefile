@@ -11,17 +11,21 @@
 all:
 	@echo Available targets: test build
 
-.PHONY: all test clean
+.PHONY: all test clean depend
 
 # test runs the platform independent tests
 # (gofmt|grep is used to obtain a non-zero exit status if the formatting is off)
-test:
+test: depend
 	go test -i ./...
 	go test ./...
 	@if gofmt -l . | grep .go; then \
 	  echo "Repo contains improperly formatted go files; run gofmt on above files" && exit 1; \
 	else echo "OK gofmt"; fi
 	-go vet ./...
+
+# depend fetches dependencies, this takes <0.2s if the dependencies are there already so just do it...
+depend:
+	go get -d ./...
 
 # BUILD
 #
@@ -40,7 +44,7 @@ CMDS  := $(patsubst cmd/%/main.go,%,$(MAINS))
 ARCHS := arm arm64 amd64 win64.exe
 BINS=$(foreach arch,$(ARCHS),$(foreach cmd,$(CMDS),bin/$(cmd)-$(arch)))
 
-build: bin $(BINS)
+build: depend bin $(BINS)
 bin:
 	mkdir bin
 
