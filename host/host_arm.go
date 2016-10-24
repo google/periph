@@ -10,6 +10,7 @@ import (
 	_ "github.com/google/pio/host/allwinner_pl"
 	_ "github.com/google/pio/host/bcm283x"
 	_ "github.com/google/pio/host/chip"
+	_ "github.com/google/pio/host/odroid_c1"
 	_ "github.com/google/pio/host/pine64"
 	_ "github.com/google/pio/host/rpi"
 )
