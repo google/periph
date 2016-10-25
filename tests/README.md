@@ -1,4 +1,4 @@
-# pio/tests - smoke tests
+# periph/tests - smoke tests
 
 This directory contains tests requirement hardware to interact with. That is,
 each subdirectory is an executable that verify that both the driver and the

@@ -1,15 +1,15 @@
-# pio/cmd - read-to-use executables
+# periph/cmd - read-to-use executables
 
 This directory contains directly usable tools installable via `go get
-github.com/google/pio/cmd/...`.
+github.com/google/periph/cmd/...`.
 
 
 ## Recommended first use
 
-Try first `pio-info`. It will print out if any driver failed to run, for example
-if you have to run as root to access certain drivers.
+Try first `periph-info`. It will print out if any driver failed to run, for
+example if you have to run as root to access certain drivers.
 
-`pio-setup` is a rule based configuration tool that will modify the host to
+`periph-setup` is a rule based configuration tool that will modify the host to
 enable more functionality.
 
 Then run `headers-list` to list all the headers on your board and confirm that
@@ -31,10 +31,10 @@ it](../doc/drivers/CONTRIBUTING.md).
 
 ## Buses
 
-* [gpio-list](gpio-list): Looking for the GPIO pins per functionality? Prints
-  the state of each GPIO pin.
-* [gpio-read](gpio-read): Read the input value of a GPIO pin and change input
-  resistor.
+* [gpio-list](gpio-list): Looking for the GPIO pins per functionality?
+  Prints the state of each GPIO pin.
+* [gpio-read](gpio-read): Read the input value of a GPIO pin and change
+  input resistor.
 * [gpio-write](gpio-write): Change the output value of a GPIO pin.
 * [headers-list](headers-list): Pinrts the location of the pin on the header to
   connect your GPIO. This is the perfect tool to know where to connect the
@@ -48,9 +48,10 @@ it](../doc/drivers/CONTRIBUTING.md).
 
 ## Other
 
-* [pio-info](pio-info): Lists which pio drivers loaded and which failed.
-* [pio-setup](pio-setup): Modifies the host to enable more functionality (load
-  drivers, install udev rules, etc).
+* [periph-info](periph-info): Lists which periph drivers loaded and which
+  failed.
+* [periph-setup](periph-setup): Modifies the host to enable more functionality
+  (load drivers, install udev rules, etc).
 
 
 ## Troubleshooting

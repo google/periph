@@ -1,4 +1,4 @@
-// Copyright 2016 The PIO Authors. All rights reserved.
+// Copyright 2016 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -12,14 +12,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/pio/conn/gpio"
-	"github.com/google/pio/host/sysfs"
+	"github.com/google/periph/conn/gpio"
+	"github.com/google/periph/host/sysfs"
 )
 
 // cpupins that may be implemented by a generic Allwinner CPU. Not all pins will be present on all
 // models and even if the CPU model supports them they may not be connected to anything on the
 // board. The net effect is that it may look like more pins are available than really are, but
-// trying to get the pin list 100% correct on all platforms seems futile, hence pio errs on the
+// trying to get the pin list 100% correct on all platforms seems futile, hence periph errs on the
 // side of caution.
 //
 // Group/offset calculation from http://forum.pine64.org/showthread.php?tid=474

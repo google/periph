@@ -1,8 +1,8 @@
-// Copyright 2016 The PIO Authors. All rights reserved.
+// Copyright 2016 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// pio-info prints out information about the loaded pio drivers.
+// periph-info prints out information about the loaded periph drivers.
 package main
 
 import (
@@ -10,17 +10,17 @@ import (
 	"os"
 	"sort"
 
-	"github.com/google/pio"
-	"github.com/google/pio/host"
+	"github.com/google/periph"
+	"github.com/google/periph/host"
 )
 
-type failures []pio.DriverFailure
+type failures []periph.DriverFailure
 
 func (f failures) Len() int           { return len(f) }
 func (f failures) Less(i, j int) bool { return f[i].D.String() < f[j].D.String() }
 func (f failures) Swap(i, j int)      { f[i], f[j] = f[j], f[i] }
 
-func printOrdered(drivers []pio.DriverFailure) {
+func printOrdered(drivers []periph.DriverFailure) {
 	if len(drivers) == 0 {
 		fmt.Print("  <none>\n")
 	} else {
@@ -49,7 +49,7 @@ func mainImpl() error {
 		fmt.Print("  <none>\n")
 	} else {
 		names := make([]string, 0, len(state.Loaded))
-		m := make(map[string]pio.Driver, len(state.Loaded))
+		m := make(map[string]periph.Driver, len(state.Loaded))
 		max := 0
 		for _, d := range state.Loaded {
 			n := d.String()
@@ -79,7 +79,7 @@ func mainImpl() error {
 
 func main() {
 	if err := mainImpl(); err != nil {
-		fmt.Fprintf(os.Stderr, "pio-info: %s.\n", err)
+		fmt.Fprintf(os.Stderr, "periph-info: %s.\n", err)
 		os.Exit(1)
 	}
 }

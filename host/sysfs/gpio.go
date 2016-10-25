@@ -1,4 +1,4 @@
-// Copyright 2016 The PIO Authors. All rights reserved.
+// Copyright 2016 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -15,8 +15,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/pio"
-	"github.com/google/pio/conn/gpio"
+	"github.com/google/periph"
+	"github.com/google/periph/conn/gpio"
 )
 
 // Pins is all the pins exported by GPIO sysfs.
@@ -339,7 +339,7 @@ func seekWrite(f *os.File, b []byte) error {
 	return err
 }
 
-// driverGPIO implements pio.Driver.
+// driverGPIO implements periph.Driver.
 type driverGPIO struct {
 }
 
@@ -347,9 +347,9 @@ func (d *driverGPIO) String() string {
 	return "sysfs-gpio"
 }
 
-func (d *driverGPIO) Type() pio.Type {
+func (d *driverGPIO) Type() periph.Type {
 	// It intentionally load later than processors.
-	return pio.Pins
+	return periph.Pins
 }
 
 func (d *driverGPIO) Prerequisites() []string {
@@ -425,7 +425,7 @@ func (d *driverGPIO) parseGPIOChip(path string) error {
 
 func init() {
 	if isLinux {
-		pio.MustRegister(&driverGPIO{})
+		periph.MustRegister(&driverGPIO{})
 	}
 }
 

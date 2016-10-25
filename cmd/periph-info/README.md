@@ -1,4 +1,4 @@
-# pio-info
+# periph-info
 
 Prints the lists of drivers that were loaded, the ones skipped and the one that
 failed to load, if any.
@@ -14,7 +14,7 @@ failed to load, if any.
 On a [Raspberry Pi](https://www.raspberrypi.org/) running
 [Raspbian](https://raspbian.org/):
 
-    $ pio-info
+    $ periph-info
     Drivers loaded and their dependencies, if any:
     - bcm283x
     - rpi          : [bcm283x]
@@ -33,7 +33,7 @@ On a [Raspberry Pi](https://www.raspberrypi.org/) running
 On a [Pine64](https://www.pine64.org/) running [Armbian](http://armbian.com)
 running **as a user** (not root):
 
-    $ pio-info
+    $ periph-info
     Drivers loaded and their dependencies, if any:
     - pine64       : [allwinner_pl]
     - sysfs-i2c
@@ -51,7 +51,7 @@ running **as a user** (not root):
 On a [Pine64](https://www.pine64.org/) running [Armbian](http://armbian.com) **as
 root**:
 
-    $ sudo pio-info
+    $ sudo periph-info
     Drivers loaded and their dependencies, if any:
     - allwinner
     - allwinner_pl : [allwinner]

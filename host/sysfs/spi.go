@@ -1,4 +1,4 @@
-// Copyright 2016 The PIO Authors. All rights reserved.
+// Copyright 2016 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -14,9 +14,9 @@ import (
 	"strings"
 	"unsafe"
 
-	"github.com/google/pio"
-	"github.com/google/pio/conn/gpio"
-	"github.com/google/pio/conn/spi"
+	"github.com/google/periph"
+	"github.com/google/periph/conn/gpio"
+	"github.com/google/periph/conn/spi"
 )
 
 // NewSPI opens a SPI bus via its devfs interface as described at
@@ -209,7 +209,7 @@ func (s *SPI) initPins() {
 	}
 }
 
-// driverSPI implements pio.Driver.
+// driverSPI implements periph.Driver.
 type driverSPI struct {
 }
 
@@ -217,8 +217,8 @@ func (d *driverSPI) String() string {
 	return "sysfs-spi"
 }
 
-func (d *driverSPI) Type() pio.Type {
-	return pio.Bus
+func (d *driverSPI) Type() periph.Type {
+	return periph.Bus
 }
 
 func (d *driverSPI) Prerequisites() []string {
@@ -264,7 +264,7 @@ func (d *driverSPI) Init() (bool, error) {
 
 func init() {
 	if isLinux {
-		pio.MustRegister(&driverSPI{})
+		periph.MustRegister(&driverSPI{})
 	}
 }
 

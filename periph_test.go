@@ -1,8 +1,8 @@
-// Copyright 2016 The PIO Authors. All rights reserved.
+// Copyright 2016 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-package pio
+package periph
 
 import (
 	"errors"
@@ -12,11 +12,11 @@ import (
 )
 
 func ExampleInit() {
-	// You probably want host.Init() instead as it registers all the pio-provided
+	// You probably want host.Init() instead as it registers all the periph-provided
 	// host drivers automatically.
 	state, err := Init()
 	if err != nil {
-		log.Fatalf("failed to initialize pio: %v", err)
+		log.Fatalf("failed to initialize periph: %v", err)
 	}
 	fmt.Printf("Using drivers:\n")
 	for _, driver := range state.Loaded {

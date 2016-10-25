@@ -1,4 +1,4 @@
-// Copyright 2016 The PIO Authors. All rights reserved.
+// Copyright 2016 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -11,8 +11,8 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/google/pio"
-	"github.com/google/pio/experimental/conn/usb"
+	"github.com/google/periph"
+	"github.com/google/periph/experimental/conn/usb"
 	gousb "github.com/kylelemons/gousb/usb"
 )
 
@@ -100,7 +100,7 @@ func (d *dev) Tx(w, r []byte) error {
 	return err
 }
 
-// driver implements pio.Driver.
+// driver implements periph.Driver.
 type driver struct {
 }
 
@@ -108,8 +108,8 @@ func (d *driver) String() string {
 	return "usb"
 }
 
-func (d *driver) Type() pio.Type {
-	return pio.Bus
+func (d *driver) Type() periph.Type {
+	return periph.Bus
 }
 
 func (d *driver) Prerequisites() []string {
@@ -213,8 +213,8 @@ func scanDevices(m map[usb.ID]usb.Opener) error {
 }
 
 func init() {
-	pio.MustRegister(&driver{})
+	periph.MustRegister(&driver{})
 }
 
-var _ pio.Driver = &driver{}
+var _ periph.Driver = &driver{}
 var _ usb.ConnCloser = &dev{}
