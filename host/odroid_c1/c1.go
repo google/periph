@@ -21,10 +21,11 @@ import (
 var (
 	V1_8 pins.Pin = &pins.BasicPin{N: "V1_8"} // 1.8 volt output
 
-	I2CA_SDA, I2CA_SCL, I2CB_SDA, I2CB_SCL    gpio.PinIO
-	SPI0_MOSI, SPI0_MISO, SPI0_SCLK, SPI0_CS0 gpio.PinIO
+	I2CA_SDA, I2CA_SCL, I2CB_SDA, I2CB_SCL    gpio.PinIO // pins 3, 5, 27, 28
+	SPI0_MOSI, SPI0_MISO, SPI0_SCLK, SPI0_CS0 gpio.PinIO // pins 19, 21,23, 24
 )
 
+// The J2 header is rPi compatible, except for the two analog pins and the 1.8V output.
 var (
 	J2_1  pins.Pin     = pins.V3_3      // 3.3 volt; max 30mA
 	J2_2  pins.Pin     = pins.V5        // 5 volt (after filtering)
@@ -113,7 +114,7 @@ func (d *driver) Init() (bool, error) {
 		return false, errors.New("Hardkernel ODROID-C0/C1/C1+ board not detected")
 	}
 
-	// sysfsPin is a safe say to get a sysfs pin
+	// sysfsPin is a safe way to get a sysfs pin
 	sysfsPin := func(n int) gpio.PinIO {
 		if pin, present := sysfs.Pins[n]; present {
 			return pin
@@ -135,9 +136,9 @@ func (d *driver) Init() (bool, error) {
 
 	J2_3 = I2CA_SDA
 	J2_5 = I2CA_SCL
-	J2_7 = gpio.INVALID  // should be sysfs.Pins(83) but that doesn't work due to w1-gpio driver
-	J2_8 = gpio.INVALID  // should be sysfs.Pins(113) but that doesn't work
-	J2_10 = gpio.INVALID // should be sysfs.Pins(114) but that doesn't work
+	J2_7 = sysfsPin(83)   // usually taken by 1-wire driver
+	J2_8 = sysfsPin(113)  // usually not available
+	J2_10 = sysfsPin(114) // usually not available
 	J2_11 = sysfsPin(88)
 	J2_12 = sysfsPin(87)
 	J2_13 = sysfsPin(116)

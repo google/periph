@@ -6,4 +6,4 @@
 
 package odroid_c1
 
-const isArm = true
+const isArm = false

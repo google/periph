@@ -32,6 +32,7 @@ var (
 	XIO0, XIO1, XIO2, XIO3, XIO4, XIO5, XIO6, XIO7 gpio.PinIO
 )
 
+// The U13 header is opposite the power LED.
 var (
 	U13_1  pins.Pin   = pins.GROUND    //
 	U13_2  pins.Pin   = DC_IN          // 5 volt input
@@ -73,7 +74,10 @@ var (
 	U13_38 gpio.PinIO = allwinner.PD26 //
 	U13_39 pins.Pin   = pins.GROUND    //
 	U13_40 pins.Pin   = pins.GROUND    //
+)
 
+// The U14 header is right next to the power LED.
+var (
 	U14_1  pins.Pin     = pins.GROUND //
 	U14_2  pins.Pin     = pins.V5     // 5 volt output
 	U14_3  gpio.PinIO   = allwinner.PG3
@@ -160,7 +164,7 @@ func (d *driver) Init() (bool, error) {
 		return false, errors.New("NextThing Co. CHIP board not detected")
 	}
 
-	// sysfsPin is a safe say to get a sysfs pin
+	// sysfsPin is a safe way to get a sysfs pin
 	sysfsPin := func(n int) gpio.PinIO {
 		if pin, present := sysfs.Pins[n]; present {
 			return pin
