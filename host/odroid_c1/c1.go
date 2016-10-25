@@ -1,4 +1,4 @@
-// Copyright 2016 The PIO Authors. All rights reserved.
+// Copyright 2016 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -11,13 +11,13 @@ import (
 
 	//"github.com/tve/pio-chip/amlogic_s805"
 
-	"github.com/google/pio"
-	"github.com/google/pio/conn/analog"
-	"github.com/google/pio/conn/gpio"
-	"github.com/google/pio/conn/pins"
-	"github.com/google/pio/host/distro"
-	"github.com/google/pio/host/headers"
-	"github.com/google/pio/host/sysfs"
+	"github.com/google/periph"
+	"github.com/google/periph/conn/analog"
+	"github.com/google/periph/conn/gpio"
+	"github.com/google/periph/conn/pins"
+	"github.com/google/periph/host/distro"
+	"github.com/google/periph/host/headers"
+	"github.com/google/periph/host/sysfs"
 )
 
 var (
