@@ -113,42 +113,51 @@ func (d *driver) Init() (bool, error) {
 		return false, errors.New("Hardkernel ODROID-C0/C1/C1+ board not detected")
 	}
 
+	// sysfsPin is a safe say to get a sysfs pin
+	sysfsPin := func(n int) gpio.PinIO {
+		if pin, present := sysfs.Pins[n]; present {
+			return pin
+		} else {
+			return gpio.INVALID
+		}
+	}
+
 	// At this point the sysfs driver has initialized and discovered its pins,
 	// we can now hook-up the appropriate named pins to sysfs gpio pins.
-	I2CA_SDA = sysfs.Pins[74]
-	I2CA_SCL = sysfs.Pins[75]
-	I2CB_SDA = sysfs.Pins[76]
-	I2CB_SCL = sysfs.Pins[77]
-	SPI0_MOSI = sysfs.Pins[107]
-	SPI0_MISO = sysfs.Pins[106]
-	SPI0_SCLK = sysfs.Pins[105]
-	SPI0_CS0 = sysfs.Pins[117]
+	I2CA_SDA = sysfsPin(74)
+	I2CA_SCL = sysfsPin(75)
+	I2CB_SDA = sysfsPin(76)
+	I2CB_SCL = sysfsPin(77)
+	SPI0_MOSI = sysfsPin(107)
+	SPI0_MISO = sysfsPin(106)
+	SPI0_SCLK = sysfsPin(105)
+	SPI0_CS0 = sysfsPin(117)
 
 	J2_3 = I2CA_SDA
 	J2_5 = I2CA_SCL
-	J2_7 = gpio.INVALID  // should be sysfs.Pins[83] but that doesn't work due to w1-gpio driver
-	J2_8 = gpio.INVALID  // should be sysfs.Pins[113] but that doesn't work
-	J2_10 = gpio.INVALID // should be sysfs.Pins[114] but that doesn't work
-	J2_11 = sysfs.Pins[88]
-	J2_12 = sysfs.Pins[87]
-	J2_13 = sysfs.Pins[116]
-	J2_15 = sysfs.Pins[115]
-	J2_16 = sysfs.Pins[104]
-	J2_18 = sysfs.Pins[102]
+	J2_7 = gpio.INVALID  // should be sysfs.Pins(83) but that doesn't work due to w1-gpio driver
+	J2_8 = gpio.INVALID  // should be sysfs.Pins(113) but that doesn't work
+	J2_10 = gpio.INVALID // should be sysfs.Pins(114) but that doesn't work
+	J2_11 = sysfsPin(88)
+	J2_12 = sysfsPin(87)
+	J2_13 = sysfsPin(116)
+	J2_15 = sysfsPin(115)
+	J2_16 = sysfsPin(104)
+	J2_18 = sysfsPin(102)
 	J2_19 = SPI0_MOSI
 	J2_21 = SPI0_MISO
-	J2_22 = sysfs.Pins[103]
+	J2_22 = sysfsPin(103)
 	J2_23 = SPI0_SCLK
 	J2_24 = SPI0_CS0
-	J2_26 = sysfs.Pins[118]
+	J2_26 = sysfsPin(118)
 	J2_27 = I2CB_SDA
 	J2_28 = I2CB_SCL
-	J2_29 = sysfs.Pins[101]
-	J2_31 = sysfs.Pins[100]
-	J2_32 = sysfs.Pins[99]
-	J2_33 = sysfs.Pins[108]
-	J2_35 = sysfs.Pins[97]
-	J2_36 = sysfs.Pins[98]
+	J2_29 = sysfsPin(101)
+	J2_31 = sysfsPin(100)
+	J2_32 = sysfsPin(99)
+	J2_33 = sysfsPin(108)
+	J2_35 = sysfsPin(97)
+	J2_36 = sysfsPin(98)
 
 	// J2 is the 40-pin rPi-compatible header
 	J2 := [][]pins.Pin{
