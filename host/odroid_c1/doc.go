@@ -15,12 +15,11 @@
 //
 // References
 //
-// [Product
-// page](http://www.hardkernel.com/main/products/prdt_info.php?g_code=G143703355573&tab_idx=2)
+// Product page: http://www.hardkernel.com/main/products/prdt_info.php?g_code=G143703355573&tab_idx=2
 //
-// [Hardware wiki](http://odroid.com/dokuwiki/doku.php?id=en:c1_hardware)
+// Hardware wiki: http://odroid.com/dokuwiki/doku.php?id=en:c1_hardware
 //
-// [Ubuntu drivers](http://odroid.com/dokuwiki/doku.php?id=en:odroid-c1#ubuntu)
+// Ubuntu drivers: http://odroid.com/dokuwiki/doku.php?id=en:odroid-c1#ubuntu
 //
 // Detection
 //

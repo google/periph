@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"strings"
 
-	//"github.com/tve/pio-chip/amlogic_s805"
-
 	"github.com/google/periph"
 	"github.com/google/periph/conn/analog"
 	"github.com/google/periph/conn/gpio"
@@ -102,8 +100,8 @@ func (d *driver) String() string {
 	return "odroid_c1"
 }
 
-func (d *driver) Type() pio.Type {
-	return pio.Pins
+func (d *driver) Type() periph.Type {
+	return periph.Pins
 }
 
 func (d *driver) Prerequisites() []string {
@@ -198,6 +196,6 @@ func (d *driver) Init() (bool, error) {
 
 func init() {
 	if isArm {
-		pio.MustRegister(&driver{})
+		periph.MustRegister(&driver{})
 	}
 }
