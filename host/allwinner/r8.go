@@ -7,8 +7,8 @@
 package allwinner
 
 import (
-	"github.com/google/pio/conn/gpio"
-	"github.com/google/pio/conn/pins"
+	"github.com/google/periph/conn/gpio"
+	"github.com/google/periph/conn/pins"
 )
 
 var (

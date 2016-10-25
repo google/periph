@@ -1,4 +1,4 @@
-// Copyright 2016 The PIO Authors. All rights reserved.
+// Copyright 2016 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -12,12 +12,12 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/google/pio"
-	"github.com/google/pio/conn/gpio"
-	"github.com/google/pio/conn/pins"
-	"github.com/google/pio/host/bcm283x"
-	"github.com/google/pio/host/distro"
-	"github.com/google/pio/host/headers"
+	"github.com/google/periph"
+	"github.com/google/periph/conn/gpio"
+	"github.com/google/periph/conn/pins"
+	"github.com/google/periph/host/bcm283x"
+	"github.com/google/periph/host/distro"
+	"github.com/google/periph/host/headers"
 )
 
 // Present returns true if running on a Raspberry Pi board.
@@ -161,7 +161,7 @@ func zapPins() {
 	HDMI_HOTPLUG_DETECT = gpio.INVALID
 }
 
-// driver implements pio.Driver.
+// driver implements periph.Driver.
 type driver struct {
 }
 
@@ -169,8 +169,8 @@ func (d *driver) String() string {
 	return "rpi"
 }
 
-func (d *driver) Type() pio.Type {
-	return pio.Pins
+func (d *driver) Type() periph.Type {
+	return periph.Pins
 }
 
 func (d *driver) Prerequisites() []string {
@@ -299,10 +299,10 @@ func (d *driver) Init() (bool, error) {
 
 func init() {
 	if isArm {
-		pio.MustRegister(&driver{})
+		periph.MustRegister(&driver{})
 	} else {
 		zapPins()
 	}
 }
 
-var _ pio.Driver = &driver{}
+var _ periph.Driver = &driver{}

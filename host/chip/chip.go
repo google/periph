@@ -1,4 +1,4 @@
-// Copyright 2016 The PIO Authors. All rights reserved.
+// Copyright 2016 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -9,14 +9,14 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/google/pio"
-	"github.com/google/pio/conn/analog"
-	"github.com/google/pio/conn/gpio"
-	"github.com/google/pio/conn/pins"
-	"github.com/google/pio/host/allwinner"
-	"github.com/google/pio/host/distro"
-	"github.com/google/pio/host/headers"
-	"github.com/google/pio/host/sysfs"
+	"github.com/google/periph"
+	"github.com/google/periph/conn/analog"
+	"github.com/google/periph/conn/gpio"
+	"github.com/google/periph/conn/pins"
+	"github.com/google/periph/host/allwinner"
+	"github.com/google/periph/host/distro"
+	"github.com/google/periph/host/headers"
+	"github.com/google/periph/host/sysfs"
 )
 
 var (
@@ -146,8 +146,8 @@ func (d *driver) String() string {
 	return "chip"
 }
 
-func (d *driver) Type() pio.Type {
-	return pio.Pins
+func (d *driver) Type() periph.Type {
+	return periph.Pins
 }
 
 func (d *driver) Prerequisites() []string {
@@ -253,6 +253,6 @@ func (d *driver) Init() (bool, error) {
 
 func init() {
 	if isArm {
-		pio.MustRegister(&driver{})
+		periph.MustRegister(&driver{})
 	}
 }

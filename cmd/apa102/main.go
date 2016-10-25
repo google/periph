@@ -1,4 +1,4 @@
-// Copyright 2016 The PIO Authors. All rights reserved.
+// Copyright 2016 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -21,12 +21,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/pio/conn/gpio"
-	"github.com/google/pio/conn/spi"
-	"github.com/google/pio/devices"
-	"github.com/google/pio/devices/apa102"
-	"github.com/google/pio/experimental/devices/bitbang"
-	"github.com/google/pio/host"
+	"github.com/google/periph/conn/gpio"
+	"github.com/google/periph/conn/spi"
+	"github.com/google/periph/devices"
+	"github.com/google/periph/devices/apa102"
+	"github.com/google/periph/experimental/devices/bitbang"
+	"github.com/google/periph/host"
 	"github.com/nfnt/resize"
 )
 
@@ -41,7 +41,7 @@ func findFile(name string) string {
 	}
 	for _, p := range strings.Split(os.Getenv("GOPATH"), ":") {
 		if len(p) != 0 {
-			if p2 := filepath.Join(p, "src/github.com/google/pio/cmd/apa102", name); access(p2) {
+			if p2 := filepath.Join(p, "src/github.com/google/periph/cmd/apa102", name); access(p2) {
 				return p2
 			}
 		}

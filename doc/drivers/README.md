@@ -1,13 +1,13 @@
-# pio - Device driver developers
+# periph - Device driver developers
 
 Documentation for _device driver developers_ who either want to develop a
 device driver in their own code base or want to submit a contribution to extend
-the hardware supported by `pio`.
+the hardware supported by `periph`.
 
 
 ## Background
 
-The main purpose of `pio` is to provide interfaces to assemble components
+The main purpose of `periph` is to provide interfaces to assemble components
 to communicate with hardware peripherals. As such, it splits boards
 into their individual components: CPU, buses, physical headers, etc, instead of
 representing each board as a whole object.
@@ -48,14 +48,14 @@ Any driver can be requested to be added to the library under the
 [experimental/](../../experimental/) directory. The following process must be
 followed:
 * Create a driver out of tree an make it work.
-* Improve the driver so it meets a minimal quality bar under the promise of being improved. See
-  [Requirements](#requirements) for the extensive list.
+* Improve the driver so it meets a minimal quality bar under the promise of
+  being improved. See [Requirements](#requirements) for the extensive list.
 * Follow the [CONTRIBUTING.md](CONTRIBUTING.md) requirements.
 * Create a Pull Request for integration under
   [experimental/](../../experimental/) and respond to the code review.
 
-At this point, it is available for use to everyone but it is not loaded by default by
-[host.Init()](https://godoc.org/github.com/google/pio/host#Init).
+At this point, it is available for use to everyone but it is not loaded by
+default by [host.Init()](https://godoc.org/github.com/google/periph/host#Init).
 
 There is no API compatibility guarantee for drivers under
 [experimental/](../../experimental/).
@@ -91,7 +91,8 @@ DETERMINED_ amount of time.
 
 A new proposed driver must first be implemented out of tree and fit all the
 items in [Requirements](#requirements) listed below. It can then be proposed as
-[Experimental](#experimental), and finally requested to be promoted to [Stable](#stable).
+[Experimental](#experimental), and finally requested to be promoted to
+[Stable](#stable).
 
 
 ## Requirements
@@ -114,7 +115,7 @@ experience.
   * Minimal use of factories except for protocol level registries.
   * No `init()` code that accesses peripherals on process startup. These belong
     to
-    [Driver.Init()](https://godoc.org/github.com/google/pio#Driver).
+    [Driver.Init()](https://godoc.org/github.com/google/periph#Driver).
 * Exact naming
   * Driver for a chipset must have the name of the chipset or the chipset
     family. Don't use `oleddisplay`, use `ssd1306`.
@@ -144,12 +145,13 @@ experience.
   * Floating point arithmetic should only be used when absolutely necesary in
     the driver code. Most of the cases can be replaced by fixed point
     arithmetic, for example
-    [devices.Milli](https://godoc.org/github.com/google/pio/devices#Milli).
+    [devices.Milli](https://godoc.org/github.com/google/periph/devices#Milli).
     Floating point arithmetic is acceptable in the unit tests and tools in
     [cmd/](../../cmd/) but should not be abused.
   * Drivers must be implemented with performance in mind. For example I²C
     operations should be batched to minimize overhead.
-  * Benchmark must be implemented for non trivial processing running on the host.
+  * Benchmark must be implemented for non trivial processing running on the
+    host.
 * Code must compile on all OSes, with minimal use of OS-specific thunk as
   strictly needed. Take advantage of constructs like `if isArm { ...}` where the
   conditional is optimized away at compile time via dead code elimination

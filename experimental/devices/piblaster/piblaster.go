@@ -1,4 +1,4 @@
-// Copyright 2016 The PIO Authors. All rights reserved.
+// Copyright 2016 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -21,7 +21,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/google/pio/conn/gpio"
+	"github.com/google/periph/conn/gpio"
 )
 
 // SetPWM enables and sets the PWM duty on a GPIO output pin via piblaster.

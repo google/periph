@@ -1,4 +1,4 @@
-// Copyright 2016 The PIO Authors. All rights reserved.
+// Copyright 2016 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -11,8 +11,8 @@ import (
 	"log"
 	"testing"
 
-	"github.com/google/pio/experimental/conn/usb"
-	"github.com/google/pio/host"
+	"github.com/google/periph/experimental/conn/usb"
+	"github.com/google/periph/host"
 )
 
 func Example() {

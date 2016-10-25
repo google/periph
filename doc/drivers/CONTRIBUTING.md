@@ -35,9 +35,9 @@ device support.
 
 ### Conduct
 
-While this project is not related to the Go project itself, `pio` abides to the
-same code of conduct as the Go project as described at
-https://golang.org/conduct. `pio` doesn't yet have a formal committee (help's
+While this project is not related to the Go project itself, `periph` abides to
+the same code of conduct as the Go project as described at
+https://golang.org/conduct. `periph` doesn't yet have a formal committee (help's
 appreciated), please email directly `maruel@chromium.org` for issues
 encountered.
 

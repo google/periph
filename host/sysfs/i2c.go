@@ -1,4 +1,4 @@
-// Copyright 2016 The PIO Authors. All rights reserved.
+// Copyright 2016 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -15,9 +15,9 @@ import (
 	"sync"
 	"unsafe"
 
-	"github.com/google/pio"
-	"github.com/google/pio/conn/gpio"
-	"github.com/google/pio/conn/i2c"
+	"github.com/google/periph"
+	"github.com/google/periph/conn/gpio"
+	"github.com/google/periph/conn/i2c"
 )
 
 // I2C is an open I²C bus via sysfs.
@@ -293,7 +293,7 @@ type i2cMsg struct {
 	buf    uintptr
 }
 
-// driverI2C implements pio.Driver.
+// driverI2C implements periph.Driver.
 type driverI2C struct {
 }
 
@@ -301,8 +301,8 @@ func (d *driverI2C) String() string {
 	return "sysfs-i2c"
 }
 
-func (d *driverI2C) Type() pio.Type {
-	return pio.Bus
+func (d *driverI2C) Type() periph.Type {
+	return periph.Bus
 }
 
 func (d *driverI2C) Prerequisites() []string {
@@ -338,7 +338,7 @@ func (d *driverI2C) Init() (bool, error) {
 
 func init() {
 	if isLinux {
-		pio.MustRegister(&driverI2C{})
+		periph.MustRegister(&driverI2C{})
 	}
 }
 

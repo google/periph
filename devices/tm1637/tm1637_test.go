@@ -1,4 +1,4 @@
-// Copyright 2016 The PIO Authors. All rights reserved.
+// Copyright 2016 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -8,9 +8,9 @@ import (
 	"log"
 	"testing"
 
-	"github.com/google/pio/conn/gpio"
-	"github.com/google/pio/conn/gpio/gpiotest"
-	"github.com/google/pio/host"
+	"github.com/google/periph/conn/gpio"
+	"github.com/google/periph/conn/gpio/gpiotest"
+	"github.com/google/periph/host"
 )
 
 func TestNew(t *testing.T) {
@@ -28,7 +28,7 @@ func TestNew(t *testing.T) {
 
 func Example() {
 	if _, err := host.Init(); err != nil {
-		log.Fatalf("failed to initialize pio: %v", err)
+		log.Fatalf("failed to initialize periph: %v", err)
 	}
 	dev, err := New(gpio.ByNumber(6), gpio.ByNumber(12))
 	if err != nil {

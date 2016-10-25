@@ -1,16 +1,16 @@
-// Copyright 2016 The PIO Authors. All rights reserved.
+// Copyright 2016 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package pio is a peripherals I/O library. It contains host, devices, and
+// Package periph is a peripherals I/O library. It contains host, devices, and
 // test packages to emulate the hardware.
 //
-// pio acts as a registry of drivers.
+// periph acts as a registry of drivers.
 //
 // Every device driver should register itself in their package init() function
-// by calling pio.Register().
+// by calling periph.Register().
 //
-// The user call pio.Init() on startup to initialize all the registered drivers
+// The user call periph.Init() on startup to initialize all the registered drivers
 // in the correct order all at once.
 //
 //   - cmd/ contains executables to communicate directly with the devices or the
@@ -29,7 +29,7 @@
 //   - conn/ contains interfaces for all the supported protocols and
 //     connections (I²C, SPI, GPIO, etc).
 //   - tests/ contains smoke tests.
-package pio
+package periph
 
 import (
 	"errors"

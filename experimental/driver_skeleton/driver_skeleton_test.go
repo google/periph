@@ -1,4 +1,4 @@
-// Copyright 2016 The PIO Authors. All rights reserved.
+// Copyright 2016 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -9,15 +9,15 @@ import (
 	"log"
 	"testing"
 
-	"github.com/google/pio/conn/i2c"
-	"github.com/google/pio/conn/i2c/i2ctest"
-	"github.com/google/pio/host"
+	"github.com/google/periph/conn/i2c"
+	"github.com/google/periph/conn/i2c/i2ctest"
+	"github.com/google/periph/host"
 )
 
 func Example() {
 	// FIXME: Make sure to expose a simple use case.
 	if _, err := host.Init(); err != nil {
-		log.Fatalf("failed to initialize pio: %v", err)
+		log.Fatalf("failed to initialize periph: %v", err)
 	}
 	bus, err := i2c.New(-1)
 	if err != nil {

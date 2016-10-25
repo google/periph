@@ -1,4 +1,4 @@
-// Copyright 2016 The PIO Authors. All rights reserved.
+// Copyright 2016 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -24,11 +24,11 @@ import (
 	"golang.org/x/image/font/basicfont"
 	"golang.org/x/image/math/fixed"
 
-	"github.com/google/pio/conn/i2c"
-	"github.com/google/pio/conn/spi"
-	"github.com/google/pio/devices/ssd1306"
-	"github.com/google/pio/devices/ssd1306/image1bit"
-	"github.com/google/pio/host"
+	"github.com/google/periph/conn/i2c"
+	"github.com/google/periph/conn/spi"
+	"github.com/google/periph/devices/ssd1306"
+	"github.com/google/periph/devices/ssd1306/image1bit"
+	"github.com/google/periph/host"
 	"github.com/nfnt/resize"
 )
 
@@ -43,7 +43,7 @@ func findFile(name string) string {
 	}
 	for _, p := range strings.Split(os.Getenv("GOPATH"), ":") {
 		if len(p) != 0 {
-			if p2 := filepath.Join(p, "src/github.com/google/pio/cmd/ssd1306", name); access(p2) {
+			if p2 := filepath.Join(p, "src/github.com/google/periph/cmd/ssd1306", name); access(p2) {
 				return p2
 			}
 		}
@@ -154,7 +154,7 @@ func mainImpl() error {
 	speed := flag.Int("speed", 0, "specify SPI speed in Hz to use")
 	h := flag.Int("h", 64, "display height")
 	imgName := flag.String("i", "ballerine.gif", "image to load; try bunny.gif")
-	text := flag.String("t", "pio is awesome", "text to display")
+	text := flag.String("t", "periph is awesome", "text to display")
 	w := flag.Int("w", 128, "display width")
 	demoMode := flag.Bool("d", false, "demo scrolling")
 	rotated := flag.Bool("r", false, "Rotate the display by 180°")

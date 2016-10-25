@@ -1,8 +1,8 @@
-// Copyright 2016 The PIO Authors. All rights reserved.
+// Copyright 2016 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// pio-setup configures the host to make the most use of the underlying
+// periph-setup configures the host to make the most use of the underlying
 // platform.
 package main
 
@@ -15,8 +15,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/google/pio/host"
-	"github.com/google/pio/host/distro"
+	"github.com/google/periph/host"
+	"github.com/google/periph/host/distro"
 )
 
 var (
@@ -61,13 +61,13 @@ func execCmd(args ...string) error {
 
 // Linux
 
-// setupUdev updates /etc/udev/rules.d/99-pio.rules with the content specified.
+// setupUdev updates /etc/udev/rules.d/99-periph.rules with the content specified.
 //
 // The actual content varies across linux distributions.
 //
 // If the file is updated, reloads the udev rules.
 func setupUdev(content string) error {
-	if changed, err := writeFile("/etc/udev/rules.d/99-pio.rules", content); err != nil {
+	if changed, err := writeFile("/etc/udev/rules.d/99-periph.rules", content); err != nil {
 		return err
 	} else if changed {
 		// Reload the rules if the file changed.
@@ -135,7 +135,7 @@ func setupLinux() error {
 			return err
 		}
 	} else {
-		fmt.Printf("Unknown linux based distribution %q. Please update pio-setup to support this configuration.\n", distro.OSRelease()["NAME"])
+		fmt.Printf("Unknown linux based distribution %q. Please update periph-setup to support this configuration.\n", distro.OSRelease()["NAME"])
 	}
 	return nil
 }
@@ -193,7 +193,7 @@ func mainImpl() error {
 
 func main() {
 	if err := mainImpl(); err != nil {
-		fmt.Fprintf(os.Stderr, "pio-setup: %s.\n", err)
+		fmt.Fprintf(os.Stderr, "periph-setup: %s.\n", err)
 		os.Exit(1)
 	}
 }

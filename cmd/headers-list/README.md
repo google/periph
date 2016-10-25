@@ -4,7 +4,7 @@ Prints physical headers pins and the associated functionality of each pin.
 
 * Looking for the GPIO pins per functionality? Look at
   [gpio-list](../gpio-list).
-* Looking for pio drivers loaded? Look at [pio-info](../pio-info).
+* Looking for periph drivers loaded? Look at [periph-info](../periph-info).
 
 
 ## Example

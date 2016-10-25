@@ -1,4 +1,4 @@
-// Copyright 2016 The PIO Authors. All rights reserved.
+// Copyright 2016 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -13,7 +13,7 @@ import (
 func ExampleInit() {
 	state, err := Init()
 	if err != nil {
-		log.Fatalf("failed to initialize pio: %v", err)
+		log.Fatalf("failed to initialize periph: %v", err)
 	}
 	fmt.Printf("Using drivers:\n")
 	for _, driver := range state.Loaded {
@@ -35,6 +35,6 @@ func ExampleInit() {
 
 func TestInit(t *testing.T) {
 	if _, err := Init(); err != nil {
-		t.Fatalf("failed to initialize pio: %v", err)
+		t.Fatalf("failed to initialize periph: %v", err)
 	}
 }
