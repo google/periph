@@ -1,4 +1,4 @@
-// Copyright 2016 The PIO Authors. All rights reserved.
+// Copyright 2016 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -13,14 +13,14 @@ import (
 	"os"
 	"time"
 
-	"github.com/google/pio/conn/i2c"
-	"github.com/google/pio/conn/i2c/i2ctest"
-	"github.com/google/pio/conn/pins"
-	"github.com/google/pio/conn/spi"
-	"github.com/google/pio/devices"
-	"github.com/google/pio/devices/bme280"
-	"github.com/google/pio/host"
-	"github.com/google/pio/host/headers"
+	"github.com/google/periph/conn/i2c"
+	"github.com/google/periph/conn/i2c/i2ctest"
+	"github.com/google/periph/conn/pins"
+	"github.com/google/periph/conn/spi"
+	"github.com/google/periph/devices"
+	"github.com/google/periph/devices/bme280"
+	"github.com/google/periph/host"
+	"github.com/google/periph/host/headers"
 )
 
 func printPin(fn string, p pins.Pin) {

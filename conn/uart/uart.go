@@ -1,4 +1,4 @@
-// Copyright 2016 The PIO Authors. All rights reserved.
+// Copyright 2016 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -11,8 +11,8 @@ import (
 	"io"
 	"sync"
 
-	"github.com/google/pio/conn"
-	"github.com/google/pio/conn/gpio"
+	"github.com/google/periph/conn"
+	"github.com/google/periph/conn/gpio"
 )
 
 // Parity determines the parity bit when transmitting, if any.

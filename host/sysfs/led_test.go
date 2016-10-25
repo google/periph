@@ -1,4 +1,4 @@
-// Copyright 2016 The PIO Authors. All rights reserved.
+// Copyright 2016 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -9,13 +9,13 @@ import (
 	"log"
 	"testing"
 
-	"github.com/google/pio/conn/gpio"
+	"github.com/google/periph/conn/gpio"
 )
 
 func ExampleLEDByName() {
 	// Commented out due to cycle import.
 	//if _, err := host.Init(); err != nil {
-	//	log.Fatalf("failed to initialize pio: %v", err)
+	//	log.Fatalf("failed to initialize periph: %v", err)
 	//}
 	for _, led := range LEDs {
 		fmt.Printf("- %s: %s\n", led, led.Function())

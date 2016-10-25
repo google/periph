@@ -1,4 +1,4 @@
-// Copyright 2016 The PIO Authors. All rights reserved.
+// Copyright 2016 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -12,8 +12,8 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/google/pio"
-	"github.com/google/pio/devices"
+	"github.com/google/periph"
+	"github.com/google/periph/devices"
 )
 
 // ThermalSensors is all the sensors discovered on this host via sysfs.
@@ -113,7 +113,7 @@ func (t *ThermalSensor) open() error {
 	return err
 }
 
-// driverThermalSensor implements pio.Driver.
+// driverThermalSensor implements periph.Driver.
 type driverThermalSensor struct {
 }
 
@@ -121,8 +121,8 @@ func (d *driverThermalSensor) String() string {
 	return "sysfs-thermal"
 }
 
-func (d *driverThermalSensor) Type() pio.Type {
-	return pio.Device
+func (d *driverThermalSensor) Type() periph.Type {
+	return periph.Device
 }
 
 func (d *driverThermalSensor) Prerequisites() []string {
@@ -158,7 +158,7 @@ func (d *driverThermalSensor) Init() (bool, error) {
 
 func init() {
 	if isLinux {
-		pio.MustRegister(&driverThermalSensor{})
+		periph.MustRegister(&driverThermalSensor{})
 	}
 }
 

@@ -1,4 +1,4 @@
-// Copyright 2016 The PIO Authors. All rights reserved.
+// Copyright 2016 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -12,10 +12,10 @@ package bme280
 import (
 	"errors"
 
-	"github.com/google/pio/conn"
-	"github.com/google/pio/conn/i2c"
-	"github.com/google/pio/conn/spi"
-	"github.com/google/pio/devices"
+	"github.com/google/periph/conn"
+	"github.com/google/periph/conn/i2c"
+	"github.com/google/periph/conn/spi"
+	"github.com/google/periph/devices"
 )
 
 // Oversampling affects how much time is taken to measure each of temperature,

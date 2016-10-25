@@ -1,4 +1,4 @@
-// Copyright 2016 The PIO Authors. All rights reserved.
+// Copyright 2016 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -14,9 +14,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/google/pio"
-	"github.com/google/pio/conn/gpio"
-	"github.com/google/pio/conn/ir"
+	"github.com/google/periph"
+	"github.com/google/periph/conn/gpio"
+	"github.com/google/periph/conn/ir"
 )
 
 // Conn is an open port to lirc.
@@ -207,7 +207,7 @@ func read(r *bufio.Reader) (string, error) {
 	return string(raw), nil
 }
 
-// driver implements pio.Driver.
+// driver implements periph.Driver.
 type driver struct {
 }
 
@@ -215,9 +215,9 @@ func (d *driver) String() string {
 	return "lirc"
 }
 
-func (d *driver) Type() pio.Type {
+func (d *driver) Type() periph.Type {
 	// Return the lowest priority, which is Functional.
-	return pio.Functional
+	return periph.Functional
 }
 
 func (d *driver) Init() (bool, error) {

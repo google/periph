@@ -1,4 +1,4 @@
-// Copyright 2016 The PIO Authors. All rights reserved.
+// Copyright 2016 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -7,7 +7,7 @@ package i2ctest
 import (
 	"testing"
 
-	"github.com/google/pio/conn/i2c"
+	"github.com/google/periph/conn/i2c"
 )
 
 func TestDev(t *testing.T) {

@@ -1,4 +1,4 @@
-// Copyright 2016 The PIO Authors. All rights reserved.
+// Copyright 2016 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -13,15 +13,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/pio"
+	"github.com/google/periph"
 )
 
-// Init calls pio.Init() and returns it as-is.
+// Init calls periph.Init() and returns it as-is.
 //
 // The only difference is that by calling host.Init(), you are guaranteed to
 // have all the drivers implemented in this library to be implicitly loaded.
-func Init() (*pio.State, error) {
-	return pio.Init()
+func Init() (*periph.State, error) {
+	return periph.Init()
 }
 
 // MaxSpeed returns the processor maximum speed in Hz.

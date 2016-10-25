@@ -1,4 +1,4 @@
-// Copyright 2016 The PIO Authors. All rights reserved.
+// Copyright 2016 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -13,8 +13,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/pio"
-	"github.com/google/pio/conn/gpio"
+	"github.com/google/periph"
+	"github.com/google/periph/conn/gpio"
 )
 
 // LEDs is all the leds discovered on this host via sysfs.
@@ -155,7 +155,7 @@ func (l *LED) open() error {
 	return err
 }
 
-// driverLED implements pio.Driver.
+// driverLED implements periph.Driver.
 type driverLED struct {
 }
 
@@ -163,8 +163,8 @@ func (d *driverLED) String() string {
 	return "sysfs-led"
 }
 
-func (d *driverLED) Type() pio.Type {
-	return pio.Pins
+func (d *driverLED) Type() periph.Type {
+	return periph.Pins
 }
 
 func (d *driverLED) Prerequisites() []string {
@@ -199,7 +199,7 @@ func (d *driverLED) Init() (bool, error) {
 
 func init() {
 	if isLinux {
-		pio.MustRegister(&driverLED{})
+		periph.MustRegister(&driverLED{})
 	}
 }
 

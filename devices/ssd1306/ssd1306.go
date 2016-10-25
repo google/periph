@@ -1,4 +1,4 @@
-// Copyright 2016 The PIO Authors. All rights reserved.
+// Copyright 2016 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -25,10 +25,10 @@ import (
 	"io"
 	"log"
 
-	"github.com/google/pio/conn/i2c"
-	"github.com/google/pio/conn/spi"
-	"github.com/google/pio/devices"
-	"github.com/google/pio/devices/ssd1306/image1bit"
+	"github.com/google/periph/conn/i2c"
+	"github.com/google/periph/conn/spi"
+	"github.com/google/periph/devices"
+	"github.com/google/periph/devices/ssd1306/image1bit"
 )
 
 // FrameRate determines scrolling speed.

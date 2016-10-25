@@ -1,4 +1,4 @@
-// Copyright 2016 The PIO Authors. All rights reserved.
+// Copyright 2016 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -15,12 +15,12 @@ import (
 	"strings"
 	"unsafe"
 
-	"github.com/google/pio"
-	"github.com/google/pio/conn/gpio"
-	"github.com/google/pio/host/gpiomem"
+	"github.com/google/periph"
+	"github.com/google/periph/conn/gpio"
+	"github.com/google/periph/host/gpiomem"
 )
 
-// driver implements pio.Driver.
+// driver implements periph.Driver.
 type driver struct {
 }
 
@@ -28,8 +28,8 @@ func (d *driver) String() string {
 	return "allwinner"
 }
 
-func (d *driver) Type() pio.Type {
-	return pio.Processor
+func (d *driver) Type() periph.Type {
+	return periph.Processor
 }
 
 func (d *driver) Prerequisites() []string {
@@ -66,7 +66,7 @@ func (d *driver) Init() (bool, error) {
 
 func init() {
 	if isArm {
-		pio.MustRegister(&driver{})
+		periph.MustRegister(&driver{})
 	}
 }
 
@@ -93,7 +93,7 @@ func getBaseAddress() uint64 {
 
 // Ensure that the various structs implement the interfaces they're supposed to.
 
-var _ pio.Driver = &driver{}
+var _ periph.Driver = &driver{}
 var _ gpio.PinIn = &Pin{}
 var _ gpio.PinOut = &Pin{}
 var _ gpio.PinIO = &Pin{}

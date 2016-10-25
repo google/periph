@@ -1,4 +1,4 @@
-// Copyright 2016 The PIO Authors. All rights reserved.
+// Copyright 2016 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -11,11 +11,11 @@ import (
 	"os"
 	"sort"
 
-	"github.com/google/pio/conn/gpio"
-	"github.com/google/pio/host"
-	"github.com/google/pio/host/allwinner"
-	"github.com/google/pio/host/chip"
-	"github.com/google/pio/host/headers"
+	"github.com/google/periph/conn/gpio"
+	"github.com/google/periph/host"
+	"github.com/google/periph/host/allwinner"
+	"github.com/google/periph/host/chip"
+	"github.com/google/periph/host/headers"
 )
 
 // testChipPresent verifies that CHIP and Allwinner are indeed detected.

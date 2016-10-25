@@ -1,4 +1,4 @@
-// Copyright 2016 The PIO Authors. All rights reserved.
+// Copyright 2016 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/google/pio/host"
-	"github.com/google/pio/host/sysfs"
+	"github.com/google/periph/host"
+	"github.com/google/periph/host/sysfs"
 )
 
 func mainImpl() error {

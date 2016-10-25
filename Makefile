@@ -1,8 +1,8 @@
-# Copyright 2016 The PIO Authors. All rights reserved.
+# Copyright 2016 The Periph Authors. All rights reserved.
 # Use of this source code is governed under the Apache License, Version 2.0
 # that can be found in the LICENSE file.
 
-# This Makefile captures common tasks for the pio library. The hope is that this Makefile can remain
+# This Makefile captures common tasks for the periph library. The hope is that this Makefile can remain
 # simple and straightforward...
 
 # *** This Makefile is a work in progress, please help impove it! ***
@@ -34,13 +34,13 @@ depend:
 # this relatively simple and not descend into makefile hell...
 
 # Get a list of all main.go in cmd subdirs
-# MAINS becomes: cmd/pio-setup/main.go cmd/pio-info/main.go ...
+# MAINS becomes: cmd/periph-setup/main.go cmd/periph-info/main.go ...
 MAINS := $(wildcard cmd/*/main.go)
 # Get a list of all the commands, i.e. names of dirs that contain a main.go
-# CMDS becomes: pio-setup pio-info ...
+# CMDS becomes: periph-setup periph-info ...
 CMDS  := $(patsubst cmd/%/main.go,%,$(MAINS))
 # Get a list of binaries to build
-# BINS becomes: bin/pio-setup-arm bin/pio-info-arm ... bin/pio-setup-arm64 bin/pio-info-arm64 ...
+# BINS becomes: bin/periph-setup-arm bin/periph-info-arm ... bin/periph-setup-arm64 bin/periph-info-arm64 ...
 ARCHS := arm arm64 amd64 win64.exe
 BINS=$(foreach arch,$(ARCHS),$(foreach cmd,$(CMDS),bin/$(cmd)-$(arch)))
 

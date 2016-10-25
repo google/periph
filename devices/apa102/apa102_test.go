@@ -1,4 +1,4 @@
-// Copyright 2016 The PIO Authors. All rights reserved.
+// Copyright 2016 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -13,8 +13,8 @@ import (
 	"log"
 	"testing"
 
-	"github.com/google/pio/conn/spi"
-	"github.com/google/pio/conn/spi/spitest"
+	"github.com/google/periph/conn/spi"
+	"github.com/google/periph/conn/spi/spitest"
 )
 
 func TestRamp(t *testing.T) {

@@ -1,4 +1,4 @@
-// Copyright 2016 The PIO Authors. All rights reserved.
+// Copyright 2016 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -11,9 +11,9 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/google/pio"
-	"github.com/google/pio/conn/gpio"
-	"github.com/google/pio/conn/uart"
+	"github.com/google/periph"
+	"github.com/google/periph/conn/gpio"
+	"github.com/google/periph/conn/uart"
 )
 
 // EnumerateUART returns the available serial buses.
@@ -107,7 +107,7 @@ func (u *UART) CTS() gpio.PinIO {
 
 var _ uart.Conn = &UART{}
 
-// driverUART implements pio.Driver.
+// driverUART implements periph.Driver.
 type driverUART struct {
 }
 
@@ -115,8 +115,8 @@ func (d *driverUART) String() string {
 	return "sysfs-uart"
 }
 
-func (d *driverUART) Type() pio.Type {
-	return pio.Bus
+func (d *driverUART) Type() periph.Type {
+	return periph.Bus
 }
 
 func (d *driverUART) Init() (bool, error) {

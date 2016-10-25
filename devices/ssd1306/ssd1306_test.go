@@ -1,4 +1,4 @@
-// Copyright 2016 The PIO Authors. All rights reserved.
+// Copyright 2016 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -14,9 +14,9 @@ import (
 	"golang.org/x/image/font/basicfont"
 	"golang.org/x/image/math/fixed"
 
-	"github.com/google/pio/conn/i2c"
-	"github.com/google/pio/conn/i2c/i2ctest"
-	"github.com/google/pio/devices/ssd1306/image1bit"
+	"github.com/google/periph/conn/i2c"
+	"github.com/google/periph/conn/i2c/i2ctest"
+	"github.com/google/periph/devices/ssd1306/image1bit"
 )
 
 func TestDrawGray(t *testing.T) {
@@ -99,7 +99,7 @@ func Example() {
 		Face: f,
 		Dot:  fixed.P(0, img.Bounds().Dy()-1-f.Descent),
 	}
-	drawer.DrawString("Hello from pio!")
+	drawer.DrawString("Hello from periph!")
 	dev.Draw(dev.Bounds(), img, image.Point{})
 }
 
