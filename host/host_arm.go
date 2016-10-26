@@ -10,6 +10,7 @@ import (
 	_ "github.com/google/periph/host/allwinner_pl"
 	_ "github.com/google/periph/host/bcm283x"
 	_ "github.com/google/periph/host/chip"
+	_ "github.com/google/periph/host/odroid_c1"
 	_ "github.com/google/periph/host/pine64"
 	_ "github.com/google/periph/host/rpi"
 )

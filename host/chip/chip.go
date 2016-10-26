@@ -32,6 +32,7 @@ var (
 	XIO0, XIO1, XIO2, XIO3, XIO4, XIO5, XIO6, XIO7 gpio.PinIO
 )
 
+// The U13 header is opposite the power LED.
 var (
 	U13_1  pins.Pin   = pins.GROUND    //
 	U13_2  pins.Pin   = DC_IN          // 5 volt input
@@ -73,7 +74,10 @@ var (
 	U13_38 gpio.PinIO = allwinner.PD26 //
 	U13_39 pins.Pin   = pins.GROUND    //
 	U13_40 pins.Pin   = pins.GROUND    //
+)
 
+// The U14 header is right next to the power LED.
+var (
 	U14_1  pins.Pin     = pins.GROUND //
 	U14_2  pins.Pin     = pins.V5     // 5 volt output
 	U14_3  gpio.PinIO   = allwinner.PG3
@@ -160,16 +164,25 @@ func (d *driver) Init() (bool, error) {
 		return false, errors.New("NextThing Co. CHIP board not detected")
 	}
 
+	// sysfsPin is a safe way to get a sysfs pin
+	sysfsPin := func(n int) gpio.PinIO {
+		if pin, present := sysfs.Pins[n]; present {
+			return pin
+		} else {
+			return gpio.INVALID
+		}
+	}
+
 	// At this point the sysfs driver has initialized and discovered its pins,
 	// we can now hook-up the appropriate CHIP pins to sysfs gpio pins.
-	XIO0 = sysfs.Pins[1016]
-	XIO1 = sysfs.Pins[1017]
-	XIO2 = sysfs.Pins[1018]
-	XIO3 = sysfs.Pins[1019]
-	XIO4 = sysfs.Pins[1020]
-	XIO5 = sysfs.Pins[1021]
-	XIO6 = sysfs.Pins[1022]
-	XIO7 = sysfs.Pins[1023]
+	XIO0 = sysfsPin(1016)
+	XIO1 = sysfsPin(1017)
+	XIO2 = sysfsPin(1018)
+	XIO3 = sysfsPin(1019)
+	XIO4 = sysfsPin(1020)
+	XIO5 = sysfsPin(1021)
+	XIO6 = sysfsPin(1022)
+	XIO7 = sysfsPin(1023)
 	// Need to set header pins too 'cause XIOn are interfaces, i.e. pointers.
 	U14_13 = XIO0
 	U14_14 = XIO1
