@@ -20,19 +20,14 @@ import (
 )
 
 // Pins is all the pins exported by GPIO sysfs.
+//
+// Some CPU architectures have the pin numbers start at 0 and use consecutive
+// pin numbers but this is not the case for all CPU architectures, some
+// have gaps in the pin numbering.
+//
+// This global variable is initialized once at driver initialization and isn't
+// mutated afterward. Do not modify it.
 var Pins map[int]*Pin
-
-// PinByNumber returns a *Pin for the pin number, if any.
-func PinByNumber(i int) (*Pin, error) {
-	p, ok := Pins[i]
-	if !ok {
-		return nil, errors.New("invalid pin number")
-	}
-	if err := p.open(); err != nil {
-		return nil, err
-	}
-	return p, nil
-}
 
 // Pin represents one GPIO pin as found by sysfs.
 type Pin struct {
