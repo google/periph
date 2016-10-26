@@ -159,8 +159,7 @@ func Test() error {
 		testOdroidC1GpioNames, testOdroidC1Aliases,
 	}
 	for _, t := range tests {
-		err := t()
-		if err != nil {
+		if err := t(); err != nil {
 			return err
 		}
 	}
@@ -168,8 +167,7 @@ func Test() error {
 }
 
 func main() {
-	err := Test()
-	if err != nil {
+	if err := Test(); err != nil {
 		fmt.Printf("ODROID-C1 test failed: %s\n", err)
 		os.Exit(1)
 	}

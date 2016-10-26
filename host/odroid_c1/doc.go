@@ -9,9 +9,10 @@
 //
 // This package only exports the main J2 header, which is rPi compatible except for
 // a couple of analog pins (which are not currently supported). The J2 header has
-// two I2C buses on header pins 3/5 and 27/28, the I2C functionality can be enabled by loading
-// the aml_i2c kernel module. It has one SPI bus on header pins 19/21/23/24. The one-wire
-// gpio driver appears to be loaded by default on header pin 7.
+// two I2C buses on header pins 3/5 and 27/28, the I2C functionality can be enabled
+// by loading the aml_i2c kernel module. It has one SPI bus on header pins
+// 19/21/23/24. The one-wire gpio driver appears to be loaded by default on header
+// pin 7.
 //
 // References
 //
