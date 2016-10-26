@@ -21,11 +21,11 @@ import (
 
 // Pins is all the pins exported by GPIO sysfs.
 //
-// Some CPU architecture have the pin numbers start at 0 and use monotonically
-// increasing numbers but be warned that it is not the case of all CPU
-// architecture. Some CPUs have holes in the pin number allocation.
+// Some CPU architectures have the pin numbers start at 0 and use consecutive
+// pin numbers but this is not the case for all CPU architectures, some
+// have gaps in the pin numbering.
 //
-// This global variables is initialized once at driver initialization and isn't
+// This global variable is initialized once at driver initialization and isn't
 // mutated afterward. Do not modify it.
 var Pins map[int]*Pin
 
