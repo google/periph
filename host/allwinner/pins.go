@@ -264,19 +264,14 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 		default:
 			return errors.New("only groups PB, PG, PH (and PL if available) support edge based triggering")
 		}
-		// This is a race condition but this is fine; at worst PinByNumber() is
-		// called twice but it is guaranteed to return the same value. p.edge is
-		// never set to nil.
 		if p.edge == nil {
-			var err error
-			if p.edge, err = sysfs.PinByNumber(p.Number()); err != nil {
-				return err
+			ok := false
+			if p.edge, ok = sysfs.Pins[p.Number()]; !ok {
+				return fmt.Errorf("pin %s is not exported by sysfs", p)
 			}
 		}
-		if err := p.edge.In(gpio.PullNoChange, edge); err != nil {
-			return err
-		}
-	} else if p.edge != nil {
+	}
+	if p.edge != nil {
 		if err := p.edge.In(gpio.PullNoChange, edge); err != nil {
 			return err
 		}

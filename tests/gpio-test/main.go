@@ -54,9 +54,9 @@ func getPin(s string, useSysfs bool) (gpio.PinIO, error) {
 	}
 	var p gpio.PinIO
 	if useSysfs {
-		p, err = sysfs.PinByNumber(number)
-		if err != nil {
-			return nil, err
+		ok := false
+		if p, ok = sysfs.Pins[number]; !ok {
+			return nil, fmt.Errorf("pin %s is not exported by sysfs", p)
 		}
 	} else {
 		p = gpio.ByNumber(number)
