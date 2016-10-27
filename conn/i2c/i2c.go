@@ -206,6 +206,9 @@ func Unregister(name string, busNumber int) error {
 func find(busNumber int) (Opener, error) {
 	mu.Lock()
 	defer mu.Unlock()
+	if len(byNumber) == 0 {
+		return nil, errors.New("no I²C bus found; did you forget to call Init()?")
+	}
 	if busNumber == -1 {
 		if first == nil {
 			return nil, errors.New("no I²C bus found")
