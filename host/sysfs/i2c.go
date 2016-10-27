@@ -98,7 +98,9 @@ func (i *I2C) Tx(addr uint16, w, r []byte) error {
 	msgs := buf[:1]
 	buf[0].addr = addr
 	buf[0].length = uint16(len(w))
-	buf[0].buf = uintptr(unsafe.Pointer(&w[0]))
+	if len(w) != 0 {
+		buf[0].buf = uintptr(unsafe.Pointer(&w[0]))
+	}
 	if len(r) != 0 {
 		msgs = buf[:]
 		buf[1].addr = addr
