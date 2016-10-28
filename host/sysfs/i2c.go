@@ -92,21 +92,26 @@ func (i *I2C) Tx(addr uint16, w, r []byte) error {
 	if addr >= 0x400 || (addr >= 0x80 && i.fn&func10BIT_ADDR == 0) {
 		return nil
 	}
+	if len(w) == 0 && len(r) == 0 {
+		return nil
+	}
 
 	// Convert the messages to the internal format.
 	var buf [2]i2cMsg
-	msgs := buf[:1]
-	buf[0].addr = addr
-	buf[0].length = uint16(len(w))
+	msgs := buf[0:0]
 	if len(w) != 0 {
+		msgs = buf[:1]
+		buf[0].addr = addr
+		buf[0].length = uint16(len(w))
 		buf[0].buf = uintptr(unsafe.Pointer(&w[0]))
 	}
 	if len(r) != 0 {
-		msgs = buf[:]
-		buf[1].addr = addr
-		buf[1].flags = flagRD
-		buf[1].length = uint16(len(r))
-		buf[1].buf = uintptr(unsafe.Pointer(&r[0]))
+		l := len(msgs)
+		msgs = msgs[:l+1] // extend the slice by one
+		buf[l].addr = addr
+		buf[l].flags = flagRD
+		buf[l].length = uint16(len(r))
+		buf[l].buf = uintptr(unsafe.Pointer(&r[0]))
 	}
 	p := rdwrIoctlData{
 		msgs:  uintptr(unsafe.Pointer(&msgs[0])),
