@@ -51,25 +51,25 @@ func (m Milli) String() string {
 	return fmt.Sprintf("%d.%03d", m/1000, m%1000)
 }
 
-// Celcius is a temperature at a precision of 0.001°C.
+// Celsius is a temperature at a precision of 0.001°C.
 //
 // Expected range is [-273150, >1000000]
 //
 // BUG(maruel): Add function to convert to Fahrenheit for my American friends.
-type Celcius Milli
+type Celsius Milli
 
 // Float64 returns the value as float64 with 0.001 precision.
-func (c Celcius) Float64() float64 {
+func (c Celsius) Float64() float64 {
 	return Milli(c).Float64()
 }
 
 // String returns the temperature formatted as a string.
-func (c Celcius) String() string {
+func (c Celsius) String() string {
 	return Milli(c).String() + "°C"
 }
 
 // ToF returns the temperature as Fahrenheit, a unit used in the United States.
-func (c Celcius) ToF() Fahrenheit {
+func (c Celsius) ToF() Fahrenheit {
 	return Fahrenheit((c*9+2)/5 + 32000)
 }
 
@@ -116,7 +116,7 @@ func (r RelativeHumidity) String() string {
 
 // Environment represents measurements from an environmental sensor.
 type Environment struct {
-	Temperature Celcius
+	Temperature Celsius
 	Pressure    KPascal
 	Humidity    RelativeHumidity
 }

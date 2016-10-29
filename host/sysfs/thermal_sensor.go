@@ -97,7 +97,7 @@ func (t *ThermalSensor) Sense(env *devices.Environment) error {
 	if i < 100 {
 		i *= 1000
 	}
-	env.Temperature = devices.Celcius(i)
+	env.Temperature = devices.Celsius(i)
 	return nil
 }
 

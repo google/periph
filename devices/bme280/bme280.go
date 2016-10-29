@@ -94,7 +94,7 @@ func (d *Dev) Sense(env *devices.Environment) error {
 	hRaw := int32(buf[6])<<8 | int32(buf[7])
 
 	t, tFine := d.c.compensateTempInt(tRaw)
-	env.Temperature = devices.Celcius(t * 10)
+	env.Temperature = devices.Celsius(t * 10)
 
 	p := d.c.compensatePressureInt64(pRaw, tFine)
 	env.Pressure = devices.KPascal((int32(p) + 127) / 256)
