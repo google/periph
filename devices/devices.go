@@ -54,8 +54,6 @@ func (m Milli) String() string {
 // Celsius is a temperature at a precision of 0.001°C.
 //
 // Expected range is [-273150, >1000000]
-//
-// BUG(maruel): Add function to convert to Fahrenheit for my American friends.
 type Celsius Milli
 
 // Float64 returns the value as float64 with 0.001 precision.
