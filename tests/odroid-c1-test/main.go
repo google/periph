@@ -92,7 +92,7 @@ func testOdroidC1GpioNumbers() error {
 			return fmt.Errorf("could not get gpio pin %d (should be %s)", number, name)
 		}
 		if pin.Name() != name {
-			return fmt.Errorf("expected gpio pin %s to be %s but it's %s",
+			return fmt.Errorf("expected gpio pin %d to be %s but it's %s",
 				number, name, pin.Name())
 		}
 	}
