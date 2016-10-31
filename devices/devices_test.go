@@ -16,8 +16,8 @@ func TestMilli(t *testing.T) {
 	}
 }
 
-func TestCelcius(t *testing.T) {
-	o := Celcius(10010)
+func TestCelsius(t *testing.T) {
+	o := Celsius(10010)
 	if s := o.String(); s != "10.010°C" {
 		t.Fatalf("%#v", s)
 	}
