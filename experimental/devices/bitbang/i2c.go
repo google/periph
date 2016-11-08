@@ -35,12 +35,12 @@ func (i *I2C) String() string {
 	return fmt.Sprintf("bitbang/i2c(%s, %s)", i.scl, i.sda)
 }
 
-// Close implements i2c.ConnCloser.
+// Close implements i2c.BusCloser.
 func (i *I2C) Close() error {
 	return nil
 }
 
-// Tx implements i2c.Conn.
+// Tx implements i2c.Bus.
 func (i *I2C) Tx(addr uint16, w, r []byte) error {
 	i.mu.Lock()
 	defer i.mu.Unlock()
@@ -88,7 +88,7 @@ func (i *I2C) Tx(addr uint16, w, r []byte) error {
 	return nil
 }
 
-// Speed implements i2c.Conn.
+// Speed implements i2c.Bus.
 func (i *I2C) Speed(hz int64) error {
 	i.mu.Lock()
 	defer i.mu.Unlock()
@@ -254,4 +254,4 @@ func (i *I2C) sleepHalfCycle() {
 	host.Nanospin(i.halfCycle)
 }
 
-var _ i2c.Conn = &I2C{}
+var _ i2c.Bus = &I2C{}

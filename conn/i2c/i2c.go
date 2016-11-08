@@ -18,31 +18,32 @@ import (
 	"github.com/google/periph/conn/gpio"
 )
 
-// Conn defines the function a concrete I²C driver must implement.
+// Bus defines the interface a concrete I²C driver must implement.
 //
 // This interface is consummed by a device driver for a device sitting on a bus.
 //
 // This interface doesn't implement conn.Conn since a device address must be
 // specified. Use i2cdev.Dev as an adapter to get a conn.Conn compatible
 // object.
-type Conn interface {
+type Bus interface {
+	fmt.Stringer
 	Tx(addr uint16, w, r []byte) error
 	// Speed changes the bus speed, if supported.
 	Speed(hz int64) error
 }
 
-// ConnCloser is an I²C bus that can be closed.
+// BusCloser is an I²C bus that can be closed.
 //
 // This interface is meant to be handled by the application.
-type ConnCloser interface {
+type BusCloser interface {
 	io.Closer
-	Conn
+	Bus
 }
 
 // Pins defines the pins that an I²C bus interconnect is using on the host.
 //
-// It is expected that a implementer of Conn also implement Pins but this is
-// not a requirement.
+// It is expected that a implementer of Bus also implement Pins but this is not
+// a requirement.
 type Pins interface {
 	// SCL returns the CLK (clock) pin.
 	SCL() gpio.PinIO
@@ -57,19 +58,19 @@ type Pins interface {
 // It saves from repeatedly specifying the device address and implements
 // utility functions.
 type Dev struct {
-	Conn Conn
+	Bus  Bus
 	Addr uint16
 }
 
 func (d *Dev) String() string {
-	return fmt.Sprintf("%s(%d)", d.Conn, d.Addr)
+	return fmt.Sprintf("%s(%d)", d.Bus, d.Addr)
 }
 
 // Tx does a transaction by adding the device's address to each command.
 //
-// It's a wrapper for Dev.Conn.Tx().
+// It's a wrapper for Dev.Bus.Tx().
 func (d *Dev) Tx(w, r []byte) error {
-	return d.Conn.Tx(d.Addr, w, r)
+	return d.Bus.Tx(d.Addr, w, r)
 }
 
 // Write writes to the I²C bus without reading, implementing io.Writer.
@@ -132,7 +133,7 @@ func All() map[string]Opener {
 //
 // Specify busNumber -1 to get the first available bus. This is the recommended
 // value.
-func New(busNumber int) (ConnCloser, error) {
+func New(busNumber int) (BusCloser, error) {
 	opener, err := find(busNumber)
 	if err != nil {
 		return nil, err
@@ -141,7 +142,7 @@ func New(busNumber int) (ConnCloser, error) {
 }
 
 // Opener opens an I²C bus.
-type Opener func() (ConnCloser, error)
+type Opener func() (BusCloser, error)
 
 // Register registers an I²C bus.
 //

@@ -20,7 +20,7 @@ func TestDev(t *testing.T) {
 			},
 		},
 	}
-	d := i2c.Dev{Conn: &p, Addr: 23}
+	d := i2c.Dev{Bus: &p, Addr: 23}
 	v, err := d.ReadRegUint8(10)
 	if err != nil {
 		t.Fatal(err)

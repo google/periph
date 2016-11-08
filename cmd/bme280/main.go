@@ -131,9 +131,9 @@ func mainImpl() error {
 			printPin("SCL", p.SCL())
 			printPin("SDA", p.SDA())
 		}
-		var base i2c.Conn = bus
+		var base i2c.Bus = bus
 		if *record {
-			recorder.Conn = bus
+			recorder.Bus = bus
 			base = &recorder
 		}
 		if dev, err = bme280.NewI2C(base, &opts); err != nil {

@@ -123,7 +123,7 @@ func (i *I2C) Tx(addr uint16, w, r []byte) error {
 	return i.ioctl(ioctlRdwr, pp)
 }
 
-// Speed implements i2c.Conn.
+// Speed implements i2c.Bus.
 func (i *I2C) Speed(hz int64) error {
 	i.mu.Lock()
 	defer i.mu.Unlock()
@@ -334,7 +334,7 @@ func (d *driverI2C) Init() (bool, error) {
 		if err != nil {
 			continue
 		}
-		if err := i2c.Register(fmt.Sprintf("I2C%d", bus), bus, func() (i2c.ConnCloser, error) {
+		if err := i2c.Register(fmt.Sprintf("I2C%d", bus), bus, func() (i2c.BusCloser, error) {
 			return NewI2C(bus)
 		}); err != nil {
 			return true, err
@@ -349,4 +349,4 @@ func init() {
 	}
 }
 
-var _ i2c.Conn = &I2C{}
+var _ i2c.Bus = &I2C{}

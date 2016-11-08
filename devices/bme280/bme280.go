@@ -137,7 +137,7 @@ type Opts struct {
 //
 // It is recommended to call Stop() when done with the device so it stops
 // sampling.
-func NewI2C(i i2c.Conn, opts *Opts) (*Dev, error) {
+func NewI2C(b i2c.Bus, opts *Opts) (*Dev, error) {
 	addr := uint16(0x76)
 	if opts != nil {
 		switch opts.Address {
@@ -149,7 +149,7 @@ func NewI2C(i i2c.Conn, opts *Opts) (*Dev, error) {
 			return nil, errors.New("given address not supported by device")
 		}
 	}
-	d := &Dev{d: &i2c.Dev{Conn: i, Addr: addr}, isSPI: false}
+	d := &Dev{d: &i2c.Dev{Bus: b, Addr: addr}, isSPI: false}
 	if err := d.makeDev(opts); err != nil {
 		return nil, err
 	}
@@ -294,8 +294,7 @@ func (d *Dev) writeCommands(b []byte) error {
 			b[i] &^= 0x80
 		}
 	}
-	_, err := d.d.Write(b)
-	return err
+	return d.d.Tx(b, nil)
 }
 
 // Register table:

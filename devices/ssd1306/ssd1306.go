@@ -88,8 +88,8 @@ func NewSPI(s spi.Conn, w, h int, rotated bool) (*Dev, error) {
 //
 // As per datasheet, maximum clock speed is 1/2.5µs = 400KHz. It's worth
 // bumping up from default bus speed of 100KHz if possible.
-func NewI2C(i i2c.Conn, w, h int, rotated bool) (*Dev, error) {
-	return newDev(&i2c.Dev{Conn: i, Addr: 0x3C}, w, h, rotated)
+func NewI2C(i i2c.Bus, w, h int, rotated bool) (*Dev, error) {
+	return newDev(&i2c.Dev{Bus: i, Addr: 0x3C}, w, h, rotated)
 }
 
 // newDev is the common initialization code that is independent of the bus
