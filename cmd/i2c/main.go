@@ -77,7 +77,7 @@ func mainImpl() error {
 	if p, ok := bus.(i2c.Pins); ok {
 		log.Printf("Using pins SCL: %s  SDA: %s", p.SCL(), p.SDA())
 	}
-	d := i2c.Dev{Conn: bus, Addr: uint16(*addr)}
+	d := i2c.Dev{Bus: bus, Addr: uint16(*addr)}
 	if *write {
 		_, err = d.Write(buf)
 	} else {

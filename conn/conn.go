@@ -4,11 +4,6 @@
 
 package conn
 
-import (
-	"fmt"
-	"io"
-)
-
 // Conn defines the interface for a connection on a point-to-point
 // communication channel.
 //
@@ -17,11 +12,12 @@ import (
 //
 // This is the lowest common denominator for all point-to-point communication
 // channels.
+//
+// Implementation are expected to also implement the following interfaces:
+// - fmt.Stringer which returns something meaningful to the user like "SPI0.1",
+//   "I2C1.76", "COM6", etc.
+// - io.Writer as an way to use io.Copy() on a write-only device.
 type Conn interface {
-	// Every connection has a name, e.g. "SPI0.1", "I2C1.76", "COM6", etc.
-	fmt.Stringer
-	// io.Writer can be used for a write-only device.
-	io.Writer
 	// Tx does a single transaction.
 	//
 	// For full duplex protocols (SPI, UART), the two buffers must have the same

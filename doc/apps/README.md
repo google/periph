@@ -14,7 +14,7 @@ host it is running on. It differentiates between drivers that _enable_
 functionality on the host and drivers for devices connected _to_ the host.
 
 Most micro computers expose at least some of the following:
-[I²C bus](https://godoc.org/github.com/google/periph/conn/i2c#Conn),
+[I²C bus](https://godoc.org/github.com/google/periph/conn/i2c#Bus),
 [SPI bus](https://godoc.org/github.com/google/periph/conn/spi#Conn),
 [gpio
 pins](https://godoc.org/github.com/google/periph/conn/gpio#PinIO),
@@ -127,10 +127,8 @@ func (a *adaptor) Close() error {
 
 ### I²C connection
 
-An
-[i2c.Conn](https://godoc.org/github.com/google/periph/conn/i2c#Conn)
-is **not** a
-[conn.Conn](https://godoc.org/github.com/google/periph/conn#Conn).
+An [i2c.Bus](https://godoc.org/github.com/google/periph/conn/i2c#Bus) is **not**
+a [conn.Conn](https://godoc.org/github.com/google/periph/conn#Conn).
 This is because an I²C bus is **not** a point-to-point connection but instead is
 a real bus where multiple devices can be connected simultaneously, like a USB
 bus. To create a point-to-point connection to a device which does implement
@@ -214,7 +212,7 @@ func (d *driver) Init() (bool, error) {
     if err := virtual_i2c.Load(); err != nil {
         return true, err
     }
-    err := i2c.Register("foo", 10, func() (i2c.ConnCloser, error) {
+    err := i2c.Register("foo", 10, func() (i2c.BusCloser, error) {
         // You may have to create a struct to convert the API:
         return virtual_i2c.Open()
     })

@@ -22,29 +22,29 @@ type IO struct {
 	Read  []byte
 }
 
-// Record implements i2c.Conn that records everything written to it.
+// Record implements i2c.Bus that records everything written to it.
 //
 // This can then be used to feed to Playback to do "replay" based unit tests.
 type Record struct {
 	sync.Mutex
-	Conn i2c.Conn // Conn can be nil if only writes are being recorded.
-	Ops  []IO
+	Bus i2c.Bus // Bus can be nil if only writes are being recorded.
+	Ops []IO
 }
 
 func (r *Record) String() string {
 	return "record"
 }
 
-// Tx implements i2c.Conn.
+// Tx implements i2c.Bus
 func (r *Record) Tx(addr uint16, w, read []byte) error {
 	r.Lock()
 	defer r.Unlock()
-	if r.Conn == nil {
+	if r.Bus == nil {
 		if len(read) != 0 {
 			return errors.New("read unsupported when no bus is connected")
 		}
 	} else {
-		if err := r.Conn.Tx(addr, w, read); err != nil {
+		if err := r.Bus.Tx(addr, w, read); err != nil {
 			return err
 		}
 	}
@@ -58,17 +58,17 @@ func (r *Record) Tx(addr uint16, w, read []byte) error {
 	return nil
 }
 
-// Speed implements i2c.Conn.
+// Speed implements i2c.Bus.
 func (r *Record) Speed(hz int64) error {
-	if r.Conn != nil {
-		return r.Conn.Speed(hz)
+	if r.Bus != nil {
+		return r.Bus.Speed(hz)
 	}
 	return nil
 }
 
 // SCL implements i2c.Pins.
 func (r *Record) SCL() gpio.PinIO {
-	if p, ok := r.Conn.(i2c.Pins); ok {
+	if p, ok := r.Bus.(i2c.Pins); ok {
 		return p.SCL()
 	}
 	return gpio.INVALID
@@ -76,13 +76,13 @@ func (r *Record) SCL() gpio.PinIO {
 
 // SDA implements i2c.Pins.
 func (r *Record) SDA() gpio.PinIO {
-	if p, ok := r.Conn.(i2c.Pins); ok {
+	if p, ok := r.Bus.(i2c.Pins); ok {
 		return p.SDA()
 	}
 	return gpio.INVALID
 }
 
-// Playback implements i2c.Conn and plays back a recorded I/O flow.
+// Playback implements i2c.Bus and plays back a recorded I/O flow.
 //
 // While "replay" type of unit tests are of limited value, they still present
 // an easy way to do basic code coverage.
@@ -95,7 +95,7 @@ func (p *Playback) String() string {
 	return "playback"
 }
 
-// Close implements i2c.ConnCloser.
+// Close implements i2c.BusCloser.
 func (p *Playback) Close() error {
 	p.Lock()
 	defer p.Unlock()
@@ -105,7 +105,7 @@ func (p *Playback) Close() error {
 	return nil
 }
 
-// Tx implements i2c.Conn.
+// Tx implements i2c.Bus.
 func (p *Playback) Tx(addr uint16, w, r []byte) error {
 	p.Lock()
 	defer p.Unlock()
@@ -127,11 +127,11 @@ func (p *Playback) Tx(addr uint16, w, r []byte) error {
 	return nil
 }
 
-// Speed implements i2c.Conn.
+// Speed implements i2c.Bus.
 func (p *Playback) Speed(hz int64) error {
 	return nil
 }
 
-var _ i2c.Conn = &Record{}
+var _ i2c.Bus = &Record{}
 var _ i2c.Pins = &Record{}
-var _ i2c.Conn = &Playback{}
+var _ i2c.Bus = &Playback{}
