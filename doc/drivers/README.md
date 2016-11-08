@@ -125,9 +125,13 @@ experience.
   * A link to the datasheet must be included in the package doc unless NDA'ed
     or inaccessible.
 * Testability
-  * Code must be testable and tested without a device.
-  * When relevant, include a smoke test under [tests/](../../tests/). The smoke
-    test tests a real device to confirm the driver physically works for devices.
+  * Code must be testable and unit tested without a device. The unit tests are
+    meant to run as part of `go test`.
+  * When relevant, include a smoke test. The smoke test tests a real device to
+    confirm the driver physically works for devices. It must be under the
+    package being tested, named as `foosmoketest` for package `foo`. Modify
+    [periph-smoketests/](../../cmd/periph-smoketests/) to expose this smoke
+    test.
 * Usability
   * Provide a standalone executable in [cmd/](../../cmd/) to expose the
     functionality.  It is acceptable to only expose a small subset of the

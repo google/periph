@@ -2,19 +2,17 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// gpio-test verifies that basic GPIO pin functionality work.
-package main
+// gpiosmoketest verifies that basic GPIO pin functionality work.
+package gpiosmoketest
 
 import (
 	"errors"
 	"flag"
 	"fmt"
-	"os"
 	"strconv"
 	"time"
 
 	"github.com/google/periph/conn/gpio"
-	"github.com/google/periph/host"
 	"github.com/google/periph/host/sysfs"
 )
 
@@ -364,12 +362,23 @@ func testCycle(p1, p2 gpio.PinIO, noPull, slow bool) error {
 	return nil
 }
 
-func mainImpl() error {
-	slow := flag.Bool("s", false, "slow; insert a second between each step")
-	useSysfs := flag.Bool("sysfs", false, "force the use of sysfs")
-	flag.Parse()
+type SmokeTest struct {
+}
 
-	if flag.NArg() != 2 {
+func (s *SmokeTest) Name() string {
+	return "gpio"
+}
+
+func (s *SmokeTest) Description() string {
+	return "Tests basic functionality, edge detection and input pull resistors"
+}
+
+func (s *SmokeTest) Run(args []string) error {
+	f := flag.NewFlagSet("gpio", flag.ExitOnError)
+	slow := f.Bool("s", false, "slow; insert a second between each step")
+	useSysfs := f.Bool("sysfs", false, "force the use of sysfs")
+	f.Parse(args)
+	if f.NArg() != 2 {
 		// TODO(maruel): Find pins automatically:
 		// - For each header in headers.All():
 		//   - For each pin in header that are GPIO:
@@ -383,18 +392,14 @@ func mainImpl() error {
 		return errors.New("specify the two pins to use; they must be connected together")
 	}
 
-	if _, err := host.Init(); err != nil {
-		return err
-	}
-
 	// On certain Allwinner CPUs, it's a good idea to test specifically the PLx
 	// pins, since they use a different register memory block (driver
 	// "allwinner_pl") than groups PB to PH (driver "allwinner").
-	p1, err := getPin(flag.Args()[0], *useSysfs)
+	p1, err := getPin(f.Args()[0], *useSysfs)
 	if err != nil {
 		return err
 	}
-	p2, err := getPin(flag.Args()[1], *useSysfs)
+	p2, err := getPin(f.Args()[1], *useSysfs)
 	if err != nil {
 		return err
 	}
@@ -417,11 +422,4 @@ func mainImpl() error {
 		fmt.Printf("(Exit) Failed to reset %s as input: %s\n", p1, err2)
 	}
 	return err
-}
-
-func main() {
-	if err := mainImpl(); err != nil {
-		fmt.Fprintf(os.Stderr, "gpio-test: %s.\n", err)
-		os.Exit(1)
-	}
 }
