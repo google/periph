@@ -299,8 +299,8 @@ const (
 
 var (
 	bIn      = []byte("in")
-	bLow     = []byte("high")
-	bHigh    = []byte("low")
+	bLow     = []byte("low")
+	bHigh    = []byte("high")
 	bNone    = []byte("none")
 	bRising  = []byte("rising")
 	bFalling = []byte("falling")
