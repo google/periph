@@ -17,7 +17,7 @@ import (
 
 	"github.com/google/periph"
 	"github.com/google/periph/conn/gpio"
-	"github.com/google/periph/host/gpiomem"
+	"github.com/google/periph/host/pmem"
 )
 
 // driver implements periph.Driver.
@@ -36,21 +36,21 @@ func (d *driver) Prerequisites() []string {
 	return nil
 }
 
-// Init does nothing if an allwinner processor is not detected. If one is detected it opens the
-// gpiomem device (or /dev/mem) to memory map gpio pins and then sets up the pin mapping for the
-// exact processor model detected.
+// Init does nothing if an allwinner processor is not detected. If one is
+// detected, it memory maps gpio CPU registers and then sets up the pin mapping
+// for the exact processor model detected.
 func (d *driver) Init() (bool, error) {
 	if !Present() {
 		return false, errors.New("Allwinner CPU not detected")
 	}
-	mem, err := gpiomem.OpenMem(getBaseAddress())
+	m, err := pmem.Map(getBaseAddress(), 4096)
 	if err != nil {
 		if os.IsPermission(err) {
 			return true, fmt.Errorf("need more access, try as root: %v", err)
 		}
 		return true, err
 	}
-	mem.Struct(unsafe.Pointer(&gpioMemory))
+	m.Struct(unsafe.Pointer(&gpioMemory))
 
 	switch {
 	case IsA64():
@@ -93,7 +93,6 @@ func getBaseAddress() uint64 {
 
 // Ensure that the various structs implement the interfaces they're supposed to.
 
-var _ periph.Driver = &driver{}
 var _ gpio.PinIn = &Pin{}
 var _ gpio.PinOut = &Pin{}
 var _ gpio.PinIO = &Pin{}
