@@ -28,10 +28,6 @@ func (d *driver) String() string {
 	return "allwinner"
 }
 
-func (d *driver) Type() periph.Type {
-	return periph.Processor
-}
-
 func (d *driver) Prerequisites() []string {
 	return nil
 }

@@ -308,10 +308,6 @@ func (d *driverI2C) String() string {
 	return "sysfs-i2c"
 }
 
-func (d *driverI2C) Type() periph.Type {
-	return periph.Bus
-}
-
 func (d *driverI2C) Prerequisites() []string {
 	return nil
 }

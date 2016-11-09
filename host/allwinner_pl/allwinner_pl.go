@@ -358,10 +358,6 @@ func (d *driver) String() string {
 	return "allwinner_pl"
 }
 
-func (d *driver) Type() periph.Type {
-	return periph.Processor
-}
-
 func (d *driver) Prerequisites() []string {
 	return []string{"allwinner"}
 }
@@ -381,11 +377,11 @@ func (d *driver) Init() (bool, error) {
 
 	for i := range Pins {
 		p := &Pins[i]
-		if err := gpio.Register(p); err != nil {
+		if err := gpio.Register(p, true); err != nil {
 			return true, err
 		}
 		if f := p.Function(); f[:2] != "In" && f[:3] != "Out" {
-			gpio.MapFunction(f, p)
+			gpio.MapFunction(f, p.Number())
 		}
 	}
 	return true, nil

@@ -342,11 +342,6 @@ func (d *driverGPIO) String() string {
 	return "sysfs-gpio"
 }
 
-func (d *driverGPIO) Type() periph.Type {
-	// It intentionally load later than processors.
-	return periph.Pins
-}
-
 func (d *driverGPIO) Prerequisites() []string {
 	return nil
 }
@@ -406,12 +401,8 @@ func (d *driverGPIO) parseGPIOChip(path string) error {
 			root:   fmt.Sprintf("/sys/class/gpio/gpio%d/", i),
 		}
 		Pins[i] = p
-		// Try to register real pin, but it may already be registered by the processor
-		// driver. In that case register an alias instead.
-		if gpio.Register(p) != nil {
-			realPin := gpio.ByNumber(i)
-			alias := &gpio.PinAlias{N: p.name, PinIO: realPin}
-			gpio.RegisterAlias(alias)
+		if err := gpio.Register(p, false); err != nil {
+			return err
 		}
 		// We cannot use gpio.MapFunction() since there is no API to determine this.
 	}

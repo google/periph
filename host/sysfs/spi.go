@@ -217,10 +217,6 @@ func (d *driverSPI) String() string {
 	return "sysfs-spi"
 }
 
-func (d *driverSPI) Type() periph.Type {
-	return periph.Bus
-}
-
 func (d *driverSPI) Prerequisites() []string {
 	return nil
 }

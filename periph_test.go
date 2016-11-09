@@ -36,23 +36,16 @@ func ExampleInit() {
 	// Use pins, buses, devices, etc.
 }
 
-func TestTypeString(t *testing.T) {
-	if s := Type(23).String(); s != "Type(23)" {
-		t.Fatalf("%#v", s)
-	}
-}
-
 func TestInitSimple(t *testing.T) {
 	initTest([]Driver{
 		&driver{
 			name:    "CPU",
-			t:       Processor,
 			prereqs: nil,
 			ok:      true,
 			err:     nil,
 		},
 	})
-	if len(allDrivers[Processor]) != 1 {
+	if len(allDrivers) != 1 {
 		t.Fatalf("%v", allDrivers)
 	}
 	if len(byName) != 1 {
@@ -74,7 +67,6 @@ func TestInitSkip(t *testing.T) {
 	initTest([]Driver{
 		&driver{
 			name:    "CPU",
-			t:       Processor,
 			prereqs: nil,
 			ok:      false,
 			err:     nil,
@@ -89,7 +81,6 @@ func TestInitErr(t *testing.T) {
 	initTest([]Driver{
 		&driver{
 			name:    "CPU",
-			t:       Processor,
 			prereqs: nil,
 			ok:      true,
 			err:     errors.New("oops"),
@@ -100,19 +91,17 @@ func TestInitErr(t *testing.T) {
 	}
 }
 
-func TestInitBadOrder(t *testing.T) {
+func TestInitCircular(t *testing.T) {
 	initTest([]Driver{
 		&driver{
 			name:    "CPU",
-			t:       Processor,
 			prereqs: []string{"Board"},
 			ok:      true,
 			err:     nil,
 		},
 		&driver{
 			name:    "Board",
-			t:       Pins,
-			prereqs: nil,
+			prereqs: []string{"CPU"},
 			ok:      true,
 			err:     nil,
 		},
@@ -126,7 +115,6 @@ func TestInitMissing(t *testing.T) {
 	initTest([]Driver{
 		&driver{
 			name:    "CPU",
-			t:       Processor,
 			prereqs: []string{"Board"},
 			ok:      true,
 			err:     nil,
@@ -144,7 +132,6 @@ func TestRegisterLate(t *testing.T) {
 	}
 	d := &driver{
 		name:    "CPU",
-		t:       Processor,
 		prereqs: nil,
 		ok:      true,
 		err:     nil,
@@ -158,7 +145,6 @@ func TestRegisterTwice(t *testing.T) {
 	reset()
 	d := &driver{
 		name:    "CPU",
-		t:       Processor,
 		prereqs: nil,
 		ok:      true,
 		err:     nil,
@@ -175,7 +161,6 @@ func TestMustRegisterPanic(t *testing.T) {
 	reset()
 	d := &driver{
 		name:    "CPU",
-		t:       Processor,
 		prereqs: nil,
 		ok:      true,
 		err:     nil,
@@ -199,7 +184,6 @@ func TestExplodeStagesSimple(t *testing.T) {
 	d := []Driver{
 		&driver{
 			name:    "CPU",
-			t:       Processor,
 			prereqs: nil,
 			ok:      true,
 			err:     nil,
@@ -220,14 +204,12 @@ func TestExplodeStages1Dep(t *testing.T) {
 	d := []Driver{
 		&driver{
 			name:    "CPU-specialized",
-			t:       Processor,
 			prereqs: []string{"CPU-generic"},
 			ok:      true,
 			err:     nil,
 		},
 		&driver{
 			name:    "CPU-generic",
-			t:       Processor,
 			prereqs: nil,
 			ok:      true,
 			err:     nil,
@@ -240,53 +222,22 @@ func TestExplodeStages1Dep(t *testing.T) {
 	}
 }
 
-func TestExplodeStagesDifferentType(t *testing.T) {
-	d := []Driver{
-		&driver{
-			name:    "CPU",
-			t:       Processor,
-			prereqs: nil,
-			ok:      true,
-			err:     nil,
-		},
-		&driver{
-			name:    "pins",
-			t:       Pins,
-			prereqs: []string{"CPU"},
-			ok:      true,
-			err:     nil,
-		},
-	}
-	d1 := d[1:]
-	initTest(d)
-	actual, err := explodeStages(d1)
-	if len(actual) != 1 || len(actual[0]) != 1 {
-		t.Fatalf("%v", actual)
-	}
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
-}
-
 func TestExplodeStagesCycle(t *testing.T) {
 	d := []Driver{
 		&driver{
 			name:    "A",
-			t:       Processor,
 			prereqs: []string{"B"},
 			ok:      true,
 			err:     nil,
 		},
 		&driver{
 			name:    "B",
-			t:       Processor,
 			prereqs: []string{"C"},
 			ok:      true,
 			err:     nil,
 		},
 		&driver{
 			name:    "C",
-			t:       Processor,
 			prereqs: []string{"A"},
 			ok:      true,
 			err:     nil,
@@ -307,28 +258,24 @@ func TestExplodeStages3Dep(t *testing.T) {
 	d := []Driver{
 		&driver{
 			name:    "base2",
-			t:       Processor,
 			prereqs: []string{"root"},
 			ok:      true,
 			err:     nil,
 		},
 		&driver{
 			name:    "base1",
-			t:       Processor,
 			prereqs: []string{"root"},
 			ok:      true,
 			err:     nil,
 		},
 		&driver{
 			name:    "root",
-			t:       Processor,
 			prereqs: nil,
 			ok:      true,
 			err:     nil,
 		},
 		&driver{
 			name:    "super",
-			t:       Processor,
 			prereqs: []string{"base1", "base2"},
 			ok:      true,
 			err:     nil,
@@ -347,9 +294,7 @@ func TestExplodeStages3Dep(t *testing.T) {
 //
 
 func reset() {
-	for i := range allDrivers {
-		allDrivers[i] = nil
-	}
+	allDrivers = []Driver{}
 	byName = map[string]Driver{}
 	state = nil
 }
@@ -363,7 +308,6 @@ func initTest(drivers []Driver) {
 
 type driver struct {
 	name    string
-	t       Type
 	prereqs []string
 	ok      bool
 	err     error
@@ -371,10 +315,6 @@ type driver struct {
 
 func (d *driver) String() string {
 	return d.name
-}
-
-func (d *driver) Type() Type {
-	return d.t
 }
 
 func (d *driver) Prerequisites() []string {

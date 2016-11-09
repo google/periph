@@ -56,11 +56,6 @@ func (d *driver) String() string {
 	return "driver_skeleton"
 }
 
-func (d *driver) Type() periph.Type {
-	// FIXME: Change this to be the type of driver.
-	return periph.Device
-}
-
 func (d *driver) Prerequisites() []string {
 	// FIXME: Declare prerequisites drivers if relevant.
 	return nil
