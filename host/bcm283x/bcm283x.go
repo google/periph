@@ -18,7 +18,7 @@ import (
 	"github.com/google/periph"
 	"github.com/google/periph/conn/gpio"
 	"github.com/google/periph/host/distro"
-	"github.com/google/periph/host/gpiomem"
+	"github.com/google/periph/host/pmem"
 	"github.com/google/periph/host/sysfs"
 )
 
@@ -711,12 +711,12 @@ func (d *driver) Init() (bool, error) {
 	if !Present() {
 		return false, errors.New("bcm283x CPU not detected")
 	}
-	mem, err := gpiomem.OpenGPIO()
+	m, err := pmem.MapGPIO()
 	if err != nil {
 		// Try without /dev/gpiomem. This is the case of not running on Raspbian or
 		// raspbian before Jessie. This requires running as root.
 		var err2 error
-		mem, err2 = gpiomem.OpenMem(getBaseAddress())
+		m, err2 = pmem.Map(getBaseAddress(), 4096)
 		if err2 != nil {
 			if distro.IsRaspbian() {
 				// Raspbian specific error code to help guide the user to troubleshoot
@@ -731,7 +731,7 @@ func (d *driver) Init() (bool, error) {
 			return true, err
 		}
 	}
-	mem.Struct(unsafe.Pointer(&gpioMemory))
+	m.Struct(unsafe.Pointer(&gpioMemory))
 
 	// https://www.raspberrypi.org/wp-content/uploads/2012/02/BCM2835-ARM-Peripherals.pdf
 	// Page 102.
@@ -802,7 +802,6 @@ func init() {
 	}
 }
 
-var _ periph.Driver = &driver{}
 var _ gpio.PinIn = &Pin{}
 var _ gpio.PinOut = &Pin{}
 var _ gpio.PinIO = &Pin{}
