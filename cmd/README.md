@@ -52,6 +52,9 @@ it](../doc/drivers/CONTRIBUTING.md).
   failed.
 * [periph-setup](periph-setup): Modifies the host to enable more functionality
   (load drivers, install udev rules, etc).
+* [periph-smoketest](periph-smoketest): Runs one of the smoke test for the
+  drivers. The smoke test differs from unit tests as they require real hardware
+  to confirm that the driver being tested works.
 
 
 ## Troubleshooting

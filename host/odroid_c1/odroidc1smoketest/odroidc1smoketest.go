@@ -2,15 +2,14 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-package main
+// odroidc1smoketest tests basic functionality of odroid c1.
+package odroidc1smoketest
 
 import (
 	"fmt"
-	"os"
 	"sort"
 
 	"github.com/google/periph/conn/gpio"
-	"github.com/google/periph/host"
 	"github.com/google/periph/host/headers"
 	"github.com/google/periph/host/odroid_c1"
 )
@@ -21,33 +20,6 @@ func testOdroidC1Present() error {
 		return fmt.Errorf("did not detect presence of ODROID-C1")
 	}
 	// TODO: add amlogic s805 detection check once that is implemented
-	return nil
-}
-
-// testOdroidC1Loading verifies that no error occurs when loading all the drivers.
-func testOdroidC1Loading() error {
-	state, err := host.Init()
-	if err != nil {
-		return fmt.Errorf("error loading drivers: %s", err)
-	}
-	if len(state.Failed) > 0 {
-		for _, failure := range state.Failed {
-			return fmt.Errorf("%s: %s", failure.D, failure.Err)
-		}
-	}
-
-	// Print some info.
-	fmt.Printf("Using drivers:\n")
-	for _, driver := range state.Loaded {
-		fmt.Printf("- %s\n", driver)
-	}
-	if len(state.Skipped) > 0 {
-		fmt.Printf("Drivers skipped:\n")
-		for _, failure := range state.Skipped {
-			fmt.Printf("- %s: %s\n", failure.D, failure.Err)
-		}
-	}
-
 	return nil
 }
 
@@ -153,9 +125,20 @@ func testOdroidC1Aliases() error {
 	return nil
 }
 
-func Test() error {
+type SmokeTest struct {
+}
+
+func (s *SmokeTest) Name() string {
+	return "odroid-c1"
+}
+
+func (s *SmokeTest) Description() string {
+	return "Quad core low cost board made by hardkernel.com"
+}
+
+func (s *SmokeTest) Run(args []string) error {
 	tests := []func() error{
-		testOdroidC1Present, testOdroidC1Loading, testOdroidC1Headers,
+		testOdroidC1Present, testOdroidC1Headers,
 		testOdroidC1GpioNames, testOdroidC1Aliases,
 	}
 	for _, t := range tests {
@@ -164,11 +147,4 @@ func Test() error {
 		}
 	}
 	return nil
-}
-
-func main() {
-	if err := Test(); err != nil {
-		fmt.Printf("ODROID-C1 test failed: %s\n", err)
-		os.Exit(1)
-	}
 }

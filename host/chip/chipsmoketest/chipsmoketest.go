@@ -2,15 +2,14 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-package main
+// chipsmoketest verifies that basic Chip specific functionality works.
+package chipsmoketest
 
 import (
 	"fmt"
-	"os"
 	"sort"
 
 	"github.com/google/periph/conn/gpio"
-	"github.com/google/periph/host"
 	"github.com/google/periph/host/allwinner"
 	"github.com/google/periph/host/chip"
 	"github.com/google/periph/host/headers"
@@ -23,20 +22,6 @@ func testChipPresent() error {
 	}
 	if !allwinner.Present() {
 		return fmt.Errorf("did not detect presence of Allwinner CPU")
-	}
-	return nil
-}
-
-// testChipLoading verifies that no error occurs when loading all the drivers for chip.
-func testChipLoading() error {
-	state, err := host.Init()
-	if err != nil {
-		return fmt.Errorf("error loading drivers: %s", err)
-	}
-	if len(state.Failed) > 0 {
-		for _, failure := range state.Failed {
-			return fmt.Errorf("%s: %s", failure.D, failure.Err)
-		}
 	}
 	return nil
 }
@@ -151,10 +136,20 @@ func testChipAliases() error {
 	return nil
 }
 
-func Test() error {
+type SmokeTest struct {
+}
+
+func (s *SmokeTest) Name() string {
+	return "chip"
+}
+
+func (s *SmokeTest) Description() string {
+	return "Single CPU low cost board available at getchip.com"
+}
+
+func (s *SmokeTest) Run(args []string) error {
 	tests := []func() error{
-		testChipPresent, testChipLoading, testChipHeaders, testChipGpioNames,
-		testChipAliases,
+		testChipPresent, testChipHeaders, testChipGpioNames, testChipAliases,
 	}
 	for _, t := range tests {
 		err := t()
@@ -163,14 +158,6 @@ func Test() error {
 		}
 	}
 	return nil
-}
-
-func main() {
-	err := Test()
-	if err != nil {
-		fmt.Printf("CHIP test failed: %s\n", err)
-		os.Exit(1)
-	}
 }
 
 /* The following gpio tests are commented out for now in favor of using gpio-test via a shell
