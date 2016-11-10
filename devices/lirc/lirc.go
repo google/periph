@@ -14,7 +14,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/google/periph"
 	"github.com/google/periph/conn/gpio"
 	"github.com/google/periph/conn/ir"
 )
@@ -215,33 +214,16 @@ func (d *driver) String() string {
 	return "lirc"
 }
 
-func (d *driver) Type() periph.Type {
-	// Return the lowest priority, which is Functional.
-	return periph.Functional
-}
-
 func (d *driver) Init() (bool, error) {
 	in, out := getPins()
 	if in == -1 && out == -1 {
 		return false, nil
 	}
 	if in != -1 {
-		if pin := gpio.ByNumber(in); pin != nil {
-			gpio.MapFunction("IR_IN", pin)
-		} else {
-			gpio.MapFunction("IR_IN", gpio.INVALID)
-		}
-	} else {
-		gpio.MapFunction("IR_IN", gpio.INVALID)
+		gpio.MapFunction("IR_IN", in)
 	}
 	if out != -1 {
-		if pin := gpio.ByNumber(out); pin != nil {
-			gpio.MapFunction("IR_OUT", pin)
-		} else {
-			gpio.MapFunction("IR_OUT", gpio.INVALID)
-		}
-	} else {
-		gpio.MapFunction("IR_OUT", gpio.INVALID)
+		gpio.MapFunction("IR_IN", out)
 	}
 	return true, nil
 }

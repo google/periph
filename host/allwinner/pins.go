@@ -501,13 +501,13 @@ var (
 func initPins() error {
 	for i := range cpupins {
 		// register the pin with gpio
-		if err := gpio.Register(cpupins[i]); err != nil {
+		if err := gpio.Register(cpupins[i], true); err != nil {
 			return err
 		}
 		// iterate through alternate functions and register function->pin mapping
 		for _, f := range cpupins[i].altFunc {
 			if f != "" {
-				gpio.MapFunction(f, cpupins[i])
+				gpio.MapFunction(f, cpupins[i].Number())
 			}
 		}
 	}

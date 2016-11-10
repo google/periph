@@ -121,10 +121,6 @@ func (d *driverThermalSensor) String() string {
 	return "sysfs-thermal"
 }
 
-func (d *driverThermalSensor) Type() periph.Type {
-	return periph.Device
-}
-
 func (d *driverThermalSensor) Prerequisites() []string {
 	return nil
 }

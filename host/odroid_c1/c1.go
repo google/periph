@@ -101,10 +101,6 @@ func (d *driver) String() string {
 	return "odroid_c1"
 }
 
-func (d *driver) Type() periph.Type {
-	return periph.Pins
-}
-
 func (d *driver) Prerequisites() []string {
 	return []string{"sysfs-gpio"}
 }

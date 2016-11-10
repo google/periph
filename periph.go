@@ -37,52 +37,17 @@ import (
 	"sync"
 )
 
-// Type represent the type of driver.
-//
-// Lower is more important.
-type Type int
-
-const (
-	// Processor is the first driver to be loaded.
-	Processor Type = iota
-	// Pins is basic pin functionality driver, additional to Processor.
-	//
-	// This includes all headers description.
-	Pins
-	// Functional is for functionality pin driver, additional to Pins.
-	Functional
-	// Bus is higher level protocol drivers.
-	Bus
-	// Device is drivers connecting to buses.
-	Device
-	nbPriorities
-)
-
-const typeName = "ProcessorPinsFunctionalBusDevicenbPriorities"
-
-var typeIndex = [...]uint8{0, 9, 13, 23, 26, 32, 44}
-
-func (i Type) String() string {
-	if i < 0 || i >= Type(len(typeIndex)-1) {
-		return fmt.Sprintf("Type(%d)", i)
-	}
-	return typeName[typeIndex[i]:typeIndex[i+1]]
-}
-
 // Driver is an implementation for a protocol.
 type Driver interface {
-	// String returns the name of the driver, as to be presented to the user. It
-	// should be unique.
+	// String returns the name of the driver, as to be presented to the user.
+	//
+	// It must be unique in the list of registered drivers.
 	String() string
-	// Type is the type of driver.
-	//
-	// This is used to load the drivers in order.
-	//
-	// If a driver implements multiple levels of functionality, it should return
-	// the most important one, the one with the lowest value.
-	Type() Type
 	// Prerequisites returns a list of drivers that must be successfully loaded
 	// first before attempting to load this driver.
+	//
+	// A driver listing a prerequisite not registered is a fatal failure at
+	// initialization time.
 	Prerequisites() []string
 	// Init initializes the driver.
 	//
@@ -118,10 +83,10 @@ type State struct {
 
 // Init initially all the relevant drivers.
 //
-// Drivers are started concurrently for Type.
+// Drivers are started concurrently.
 //
 // It returns the list of all drivers loaded and errors on the first call, if
-// any. They are ordered by Type but unordered within each type.
+// any. They are ordered by the time they finished initializing.
 //
 // Second call is ignored and errors are discarded.
 //
@@ -160,7 +125,7 @@ func Init() (*State, error) {
 		}
 	}()
 
-	stages, err := getStages()
+	stages, err := explodeStages(allDrivers)
 	if err != nil {
 		return state, err
 	}
@@ -192,8 +157,7 @@ func Register(d Driver) error {
 		return fmt.Errorf("drivers.Register(%q): driver with same name was already registered", d)
 	}
 	byName[n] = d
-	t := d.Type()
-	allDrivers[t] = append(allDrivers[t], d)
+	allDrivers = append(allDrivers, d)
 	return nil
 }
 
@@ -208,39 +172,12 @@ func MustRegister(d Driver) {
 
 var (
 	mu         sync.Mutex
-	allDrivers [nbPriorities][]Driver
+	allDrivers []Driver
 	byName     = map[string]Driver{}
 	state      *State
 )
 
-// getStages returns a set of stages to load the drivers.
-//
-// Loading is done using two blocking mechanism:
-// - By type
-// - By prerequisites
-// So create a DAG but reduce it as a list of stages.
-//
-// This cannot be done in Register() since the drivers are not registered in
-// order.
-func getStages() ([][]Driver, error) {
-	var stages [][]Driver
-	for _, drivers := range allDrivers {
-		if len(drivers) == 0 {
-			// No driver registered for this type.
-			continue
-		}
-		inner, err := explodeStages(drivers)
-		if err != nil {
-			return nil, err
-		}
-		if len(inner) != 0 {
-			stages = append(stages, inner...)
-		}
-	}
-	return stages, nil
-}
-
-// explodeStages creates multiple intermediate stages if needed.
+// explodeStages creates multiple stages if needed.
 //
 // It searches if there's any driver than has dependency on another driver from
 // this stage and creates intermediate stage if so.
@@ -249,21 +186,12 @@ func explodeStages(drivers []Driver) ([][]Driver, error) {
 	for _, d := range drivers {
 		dependencies[d.String()] = map[string]struct{}{}
 	}
+	// TODO(maruel): Lower number of stages by merging parallel dependencies.
 	for _, d := range drivers {
 		name := d.String()
-		t := d.Type()
 		for _, depName := range d.Prerequisites() {
-			dep, ok := byName[depName]
-			if !ok {
+			if _, ok := byName[depName]; !ok {
 				return nil, fmt.Errorf("drivers: unsatisfied dependency %q->%q; it is missing; skipping", name, depName)
-			}
-			dt := dep.Type()
-			if dt > t {
-				return nil, fmt.Errorf("drivers: inversed dependency %q(%q)->%q(%q); skipping", name, t, depName, dt)
-			}
-			if dt < t {
-				// Staging already takes care of this.
-				continue
 			}
 			// Dependency between two drivers of the same type. This can happen
 			// when there's a process class driver and a processor specialization
@@ -306,7 +234,7 @@ func loadStage(drivers []Driver, loaded map[string]struct{}, cD chan<- Driver, c
 	skip := make([]error, len(drivers))
 	for i, driver := range drivers {
 		// Load only the driver if prerequisites were loaded. They are
-		// guaranteed to be in a previous stage by getStages().
+		// guaranteed to be in a previous stage by explodeStages().
 		for _, dep := range driver.Prerequisites() {
 			if _, ok := loaded[dep]; !ok {
 				skip[i] = fmt.Errorf("dependency not loaded: %q", dep)

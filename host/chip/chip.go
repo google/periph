@@ -150,10 +150,6 @@ func (d *driver) String() string {
 	return "chip"
 }
 
-func (d *driver) Type() periph.Type {
-	return periph.Pins
-}
-
 func (d *driver) Prerequisites() []string {
 	// has allwinner cpu, needs sysfs for XIO0-XIO7 "gpio" pins
 	return []string{"allwinner", "sysfs-gpio"}
