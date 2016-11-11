@@ -343,8 +343,7 @@ func (d *driverGPIO) String() string {
 }
 
 func (d *driverGPIO) Type() periph.Type {
-	// It intentionally load later than processors.
-	return periph.Pins
+	return periph.Second
 }
 
 func (d *driverGPIO) Prerequisites() []string {

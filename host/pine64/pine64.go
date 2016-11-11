@@ -285,7 +285,7 @@ func (d *driver) String() string {
 }
 
 func (d *driver) Type() periph.Type {
-	return periph.Pins
+	return periph.Functional
 }
 
 func (d *driver) Prerequisites() []string {

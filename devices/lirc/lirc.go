@@ -216,7 +216,8 @@ func (d *driver) String() string {
 }
 
 func (d *driver) Type() periph.Type {
-	// Return the lowest priority, which is Functional.
+	// Use the lowest priority, which is Functional. This is because it looks for
+	// GPIO pin numbers.
 	return periph.Functional
 }
 

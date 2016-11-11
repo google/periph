@@ -122,7 +122,7 @@ func (d *driverThermalSensor) String() string {
 }
 
 func (d *driverThermalSensor) Type() periph.Type {
-	return periph.Device
+	return periph.Second
 }
 
 func (d *driverThermalSensor) Prerequisites() []string {

@@ -116,7 +116,7 @@ func (d *driverUART) String() string {
 }
 
 func (d *driverUART) Type() periph.Type {
-	return periph.Bus
+	return periph.Second
 }
 
 func (d *driverUART) Init() (bool, error) {

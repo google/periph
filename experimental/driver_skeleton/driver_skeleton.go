@@ -58,7 +58,7 @@ func (d *driver) String() string {
 
 func (d *driver) Type() periph.Type {
 	// FIXME: Change this to be the type of driver.
-	return periph.Device
+	return periph.Second
 }
 
 func (d *driver) Prerequisites() []string {

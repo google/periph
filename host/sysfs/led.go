@@ -164,7 +164,7 @@ func (d *driverLED) String() string {
 }
 
 func (d *driverLED) Type() periph.Type {
-	return periph.Pins
+	return periph.Second
 }
 
 func (d *driverLED) Prerequisites() []string {

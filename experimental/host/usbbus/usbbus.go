@@ -109,7 +109,7 @@ func (d *driver) String() string {
 }
 
 func (d *driver) Type() periph.Type {
-	return periph.Bus
+	return periph.Root
 }
 
 func (d *driver) Prerequisites() []string {
