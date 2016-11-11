@@ -7,6 +7,48 @@ The complete API documentation, including examples, is at
 You are encouraged to look at tools in [cmd/](cmd/). These can be used as the
 basis of your projects.
 
+To try the following samples, put the code into a file named `sample.go` then
+execute `go run sample.go`.
+
+
+## Toggle a LED
+
+_Purpose:_ Simplest example
+
+`periph` doesn't expose any _toggle_-like functionality on purpose, it is as
+stateless as possible.
+
+
+```go
+package main
+
+import (
+    "log"
+    "time"
+
+    "github.com/google/periph/conn/gpio"
+    "github.com/google/periph/host"
+    "github.com/google/periph/host/rpi"
+)
+
+func main() {
+    // Load all the drivers:
+    if _, err := host.Init(); err != nil {
+        log.Fatal(err)
+    }
+
+    l := gpio.Low
+    for {
+        // Lookup a pin by its location on the board:
+        if err := rpi.P1_33.Out(l); err != nil {
+            log.Fatal(err)
+        }
+        l = !l
+        time.Sleep(500 * time.Millisecond)
+    }
+}
+```
+
 
 ## IR (infra red remote)
 
@@ -25,9 +67,15 @@ import (
     "log"
 
     "github.com/google/periph/devices/lirc"
+    "github.com/google/periph/host"
 )
 
 func main() {
+    // Load all the drivers:
+    if _, err := host.Init(); err != nil {
+        log.Fatal(err)
+    }
+
     // Open a handle to lircd:
     conn, err := lirc.New()
     if err != nil {
