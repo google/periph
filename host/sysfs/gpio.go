@@ -87,7 +87,7 @@ func (p *Pin) Function() string {
 // In setups a pin as an input.
 func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	if pull != gpio.PullNoChange && pull != gpio.Float {
-		return errors.New("not implemented")
+		return errors.New("sysfs-gpio: pull is not supported")
 	}
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -242,7 +242,7 @@ func (p *Pin) Out(l gpio.Level) error {
 
 // PWM implements gpio.PinOut.
 func (p *Pin) PWM(duty int) error {
-	return errors.New("pwm is not supported on sysfs")
+	return errors.New("sysfs-gpio: pwm is not supported")
 }
 
 //

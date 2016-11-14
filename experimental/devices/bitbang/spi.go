@@ -57,7 +57,7 @@ func (s *SPI) Configure(mode spi.Mode, bits int) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if mode != spi.Mode3 {
-		return errors.New("not implemented")
+		return errors.New("bitbang-spi: not implemented")
 	}
 	s.mode = mode
 	s.bits = bits

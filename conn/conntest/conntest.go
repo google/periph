@@ -35,7 +35,7 @@ func (r *RecordRaw) Write(b []byte) (int, error) {
 // Tx implements conn.Conn.
 func (r *RecordRaw) Tx(w, read []byte) error {
 	if len(read) != 0 {
-		return errors.New("not implemented")
+		return errors.New("conntest: not implemented")
 	}
 	_, err := r.Write(w)
 	return err
