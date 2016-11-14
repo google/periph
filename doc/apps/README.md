@@ -76,16 +76,10 @@ A connection
 is a **point-to-point** connection between the host and a device where the
 application is the master driving the I/O.
 
-[conn.Conn](https://godoc.org/github.com/google/periph/conn#Conn)
-implements [io.Writer](https://golang.org/pkg/io/#Writer) for write-only
-devices, so it is possible to use functions like
-[io.Copy()](https://golang.org/pkg/io/#Copy) to push data over a connection.
-
-A `Conn` can be multiplexed over the underlying bus. For example an I²C bus may
-have multiple connections (slaves) to the master, each addressed by the device
-address. The same is true on SPI via the `CS` line. On the other hand, a UART
-connection is always point-to-point. A `Conn` can even be created out of gpio
-pins via bit banging.
+A `Conn` can be multiplexed over the underlying bus. For example an I²C bus
+[i2c.Bus](https://godoc.org/github.com/google/periph/conn/i2c#Bus) may have
+multiple connections (slaves) to the master, each addressed by the device
+address.
 
 
 ### SPI connection
@@ -94,35 +88,6 @@ An
 [spi.Conn](https://godoc.org/github.com/google/periph/conn/spi#Conn)
 **is** a
 [conn.Conn](https://godoc.org/github.com/google/periph/conn#Conn).
-
-
-#### exp/io compatibility
-
-To convert a
-[spi.Conn](https://godoc.org/github.com/google/periph/conn/spi#Conn)
-to a
-[exp/io/spi/driver.Conn](https://godoc.org/golang.org/x/exp/io/spi/driver#Conn),
-use the following:
-
-```go
-type adaptor struct {
-    spi.Conn
-}
-
-func (a *adaptor) Configure(k, v int) error {
-    if k == driver.MaxSpeed {
-        return a.Conn.Speed(int64(v))
-    }
-    // The match is not exact, as spi.Conn.Configure() configures simultaneously
-    // mode and bits.
-    return errors.New("TODO: implement")
-}
-
-func (a *adaptor) Close() error {
-    // It's not to the device to close the bus.
-    return nil
-}
-```
 
 
 ### I²C connection
@@ -149,31 +114,10 @@ Since many devices have their address hardcoded, it's up to the device driver to
 specify the address.
 
 
-#### exp/io compatibility
-
-To convert a
-[i2c.Dev](https://godoc.org/github.com/google/periph/conn/i2c#Dev)
-to a
-[exp/io/i2c/driver.Conn](https://godoc.org/golang.org/x/exp/io/i2c/driver#Conn),
-use the following:
-
-```go
-type adaptor struct {
-    conn.Conn
-}
-
-func (a *adaptor) Close() error {
-    // It's not to the device to close the bus.
-    return nil
-}
-```
-
 ### GPIO
 
 [gpio pins](https://godoc.org/github.com/google/periph/conn/gpio#PinIO)
 can be leveraged for arbitrary uses, such as buttons, LEDs, relays, etc. 
-It is also possible to construct an I²C or a SPI bus over raw GPIO pins via
-[experimental/bitbang](https://godoc.org/github.com/google/periph/experimental/devices/bitbang).
 
 
 ## Samples
@@ -183,10 +127,10 @@ See [SAMPLES.md](SAMPLES.md) for various examples.
 
 ## Using out-of-tree drivers
 
-Out of tree drivers can be loaded for new devices but more importantly even for
-buses, GPIO pins, headers, etc. The example below shows a driver in a repository
-at github.com/example/virtual_i2c that exposes an I²C
-bus over a REST API to a remote device.
+Out of tree drivers can be seamlessly loaded by an application. The example
+below shows a hypothetical driver located at github.com/example/virtual_i2c that
+exposes an I²C bus over a REST API to a remote device.
+
 This driver can be used with periph as if it were built into periph as follows:
 
 ```go
@@ -204,7 +148,7 @@ import (
 type driver struct{}
 
 func (d *driver) String() string          { return "virtual_i2c" }
-func (d *driver) Type() periph.Type          { return periph.Bus }
+func (d *driver) Type() periph.Type       { return periph.Bus }
 func (d *driver) Prerequisites() []string { return nil }
 
 func (d *driver) Init() (bool, error) {

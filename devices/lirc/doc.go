@@ -45,4 +45,10 @@
 //
 // Please see documentation of package periph/host/rpi for details on how to set
 // it up.
+//
+// Hardware
+//
+// A good device is the VS1838. Then you need device driver for hardware
+// accelerated signal decoding, that lircd will then leverage to decode the
+// keypresses.
 package lirc

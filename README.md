@@ -67,7 +67,9 @@ func main() {
 }
 ```
 
-See more examples at [doc/apps/SAMPLES.md](doc/apps/SAMPLES.md)!
+### Samples
+
+See [doc/apps/SAMPLES.md](doc/apps/SAMPLES.md) for more examples.
 
 
 ## Contributions
