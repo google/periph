@@ -42,6 +42,12 @@ type Bus interface {
 	// addresses of all devices on the bus if alarmOnly is false and of all
 	// devices in alarm state if alarmOnly is true.
 	//
+	// The addresses are returned as 64-bit integers with the family code in the
+	// lower byte and the CRC byte in the top byte.
+	//
+	// If an error occurs during the search the already-discovered devices are
+	// returned with the error.
+	//
 	// Bus.Search may be implemented using onewire.Search if the bus implements
 	// the BusSearcher interface or it may have a custom implementation.
 	Search(alarmOnly bool) ([]uint64, error)
@@ -73,26 +79,43 @@ type Pins interface {
 	Q() gpio.PinIO
 }
 
-// BusSearcher provides the basic bus transaction necessary to search a 1-wire
-// bus for devices. Buses that implement this interface can be searched with the
-// onewire.Search function.
-type BusSearcher interface {
-	Bus
-	// Triplet performs a single bit search triplet command on the bus, waits for it to complete
-	// and returs the result.
-	searchTriplet(direction byte) byte
+//===== Errors
+
+// NoDevicesError is an interface that should be implemented by errors that
+// indicate that no devices responded with a presence pulse after a reset.
+type NoDevicesError interface {
+	NoDevices() bool // true if no presence pulse from any device has been detected
 }
 
-// Search performs a search cycle on the 1-wire bus and returns the
-// addresses of all devices on the bus if alarmOnly is false and of all
-// devices in alarm state if alarmOnly is true.
-//
-// This function is defined here so the implementation of buses that support the
-// BusSearcher interface can call it. Applications should call Bus.Search.
-func Search(bus SearchTriplet, alarmOnly bool) ([]uint64, error) {
-	// TODO(tve): implement!
-	return nil, nil
+// noDevicesError implements error and NoDevicesError.
+type noDevicesError string
+
+func (e noDevicesError) Error() string   { return string(e) }
+func (e noDevicesError) NoDevices() bool { return true }
+
+// ShortedBusError is an interface that should be implemented by errors that
+// indicate that the bus is electrically shorted (Q connected to GND).
+type ShortedBusError interface {
+	IsShorted() bool // true if the bus is electrically shorted
 }
+
+// shortedBusError implements error and ShortedBusError.
+type shortedBusError string
+
+func (e shortedBusError) Error() string   { return string(e) }
+func (e shortedBusError) IsShorted() bool { return true }
+
+// BadCRCError is an interface that should be implemented by errors that
+// indicate that a CRC error occurred on the bus.
+type BadCRCError interface {
+	BadCRC() bool // true if a bad CRC was detected
+}
+
+// badCRCError implements error and BadCRCError.
+type badCRCError string
+
+func (e badCRCError) Error() string { return string(e) }
+func (e badCRCError) BadCRC() bool  { return true }
 
 //===== A device on a 1-wire bus
 
@@ -122,14 +145,14 @@ func (d *Dev) Tx(w, r []byte, power Pullup) error {
 	// bytes being written.
 	ww := make([]byte, 9, len(w)+9)
 	ww[0] = 0x55 // Match ROM
-	ww[1] = byte(addr >> 0)
-	ww[2] = byte(addr >> 8)
-	ww[3] = byte(addr >> 16)
-	ww[4] = byte(addr >> 24)
-	ww[5] = byte(addr >> 32)
-	ww[6] = byte(addr >> 40)
-	ww[7] = byte(addr >> 48)
-	ww[8] = byte(addr >> 56)
+	ww[1] = byte(d.Addr >> 0)
+	ww[2] = byte(d.Addr >> 8)
+	ww[3] = byte(d.Addr >> 16)
+	ww[4] = byte(d.Addr >> 24)
+	ww[5] = byte(d.Addr >> 32)
+	ww[6] = byte(d.Addr >> 40)
+	ww[7] = byte(d.Addr >> 48)
+	ww[8] = byte(d.Addr >> 56)
 	ww = append(ww, w...)
 	return d.Bus.Tx(w, r, power)
 }
