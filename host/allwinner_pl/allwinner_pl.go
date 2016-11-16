@@ -358,10 +358,6 @@ func (d *driver) String() string {
 	return "allwinner_pl"
 }
 
-func (d *driver) Type() periph.Type {
-	return periph.Processor
-}
-
 func (d *driver) Prerequisites() []string {
 	return []string{"allwinner"}
 }
@@ -381,11 +377,20 @@ func (d *driver) Init() (bool, error) {
 
 	for i := range Pins {
 		p := &Pins[i]
-		if err := gpio.Register(p); err != nil {
+		if err := gpio.Register(p, true); err != nil {
 			return true, err
 		}
-		if f := p.Function(); f[:2] != "In" && f[:3] != "Out" {
-			gpio.MapFunction(f, p)
+		// TODO(maruel): There's a problem where multiple pins may be set to the
+		// same function. Need investigation. For now just ignore errors.
+		if f := p.Function(); f[0] != '<' && f[:2] != "In" && f[:3] != "Out" {
+			// TODO(maruel): Stop ignoring errors by not registering the same
+			// function multiple times.
+			gpio.RegisterAlias(f, p.Number())
+			/*
+				if err := gpio.RegisterAlias(f, p.Number()); err != nil {
+					return true, err
+				}
+			*/
 		}
 	}
 	return true, nil

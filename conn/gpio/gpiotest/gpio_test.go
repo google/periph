@@ -34,29 +34,24 @@ func TestByName(t *testing.T) {
 	}
 }
 
-func TestByFunction(t *testing.T) {
-	if gpio.ByFunction("SPI1_MOSI") != nil {
-		t.Fatal("spi doesn't exist")
-	}
-	if gpio.ByFunction("I2C1_SDA") != gpio2 {
-		t.Fatal("I2C1_SDA should have been found")
-	}
-}
-
 //
 
 var (
-	gpio2 = &Pin{N: "GPIO2", Num: 2, Fn: "I2C1_SDA"}
-	gpio3 = &Pin{N: "GPIO3", Num: 3, Fn: "I2C1_SCL"}
+	gpio2  = &Pin{N: "GPIO2", Num: 2, Fn: "I2C1_SDA"}
+	gpio2a = &Pin{N: "GPIO2a", Num: 2}
+	gpio3  = &Pin{N: "GPIO3", Num: 3, Fn: "I2C1_SCL"}
 )
 
 func init() {
-	if err := gpio.Register(gpio2); err != nil {
+	if err := gpio.Register(gpio2, true); err != nil {
 		panic(err)
 	}
-	if err := gpio.Register(gpio3); err != nil {
+	if err := gpio.Register(gpio2a, false); err != nil {
 		panic(err)
 	}
-	gpio.MapFunction(gpio2.Function(), gpio2)
-	gpio.MapFunction(gpio3.Function(), gpio3)
+	if err := gpio.Register(gpio3, false); err != nil {
+		panic(err)
+	}
+	gpio.RegisterAlias(gpio2.Function(), gpio2.Number())
+	gpio.RegisterAlias(gpio3.Function(), gpio3.Number())
 }

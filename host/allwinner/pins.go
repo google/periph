@@ -496,18 +496,27 @@ var (
 	PH11 gpio.PinIO = cpupins["PH11"]
 )
 
-// initPins initializes the mapping of pins by function, sets the alternate functions of each
-// pin, and registers all the pins with gpio.
+// initPins initializes the mapping of pins by function, sets the alternate
+// functions of each pin, and registers all the pins with gpio.
 func initPins() error {
 	for i := range cpupins {
-		// register the pin with gpio
-		if err := gpio.Register(cpupins[i]); err != nil {
+		// Register the pin with gpio.
+		if err := gpio.Register(cpupins[i], true); err != nil {
 			return err
 		}
-		// iterate through alternate functions and register function->pin mapping
+		// Iterate through alternate functions and register function->pin mapping.
+		// TODO(maruel): There's a problem where multiple pins may be set to the
+		// same function. Need investigation. For now just ignore errors.
 		for _, f := range cpupins[i].altFunc {
-			if f != "" {
-				gpio.MapFunction(f, cpupins[i])
+			if f != "" && f[0] != '<' && f[:2] != "In" && f[:3] != "Out" {
+				// TODO(maruel): Stop ignoring errors by not registering the same
+				// function multiple times.
+				gpio.RegisterAlias(f, cpupins[i].Number())
+				/*
+					if err := gpio.RegisterAlias(f, cpupins[i].Number()); err != nil {
+						return true, err
+					}
+				*/
 			}
 		}
 	}
@@ -531,9 +540,9 @@ const (
 	disabled function = 7
 )
 
-// gpioGroup is a memory-mapped structure for the hardware registers that control a
-// group of at most 32 pins. In practice the number of valid pins per group varies
-// between 10 and 27.
+// gpioGroup is a memory-mapped structure for the hardware registers that
+// control a group of at most 32 pins. In practice the number of valid pins per
+// group varies between 10 and 27.
 //
 // http://files.pine64.org/doc/datasheet/pine64/Allwinner_A64_User_Manual_V1.0.pdf
 // Page 376 GPIO PB to PH.

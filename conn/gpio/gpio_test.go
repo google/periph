@@ -17,12 +17,6 @@ func ExampleAll() {
 	}
 }
 
-func ExampleByFunction() {
-	for _, f := range []string{"I2C0_SDA", "I2C0_SCL"} {
-		fmt.Printf("%s: %s\n", f, ByFunction(f))
-	}
-}
-
 func ExampleByName() {
 	p := ByName("GPIO6")
 	if p == nil {
@@ -36,7 +30,7 @@ func ExampleByName_alias() {
 	if p == nil {
 		log.Fatal("Failed to find LCD-D2")
 	}
-	if rp, ok := p.(*PinAlias); ok {
+	if rp, ok := p.(RealPin); ok {
 		fmt.Printf("%s is an alias for %s\n", p, rp.Real())
 	} else {
 		fmt.Printf("%s is not an alias!\n", p)

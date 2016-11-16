@@ -101,10 +101,6 @@ func (d *driver) String() string {
 	return "odroid_c1"
 }
 
-func (d *driver) Type() periph.Type {
-	return periph.Pins
-}
-
 func (d *driver) Prerequisites() []string {
 	return []string{"sysfs-gpio"}
 }
@@ -194,10 +190,8 @@ func (d *driver) Init() (bool, error) {
 			return true, fmt.Errorf("Cannot create alias for %s: it doesn't exist",
 				real)
 		}
-		a := &gpio.PinAlias{N: alias, PinIO: r}
-		if err := gpio.RegisterAlias(a); err != nil {
-			return true, fmt.Errorf("Cannot create alias %s for %s: %s",
-				alias, real, err)
+		if err := gpio.RegisterAlias(alias, r.Number()); err != nil {
+			return true, err
 		}
 	}
 

@@ -45,12 +45,12 @@ type Pin struct {
 	event      event     // Initialized once
 }
 
-func (p *Pin) Name() string {
+func (p *Pin) String() string {
 	return p.name
 }
 
-func (p *Pin) String() string {
-	return fmt.Sprintf("%s(%d)", p.name, p.number)
+func (p *Pin) Name() string {
+	return p.name
 }
 
 // Number implements pins.Pin.
@@ -87,17 +87,17 @@ func (p *Pin) Function() string {
 // In setups a pin as an input.
 func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	if pull != gpio.PullNoChange && pull != gpio.Float {
-		return errors.New("sysfs-gpio: pull is not supported")
+		return p.wrap(errors.New("doesn't support pull-up/pull-down"))
 	}
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	changed := false
 	if p.direction != dIn {
 		if err := p.open(); err != nil {
-			return err
+			return p.wrap(err)
 		}
 		if err := seekWrite(p.fDirection, bIn); err != nil {
-			return err
+			return p.wrap(err)
 		}
 		p.direction = dIn
 		changed = true
@@ -110,12 +110,12 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 			if p.fEdge == nil {
 				p.fEdge, err = os.OpenFile(p.root+"edge", os.O_RDWR|os.O_APPEND, 0600)
 				if err != nil {
-					return err
+					return p.wrap(err)
 				}
 			}
 			if p.epollFd == 0 {
 				if p.epollFd, err = p.event.makeEvent(p.fValue); err != nil {
-					return err
+					return p.wrap(err)
 				}
 			}
 			var b []byte
@@ -128,18 +128,18 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 				b = bBoth
 			}
 			if err := seekWrite(p.fEdge, b); err != nil {
-				return err
+				return p.wrap(err)
 			}
 		} else {
 			if p.fEdge != nil {
 				if err := seekWrite(p.fEdge, bNone); err != nil {
-					return err
+					return p.wrap(err)
 				}
 			}
 		}
 		p.edge = edge
 	}
-	if p.edge != gpio.None {
+	if p.fEdge != nil {
 		// Flush accumulated events if any.
 		// BUG(maruel): Wake up any WaitForEdge() waiting for an edge.
 		for {
@@ -158,7 +158,6 @@ func (p *Pin) Read() gpio.Level {
 	var buf [4]byte
 	if err := seekRead(p.fValue, buf[:]); err != nil {
 		// Error.
-		//fmt.Printf("%s: %v", p, err)
 		return gpio.Low
 	}
 	if buf[0] == '0' {
@@ -215,7 +214,7 @@ func (p *Pin) Out(l gpio.Level) error {
 	defer p.mu.Unlock()
 	if p.direction != dOut {
 		if err := p.open(); err != nil {
-			return err
+			return p.wrap(err)
 		}
 		// "To ensure glitch free operation, values "low" and "high" may be written
 		// to configure the GPIO as an output with that initial value."
@@ -226,7 +225,16 @@ func (p *Pin) Out(l gpio.Level) error {
 			d = bHigh
 		}
 		if err := seekWrite(p.fDirection, d); err != nil {
-			return err
+			// It may happen if there are unconsumed edges. Try resetting edge first.
+			if p.fEdge == nil {
+				return p.wrap(err)
+			}
+			if err := seekWrite(p.fEdge, bNone); err != nil {
+				return p.wrap(err)
+			}
+			if err := seekWrite(p.fDirection, d); err != nil {
+				return p.wrap(err)
+			}
 		}
 		p.direction = dOut
 		return nil
@@ -237,7 +245,10 @@ func (p *Pin) Out(l gpio.Level) error {
 	} else {
 		d[0] = '1'
 	}
-	return seekWrite(p.fValue, d[:])
+	if err := seekWrite(p.fValue, d[:]); err != nil {
+		return p.wrap(err)
+	}
+	return nil
 }
 
 // PWM implements gpio.PinOut.
@@ -277,12 +288,16 @@ func (p *Pin) open() error {
 			break
 		}
 	}
-	p.fDirection, err = os.OpenFile(p.root+"direction", os.O_RDWR|os.O_APPEND, 0600)
+	p.fDirection, err = os.OpenFile(p.root+"direction", os.O_RDWR, 0600)
 	if err != nil {
 		p.fValue.Close()
 		p.fValue = nil
 	}
 	return err
+}
+
+func (p *Pin) wrap(err error) error {
+	return fmt.Errorf("sysfs-gpio (%s): %v", p, err)
 }
 
 //
@@ -340,11 +355,6 @@ type driverGPIO struct {
 
 func (d *driverGPIO) String() string {
 	return "sysfs-gpio"
-}
-
-func (d *driverGPIO) Type() periph.Type {
-	// It intentionally load later than processors.
-	return periph.Pins
 }
 
 func (d *driverGPIO) Prerequisites() []string {
@@ -406,12 +416,8 @@ func (d *driverGPIO) parseGPIOChip(path string) error {
 			root:   fmt.Sprintf("/sys/class/gpio/gpio%d/", i),
 		}
 		Pins[i] = p
-		// Try to register real pin, but it may already be registered by the processor
-		// driver. In that case register an alias instead.
-		if gpio.Register(p) != nil {
-			realPin := gpio.ByNumber(i)
-			alias := &gpio.PinAlias{N: p.name, PinIO: realPin}
-			gpio.RegisterAlias(alias)
+		if err := gpio.Register(p, false); err != nil {
+			return err
 		}
 		// We cannot use gpio.MapFunction() since there is no API to determine this.
 	}

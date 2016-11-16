@@ -62,7 +62,7 @@ func getPin(s string, useSysfs bool) (gpio.PinIO, error) {
 	if p == nil {
 		return nil, errors.New("invalid pin number")
 	}
-	return &loggingPin{p}, nil
+	return p, nil
 }
 
 func slowSleep(do bool) {
@@ -373,6 +373,14 @@ func (s *SmokeTest) Description() string {
 	return "Tests basic functionality, edge detection and input pull resistors"
 }
 
+func printPin(p gpio.PinIO) {
+	fmt.Printf("- %s: %s", p, p.Function())
+	if r, ok := p.(gpio.RealPin); ok {
+		fmt.Printf("  alias for %s", r.Real())
+	}
+	fmt.Print("\n")
+}
+
 func (s *SmokeTest) Run(args []string) error {
 	f := flag.NewFlagSet("gpio", flag.ExitOnError)
 	slow := f.Bool("s", false, "slow; insert a second between each step")
@@ -406,20 +414,27 @@ func (s *SmokeTest) Run(args []string) error {
 
 	// Disable pull testing when using sysfs because it is not supported.
 	_, noPull := p1.(*sysfs.Pin)
+	if !noPull {
+		_, noPull = p2.(*sysfs.Pin)
+	}
 	if noPull {
 		fmt.Printf("Skipping input pull resistor on sysfs\n")
 	}
 
-	fmt.Printf("Using pins and their current state:\n- %s: %s\n- %s: %s\n\n", p1, p1.Function(), p2, p2.Function())
-	err = testCycle(p1, p2, noPull, *slow)
+	fmt.Printf("Using pins and their current state:\n")
+	printPin(p1)
+	printPin(p2)
+	pl1 := &loggingPin{p1}
+	pl2 := &loggingPin{p2}
+	err = testCycle(pl1, pl2, noPull, *slow)
 	if err == nil {
-		err = testCycle(p2, p1, noPull, *slow)
+		err = testCycle(pl2, pl1, noPull, *slow)
 	}
-	if err2 := p1.In(gpio.PullNoChange, gpio.None); err2 != nil {
-		fmt.Printf("(Exit) Failed to reset %s as input: %s\n", p1, err2)
+	if err2 := pl1.In(gpio.PullNoChange, gpio.None); err2 != nil {
+		fmt.Printf("(Exit) Failed to reset %s as input: %s\n", pl1, err2)
 	}
-	if err2 := p2.In(gpio.PullNoChange, gpio.None); err2 != nil {
-		fmt.Printf("(Exit) Failed to reset %s as input: %s\n", p1, err2)
+	if err2 := pl2.In(gpio.PullNoChange, gpio.None); err2 != nil {
+		fmt.Printf("(Exit) Failed to reset %s as input: %s\n", pl1, err2)
 	}
 	return err
 }

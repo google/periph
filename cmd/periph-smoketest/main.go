@@ -15,8 +15,8 @@ import (
 	"os"
 	"sort"
 
-	"github.com/google/periph"
 	"github.com/google/periph/conn/gpio/gpiosmoketest"
+	"github.com/google/periph/host"
 	"github.com/google/periph/host/chip/chipsmoketest"
 	"github.com/google/periph/host/odroid_c1/odroidc1smoketest"
 )
@@ -60,7 +60,7 @@ func usage() {
 }
 
 func mainImpl() error {
-	state, err := periph.Init()
+	state, err := host.Init()
 	if err != nil {
 		return fmt.Errorf("error loading drivers: %v", err)
 	}

@@ -169,10 +169,6 @@ func (d *driver) String() string {
 	return "rpi"
 }
 
-func (d *driver) Type() periph.Type {
-	return periph.Pins
-}
-
 func (d *driver) Prerequisites() []string {
 	return []string{"bcm283x"}
 }

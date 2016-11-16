@@ -189,7 +189,7 @@ func (b *BasicPin) Function() string {
 
 // In returns an error since the pin is non-functional.
 func (b *BasicPin) In(Pull, Edge) error {
-	return fmt.Errorf("%s cannot be used as input", b.N)
+	return fmt.Errorf("gpio: %s cannot be used as input", b.N)
 }
 
 // Read always returns Low.
@@ -209,42 +209,18 @@ func (b *BasicPin) Pull() Pull {
 
 // Out returns an error since the pin is non-functional.
 func (b *BasicPin) Out(Level) error {
-	return fmt.Errorf("%s cannot be used as output", b.N)
+	return fmt.Errorf("gpio: %s cannot be used as output", b.N)
 }
 
 // PWM returns an error since the pin is non-functional.
 func (b *BasicPin) PWM(duty int) error {
-	return fmt.Errorf("%s cannot be used as PWM", b.N)
+	return fmt.Errorf("gpio: %s cannot be used as PWM", b.N)
 }
 
-// PinAlias creates an alias for a PinIO and itself implements PinIO by forwarding
-// calls to the original pin. PinAlias also implements the RealPin interface, which
-// allows querying for the real pin under the alias. In order to register a PinAlias
-// with gpio use RegisterAlias to avoid an error due to duplicate pin numbers.
+// RealPin is implemented by aliased pin and allows the retrieval of the real
+// pin underlying an alias.
 //
-// Note that currently only PinIO's can be aliased, not PinIn's or PinOut's.
-type PinAlias struct {
-	PinIO
-	N string
-}
-
-// String returns the PinAlias's name with the real pin's String() in parenthesis.
-func (a *PinAlias) String() string {
-	return fmt.Sprintf("%s(%s)", a.N, a.PinIO)
-}
-
-// Name returns the PinAlias's name.
-func (a *PinAlias) Name() string {
-	return a.N
-}
-
-// Real returns the real pin behind the alias
-func (a *PinAlias) Real() PinIO {
-	return a.PinIO
-}
-
-// RealPin is implemented by PinAlias and allows the retrieval of the real pin underlying
-// an alias. The purpose of the alias is to be able to cleanly test whether an arbitrary
+// The purpose of the RealPin is to be able to cleanly test whether an arbitrary
 // gpio.PinIO returned by ByName is really an alias for another pin.
 type RealPin interface {
 	Real() PinIO // Real returns the real pin behind an Alias
@@ -258,8 +234,7 @@ type RealPin interface {
 func ByNumber(number int) PinIO {
 	mu.Lock()
 	defer mu.Unlock()
-	pin, _ := byNumber[number]
-	return pin
+	return getByNumber(number)
 }
 
 // ByName returns a GPIO pin from its name.
@@ -270,124 +245,135 @@ func ByNumber(number int) PinIO {
 func ByName(name string) PinIO {
 	mu.Lock()
 	defer mu.Unlock()
-	pin, _ := byName[name]
-	return pin
-}
-
-// ByFunction returns a GPIO pin from its function.
-//
-// This can be strings like I2C1_SDA, SPI0_MOSI, etc.
-//
-// Returns nil in case there is no pin setup with this function.
-func ByFunction(fn string) PinIO {
-	mu.Lock()
-	defer mu.Unlock()
-	pin, _ := byFunction[fn]
-	return pin
+	if p, ok := byName[0][name]; ok {
+		return p
+	}
+	if p, ok := byName[1][name]; ok {
+		return p
+	}
+	if p, ok := byAlias[name]; ok {
+		if p.PinIO == nil {
+			if p.PinIO = getByNumber(p.number); p.PinIO == nil {
+				p = nil
+			}
+		}
+		return p
+	}
+	return nil
 }
 
 // All returns all the GPIO pins available on this host.
 //
 // The list is guaranteed to be in order of number.
 //
+// This list excludes aliases.
+//
 // This list excludes non-GPIO pins like GROUND, V3_3, etc.
 func All() []PinIO {
 	mu.Lock()
 	defer mu.Unlock()
 	out := make(pinList, 0, len(byNumber))
-	for _, p := range byNumber {
+	seen := make(map[int]struct{}, len(byNumber[0]))
+	// Memory-mapped pins have highest priority, include all of them.
+	for _, p := range byNumber[0] {
+		out = append(out, p)
+		seen[p.Number()] = struct{}{}
+	}
+	// Add in OS accessible pins that cannot be accessed via memory-map.
+	for _, p := range byNumber[1] {
+		if _, ok := seen[p.Number()]; !ok {
+			out = append(out, p)
+		}
+	}
+	sort.Sort(out)
+	return out
+}
+
+// Aliases returns all pin aliases.
+//
+// The list is guaranteed to be in order of aliase name.
+func Aliases() []PinIO {
+	mu.Lock()
+	defer mu.Unlock()
+	out := make(pinList, 0, len(byAlias))
+	for _, p := range byAlias {
+		// Skip aliases that were not resolved.
+		if p.PinIO == nil {
+			if p.PinIO = getByNumber(p.number); p.PinIO == nil {
+				continue
+			}
+		}
 		out = append(out, p)
 	}
 	sort.Sort(out)
 	return out
 }
 
-// Functional returns a map of all pins implementing hardware provided
-// special functionality, like I²C, SPI, ADC.
-func Functional() map[string]PinIO {
-	mu.Lock()
-	defer mu.Unlock()
-	out := make(map[string]PinIO, len(byFunction))
-	for k, v := range byFunction {
-		out[k] = v
-	}
-	return out
-}
-
 // Register registers a GPIO pin.
 //
 // Registering the same pin number or name twice is an error.
-func Register(pin PinIO) error {
+//
+// `preferred` should be true when the pin being registered is exposing as much
+// functionality as possible via the underlying hardware. This is normally done
+// by accessing the CPU memory mapped registers directly.
+//
+// `preferred` should be false when the functionality is provided by the OS and
+// is limited or slower.
+//
+// The pin registered cannot implement the interface RealPin.
+func Register(p PinIO, preferred bool) error {
 	mu.Lock()
 	defer mu.Unlock()
-	number := pin.Number()
-	if _, ok := byNumber[number]; ok {
-		return fmt.Errorf("registering the same pin %d twice", number)
+	number := p.Number()
+	i := 0
+	if !preferred {
+		i = 1
 	}
-	name := pin.Name()
-	if _, ok := byName[name]; ok {
-		return fmt.Errorf("registering the same pin %s twice", name)
+	if orig, ok := byNumber[i][number]; ok {
+		return fmt.Errorf("gpio: can't register the same pin %d twice; had %q, registering %q", number, orig, p)
 	}
-
-	byNumber[number] = pin
-	byName[name] = pin
+	name := p.Name()
+	if orig, ok := byName[i][name]; ok {
+		return fmt.Errorf("gpio: can't register the same pin %q twice; had %q, registering %q", name, orig, p)
+	}
+	if r, ok := p.(RealPin); ok {
+		return fmt.Errorf("gpio: can't register %q, which is an aliased for %q, use RegisterAlias() instead", p, r)
+	}
+	if alias, ok := byAlias[name]; ok {
+		return fmt.Errorf("gpio: can't register %q for which an alias %q already exists", p, alias)
+	}
+	byNumber[i][number] = p
+	byName[i][name] = p
 	return nil
 }
 
 // RegisterAlias registers an alias for a GPIO pin.
 //
-// RegisterAlias differs from Register in that it does not register the pin by number,
-// only by name and thereby can allow duplicate numbers, which happens when using PinAlias.
-func RegisterAlias(pin *PinAlias) error {
+// It is possible to register an alias for a pin number that itself has not
+// been registered yet.
+func RegisterAlias(name string, number int) error {
 	mu.Lock()
 	defer mu.Unlock()
-	name := pin.Name()
-	if _, ok := byName[name]; ok {
-		return fmt.Errorf("registering the same pin %s twice", name)
+	if orig, ok := byAlias[name]; ok {
+		return fmt.Errorf("gpio: can't register alias %q for pin %d: it is already aliased to %q", name, number, orig)
 	}
-
-	byName[name] = PinIO(pin)
+	byAlias[name] = &pinAlias{name: name, number: number}
 	return nil
-}
-
-// Unregister removes a previously registered pin.
-//
-// This can happen when a pin is exposed via an USB device and the device is
-// unplugged.
-func Unregister(name string, number int, function string) error {
-	mu.Lock()
-	defer mu.Unlock()
-	if _, ok := byName[name]; !ok {
-		return errors.New("unknown name")
-	}
-	if _, ok := byNumber[number]; !ok {
-		return errors.New("unknown number")
-	}
-	if function != "" {
-		if _, ok := byFunction[function]; !ok {
-			return errors.New("unknown function")
-		}
-	}
-
-	delete(byName, name)
-	delete(byNumber, number)
-	if function != "" {
-		delete(byFunction, function)
-	}
-	return nil
-}
-
-// MapFunction registers a GPIO pin for a specific function.
-func MapFunction(function string, pin PinIO) {
-	mu.Lock()
-	defer mu.Unlock()
-	byFunction[function] = pin
 }
 
 //
 
 // errInvalidPin is returned when trying to use INVALID.
 var errInvalidPin = errors.New("invalid pin")
+
+var (
+	mu sync.Mutex
+	// The first map is preferred pins, the second is for more limited pins,
+	// usually going through OS-provided abstraction layer.
+	byNumber = [2]map[int]PinIO{map[int]PinIO{}, map[int]PinIO{}}
+	byName   = [2]map[string]PinIO{map[string]PinIO{}, map[string]PinIO{}}
+	byAlias  = map[string]*pinAlias{}
+)
 
 // invalidPin implements PinIO for compability but fails on all access.
 type invalidPin struct {
@@ -433,12 +419,44 @@ func (invalidPin) PWM(duty int) error {
 	return errInvalidPin
 }
 
-var (
-	mu         sync.Mutex
-	byNumber   = map[int]PinIO{}
-	byName     = map[string]PinIO{}
-	byFunction = map[string]PinIO{}
-)
+// pinAlias implements an alias for a PinIO.
+//
+// pinAlias also implements the RealPin interface, which allows querying for
+// the real pin under the alias.
+type pinAlias struct {
+	PinIO
+	name   string
+	number int
+}
+
+// String returns the pinAlias's name with the real pin's String() in
+// parenthesis.
+func (a *pinAlias) String() string {
+	if a.PinIO == nil {
+		return fmt.Sprintf("%s(->%d)", a.name, a.number)
+	}
+	return fmt.Sprintf("%s(->%s)", a.name, a.PinIO)
+}
+
+// Name returns the pinAlias's name.
+func (a *pinAlias) Name() string {
+	return a.name
+}
+
+// Real returns the real pin behind the alias
+func (a *pinAlias) Real() PinIO {
+	return a.PinIO
+}
+
+func getByNumber(number int) PinIO {
+	if p, ok := byNumber[0][number]; ok {
+		return p
+	}
+	if p, ok := byNumber[1][number]; ok {
+		return p
+	}
+	return nil
+}
 
 type pinList []PinIO
 
