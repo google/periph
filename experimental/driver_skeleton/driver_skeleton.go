@@ -72,7 +72,7 @@ func (d *driver) Init() (bool, error) {
 
 	// FIXME: Add implementation.
 
-	return true, errors.New("not implemented")
+	return true, errors.New("driver_skeleton: not implemented")
 }
 
 func init() {

@@ -31,7 +31,7 @@ func NewSPI(busNumber, chipSelect int) (*SPI, error) {
 	if isLinux {
 		return newSPI(busNumber, chipSelect)
 	}
-	return nil, errors.New("sysfs.spi is not implemented on non-linux OSes")
+	return nil, errors.New("sysfs-spi: not implemented on non-linux OSes")
 }
 
 // SPI is an open SPI bus.
