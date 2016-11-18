@@ -36,7 +36,7 @@ func MaxSpeed() int64 {
 
 // Nanospins spins for a short amount of time doing a busy loop.
 //
-// This function should be call with durations of 10µs or less.
+// This function should be called with durations of 10µs or less.
 func Nanospin(d time.Duration) {
 	if isLinux {
 		// TODO(maruel): Lock thread here too?
