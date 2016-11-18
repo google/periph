@@ -21,7 +21,7 @@ import (
 // https://www.kernel.org/doc/Documentation/vm/pagemap.txt
 func ReadPageMap(virtAddr uintptr) (uint64, error) {
 	if !isLinux {
-		return nil, errors.New("pmem: pagemap is not supported on this platform")
+		return 0, errors.New("pmem: pagemap is not supported on this platform")
 	}
 	var b [8]byte
 	mu.Lock()
