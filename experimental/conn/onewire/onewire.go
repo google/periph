@@ -22,6 +22,7 @@ import (
 	"io"
 	"sync"
 
+	"github.com/google/periph/conn"
 	"github.com/google/periph/conn/gpio"
 )
 
@@ -145,18 +146,34 @@ func (d *Dev) String() string {
 }
 
 // Tx performs a "match ROM" command on the bus to select the device
-// and then transmits and receives the specified bytes. It ends with a
-// strong or weak pull-up as specified by power.
+// and then transmits and receives the specified bytes. It ends by
+// leaving a weak pull-up on the bus.
 //
 // It's a wrapper for Dev.Bus.Tx().
-func (d *Dev) Tx(w, r []byte, power Pullup) error {
+func (d *Dev) Tx(w, r []byte) error {
 	// Issue ROM match command to select the device followed by the
 	// bytes being written.
 	ww := make([]byte, 9, len(w)+9)
 	ww[0] = 0x55 // Match ROM
 	binary.LittleEndian.PutUint64(ww[1:], uint64(d.Addr))
 	ww = append(ww, w...)
-	return d.Bus.Tx(w, r, power)
+	return d.Bus.Tx(w, r, WeakPullup)
+}
+
+// TxPower performs a "match ROM" command on the bus to select the device
+// and then transmits and receives the specified bytes. It ends by
+// leaving a strong pull-up on the bus suitable to power devices through
+// an EEPROM write or a temperature conversion.
+//
+// It's a wrapper for Dev.Bus.Tx().
+func (d *Dev) TxPower(w, r []byte) error {
+	// Issue ROM match command to select the device followed by the
+	// bytes being written.
+	ww := make([]byte, 9, len(w)+9)
+	ww[0] = 0x55 // Match ROM
+	binary.LittleEndian.PutUint64(ww[1:], uint64(d.Addr))
+	ww = append(ww, w...)
+	return d.Bus.Tx(w, r, StrongPullup)
 }
 
 //===== Bus registry
@@ -202,8 +219,8 @@ func Register(name string, busNumber int, opener Opener) error {
 		}
 	}
 
-	if first == nil {
-		first = opener
+	if first == -1 {
+		first = busNumber
 	}
 	byName[name] = opener
 	if busNumber != -1 {
@@ -220,29 +237,26 @@ func Unregister(name string, busNumber int) error {
 	mu.Lock()
 	defer mu.Unlock()
 
-	_, ok := byName[name]
-	if !ok {
+	if _, ok := byName[name]; !ok {
 		return errors.New("unknown name")
 	}
 	if _, ok := byNumber[busNumber]; !ok {
 		return errors.New("unknown number")
 	}
 
-	delete(byName, name)
-	delete(byNumber, busNumber)
-	first = nil
-	/* TODO(maruel): Figure out a way.
-	if first == bus {
-		first = nil
-		last := ""
-		for name, b := range byName {
-			if last == "" || last > name {
-				last = name
-				first = b
+	// If the first bus is being deleted, pick another one.
+	if busNumber == first {
+		first = -1
+		for f := range byNumber {
+			if f != busNumber {
+				first = f
+				break
 			}
 		}
 	}
-	*/
+
+	delete(byName, name)
+	delete(byNumber, busNumber)
 	return nil
 }
 
@@ -253,10 +267,10 @@ func find(busNumber int) (Opener, error) {
 	mu.Lock()
 	defer mu.Unlock()
 	if busNumber == -1 {
-		if first == nil {
+		if first == -1 {
 			return nil, errors.New("no 1-wire bus found")
 		}
-		return first, nil
+		return byNumber[first], nil
 	}
 	bus, ok := byNumber[busNumber]
 	if !ok {
@@ -269,5 +283,8 @@ var (
 	mu       sync.Mutex
 	byName   = map[string]Opener{}
 	byNumber = map[int]Opener{}
-	first    Opener
+	first    = -1
 )
+
+// Ensure that the appropriate interfaces are implemented
+var _ conn.Conn = &Dev{}
