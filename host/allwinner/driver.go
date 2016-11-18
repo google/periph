@@ -11,9 +11,9 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"reflect"
 	"strconv"
 	"strings"
-	"unsafe"
 
 	"github.com/google/periph"
 	"github.com/google/periph/conn/gpio"
@@ -46,7 +46,9 @@ func (d *driver) Init() (bool, error) {
 		}
 		return true, err
 	}
-	m.Struct(unsafe.Pointer(&gpioMemory))
+	if err := m.Struct(reflect.ValueOf(&gpioMemory)); err != nil {
+		return true, err
+	}
 
 	switch {
 	case IsA64():
