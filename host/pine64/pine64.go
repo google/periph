@@ -284,10 +284,6 @@ func (d *driver) String() string {
 	return "pine64"
 }
 
-func (d *driver) Type() periph.Type {
-	return periph.Pins
-}
-
 func (d *driver) Prerequisites() []string {
 	return []string{"allwinner_pl"}
 }

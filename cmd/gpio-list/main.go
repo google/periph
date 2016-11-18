@@ -19,26 +19,30 @@ import (
 	"github.com/google/periph/host/headers"
 )
 
-func printFunc(invalid bool) {
+func printAliases(invalid bool) {
 	max := 0
-	functional := gpio.Functional()
-	funcs := make([]string, 0, len(functional))
-	for f := range functional {
-		if l := len(f); l > 0 && f[0] != '<' {
-			funcs = append(funcs, f)
-			if l > max {
-				max = l
-			}
+	aliases := gpio.Aliases()
+	names := make([]string, 0, len(aliases))
+	m := make(map[string]gpio.PinIO, len(aliases))
+	for _, p := range aliases {
+		n := p.Name()
+		names = append(names, n)
+		m[n] = p
+		if l := len(n); l > max {
+			max = l
 		}
 	}
-	sort.Strings(funcs)
-	for _, name := range funcs {
-		pin := functional[name]
-		if invalid || pin != pins.INVALID {
-			if pin == nil {
+	sort.Strings(names)
+	for _, name := range names {
+		p := m[name]
+		if r, ok := p.(gpio.RealPin); ok {
+			p = r.Real()
+		}
+		if invalid || p != pins.INVALID {
+			if p == nil {
 				fmt.Printf("%-*s: INVALID\n", max, name)
 			} else {
-				fmt.Printf("%-*s: %s\n", max, name, pin)
+				fmt.Printf("%-*s: %s\n", max, name, p)
 			}
 		}
 	}
@@ -69,8 +73,8 @@ func printGPIO(invalid bool) {
 
 func mainImpl() error {
 	all := flag.Bool("a", false, "print everything")
-	fun := flag.Bool("f", false, "print functional pins (e.g. I2C1_SCL)")
-	gpio := flag.Bool("g", false, "print GPIO pins (e.g. GPIO1) (default)")
+	aliases := flag.Bool("l", false, "print aliases pins (e.g. I2C1_SCL)")
+	gpios := flag.Bool("g", false, "print GPIO pins (e.g. GPIO1) (default)")
 	invalid := flag.Bool("n", false, "show not connected/INVALID pins")
 	verbose := flag.Bool("v", false, "enable verbose logs")
 	flag.Parse()
@@ -81,20 +85,20 @@ func mainImpl() error {
 	log.SetFlags(0)
 
 	if *all {
-		*fun = true
-		*gpio = true
+		*aliases = true
+		*gpios = true
 		*invalid = true
-	} else if !*fun && !*gpio {
-		*gpio = true
+	} else if !*aliases && !*gpios {
+		*gpios = true
 	}
 
 	if _, err := host.Init(); err != nil {
 		return err
 	}
-	if *fun {
-		printFunc(*invalid)
+	if *aliases {
+		printAliases(*invalid)
 	}
-	if *gpio {
+	if *gpios {
 		printGPIO(*invalid)
 	}
 	return nil

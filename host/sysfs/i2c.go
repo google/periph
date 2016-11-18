@@ -170,10 +170,10 @@ func (i *I2C) ioctl(op uint, arg uintptr) error {
 func (i *I2C) initPins() {
 	i.mu.Lock()
 	if i.scl == nil {
-		if i.scl = gpio.ByFunction(fmt.Sprintf("I2C%d_SCL", i.busNumber)); i.scl == nil {
+		if i.scl = gpio.ByName(fmt.Sprintf("I2C%d_SCL", i.busNumber)); i.scl == nil {
 			i.scl = gpio.INVALID
 		}
-		if i.sda = gpio.ByFunction(fmt.Sprintf("I2C%d_SDA", i.busNumber)); i.sda == nil {
+		if i.sda = gpio.ByName(fmt.Sprintf("I2C%d_SDA", i.busNumber)); i.sda == nil {
 			i.sda = gpio.INVALID
 		}
 	}
@@ -306,10 +306,6 @@ type driverI2C struct {
 
 func (d *driverI2C) String() string {
 	return "sysfs-i2c"
-}
-
-func (d *driverI2C) Type() periph.Type {
-	return periph.Bus
 }
 
 func (d *driverI2C) Prerequisites() []string {

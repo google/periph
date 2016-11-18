@@ -32,11 +32,12 @@ For more information for enabling functional pins, see
 [![GoDoc](https://godoc.org/github.com/google/periph/host/rpi?status.svg)](https://godoc.org/github.com/google/periph/host/rpi).
 
 
-### Functional
+### Aliases
 
-Print the GPIO pins per special functionality:
+When possible, aliases are created per functionality. Print the GPIO aliases
+with:
 
-    $ gpio-list -f
+    $ gpio-list -l
     GPCLK1   : GPIO42
     GPCLK2   : GPIO43
     I2C1_SCL : GPIO3

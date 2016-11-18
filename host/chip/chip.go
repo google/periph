@@ -150,10 +150,6 @@ func (d *driver) String() string {
 	return "chip"
 }
 
-func (d *driver) Type() periph.Type {
-	return periph.Pins
-}
-
 func (d *driver) Prerequisites() []string {
 	// has allwinner cpu, needs sysfs for XIO0-XIO7 "gpio" pins
 	return []string{"allwinner", "sysfs-gpio"}
@@ -251,13 +247,10 @@ func (d *driver) Init() (bool, error) {
 	for alias, real := range aliases {
 		r := gpio.ByName(real)
 		if r == nil {
-			return true, fmt.Errorf("Cannot create alias for %s: it doesn't exist",
-				real)
+			return true, fmt.Errorf("Cannot create alias for %s: it doesn't exist", real)
 		}
-		a := &gpio.PinAlias{N: alias, PinIO: r}
-		if err := gpio.RegisterAlias(a); err != nil {
-			return true, fmt.Errorf("Cannot create alias %s for %s: %s",
-				alias, real, err)
+		if err := gpio.RegisterAlias(alias, r.Number()); err != nil {
+			return true, err
 		}
 	}
 

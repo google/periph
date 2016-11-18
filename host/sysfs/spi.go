@@ -194,16 +194,16 @@ func (s *SPI) ioctl(op uint, arg unsafe.Pointer) error {
 
 func (s *SPI) initPins() {
 	if s.clk == nil {
-		if s.clk = gpio.ByFunction(fmt.Sprintf("SPI%d_CLK", s.busNumber)); s.clk == nil {
+		if s.clk = gpio.ByName(fmt.Sprintf("SPI%d_CLK", s.busNumber)); s.clk == nil {
 			s.clk = gpio.INVALID
 		}
-		if s.miso = gpio.ByFunction(fmt.Sprintf("SPI%d_MISO", s.busNumber)); s.miso == nil {
+		if s.miso = gpio.ByName(fmt.Sprintf("SPI%d_MISO", s.busNumber)); s.miso == nil {
 			s.miso = gpio.INVALID
 		}
-		if s.mosi = gpio.ByFunction(fmt.Sprintf("SPI%d_MOSI", s.busNumber)); s.mosi == nil {
+		if s.mosi = gpio.ByName(fmt.Sprintf("SPI%d_MOSI", s.busNumber)); s.mosi == nil {
 			s.mosi = gpio.INVALID
 		}
-		if s.cs = gpio.ByFunction(fmt.Sprintf("SPI%d_CS%d", s.busNumber, s.chipSelect)); s.cs == nil {
+		if s.cs = gpio.ByName(fmt.Sprintf("SPI%d_CS%d", s.busNumber, s.chipSelect)); s.cs == nil {
 			s.cs = gpio.INVALID
 		}
 	}
@@ -215,10 +215,6 @@ type driverSPI struct {
 
 func (d *driverSPI) String() string {
 	return "sysfs-spi"
-}
-
-func (d *driverSPI) Type() periph.Type {
-	return periph.Bus
 }
 
 func (d *driverSPI) Prerequisites() []string {

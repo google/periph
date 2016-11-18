@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/google/periph"
 	"github.com/google/periph/conn/gpio"
 	"github.com/google/periph/conn/uart"
 )
@@ -113,10 +112,6 @@ type driverUART struct {
 
 func (d *driverUART) String() string {
 	return "sysfs-uart"
-}
-
-func (d *driverUART) Type() periph.Type {
-	return periph.Bus
 }
 
 func (d *driverUART) Init() (bool, error) {

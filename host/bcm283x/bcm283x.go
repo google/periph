@@ -244,9 +244,9 @@ var (
 
 // PinIO implementation.
 
-// String returns the pin name and number, ex: "GPIO10(10)".
+// String returns the pin name, ex: "GPIO10".
 func (p *Pin) String() string {
-	return fmt.Sprintf("%s(%d)", p.name, p.number)
+	return p.name
 }
 
 // Name returns the pin name, ex: "GPIO10".
@@ -699,10 +699,6 @@ func (d *driver) String() string {
 	return "bcm283x"
 }
 
-func (d *driver) Type() periph.Type {
-	return periph.Processor
-}
-
 func (d *driver) Prerequisites() []string {
 	return nil
 }
@@ -781,7 +777,7 @@ func (d *driver) Init() (bool, error) {
 
 	// TODO(maruel): Remove all the functional variables?
 	for i := range Pins {
-		if err := gpio.Register(&Pins[i]); err != nil {
+		if err := gpio.Register(&Pins[i], true); err != nil {
 			return true, err
 		}
 		if i < 46 {
@@ -790,8 +786,10 @@ func (d *driver) Init() (bool, error) {
 			}
 		}
 	}
-	for k, v := range functional {
-		gpio.MapFunction(k, v)
+	for name, p := range functional {
+		if err := gpio.RegisterAlias(name, p.Number()); err != nil {
+			return true, err
+		}
 	}
 	return true, nil
 }

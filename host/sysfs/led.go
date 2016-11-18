@@ -163,10 +163,6 @@ func (d *driverLED) String() string {
 	return "sysfs-led"
 }
 
-func (d *driverLED) Type() periph.Type {
-	return periph.Pins
-}
-
 func (d *driverLED) Prerequisites() []string {
 	return nil
 }

@@ -117,20 +117,13 @@ func testChipAliases() error {
 		if p == nil {
 			return fmt.Errorf("failed to open %s", a)
 		}
-		pa, ok := p.(*gpio.PinAlias)
+		pa, ok := p.(gpio.RealPin)
 		if !ok {
-			return fmt.Errorf("expected that pin %s is an alias, not %T", a, pa)
+			return fmt.Errorf("expected that pin %s is an alias, not %T", a, p)
 		}
-		if pa.Name() != a {
-			return fmt.Errorf("the name of alias %s is %s not %s", a, pa.Name(), a)
-		}
-		pr, ok := p.(gpio.RealPin)
-		if !ok {
-			return fmt.Errorf("expected that pin alias %s implement RealPin", a)
-		}
-		if pr.Real().Name() != r {
+		if pr := pa.Real(); pr.Name() != r {
 			return fmt.Errorf("expected that alias %s have real pin %s but it's %s",
-				a, r, pr.Real().Name())
+				a, r, pr.Name())
 		}
 	}
 	return nil
