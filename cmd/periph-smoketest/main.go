@@ -90,7 +90,7 @@ func mainImpl() error {
 		if len(state.Failed) > 0 {
 			log.Print("Failed to load some drivers:")
 			for _, failure := range state.Failed {
-				log.Print("- %s: %v", failure.D, failure.Err)
+				log.Printf("- %s: %v", failure.D, failure.Err)
 			}
 		}
 		log.Printf("Using drivers:")
