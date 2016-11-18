@@ -2,33 +2,39 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package periph is a peripherals I/O library. It contains host, devices, and
-// test packages to emulate the hardware.
+// Package periph is a peripheral I/O library.
 //
-// periph acts as a registry of drivers.
+// It contains host and device drivers, and test packages to emulate the
+// hardware.
 //
-// Every device driver should register itself in their package init() function
-// by calling periph.Register().
+// periph acts as a registry of drivers. It is focused on providing high quality
+// host drivers that provide high-speed access to the hardware on the host
+// computer itself.
 //
-// The user call periph.Init() on startup to initialize all the registered drivers
-// in the correct order all at once.
+// It is less concerned about implementing all possible device drivers that may
+// be attached to the host's I²C, SPI, or other buses and pio pins.
+//
+// Every device driver should register itself in its package init() function by
+// calling periph.MustRegister().
+//
+// The user must call periph.Init() on startup to initialize all the registered
+// drivers in the correct order all at once.
 //
 //   - cmd/ contains executables to communicate directly with the devices or the
 //     buses using raw protocols.
+//   - conn/ contains interfaces and registries for all the supported protocols
+//     and connections (I²C, SPI, GPIO, etc).
 //   - devices/ contains devices drivers that are connected to a bus (i.e I²C,
 //     SPI, GPIO) that can be controlled by the host, i.e. ssd1306 (display
 //     controller), bm280 (environmental sensor), etc. 'devices' contains the
 //     interfaces and subpackages contain contain concrete types.
 //   - experimental/ contains the drivers that are in the experimental area,
-//     not yet considered stable. See DESIGN.md for the process to move drivers
-//     out of this area.
+//     not yet considered stable. See doc/drivers/DESIGN.md for the process to
+//     move drivers out of this area.
 //   - host/ contains all the implementations relating to the host itself, the
 //     CPU and buses that are exposed by the host onto which devices can be
 //     connected, i.e. I²C, SPI, GPIO, etc. 'host' contains the interfaces
 //     and subpackages contain contain concrete types.
-//   - conn/ contains interfaces for all the supported protocols and
-//     connections (I²C, SPI, GPIO, etc).
-//   - tests/ contains smoke tests.
 package periph
 
 import (
@@ -64,7 +70,8 @@ type Driver interface {
 	Init() (bool, error)
 }
 
-// DriverFailure is a driver that failed loaded.
+// DriverFailure is a driver that wasn't loaded, either because it was skipped
+// or because it failed to load.
 type DriverFailure struct {
 	D   Driver
 	Err error
@@ -81,17 +88,15 @@ type State struct {
 	Failed  []DriverFailure
 }
 
-// Init initially all the relevant drivers.
+// Init initialises all the relevant drivers.
 //
 // Drivers are started concurrently.
 //
-// It returns the list of all drivers loaded and errors on the first call, if
-// any. They are ordered by the time they finished initializing.
-//
-// Second call is ignored and errors are discarded.
+// It is safe to call this function multiple times, the previous state is
+// returned on later calls.
 //
 // Users will want to use host.Init(), which guarantees a baseline of included
-// drivers.
+// host drivers.
 func Init() (*State, error) {
 	mu.Lock()
 	defer mu.Unlock()
@@ -149,19 +154,21 @@ func Register(d Driver) error {
 	mu.Lock()
 	defer mu.Unlock()
 	if state != nil {
-		return errors.New("drivers: can't call Register() after Init()")
+		return errors.New("periph: can't call Register() after Init()")
 	}
 
 	n := d.String()
 	if _, ok := byName[n]; ok {
-		return fmt.Errorf("drivers.Register(%q): driver with same name was already registered", d)
+		return fmt.Errorf("periph: driver with same name %q was already registered", d)
 	}
 	byName[n] = d
 	allDrivers = append(allDrivers, d)
 	return nil
 }
 
-// MustRegister calls Register and panics if registration fails.
+// MustRegister calls Register() and panics if registration fails.
+//
+// This is the function to call in a driver's package init() function.
 func MustRegister(d Driver) {
 	if err := Register(d); err != nil {
 		panic(err)
