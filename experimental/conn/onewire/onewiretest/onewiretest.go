@@ -12,14 +12,14 @@ import (
 	"sync"
 
 	"github.com/google/periph/conn/gpio"
-	"github.com/google/periph/conn/onewire"
+	"github.com/google/periph/experimental/conn/onewire"
 )
 
 // IO registers the I/O that happened on either a real or fake 1-wire bus.
 type IO struct {
-	Addr  uint64
 	Write []byte
 	Read  []byte
+	Pull  onewire.Pullup
 }
 
 // Record implements onewire.Bus that records everything written to it.
@@ -36,19 +36,19 @@ func (r *Record) String() string {
 }
 
 // Tx implements onewire.Bus.
-func (r *Record) Tx(addr uint16, w, read []byte) error {
+func (r *Record) Tx(w, read []byte, pull onewire.Pullup) error {
 	r.Lock()
 	defer r.Unlock()
-	if r.Conn == nil {
+	if r.Bus == nil {
 		if len(read) != 0 {
 			return errors.New("read unsupported when no bus is connected")
 		}
 	} else {
-		if err := r.Conn.Tx(addr, w, read); err != nil {
+		if err := r.Bus.Tx(w, read, pull); err != nil {
 			return err
 		}
 	}
-	io := IO{Addr: addr, Write: make([]byte, len(w))}
+	io := IO{Write: make([]byte, len(w)), Pull: pull}
 	if len(read) != 0 {
 		io.Read = make([]byte, len(read))
 	}
@@ -66,7 +66,12 @@ func (r *Record) Q() gpio.PinIO {
 	return gpio.INVALID
 }
 
-// Playback implements i2c.Conn and plays back a recorded I/O flow.
+// Search implements onewire.Bus
+func (r *Record) Search(alarmOnly bool) ([]onewire.Address, error) {
+	return nil, nil
+}
+
+// Playback implements onewire.Bus and plays back a recorded I/O flow.
 //
 // While "replay" type of unit tests are of limited value, they still present
 // an easy way to do basic code coverage.
@@ -79,7 +84,7 @@ func (p *Playback) String() string {
 	return "playback"
 }
 
-// Close implements i2c.ConnCloser.
+// Close implements onewire.BusCloser.
 func (p *Playback) Close() error {
 	p.Lock()
 	defer p.Unlock()
@@ -89,16 +94,13 @@ func (p *Playback) Close() error {
 	return nil
 }
 
-// Tx implements i2c.Conn.
-func (p *Playback) Tx(addr uint16, w, r []byte) error {
+// Tx implements onewire.Bus.
+func (p *Playback) Tx(w, r []byte, pull onewire.Pullup) error {
 	p.Lock()
 	defer p.Unlock()
 	if len(p.Ops) == 0 {
 		// log.Fatal() ?
 		return errors.New("unexpected Tx()")
-	}
-	if addr != p.Ops[0].Addr {
-		return fmt.Errorf("unexpected addr %d != %d", addr, p.Ops[0].Addr)
 	}
 	if !bytes.Equal(p.Ops[0].Write, w) {
 		return fmt.Errorf("unexpected write %#v != %#v", w, p.Ops[0].Write)
@@ -106,16 +108,19 @@ func (p *Playback) Tx(addr uint16, w, r []byte) error {
 	if len(p.Ops[0].Read) != len(r) {
 		return fmt.Errorf("unexpected read buffer length %d != %d", len(r), len(p.Ops[0].Read))
 	}
+	if pull != p.Ops[0].Pull {
+		return fmt.Errorf("unexpected pullup %d != %d", pull, p.Ops[0].Pull)
+	}
 	copy(r, p.Ops[0].Read)
 	p.Ops = p.Ops[1:]
 	return nil
 }
 
-// Speed implements i2c.Conn.
-func (p *Playback) Speed(hz int64) error {
-	return nil
+// Search implements onewire.Bus
+func (p *Playback) Search(alarmOnly bool) ([]onewire.Address, error) {
+	return nil, nil
 }
 
-var _ i2c.Conn = &Record{}
-var _ i2c.Pins = &Record{}
-var _ i2c.Conn = &Playback{}
+var _ onewire.Bus = &Record{}
+var _ onewire.Pins = &Record{}
+var _ onewire.Bus = &Playback{}

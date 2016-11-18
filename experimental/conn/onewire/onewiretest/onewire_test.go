@@ -14,30 +14,35 @@ func TestDevTx(t *testing.T) {
 	p := Playback{
 		Ops: []IO{
 			{
-				Addr:  0xa800000131994528,
-				Write: []byte{10},
-				Read:  []byte{12},
+				Write: []byte{10, 11},
+				Read:  []byte{12, 13},
+				Pull:  onewire.WeakPullup,
+			},
+			{
+				Write: []byte{20, 21},
+				Read:  []byte{22, 23},
+				Pull:  onewire.StrongPullup,
 			},
 		},
 	}
-	d := onewire.Dev{Bus: &p, Addr: 0xa800000131994528}
-	buf := []byte{0}
+	d := onewire.Dev{Bus: &p}
+	buf := []byte{0, 0}
 
 	// Test Tx.
-	err := d.Tx([]byte{10}, buf)
+	err := d.Tx([]byte{10, 11}, buf)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if buf[0] != 12 {
-		t.Fail()
+	if buf[0] != 12 || buf[1] != 13 {
+		t.Errorf("expected 12 & 13, got %d %d", buf[0], buf[1])
 	}
 
-	// Test TxPup.
-	err := d.TxPup([]byte{10}, buf)
+	// Test TxPower.
+	err = d.TxPower([]byte{20, 21}, buf)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if buf[0] != 12 {
-		t.Fail()
+	if buf[0] != 22 || buf[1] != 23 {
+		t.Errorf("expected 12 & 13, got %d %d", buf[0], buf[1])
 	}
 }
