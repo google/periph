@@ -4,7 +4,7 @@
 
 // Package host defines the host itself.
 //
-// Subpackage contain the drivers that are loaded automatically.
+// The host is the machine where this code is running.
 //
-// Devices accept interface, constructors return concrete type.
+// Subpackages contain the drivers that are loaded automatically.
 package host
