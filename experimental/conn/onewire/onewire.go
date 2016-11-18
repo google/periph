@@ -16,6 +16,7 @@
 package onewire
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -35,23 +36,26 @@ type Bus interface {
 	// Tx performs a bus transaction, sending and receiving bytes, and
 	// ending by pulling the bus high either weakly or strongly depending
 	// on the value of power. A strong pull-up is typically required to
-	// power temperature conversion or eeprom writes.
+	// power temperature conversion or EEPROM writes.
 	Tx(w, r []byte, power Pullup) error
 
 	// Search performs a "search" cycle on the 1-wire bus and returns the
 	// addresses of all devices on the bus if alarmOnly is false and of all
 	// devices in alarm state if alarmOnly is true.
 	//
-	// The addresses are returned as 64-bit integers with the family code in the
-	// lower byte and the CRC byte in the top byte.
-	//
 	// If an error occurs during the search the already-discovered devices are
 	// returned with the error.
 	//
 	// Bus.Search may be implemented using onewire.Search if the bus implements
 	// the BusSearcher interface or it may have a custom implementation.
-	Search(alarmOnly bool) ([]uint64, error)
+	Search(alarmOnly bool) ([]Address, error)
 }
+
+// Address represents a 1-wire device address in little-endian format. This means
+// that the family code ends up in the lower byte, the CRC in the top byte,
+// and the variable address part in the middle 6 bytes. E.g. a DS18B20 device,
+// which has a family code of 0x28, might have address 0x7a00000131825228.
+type Address uint64
 
 // Pullup encodes the type of pull-up used at the end of a bus transaction.
 type Pullup int
@@ -95,6 +99,8 @@ func (e noDevicesError) NoDevices() bool { return true }
 
 // ShortedBusError is an interface that should be implemented by errors that
 // indicate that the bus is electrically shorted (Q connected to GND).
+//
+// Errors that implement ShortedBusError should also implement BusError.
 type ShortedBusError interface {
 	IsShorted() bool // true if the bus is electrically shorted
 }
@@ -104,18 +110,21 @@ type shortedBusError string
 
 func (e shortedBusError) Error() string   { return string(e) }
 func (e shortedBusError) IsShorted() bool { return true }
+func (e shortedBusError) BusError() bool  { return true }
 
-// BadCRCError is an interface that should be implemented by errors that
-// indicate that a CRC error occurred on the bus.
-type BadCRCError interface {
-	BadCRC() bool // true if a bad CRC was detected
+// BusError is an interface that should be implemented by errors that
+// indicate that an error occurred on the bus, for example a CRC error
+// or a non-responding device. These errors often indicate an electrical
+// problem with the bus and may be worth retrying.
+type BusError interface {
+	BusError() bool // true if a bus error was detected
 }
 
-// badCRCError implements error and BadCRCError.
-type badCRCError string
+// busError implements error and BusError.
+type busError string
 
-func (e badCRCError) Error() string { return string(e) }
-func (e badCRCError) BadCRC() bool  { return true }
+func (e busError) Error() string  { return string(e) }
+func (e busError) BusError() bool { return true }
 
 //===== A device on a 1-wire bus
 
@@ -126,8 +135,8 @@ func (e badCRCError) BadCRC() bool  { return true }
 // Compared to Bus it saves from repeatedly specifying the device address and
 // implements utility functions.
 type Dev struct {
-	Bus  Bus    // the bus to which the device is connected
-	Addr uint64 // the address of the device on the bus
+	Bus  Bus     // the bus to which the device is connected
+	Addr Address // the address of the device on the bus
 }
 
 // String prints the bus name followed by the device address in parenthesis.
@@ -145,14 +154,7 @@ func (d *Dev) Tx(w, r []byte, power Pullup) error {
 	// bytes being written.
 	ww := make([]byte, 9, len(w)+9)
 	ww[0] = 0x55 // Match ROM
-	ww[1] = byte(d.Addr >> 0)
-	ww[2] = byte(d.Addr >> 8)
-	ww[3] = byte(d.Addr >> 16)
-	ww[4] = byte(d.Addr >> 24)
-	ww[5] = byte(d.Addr >> 32)
-	ww[6] = byte(d.Addr >> 40)
-	ww[7] = byte(d.Addr >> 48)
-	ww[8] = byte(d.Addr >> 56)
+	binary.LittleEndian.PutUint64(ww[1:], uint64(d.Addr))
 	ww = append(ww, w...)
 	return d.Bus.Tx(w, r, power)
 }
@@ -243,6 +245,8 @@ func Unregister(name string, busNumber int) error {
 	*/
 	return nil
 }
+
+//
 
 // find interates through registered buses and returns the one with the desired number.
 func find(busNumber int) (Opener, error) {

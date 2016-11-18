@@ -6,7 +6,6 @@ package onewire
 
 import (
 	"fmt"
-	"log"
 	"testing"
 )
 
