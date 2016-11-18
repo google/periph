@@ -4,6 +4,9 @@
 
 // Package allwinner-pl exposes AllWinner GPIO optional PL group functionality.
 //
+// This driver implements memory-mapped GPIO pin manipulation and leverages
+// sysfs-gpio for edge detection.
+//
 // Datasheet
 //
 // A64: http://files.pine64.org/doc/datasheet/pine64/Allwinner_A64_User_Manual_V1.0.pdf
