@@ -1,7 +1,9 @@
+# Contributing to Periph
+
 Want to contribute? Great! First, read this page (including the small print at
 the end).
 
-### Before you contribute
+## Before you contribute
 
 Before we can use your code, you must sign the [Google Individual Contributor
 License Agreement] (https://cla.developers.google.com/about/google-individual)
@@ -18,13 +20,13 @@ possibly guide you. Coordinating up front makes it much easier to avoid
 frustration later on.
 
 
-### Code reviews
+## Code reviews
 
 All submissions, including submissions by project members, require review. We
 use Github pull requests for this purpose.
 
 
-### Code quality
+## Code quality
 
 All submissions, including submissions by project members, require abiding to
 high code quality. See [Requirements](README.md#requirements) for the
@@ -33,7 +35,16 @@ management](README.md#driver-lifetime-management) to learn how to contribute new
 device support.
 
 
-### Conduct
+## Testing
+
+We use [sci](https://github.com/maruel/sci) for automated testing on devices.
+The devices run unit tests and [periph-smoketest](../../cmd/periph-smoketest).
+
+The fleet currently include Raspberry Pi 3 and a Pine 64. The tests must not be
+broken by a PR.
+
+
+## Conduct
 
 While this project is not related to the Go project itself, `periph` abides to
 the same code of conduct as the Go project as described at
@@ -42,7 +53,7 @@ appreciated), please email directly `maruel@chromium.org` for issues
 encountered.
 
 
-### The small print
+## The small print
 
 Contributions made by corporations are covered by a different agreement than
 the one above, the [Software Grant and Corporate Contributor License Agreement]

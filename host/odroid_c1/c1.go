@@ -70,6 +70,11 @@ var (
 )
 
 // Present returns true if running on a Hardkernel ODROID-C0/C1/C1+ board.
+//
+// It looks for "8726_M8B" in the device tree or "ODROIDC" in cpuinfo. The
+// following information is expected in the device dtree:
+//   root@odroid:/proc/device-tree# od -c compatible
+//   0000000   A   M   L   O   G   I   C   ,   8   7   2   6   _   M   8   B
 func Present() bool {
 	for _, c := range distro.DTCompatible() {
 		if strings.Contains(c, "8726_M8B") {

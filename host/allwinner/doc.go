@@ -2,8 +2,11 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package allwinner exposes the GPIO functionality that is common to all AllWinner
-// processors. In particular, it implements memory-mapped GPIO pin manipulation.
+// Package allwinner exposes the GPIO functionality that is common to all
+// AllWinner processors.
+//
+// This driver implements memory-mapped GPIO pin manipulation and leverages
+// sysfs-gpio for edge detection.
 //
 // Datasheets
 //
