@@ -10,6 +10,7 @@ import (
 	"github.com/google/periph/experimental/conn/onewire"
 )
 
+// TestDevTx tests the onewire.Dev implementation using the Playback bus impl.
 func TestDevTx(t *testing.T) {
 	p := Playback{
 		Ops: []IO{

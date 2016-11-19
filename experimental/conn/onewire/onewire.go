@@ -117,6 +117,10 @@ func (e shortedBusError) BusError() bool  { return true }
 // indicate that an error occurred on the bus, for example a CRC error
 // or a non-responding device. These errors often indicate an electrical
 // problem with the bus and may be worth retrying.
+//
+// BusError also helps to differentiate 1-wire errors from errors accessing
+// the 1-wire bus interface chip or circuitry, which may be located on
+// an i2c bus or gpio pin.
 type BusError interface {
 	BusError() bool // true if a bus error was detected
 }
@@ -286,5 +290,5 @@ var (
 	first    = -1
 )
 
-// Ensure that the appropriate interfaces are implemented
+// Ensure that the appropriate interfaces are implemented.
 var _ conn.Conn = &Dev{}

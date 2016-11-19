@@ -11,6 +11,8 @@ import (
 	"github.com/google/periph/experimental/conn/onewire"
 )
 
+// TestSearch tests the onewire.Search function using the Playback bus preloaded
+// with a synthetic set of devices.
 func TestSearch(t *testing.T) {
 	p := Playback{
 		Devices: []onewire.Address{

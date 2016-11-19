@@ -26,7 +26,7 @@ func TestAreInOnewireTest(t *testing.T) {
 	// Real tests are in onewiretest due to cyclic dependency.
 }
 
-// nopBus is an string that implements Bus
+// nopBus implements Bus.
 type nopBus string
 
 func (b *nopBus) String() string                           { return string(*b) }
@@ -34,6 +34,7 @@ func (b *nopBus) Tx(w, r []byte, power Pullup) error       { return nil }
 func (b *nopBus) Search(alarmOnly bool) ([]Address, error) { return nil, nil }
 func (b *nopBus) Close() error                             { return nil }
 
+// TestRegDereg tests registration and deregistration of buses.
 func TestRegDereg(t *testing.T) {
 	opener1 := func() (BusCloser, error) {
 		b := nopBus("bus1")
