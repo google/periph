@@ -4,10 +4,7 @@
 
 package onewire
 
-import (
-	"fmt"
-	"os"
-)
+import "fmt"
 
 // BusSearcher provides the basic bus transaction necessary to search a 1-wire
 // bus for devices. Buses that implement this interface can be searched with the
@@ -61,7 +58,6 @@ func Search(bus BusSearcher, alarmOnly bool) ([]Address, error) {
 		var device uint64   // ID of current device
 		var idBytes [8]byte // ID of device as bytes
 		for bit := 0; bit < 64; bit++ {
-			//fmt.Fprintf(os.Stderr, "*** bit loop %d\n", bit)
 			// Decide which direction to search into: 0 or 1.
 			var dir byte
 			if bit < lastDiscrepancy {
@@ -100,16 +96,12 @@ func Search(bus BusSearcher, alarmOnly bool) ([]Address, error) {
 			if bit&7 == 7 {
 				idBytes[bit>>3] = byte(device >> uint(bit-7))
 			}
-
-			//fmt.Fprintf(os.Stderr, "Bit %2d: dir=%d 0=%t 1=%t ID=%#x\n",
-			//	bit, dir, gotZero, gotOne, device)
 		}
 
 		// Verify the CRC and record device if we got it right.
 		if !CheckCRC(idBytes[:]) {
 			// CRC error: return partial result.  This is a transient error.
 			e := fmt.Sprintf("1-wire: CRC error during search, addr=%+v", idBytes)
-			fmt.Fprintln(os.Stderr, e)
 			return devices, busError(e)
 		}
 		devices = append(devices, Address(device))

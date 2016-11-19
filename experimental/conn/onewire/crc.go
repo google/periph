@@ -9,14 +9,14 @@ func CheckCRC(buf []byte) bool {
 	if len(buf) == 0 {
 		return false
 	}
-	return calcCRC(buf[:len(buf)-1]) == buf[len(buf)-1]
+	return CalcCRC(buf[:len(buf)-1]) == buf[len(buf)-1]
 }
 
-// calcCRC calculates the 8-bit CRC across the buffer of bytes and returns it.
+// CalcCRC calculates the 8-bit CRC across the buffer of bytes and returns it.
 //
 // The Dallas Semi / Maxim Integrated 1-Wire CRC calculation is described in App Note 27:
 // https://www.maximintegrated.com/en/app-notes/index.mvp/id/27.
-func calcCRC(buf []byte) byte {
+func CalcCRC(buf []byte) byte {
 	var crc byte
 	for _, b := range buf {
 		crc = crcTable[crc^b]

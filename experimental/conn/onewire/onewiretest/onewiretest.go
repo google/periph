@@ -73,11 +73,18 @@ func (r *Record) Search(alarmOnly bool) ([]onewire.Address, error) {
 
 // Playback implements onewire.Bus and plays back a recorded I/O flow.
 //
+// The bus' search function is special-cased. When a Tx operation has 0xf0 in w[0] the search
+// state is reset and subsequent triplet operations respond according to the list of Devices.
+// In other words, Tx is replayed but the responses to SearchTriplet operations are simulated.
+//
 // While "replay" type of unit tests are of limited value, they still present
 // an easy way to do basic code coverage.
 type Playback struct {
 	sync.Mutex
-	Ops []IO
+	Ops       []IO              // recorded operations
+	Devices   []onewire.Address // devices that respond to a search operation
+	inactive  []bool            // Devices that are no longer active in the search
+	searchBit uint              // which bit is being searched next
 }
 
 func (p *Playback) String() string {
@@ -111,16 +118,66 @@ func (p *Playback) Tx(w, r []byte, pull onewire.Pullup) error {
 	if pull != p.Ops[0].Pull {
 		return fmt.Errorf("unexpected pullup %d != %d", pull, p.Ops[0].Pull)
 	}
+	// Determine whether this starts a search and reset search state.
+	if len(w) > 0 && w[0] == 0xf0 {
+		p.searchBit = 0
+		p.inactive = make([]bool, len(p.Devices))
+	}
+	// Concoct response.
 	copy(r, p.Ops[0].Read)
 	p.Ops = p.Ops[1:]
 	return nil
 }
 
-// Search implements onewire.Bus
+// Search implements onewire.Bus using the Search function (which calls SearchTriplet).
 func (p *Playback) Search(alarmOnly bool) ([]onewire.Address, error) {
-	return nil, nil
+	return onewire.Search(p, alarmOnly)
 }
+
+// SearchTriplet implements onewire.BusSearcher.
+func (p *Playback) SearchTriplet(direction byte) (onewire.TripletResult, error) {
+	tr := onewire.TripletResult{}
+	if p.searchBit > 63 {
+		return tr, errors.New("search performs more than 64 triplet operations")
+	}
+	if len(p.inactive) != len(p.Devices) {
+		return tr, errors.New("Devices must be initialized before starting seach")
+	}
+	// Figure out the devices' response.
+	for i := range p.Devices {
+		if p.inactive[i] {
+			continue
+		}
+		switch (p.Devices[i] >> p.searchBit) & 1 {
+		case 0:
+			tr.GotZero = true
+		default:
+			tr.GotOne = true
+		}
+	}
+	// Decide in which direction to take the search.
+	switch {
+	case tr.GotZero && !tr.GotOne:
+		tr.Taken = 0
+	case !tr.GotZero && tr.GotOne:
+		tr.Taken = 1
+	default:
+		tr.Taken = direction
+	}
+	// Inactivate devices in the direction not taken.
+	for i := range p.Devices {
+		if uint8((p.Devices[i]>>p.searchBit)&1) != tr.Taken {
+			p.inactive[i] = true
+		}
+	}
+
+	p.searchBit++
+	return tr, nil
+}
+
+//
 
 var _ onewire.Bus = &Record{}
 var _ onewire.Pins = &Record{}
 var _ onewire.Bus = &Playback{}
+var _ onewire.BusSearcher = &Playback{}
