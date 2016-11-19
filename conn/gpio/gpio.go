@@ -90,6 +90,11 @@ type PinIn interface {
 	//
 	// If WaitForEdge() is planned to be called, make sure to use one of the Edge
 	// value. Otherwise, use None to not generated unneeded hardware interrupts.
+	//
+	// Calling In() will try to empty the accumulated edges but it cannot be 100%
+	// reliable due to the OS (linux) and its driver. It is possible that on a
+	// gpio that is as input, doing a quick Out(), In() may return an edge that
+	// occured before the Out() call.
 	In(pull Pull, edge Edge) error
 	// Read return the current pin level.
 	//
@@ -111,7 +116,8 @@ type PinIn interface {
 	// function to exit.
 	//
 	// Multiple edges may or may not accumulate between two calls to
-	// WaitForEdge(). The behavior in this case is undefined.
+	// WaitForEdge(). The behavior in this case is undefined and is OS driver
+	// specific.
 	//
 	// It is not required to call Read() to reset the edge detection.
 	//
@@ -136,6 +142,9 @@ type PinOut interface {
 	//
 	// After the initial call to ensure that the pin has been set as output, it
 	// is generally safe to ignore the error returned.
+	//
+	// Out() tries to empty the accumulated edges detected if the gpio was
+	// previously set as input but this is not 100% guaranteed due to the OS.
 	Out(l Level) error
 	// PWM sets a pin as output with a specified duty cycle between 0 and Max.
 	//

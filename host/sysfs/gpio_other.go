@@ -13,11 +13,11 @@ import (
 
 type event struct{}
 
-func (e event) wait(ep, timeoutms int) (int, error) {
+func (e event) makeEvent(f *os.File) error {
 	return 0, errors.New("unreachable code")
 }
 
-func (e event) makeEvent(f *os.File) (int, error) {
+func (e event) wait(timeoutms int) (int, error) {
 	return 0, errors.New("unreachable code")
 }
 

@@ -37,11 +37,10 @@ type Pin struct {
 
 	mu         sync.Mutex
 	direction  direction // Cache of the last known direction
-	edge       gpio.Edge //
+	edge       gpio.Edge // Cache of the last edge used.
 	fDirection *os.File  // handle to /sys/class/gpio/gpio*/direction; never closed
 	fEdge      *os.File  // handle to /sys/class/gpio/gpio*/edge; never closed
 	fValue     *os.File  // handle to /sys/class/gpio/gpio*/value; never closed
-	epollFd    int       // Never closed
 	event      event     // Initialized once
 }
 
@@ -91,7 +90,6 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	}
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	changed := false
 	if p.direction != dIn {
 		if err := p.open(); err != nil {
 			return p.wrap(err)
@@ -100,24 +98,30 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 			return p.wrap(err)
 		}
 		p.direction = dIn
-		changed = true
+	}
+	// Always push none to help accumulated flush edges. This is not fool proof
+	// but it seems to help.
+	if p.fEdge != nil {
+		if err := seekWrite(p.fEdge, bNone); err != nil {
+			return p.wrap(err)
+		}
 	}
 	// Assume that when the pin was switched, the driver doesn't recall if edge
 	// triggering was enabled.
-	if changed || edge != p.edge {
-		if edge != gpio.None {
-			var err error
-			if p.fEdge == nil {
-				p.fEdge, err = os.OpenFile(p.root+"edge", os.O_RDWR|os.O_APPEND, 0600)
-				if err != nil {
-					return p.wrap(err)
-				}
+	if edge != gpio.None {
+		var err error
+		if p.fEdge == nil {
+			p.fEdge, err = os.OpenFile(p.root+"edge", os.O_RDWR|os.O_APPEND, 0600)
+			if err != nil {
+				return p.wrap(err)
 			}
-			if p.epollFd == 0 {
-				if p.epollFd, err = p.event.makeEvent(p.fValue); err != nil {
-					return p.wrap(err)
-				}
+			if err = p.event.makeEvent(p.fValue); err != nil {
+				p.fEdge.Close()
+				p.fEdge = nil
+				return p.wrap(err)
 			}
+		}
+		if p.edge != edge {
 			var b []byte
 			switch edge {
 			case gpio.Rising:
@@ -130,25 +134,18 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 			if err := seekWrite(p.fEdge, b); err != nil {
 				return p.wrap(err)
 			}
-		} else {
-			if p.fEdge != nil {
-				if err := seekWrite(p.fEdge, bNone); err != nil {
-					return p.wrap(err)
-				}
-			}
 		}
-		p.edge = edge
 	}
-	if p.fEdge != nil {
-		// Flush accumulated events if any.
-		// BUG(maruel): Wake up any WaitForEdge() waiting for an edge.
-		for {
-			// Only loop if nr == -1, which means that a signal was received.
-			nr, err := p.event.wait(p.epollFd, 0)
-			if nr == 0 || err != nil {
-				break
-			}
-		}
+	p.edge = edge
+	// This helps to remove accumulated edges but this is not 100% sufficient.
+	// Most of the time the interrupts are handled promptly enough that this loop
+	// flushes the accumulated interrupt.
+	// Sometimes the kernel may have accumulated interrupts that haven't been
+	// processed for a long time, it can easily be >300µs even on a quite idle
+	// CPU. In this case, the loop below is not sufficient, since the interrupt
+	// will happen afterward "out of the blue".
+	if edge != gpio.None {
+		p.WaitForEdge(0)
 	}
 	return nil
 }
@@ -174,9 +171,6 @@ func (p *Pin) Read() gpio.Level {
 // gpio.PinIn.
 func (p *Pin) WaitForEdge(timeout time.Duration) bool {
 	// Run lockless, as the normal use is to call in a busy loop.
-	if p.epollFd == 0 {
-		return false
-	}
 	var ms int
 	if timeout == -1 {
 		ms = -1
@@ -185,11 +179,9 @@ func (p *Pin) WaitForEdge(timeout time.Duration) bool {
 	}
 	start := time.Now()
 	for {
-		nr, err := p.event.wait(p.epollFd, ms)
-		if err != nil {
+		if nr, err := p.event.wait(ms); err != nil {
 			return false
-		}
-		if nr == 1 {
+		} else if nr == 1 {
 			return true
 		}
 		// A signal occurred.
@@ -216,6 +208,14 @@ func (p *Pin) Out(l gpio.Level) error {
 		if err := p.open(); err != nil {
 			return p.wrap(err)
 		}
+		if p.edge != gpio.None {
+			p.edge = gpio.None
+			if err := seekWrite(p.fEdge, bNone); err != nil {
+				return p.wrap(err)
+			}
+			// This is still important to remove an accumulated edge.
+			p.WaitForEdge(0)
+		}
 		// "To ensure glitch free operation, values "low" and "high" may be written
 		// to configure the GPIO as an output with that initial value."
 		var d []byte
@@ -225,16 +225,7 @@ func (p *Pin) Out(l gpio.Level) error {
 			d = bHigh
 		}
 		if err := seekWrite(p.fDirection, d); err != nil {
-			// It may happen if there are unconsumed edges. Try resetting edge first.
-			if p.fEdge == nil {
-				return p.wrap(err)
-			}
-			if err := seekWrite(p.fEdge, bNone); err != nil {
-				return p.wrap(err)
-			}
-			if err := seekWrite(p.fDirection, d); err != nil {
-				return p.wrap(err)
-			}
+			return p.wrap(err)
 		}
 		p.direction = dOut
 		return nil

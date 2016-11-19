@@ -80,6 +80,7 @@ type Pin struct {
 	name        string
 	defaultPull gpio.Pull
 	edge        *sysfs.Pin // Mutable, set once, then never set back to nil
+	usingEdge   bool
 }
 
 // Pins is all the pins as supported by the CPU. There is no guarantee that
@@ -353,7 +354,9 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 		gpioMemory.pullEnable = 0
 		gpioMemory.pullEnableClock[offset] = 0
 	}
-	if edge != gpio.None {
+	wasUsing := p.usingEdge
+	p.usingEdge = edge != gpio.None
+	if p.usingEdge {
 		if p.edge == nil {
 			ok := false
 			if p.edge, ok = sysfs.Pins[p.Number()]; !ok {
@@ -361,7 +364,8 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 			}
 		}
 	}
-	if p.edge != nil {
+	if p.usingEdge || wasUsing {
+		// This resets pending edges.
 		if err := p.edge.In(gpio.PullNoChange, edge); err != nil {
 			return err
 		}
@@ -399,6 +403,13 @@ func (p *Pin) Pull() gpio.Pull {
 func (p *Pin) Out(l gpio.Level) error {
 	if gpioMemory == nil {
 		return errors.New("subsystem not initialized")
+	}
+	if p.usingEdge {
+		// First disable edges.
+		if err := p.edge.In(gpio.PullNoChange, gpio.None); err != nil {
+			return err
+		}
+		p.usingEdge = false
 	}
 	// Change output before changing mode to not create any glitch.
 	offset := p.number / 32

@@ -60,6 +60,7 @@ type Pin struct {
 	offset      uint8      // as per register offset calculation
 	name        string     // name as per datasheet
 	defaultPull gpio.Pull  // default pull at startup
+	usingEdge   bool       //
 	edge        *sysfs.Pin // Mutable, set once, then never set back to nil
 }
 
@@ -164,15 +165,16 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 		default:
 		}
 	}
-	if edge != gpio.None {
-		if p.edge == nil {
-			ok := false
-			if p.edge, ok = sysfs.Pins[p.Number()]; !ok {
-				return fmt.Errorf("pin %s is not exported by sysfs", p)
-			}
+	wasUsing := p.usingEdge
+	p.usingEdge = edge != gpio.None
+	if p.usingEdge && p.edge == nil {
+		ok := false
+		if p.edge, ok = sysfs.Pins[p.Number()]; !ok {
+			return fmt.Errorf("pin %s is not exported by sysfs", p)
 		}
 	}
-	if p.edge != nil {
+	if p.usingEdge || wasUsing {
+		// This resets pending edges.
 		if err := p.edge.In(gpio.PullNoChange, edge); err != nil {
 			return err
 		}
@@ -215,6 +217,13 @@ func (p *Pin) Pull() gpio.Pull {
 func (p *Pin) Out(l gpio.Level) error {
 	if gpioMemory == nil {
 		return errors.New("subsystem not initialized")
+	}
+	if p.usingEdge {
+		// First disable edges.
+		if err := p.edge.In(gpio.PullNoChange, gpio.None); err != nil {
+			return err
+		}
+		p.usingEdge = false
 	}
 	if !p.setFunction(out) {
 		return fmt.Errorf("failed to set pin %s as output", p.name)
