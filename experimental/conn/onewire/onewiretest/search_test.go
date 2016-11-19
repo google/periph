@@ -26,7 +26,7 @@ func TestSearch(t *testing.T) {
 		},
 	}
 	// Fix-up the CRC byte for each device.
-	var buf [8]byte
+	buf := make([]byte, 8)
 	for i := range p.Devices {
 		binary.LittleEndian.PutUint64(buf, uint64(p.Devices[i]))
 		crc := onewire.CalcCRC(buf[:7])
