@@ -11,11 +11,12 @@ import "fmt"
 // Search function.
 type BusSearcher interface {
 	Bus
-	// Triplet performs a single bit search triplet command on the bus,
+	// SearchTriplet performs a single bit search triplet command on the bus,
 	// waits for it to complete and returns the result.
 	SearchTriplet(direction byte) (TripletResult, error)
 }
 
+// TripletResult is the result of a SearchTriplet operation.
 type TripletResult struct {
 	GotZero bool  // a device with a zero in the current bit position responded
 	GotOne  bool  // a device with a one in the current bit position responded

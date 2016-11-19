@@ -41,7 +41,7 @@ func (r *Record) Tx(w, read []byte, pull onewire.Pullup) error {
 	defer r.Unlock()
 	if r.Bus == nil {
 		if len(read) != 0 {
-			return errors.New("read unsupported when no bus is connected")
+			return errors.New("onewire: read unsupported when no bus is connected")
 		}
 	} else {
 		if err := r.Bus.Tx(w, read, pull); err != nil {
@@ -51,9 +51,9 @@ func (r *Record) Tx(w, read []byte, pull onewire.Pullup) error {
 	io := IO{Write: make([]byte, len(w)), Pull: pull}
 	if len(read) != 0 {
 		io.Read = make([]byte, len(read))
+		copy(io.Read, read)
 	}
 	copy(io.Write, w)
-	copy(io.Read, read)
 	r.Ops = append(r.Ops, io)
 	return nil
 }
@@ -73,9 +73,10 @@ func (r *Record) Search(alarmOnly bool) ([]onewire.Address, error) {
 
 // Playback implements onewire.Bus and plays back a recorded I/O flow.
 //
-// The bus' search function is special-cased. When a Tx operation has 0xf0 in w[0] the search
-// state is reset and subsequent triplet operations respond according to the list of Devices.
-// In other words, Tx is replayed but the responses to SearchTriplet operations are simulated.
+// The bus' search function is special-cased. When a Tx operation has
+// 0xf0 in w[0] the search state is reset and subsequent triplet operations
+// respond according to the list of Devices.  In other words, Tx is
+// replayed but the responses to SearchTriplet operations are simulated.
 //
 // While "replay" type of unit tests are of limited value, they still present
 // an easy way to do basic code coverage.
@@ -96,7 +97,7 @@ func (p *Playback) Close() error {
 	p.Lock()
 	defer p.Unlock()
 	if len(p.Ops) != 0 {
-		return fmt.Errorf("expected playback to be empty:\n%#v", p.Ops)
+		return fmt.Errorf("onewire: expected playback to be empty:\n%#v", p.Ops)
 	}
 	return nil
 }
@@ -107,16 +108,16 @@ func (p *Playback) Tx(w, r []byte, pull onewire.Pullup) error {
 	defer p.Unlock()
 	if len(p.Ops) == 0 {
 		// log.Fatal() ?
-		return errors.New("unexpected Tx()")
+		return errors.New("onewire: unexpected Tx()")
 	}
 	if !bytes.Equal(p.Ops[0].Write, w) {
-		return fmt.Errorf("unexpected write %#v != %#v", w, p.Ops[0].Write)
+		return fmt.Errorf("onewire: unexpected write %#v != %#v", w, p.Ops[0].Write)
 	}
 	if len(p.Ops[0].Read) != len(r) {
-		return fmt.Errorf("unexpected read buffer length %d != %d", len(r), len(p.Ops[0].Read))
+		return fmt.Errorf("onewire: unexpected read buffer length %d != %d", len(r), len(p.Ops[0].Read))
 	}
 	if pull != p.Ops[0].Pull {
-		return fmt.Errorf("unexpected pullup %d != %d", pull, p.Ops[0].Pull)
+		return fmt.Errorf("onewire: unexpected pullup %d != %d", pull, p.Ops[0].Pull)
 	}
 	// Determine whether this starts a search and reset search state.
 	if len(w) > 0 && w[0] == 0xf0 {
@@ -138,20 +139,19 @@ func (p *Playback) Search(alarmOnly bool) ([]onewire.Address, error) {
 func (p *Playback) SearchTriplet(direction byte) (onewire.TripletResult, error) {
 	tr := onewire.TripletResult{}
 	if p.searchBit > 63 {
-		return tr, errors.New("search performs more than 64 triplet operations")
+		return tr, errors.New("onewire: search performs more than 64 triplet operations")
 	}
 	if len(p.inactive) != len(p.Devices) {
-		return tr, errors.New("Devices must be initialized before starting seach")
+		return tr, errors.New("onewire: Devices must be initialized before starting seach")
 	}
 	// Figure out the devices' response.
 	for i := range p.Devices {
 		if p.inactive[i] {
 			continue
 		}
-		switch (p.Devices[i] >> p.searchBit) & 1 {
-		case 0:
+		if (p.Devices[i]>>p.searchBit)&1 == 0 {
 			tr.GotZero = true
-		default:
+		} else {
 			tr.GotOne = true
 		}
 	}

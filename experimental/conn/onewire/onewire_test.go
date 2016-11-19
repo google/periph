@@ -16,7 +16,7 @@ func ExampleAll() {
 	}
 }
 
-func TestInvalid(t *testing.T) {
+func TestNoneRegistered(t *testing.T) {
 	if _, err := New(-1); err == nil {
 		t.Fail()
 	}

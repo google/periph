@@ -48,7 +48,9 @@ type Bus interface {
 	// returned with the error.
 	//
 	// Bus.Search may be implemented using onewire.Search if the bus implements
-	// the BusSearcher interface or it may have a custom implementation.
+	// the BusSearcher interface or it may have a custom implementation, for
+	// example a Linux sysfs implementation should return the list of devices
+	// already discovered by the driver.
 	Search(alarmOnly bool) ([]Address, error)
 }
 
@@ -62,8 +64,10 @@ type Address uint64
 type Pullup int
 
 const (
-	WeakPullup   Pullup = iota // end transaction with weak pull-up
-	StrongPullup               // end transaction with strong pull-up to power devices
+	// WeakPullup ends the transaction with weak pull-up
+	WeakPullup Pullup = iota
+	// StrongPullup end the transaction with strong pull-up to power devices
+	StrongPullup
 )
 
 // BusCloser is a 1-wire bus that can be closed.
@@ -80,7 +84,7 @@ type BusCloser interface {
 // It is expected that an implementer of Bus also implement Pins but this is
 // not a requirement.
 type Pins interface {
-	// Q returns the 1-wire Q (data) pin
+	// Q returns the 1-wire Q (data) pin.
 	Q() gpio.PinIO
 }
 
@@ -120,7 +124,7 @@ func (e shortedBusError) BusError() bool  { return true }
 //
 // BusError also helps to differentiate 1-wire errors from errors accessing
 // the 1-wire bus interface chip or circuitry, which may be located on
-// an i2c bus or gpio pin.
+// an I²C bus or gpio pin.
 type BusError interface {
 	BusError() bool // true if a bus error was detected
 }
@@ -146,7 +150,7 @@ type Dev struct {
 
 // String prints the bus name followed by the device address in parenthesis.
 func (d *Dev) String() string {
-	return fmt.Sprintf("%s(%d)", d.Bus, d.Addr)
+	return fmt.Sprintf("%s(%#016x)", d.Bus, d.Addr)
 }
 
 // Tx performs a "match ROM" command on the bus to select the device
@@ -215,21 +219,20 @@ func Register(name string, busNumber int, opener Opener) error {
 	defer mu.Unlock()
 
 	if _, ok := byName[name]; ok {
-		return fmt.Errorf("registering the same 1-wire bus %s twice", name)
+		return fmt.Errorf("onewire: registering the same 1-wire bus %s twice", name)
 	}
-	if busNumber != -1 {
-		if _, ok := byNumber[busNumber]; ok {
-			return fmt.Errorf("registering the same 1-wire bus %d twice", busNumber)
-		}
+	if busNumber == -1 {
+		return fmt.Errorf("onewire: cannot register a negative bus number: %d", busNumber)
+	}
+	if _, ok := byNumber[busNumber]; ok {
+		return fmt.Errorf("onewire: registering the same 1-wire bus %d twice", busNumber)
 	}
 
 	if first == -1 {
 		first = busNumber
 	}
 	byName[name] = opener
-	if busNumber != -1 {
-		byNumber[busNumber] = opener
-	}
+	byNumber[busNumber] = opener
 	return nil
 }
 
@@ -242,10 +245,10 @@ func Unregister(name string, busNumber int) error {
 	defer mu.Unlock()
 
 	if _, ok := byName[name]; !ok {
-		return errors.New("unknown name")
+		return fmt.Errorf("onewire: can't unregister %q, wasn't registered", name)
 	}
 	if _, ok := byNumber[busNumber]; !ok {
-		return errors.New("unknown number")
+		return fmt.Errorf("onewire: can't unregister %d, wasn't registered", busNumber)
 	}
 
 	// If the first bus is being deleted, pick another one.
@@ -272,13 +275,13 @@ func find(busNumber int) (Opener, error) {
 	defer mu.Unlock()
 	if busNumber == -1 {
 		if first == -1 {
-			return nil, errors.New("no 1-wire bus found")
+			return nil, errors.New("onewire: no bus found")
 		}
 		return byNumber[first], nil
 	}
 	bus, ok := byNumber[busNumber]
 	if !ok {
-		return nil, fmt.Errorf("no 1-wire bus %d", busNumber)
+		return nil, fmt.Errorf("onewire: no bus %d", busNumber)
 	}
 	return bus, nil
 }
