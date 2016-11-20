@@ -172,7 +172,7 @@ func (d *Dev) Tx(w, r []byte) error {
 	ww[0] = 0x55 // Match ROM
 	binary.LittleEndian.PutUint64(ww[1:], uint64(d.Addr))
 	ww = append(ww, w...)
-	return d.Bus.Tx(w, r, WeakPullup)
+	return d.Bus.Tx(ww, r, WeakPullup)
 }
 
 // TxPower performs a "match ROM" command on the bus to select the device
@@ -188,7 +188,7 @@ func (d *Dev) TxPower(w, r []byte) error {
 	ww[0] = 0x55 // Match ROM
 	binary.LittleEndian.PutUint64(ww[1:], uint64(d.Addr))
 	ww = append(ww, w...)
-	return d.Bus.Tx(w, r, StrongPullup)
+	return d.Bus.Tx(ww, r, StrongPullup)
 }
 
 //===== Bus registry

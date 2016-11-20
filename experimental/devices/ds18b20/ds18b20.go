@@ -5,14 +5,16 @@
 // Package ds18b20 interfaces to Dallas Semi / Maxim DS18B20 and MAX31820
 // 1-wire temperature sensors.
 //
-// It supports both powered sensors and parasitically powered sensors
+// Note that both DS18B20 and MAX31820 use family code 0x28.
+//
+// Both powered sensors and parasitically powered sensors are supported
 // as long as the bus driver can provide sufficient power using an active
 // pull-up.
 //
 // The DS18B20 alarm functionality and reading/writing the 2 alarm bytes in
 // the EEPROM are not supported. The DS18S20 is also not supported.
 //
-// Datasheet
+// Datasheets
 //
 // https://datasheets.maximintegrated.com/en/ds/DS18B20-PAR.pdf
 //
@@ -54,7 +56,12 @@ func New(o onewire.Bus, addr onewire.Address, resolutionBits int) (*Dev, error) 
 	if !onewire.CheckCRC(spad) {
 		fmt.Fprintf(os.Stderr, "ds18b20: bad CRC %#x != %#x %+v\n",
 			onewire.CalcCRC(spad[0:8]), spad[8], spad)
-		return nil, errors.New("ds18b20: incorrect scratchpad CRC")
+		for _, s := range spad {
+			if s != 0xff {
+				return nil, errors.New("ds18b20: incorrect scratchpad CRC")
+			}
+		}
+		return nil, errors.New("ds18b20: device did not respond")
 	}
 
 	// Change the resolution, if necessary (datasheet p.6).

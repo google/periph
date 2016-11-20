@@ -94,11 +94,12 @@ func (d *Dev) SearchTriplet(direction byte) (onewire.TripletResult, error) {
 	d.i2cTx([]byte{cmd1WTriplet, dir}, nil)
 	// Wait and read status register, concoct result from there.
 	status := d.waitIdle(0 * d.tSlot) // in theory 3*tSlot but it's actually overlapped
-	return onewire.TripletResult{
-		GotZero: status&0x20 != 0,
-		GotOne:  status&0x40 != 0,
+	tr := onewire.TripletResult{
+		GotZero: status&0x20 == 0,
+		GotOne:  status&0x40 == 0,
 		Taken:   status >> 7,
-	}, d.err
+	}
+	return tr, d.err
 }
 
 //
