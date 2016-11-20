@@ -5,78 +5,93 @@
 package ds248x
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
 	"github.com/google/periph/conn/i2c"
+	"github.com/google/periph/conn/i2c/i2ctest"
 	"github.com/google/periph/host"
 )
 
+// TestMain lets periph load all drivers and then runs the tests.
 func TestMain(m *testing.M) {
 	host.Init()
 	os.Exit(m.Run())
 }
 
+// TestInit tests the initialization of a ds2483 using a recording.
 func TestInit(t *testing.T) {
-	bus, err := i2c.New(1)
-	if err != nil {
-		t.Fatal(err)
+	var ops = []i2ctest.IO{
+		{Addr: 0x18, Write: []byte{0xf0}, Read: []byte(nil)},
+		{Addr: 0x18, Write: []byte{0xe1, 0xf0}, Read: []byte{0x18}},
+		{Addr: 0x18, Write: []byte{0xd2, 0xe1}, Read: []byte{0x1}},
+		{Addr: 0x18, Write: []byte{0xe1, 0xb4}, Read: []byte(nil)},
+		{Addr: 0x18, Write: []byte{0xc3, 0x6, 0x26, 0x46, 0x66, 0x86}, Read: []byte(nil)},
+		{Addr: 0x18, Write: []byte{0x78, 0x0}, Read: []byte(nil)},
+		{Addr: 0x18, Write: []byte{}, Read: []byte{0xe8}},
 	}
-	_, err = New(bus, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-}
 
-/* foo
-func TestRead(t *testing.T) {
-	// This data was generated with "bme280 -r"
-	bus := i2ctest.Playback{
-		Ops: []i2ctest.IO{
-			// Chipd ID detection.
-			{Addr: 0x76, Write: []byte{0xd0}, Read: []byte{0x60}},
-			// Calibration data.
-			{
-				Addr:  0x76,
-				Write: []byte{0x88},
-				Read:  []byte{0x10, 0x6e, 0x6c, 0x66, 0x32, 0x0, 0x5d, 0x95, 0xb8, 0xd5, 0xd0, 0xb, 0x77, 0x1e, 0x9d, 0xff, 0xf9, 0xff, 0xac, 0x26, 0xa, 0xd8, 0xbd, 0x10, 0x0, 0x4b},
-			},
-			// Calibration data.
-			{Addr: 0x76, Write: []byte{0xe1}, Read: []byte{0x6e, 0x1, 0x0, 0x13, 0x5, 0x0, 0x1e}},
-			// Configuration.
-			{Addr: 0x76, Write: []byte{0xf4, 0x6c, 0xf2, 0x3, 0xf5, 0xe0, 0xf4, 0x6f}, Read: nil},
-			// Read.
-			{Addr: 0x76, Write: []byte{0xf7}, Read: []byte{0x4a, 0x52, 0xc0, 0x80, 0x96, 0xc0, 0x7a, 0x76}},
-		},
-	}
-	dev, err := NewI2C(&bus, nil)
+	bus := &i2ctest.Playback{Ops: ops}
+	_, err := New(bus, nil)
 	if err != nil {
 		t.Fatal(err)
-	}
-	env := devices.Environment{}
-	if err := dev.Sense(&env); err != nil {
-		t.Fatalf("Sense(): %v", err)
-	}
-	if env.Temperature != 23720 {
-		t.Fatalf("temp %d", env.Temperature)
-	}
-	if env.Pressure != 100943 {
-		t.Fatalf("pressure %d", env.Pressure)
-	}
-	if env.Humidity != 6531 {
-		t.Fatalf("humidity %d", env.Humidity)
 	}
 }
 
 func Example() {
-	bus, err := i2c.New(-1)
+	// Open the I²C bus to which the DS248x is connected.
+	i2cBus, err := i2c.New(-1)
 	if err != nil {
-		log.Fatalf("failed to open I²C: %v", err)
+		fmt.Println(err)
+		return
 	}
-	defer bus.Close()
-	dev, err := NewI2C(bus, nil)
+	// Open the DS248x to get a 1-wire bus.
+	owBus, err := New(i2cBus, nil)
 	if err != nil {
-		log.Fatalf("failed to initialize ds2483: %v", err)
+		fmt.Println(err)
+		return
 	}
+	// Search devices on the bus
+	devices, err := owBus.Search(false)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Printf("Found %d 1-wire devices: ")
+	for _, d := range devices {
+		fmt.Printf(" %#16x", uint64(d))
+	}
+	fmt.Print('\n')
 }
-*/
+
+// TestRecordInit tests and records the initialization of a ds248x assuming
+// real hardware and outputs the recording ready to use for playback in
+// TestInit.
+//
+// This test is skipped if there is no i2c device or if no ds248x responds.
+// Run the test suite with -v to see the recording output.
+func TestRecordInit(t *testing.T) {
+	i2cReal, err := i2c.New(-1)
+	if err != nil {
+		t.Skip(err)
+	}
+	i2cBus := &i2ctest.Record{Bus: i2cReal}
+	// Now init the ds248x.
+	owBus, err := New(i2cBus, nil)
+	if err != nil {
+		t.Skip(err)
+	}
+	// Perform a search triplet operation to see whether anyone is on the bus
+	// (we could do a full search but that would produce a very long recording).
+	_, err = owBus.SearchTriplet(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Output the recording.
+	t.Logf("var ops = i2ctest.IO{\n")
+	for _, op := range i2cBus.Ops {
+		t.Logf("  {Addr: %#x, Write: %#v, Read: %#v},\n", op.Addr, op.Write, op.Read)
+	}
+	t.Logf("}\n")
+}
