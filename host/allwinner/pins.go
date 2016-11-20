@@ -566,12 +566,13 @@ func initPins() error {
 // are GPIO pin dependent.
 type function uint8
 
-// gpioGroup is a memory-mapped structure for the hardware registers that control a
-// group of at most 32 pins. In practice the number of valid pins per group varies
-// between 10 and 27.
+// gpioGroup is a memory-mapped structure for the hardware registers that
+// control a group of at most 32 pins. In practice the number of valid pins per
+// group varies between 10 and 27.
 //
 // http://files.pine64.org/doc/datasheet/pine64/Allwinner_A64_User_Manual_V1.0.pdf
 // Page 376 GPIO PB to PH.
+// Page 410 GPIO PL.
 type gpioGroup struct {
 	// Pn_CFGx n*0x24+x*4       Port n Configure Register x (n from 1(B) to 7(H))
 	cfg [4]uint32

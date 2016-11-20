@@ -2,7 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-package allwinner_pl
+package allwinner
 
 import (
 	"errors"
@@ -16,24 +16,12 @@ import (
 
 	"github.com/google/periph"
 	"github.com/google/periph/conn/gpio"
-	"github.com/google/periph/host/distro"
 	"github.com/google/periph/host/pmem"
 	"github.com/google/periph/host/sysfs"
 )
 
 // All the pins in the PL group.
 var PL0, PL1, PL2, PL3, PL4, PL5, PL6, PL7, PL8, PL9, PL10, PL11, PL12 *PinPL
-
-// Present returns true if running on an Allwinner CPU supporting the PL group.
-func Present() bool {
-	// BUG(maruel): Fix detection, need to specifically look for H3 and A64!
-	if isArm {
-		hardware, ok := distro.CPUInfo()["Hardware"]
-		return ok && strings.HasPrefix(hardware, "sun")
-		// /sys/class/sunxi_info/sys_info
-	}
-	return false
-}
 
 // PinPL defines one CPU supported pin in the PL group.
 //
@@ -256,19 +244,6 @@ func (p *PinPL) wrap(err error) error {
 
 //
 
-// Page 23~24
-// Each pin can have one of 7 functions.
-const (
-	in       function = 0
-	out      function = 1
-	alt1     function = 2
-	alt2     function = 3
-	alt3     function = 4
-	alt4     function = 5
-	alt5     function = 6
-	disabled function = 7
-)
-
 // cpuPinsPL is all the pins as supported by the CPU. There is no guarantee that
 // they are actually connected to anything on the board.
 var cpuPinsPL = []PinPL{
@@ -309,23 +284,6 @@ var mapping = [13][5]string{
 	{"", "", "", "", "S_PL_EINT12"},                  // PL12
 }
 
-// function specifies the active functionality of a pin. The alternative
-// function is GPIO pin dependent.
-type function uint8
-
-// http://files.pine64.org/doc/datasheet/pine64/Allwinner_A64_User_Manual_V1.0.pdf
-// Page 410 GPIO PL.
-type gpioGroup struct {
-	// Pn_CFGx n*0x24+x*4       Port n Configure Register x (n from 1(B) to 7(H))
-	cfg [4]uint32
-	// Pn_DAT  n*0x24+0x10      Port n Data Register (n from 1(B) to 7(H))
-	data uint32
-	// Pn_DRVx n*0x24+0x14+x*4  Port n Multi-Driving Register x (n from 1 to 7)
-	drv [2]uint32
-	// Pn_PULL n*0x24+0x1C+x*4  Port n Pull Register (n from 1(B) to 7(H))
-	pull [2]uint32
-}
-
 func init() {
 	PL0 = &cpuPinsPL[0]
 	PL1 = &cpuPinsPL[1]
@@ -342,11 +300,11 @@ func init() {
 	PL12 = &cpuPinsPL[12]
 }
 
-// getBaseAddress queries the virtual file system to retrieve the base address
+// getBaseAddressPL queries the virtual file system to retrieve the base address
 // of the GPIO registers for GPIO pins in group PL.
 //
 // Defaults to 0x01F02C00 as per datasheet if could query the file system.
-func getBaseAddress() uint64 {
+func getBaseAddressPL() uint64 {
 	base := uint64(0x01F02C00)
 	link, err := os.Readlink("/sys/bus/platform/drivers/sun50i-r-pinctrl/driver")
 	if err != nil {
@@ -376,10 +334,11 @@ func (d *driverGPIOPL) Prerequisites() []string {
 }
 
 func (d *driverGPIOPL) Init() (bool, error) {
-	if !Present() {
+	// BUG(maruel): H3 supports group PL too.
+	if !IsA64() {
 		return false, errors.New("A64 CPU not detected")
 	}
-	m, err := pmem.Map(getBaseAddress(), 4096)
+	m, err := pmem.Map(getBaseAddressPL(), 4096)
 	if err != nil {
 		if os.IsPermission(err) {
 			return true, fmt.Errorf("need more access, try as root: %v", err)
