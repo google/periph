@@ -70,6 +70,13 @@ const (
 	StrongPullup Pullup = true
 )
 
+func (p Pullup) String() string {
+	if p {
+		return "Strong"
+	}
+	return "Weak"
+}
+
 // BusCloser is a 1-wire bus that can be closed.
 //
 // It is expected that an implementer of Bus also implement BusCloser, but
