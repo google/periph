@@ -57,7 +57,7 @@ func (d *Dev) Tx(w, r []byte, power onewire.Pullup) error {
 		d.waitIdle(7 * d.tSlot)
 	}
 
-	// Read bytes from one-wire bus
+	// Read bytes from one-wire bus.
 	for i, _ := range r {
 		if power == onewire.StrongPullup && i == len(r)-1 {
 			// This is the last byte, need to activate strong-pull-up

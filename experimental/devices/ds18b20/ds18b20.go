@@ -36,7 +36,7 @@ import (
 // resolutionBits must be in the range 9..12 and determines how many bits of precision
 // the readings have. The resolution affects the conversion time: 9bits:94ms, 10bits:188ms,
 // 11bits:375ms, 12bits:750ms.
-// A resolution of 10 bits icorresponds to 0.25C and tends to be a good compromise between
+// A resolution of 10 bits corresponds to 0.25C and tends to be a good compromise between
 // conversion time and the device's inherent accuracy of +/-0.5C.
 func New(o onewire.Bus, addr onewire.Address, resolutionBits int) (*Dev, error) {
 	if resolutionBits < 9 || resolutionBits > 12 {
