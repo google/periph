@@ -2,7 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// This file contains pin mapping information that is specific to the Allwinner R8 model.
+// This file contains pin mapping information that is specific to the Allwinner
+// R8 model.
 
 package allwinner
 

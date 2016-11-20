@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/google/periph"
-	"github.com/google/periph/conn/analog"
 	"github.com/google/periph/conn/gpio"
 	"github.com/google/periph/conn/pins"
 	"github.com/google/periph/host/allwinner"
@@ -19,105 +18,103 @@ import (
 	"github.com/google/periph/host/sysfs"
 )
 
+// C.H.I.P. hardware pins.
 var (
-	DC_IN    pins.Pin = &pins.BasicPin{N: "DC_IN"}
-	BAT_PLUS pins.Pin = &pins.BasicPin{N: "BAT_PLUS"}
-	V1_8     pins.Pin = &pins.BasicPin{N: "V1_8"} // 1.8 volt output
-
-	TEMP_SENSOR gpio.PinIO = &gpio.BasicPin{N: "TEMP_SENSOR"}
-	PWR_SWITCH  gpio.PinIO = &gpio.BasicPin{N: "PWR_SWITCH"}
-
-	// XIO "gpio" pins attached to the pcf8574 I2c port extender, these get
-	// initialized in the Init function
+	TEMP_SENSOR = &gpio.BasicPin{N: "TEMP_SENSOR"}
+	PWR_SWITCH  = &gpio.BasicPin{N: "PWR_SWITCH"}
+	// XIO "gpio" pins attached to the pcf8574 I²C port extender.
 	XIO0, XIO1, XIO2, XIO3, XIO4, XIO5, XIO6, XIO7 gpio.PinIO
 )
 
 // The U13 header is opposite the power LED.
+//
+// The alternate pin functionality is described at pages 322-323 of
+// https://github.com/NextThingCo/CHIP-Hardware/raw/master/CHIP%5Bv1_0%5D/CHIPv1_0-BOM-Datasheets/Allwinner%20R8%20User%20Manual%20V1.1.pdf
 var (
-	U13_1  pins.Pin   = pins.GROUND    //
-	U13_2  pins.Pin   = DC_IN          // 5 volt input
-	U13_3  pins.Pin   = pins.V5        // 5 volt output
-	U13_4  pins.Pin   = pins.GROUND    //
-	U13_5  pins.Pin   = pins.V3_3      // 3.3v output
-	U13_6  gpio.PinIO = TEMP_SENSOR    // analog temp sensor input
-	U13_7  pins.Pin   = V1_8           // 1.8v output
-	U13_8  pins.Pin   = BAT_PLUS       // external LiPo battery
-	U13_9  gpio.PinIO = allwinner.PB16 //
-	U13_10 pins.Pin   = PWR_SWITCH     // power button
-	U13_11 gpio.PinIO = allwinner.PB15 //
-	U13_12 pins.Pin   = pins.GROUND    //
-	U13_13 gpio.PinIO = allwinner.X1   // touch screen X1
-	U13_14 gpio.PinIO = allwinner.X2   // touch screen X2
-	U13_15 gpio.PinIO = allwinner.Y1   // touch screen Y1
-	U13_16 gpio.PinIO = allwinner.Y2   // touch screen Y2
-	U13_17 gpio.PinIO = allwinner.PD2  //
-	U13_18 gpio.PinIO = allwinner.PB2  //
-	U13_19 gpio.PinIO = allwinner.PD4  //
-	U13_20 gpio.PinIO = allwinner.PD3  //
-	U13_21 gpio.PinIO = allwinner.PD6  //
-	U13_22 gpio.PinIO = allwinner.PD5  //
-	U13_23 gpio.PinIO = allwinner.PD10 //
-	U13_24 gpio.PinIO = allwinner.PD7  //
-	U13_25 gpio.PinIO = allwinner.PD12 //
-	U13_26 gpio.PinIO = allwinner.PD11 //
-	U13_27 gpio.PinIO = allwinner.PD14 //
-	U13_28 gpio.PinIO = allwinner.PD13 //
-	U13_29 gpio.PinIO = allwinner.PD18 //
-	U13_30 gpio.PinIO = allwinner.PD15 //
-	U13_31 gpio.PinIO = allwinner.PD20 //
-	U13_32 gpio.PinIO = allwinner.PD19 //
-	U13_33 gpio.PinIO = allwinner.PD22 //
-	U13_34 gpio.PinIO = allwinner.PD21 //
-	U13_35 gpio.PinIO = allwinner.PD24 //
-	U13_36 gpio.PinIO = allwinner.PD23 //
-	U13_37 gpio.PinIO = allwinner.PD27 //
-	U13_38 gpio.PinIO = allwinner.PD26 //
-	U13_39 pins.Pin   = pins.GROUND    //
-	U13_40 pins.Pin   = pins.GROUND    //
+	U13_1  = pins.GROUND    //
+	U13_2  = pins.DC_IN     //
+	U13_3  = pins.V5        // (filtered)
+	U13_4  = pins.GROUND    //
+	U13_5  = pins.V3_3      //
+	U13_6  = TEMP_SENSOR    // Analog temp sensor input
+	U13_7  = pins.V1_8      //
+	U13_8  = pins.BAT_PLUS  // External LiPo battery
+	U13_9  = allwinner.PB16 // I2C1_SDA
+	U13_10 = PWR_SWITCH     // Power button
+	U13_11 = allwinner.PB15 // I2C1_SCL
+	U13_12 = pins.GROUND    //
+	U13_13 = allwinner.X1   // Touch screen X1
+	U13_14 = allwinner.X2   // Touch screen X2
+	U13_15 = allwinner.Y1   // Touch screen Y1
+	U13_16 = allwinner.Y2   // Touch screen Y2
+	U13_17 = allwinner.PD2  // LCD-D2; UART2_TX firmware probe for 1-wire to detect DIP at boot; http://docs.getchip.com/dip.html#dip-identification
+	U13_18 = allwinner.PB2  // PWM0; EINT16
+	U13_19 = allwinner.PD4  // LCD-D4; UART2_CTS
+	U13_20 = allwinner.PD3  // LCD-D3; UART2_RX
+	U13_21 = allwinner.PD6  // LCD-D6
+	U13_22 = allwinner.PD5  // LCD-D5
+	U13_23 = allwinner.PD10 // LCD-D10
+	U13_24 = allwinner.PD7  // LCD-D7
+	U13_25 = allwinner.PD12 // LCD-D12
+	U13_26 = allwinner.PD11 // LCD-D11
+	U13_27 = allwinner.PD14 // LCD-D14
+	U13_28 = allwinner.PD13 // LCD-D13
+	U13_29 = allwinner.PD18 // LCD-D18
+	U13_30 = allwinner.PD15 // LCD-D15
+	U13_31 = allwinner.PD20 // LCD-D20
+	U13_32 = allwinner.PD19 // LCD-D19
+	U13_33 = allwinner.PD22 // LCD-D22
+	U13_34 = allwinner.PD21 // LCD-D21
+	U13_35 = allwinner.PD24 // LCD-CLK
+	U13_36 = allwinner.PD23 // LCD-D23
+	U13_37 = allwinner.PD26 // LCD-VSYNC
+	U13_38 = allwinner.PD27 // LCD-HSYNC
+	U13_39 = pins.GROUND    //
+	U13_40 = allwinner.PD25 // LCD-DE: RGB666 data
 )
 
 // The U14 header is right next to the power LED.
 var (
-	U14_1  pins.Pin     = pins.GROUND //
-	U14_2  pins.Pin     = pins.V5     // 5 volt output
-	U14_3  gpio.PinIO   = allwinner.PG3
-	U14_4  gpio.PinIO   = allwinner.HP_LEFT  // headphone left output
-	U14_5  gpio.PinIO   = allwinner.PG4      //
-	U14_6  pins.Pin     = allwinner.HP_COM   // headphone amp out
-	U14_7  pins.Pin     = allwinner.FEL      // boot mode selection
-	U14_8  gpio.PinIO   = allwinner.HP_RIGHT // headphone right output
-	U14_9  pins.Pin     = pins.V3_3          // 3.3v output
-	U14_10 pins.Pin     = allwinner.MIC_GND  // microphone ground
-	U14_11 analog.PinIO = allwinner.KEY_ADC  // low res analog to digital
-	U14_12 gpio.PinIO   = allwinner.MIC_IN   // microphone input
-	U14_13 gpio.PinIO   = XIO0               // gpio via i2c controller
-	U14_14 gpio.PinIO   = XIO1               // gpio via i2c controller
-	U14_15 gpio.PinIO   = XIO2               // gpio via i2c controller
-	U14_16 gpio.PinIO   = XIO3               // gpio via i2c controller
-	U14_17 gpio.PinIO   = XIO4               // gpio via i2c controller
-	U14_18 gpio.PinIO   = XIO5               // gpio via i2c controller
-	U14_19 gpio.PinIO   = XIO6               // gpio via i2c controller
-	U14_20 gpio.PinIO   = XIO7               // gpio via i2c controller
-	U14_21 pins.Pin     = pins.GROUND        //
-	U14_22 pins.Pin     = pins.GROUND        //
-	U14_23 gpio.PinIO   = allwinner.PG1      //
-	U14_24 gpio.PinIO   = allwinner.PB3      //
-	U14_25 gpio.PinIO   = allwinner.PB18     //
-	U14_26 gpio.PinIO   = allwinner.PB17     //
-	U14_27 gpio.PinIO   = allwinner.PE0      //
-	U14_28 gpio.PinIO   = allwinner.PE1      //
-	U14_29 gpio.PinIO   = allwinner.PE2      //
-	U14_30 gpio.PinIO   = allwinner.PE3      //
-	U14_31 gpio.PinIO   = allwinner.PE4      //
-	U14_32 gpio.PinIO   = allwinner.PE5      //
-	U14_33 gpio.PinIO   = allwinner.PE6      //
-	U14_34 gpio.PinIO   = allwinner.PE7      //
-	U14_35 gpio.PinIO   = allwinner.PE8      //
-	U14_36 gpio.PinIO   = allwinner.PE9      //
-	U14_37 gpio.PinIO   = allwinner.PE10     //
-	U14_38 gpio.PinIO   = allwinner.PE11     //
-	U14_39 pins.Pin     = pins.GROUND        //
-	U14_40 pins.Pin     = pins.GROUND        //
+	U14_1  = pins.GROUND        //
+	U14_2  = pins.V5            // (filtered)
+	U14_3  = allwinner.PG3      // UART1_TX; EINT3
+	U14_4  = allwinner.HP_LEFT  // Headphone left output
+	U14_5  = allwinner.PG4      // UART1_RX; EINT4
+	U14_6  = allwinner.HP_COM   // Headphone amp out
+	U14_7  = allwinner.FEL      // Boot mode selection
+	U14_8  = allwinner.HP_RIGHT // Headphone right output
+	U14_9  = pins.V3_3          //
+	U14_10 = allwinner.MIC_GND  // Microphone ground
+	U14_11 = allwinner.KEY_ADC  // LRADC Low res analog to digital
+	U14_12 = allwinner.MIC_IN   // Microphone input
+	U14_13 = XIO0               // gpio via I²C controller
+	U14_14 = XIO1               // gpio via I²C controller
+	U14_15 = XIO2               // gpio via I²C controller
+	U14_16 = XIO3               // gpio via I²C controller
+	U14_17 = XIO4               // gpio via I²C controller
+	U14_18 = XIO5               // gpio via I²C controller
+	U14_19 = XIO6               // gpio via I²C controller
+	U14_20 = XIO7               // gpio via I²C controller
+	U14_21 = pins.GROUND        //
+	U14_22 = pins.GROUND        //
+	U14_23 = allwinner.PG1      // GPS_CLK; AP-EINT1
+	U14_24 = allwinner.PB3      // IR_TX; AP-EINT3 (EINT17)
+	U14_25 = allwinner.PB18     // I2C2_SDA
+	U14_26 = allwinner.PB17     // I2C2_SCL
+	U14_27 = allwinner.PE0      // CSIPCK: CMOS serial interface; SPI2_CS0; EINT14
+	U14_28 = allwinner.PE1      // CSICK: CMOS serial interface; SPI2_CLK; EINT15
+	U14_29 = allwinner.PE2      // CSIHSYNC; SPI2_MOSI
+	U14_30 = allwinner.PE3      // CSIVSYNC; SPI2_MISO
+	U14_31 = allwinner.PE4      // CSID0
+	U14_32 = allwinner.PE5      // CSID1
+	U14_33 = allwinner.PE6      // CSID2
+	U14_34 = allwinner.PE7      // CSID3
+	U14_35 = allwinner.PE8      // CSID4
+	U14_36 = allwinner.PE9      // CSID5
+	U14_37 = allwinner.PE10     // CSID6; UART1_RX
+	U14_38 = allwinner.PE11     // CSID7; UART1_TX
+	U14_39 = pins.GROUND        //
+	U14_40 = pins.GROUND        //
 )
 
 // Present returns true if running on a NextThing Co's C.H.I.P. board.
@@ -135,6 +132,8 @@ func Present() bool {
 	return strings.Contains(distro.DTModel(), "C.H.I.P")
 }
 
+//
+
 // aliases is a list of aliases for the various gpio pins, this allows users to refer to pins
 // using the documented and labeled names instead of some GPIOnnn name. The map key is the
 // alias and the value is the real pin name.
@@ -148,6 +147,27 @@ var aliases = map[string]string{
 	"XIO-P6": "GPIO1022",
 	"XIO-P7": "GPIO1023",
 	"LCD-D2": "PD2",
+}
+
+func init() {
+	// These are initialized later by the driver.
+	XIO0 = gpio.INVALID
+	XIO1 = gpio.INVALID
+	XIO2 = gpio.INVALID
+	XIO3 = gpio.INVALID
+	XIO4 = gpio.INVALID
+	XIO5 = gpio.INVALID
+	XIO6 = gpio.INVALID
+	XIO7 = gpio.INVALID
+	// These must be reinitialized.
+	U14_13 = XIO0
+	U14_14 = XIO1
+	U14_15 = XIO2
+	U14_16 = XIO3
+	U14_17 = XIO4
+	U14_18 = XIO5
+	U14_19 = XIO6
+	U14_20 = XIO7
 }
 
 // driver implements drivers.Driver.
@@ -187,7 +207,7 @@ func (d *driver) Init() (bool, error) {
 	XIO5 = sysfsPin(1021)
 	XIO6 = sysfsPin(1022)
 	XIO7 = sysfsPin(1023)
-	// Need to set header pins too 'cause XIOn are interfaces, i.e. pointers.
+	// These must be reinitialized.
 	U14_13 = XIO0
 	U14_14 = XIO1
 	U14_15 = XIO2

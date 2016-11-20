@@ -14,7 +14,6 @@ import (
 	"sort"
 
 	"github.com/google/periph/conn/gpio"
-	"github.com/google/periph/conn/pins"
 	"github.com/google/periph/host"
 	"github.com/google/periph/host/headers"
 )
@@ -38,12 +37,8 @@ func printAliases(invalid bool) {
 		if r, ok := p.(gpio.RealPin); ok {
 			p = r.Real()
 		}
-		if invalid || p != pins.INVALID {
-			if p == nil {
-				fmt.Printf("%-*s: INVALID\n", max, name)
-			} else {
-				fmt.Printf("%-*s: %s\n", max, name, p)
-			}
+		if invalid || p.String() != "INVALID" {
+			fmt.Printf("%-*s: %s\n", max, name, p)
 		}
 	}
 }

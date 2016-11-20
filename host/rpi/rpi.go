@@ -47,32 +47,32 @@ var Version int
 //
 // P1 is also known as J8.
 var (
-	P1_1  pins.Pin   = pins.V3_3      // 3.3 volt; max 30mA
-	P1_2  pins.Pin   = pins.V5        // 5 volt (after filtering)
-	P1_3  gpio.PinIO = bcm283x.GPIO2  // High, I2C1_SDA
-	P1_4  pins.Pin   = pins.V5        //
-	P1_5  gpio.PinIO = bcm283x.GPIO3  // High, I2C1_SCL
-	P1_6  pins.Pin   = pins.GROUND    //
-	P1_7  gpio.PinIO = bcm283x.GPIO4  // High, GPCLK0
-	P1_8  gpio.PinIO = bcm283x.GPIO14 // Low,  UART0_TXD, UART1_TXD
-	P1_9  pins.Pin   = pins.GROUND    //
-	P1_10 gpio.PinIO = bcm283x.GPIO15 // Low,  UART0_RXD, UART1_RXD
-	P1_11 gpio.PinIO = bcm283x.GPIO17 // Low,  UART0_RTS, SPI1_CE1, UART1_RTS
-	P1_12 gpio.PinIO = bcm283x.GPIO18 // Low,  PCM_CLK, SPI1_CE0, PWM0_OUT
-	P1_13 gpio.PinIO = bcm283x.GPIO27 // Low,
-	P1_14 pins.Pin   = pins.GROUND    //
-	P1_15 gpio.PinIO = bcm283x.GPIO22 // Low,
-	P1_16 gpio.PinIO = bcm283x.GPIO23 // Low,
-	P1_17 pins.Pin   = pins.V3_3      //
-	P1_18 gpio.PinIO = bcm283x.GPIO24 // Low,
-	P1_19 gpio.PinIO = bcm283x.GPIO10 // Low, SPI0_MOSI
-	P1_20 pins.Pin   = pins.GROUND    //
-	P1_21 gpio.PinIO = bcm283x.GPIO9  // Low, SPI0_MISO
-	P1_22 gpio.PinIO = bcm283x.GPIO25 // Low,
-	P1_23 gpio.PinIO = bcm283x.GPIO11 // Low, SPI0_CLK
-	P1_24 gpio.PinIO = bcm283x.GPIO8  // High, SPI0_CE0
-	P1_25 pins.Pin   = pins.GROUND    //
-	P1_26 gpio.PinIO = bcm283x.GPIO7  // High, SPI0_CE1
+	P1_1  = pins.V3_3      // max 30mA
+	P1_2  = pins.V5        // (filtered)
+	P1_3  = bcm283x.GPIO2  // High, I2C1_SDA
+	P1_4  = pins.V5        //
+	P1_5  = bcm283x.GPIO3  // High, I2C1_SCL
+	P1_6  = pins.GROUND    //
+	P1_7  = bcm283x.GPIO4  // High, GPCLK0
+	P1_8  = bcm283x.GPIO14 // Low,  UART0_TXD, UART1_TXD
+	P1_9  = pins.GROUND    //
+	P1_10 = bcm283x.GPIO15 // Low,  UART0_RXD, UART1_RXD
+	P1_11 = bcm283x.GPIO17 // Low,  UART0_RTS, SPI1_CE1, UART1_RTS
+	P1_12 = bcm283x.GPIO18 // Low,  PCM_CLK, SPI1_CE0, PWM0_OUT
+	P1_13 = bcm283x.GPIO27 // Low,
+	P1_14 = pins.GROUND    //
+	P1_15 = bcm283x.GPIO22 // Low,
+	P1_16 = bcm283x.GPIO23 // Low,
+	P1_17 = pins.V3_3      //
+	P1_18 = bcm283x.GPIO24 // Low,
+	P1_19 = bcm283x.GPIO10 // Low, SPI0_MOSI
+	P1_20 = pins.GROUND    //
+	P1_21 = bcm283x.GPIO9  // Low, SPI0_MISO
+	P1_22 = bcm283x.GPIO25 // Low,
+	P1_23 = bcm283x.GPIO11 // Low, SPI0_CLK
+	P1_24 = bcm283x.GPIO8  // High, SPI0_CE0
+	P1_25 = pins.GROUND    //
+	P1_26 = bcm283x.GPIO7  // High, SPI0_CE1
 
 	// Raspberry Pi 2 and later:
 	P1_27 gpio.PinIO = bcm283x.GPIO0  // High, I2C0_SDA used to probe for HAT EEPROM, see https://github.com/raspberrypi/hats
@@ -100,66 +100,12 @@ var (
 	P5_7 pins.Pin   = pins.GROUND
 	P5_8 pins.Pin   = pins.GROUND
 
-	AUDIO_LEFT          gpio.PinIO = bcm283x.GPIO41 // Low,   PWM1_OUT, SPI2_MOSI, UART1_RXD
-	AUDIO_RIGHT         gpio.PinIO = bcm283x.GPIO40 // Low,   PWM0_OUT, SPI2_MISO, UART1_TXD
-	HDMI_HOTPLUG_DETECT gpio.PinIO = bcm283x.GPIO46 // High,
+	AUDIO_LEFT          = bcm283x.GPIO41 // Low,   PWM1_OUT, SPI2_MOSI, UART1_RXD
+	AUDIO_RIGHT         = bcm283x.GPIO40 // Low,   PWM0_OUT, SPI2_MISO, UART1_TXD
+	HDMI_HOTPLUG_DETECT = bcm283x.GPIO46 // High,
 )
 
 //
-
-func zapPins() {
-	P1_1 = pins.INVALID
-	P1_2 = pins.INVALID
-	P1_3 = gpio.INVALID
-	P1_4 = pins.INVALID
-	P1_5 = gpio.INVALID
-	P1_6 = pins.INVALID
-	P1_7 = gpio.INVALID
-	P1_8 = gpio.INVALID
-	P1_9 = pins.INVALID
-	P1_10 = gpio.INVALID
-	P1_11 = gpio.INVALID
-	P1_12 = gpio.INVALID
-	P1_13 = gpio.INVALID
-	P1_14 = pins.INVALID
-	P1_15 = gpio.INVALID
-	P1_16 = gpio.INVALID
-	P1_17 = pins.INVALID
-	P1_18 = gpio.INVALID
-	P1_19 = gpio.INVALID
-	P1_20 = pins.INVALID
-	P1_21 = gpio.INVALID
-	P1_22 = gpio.INVALID
-	P1_23 = gpio.INVALID
-	P1_24 = gpio.INVALID
-	P1_25 = pins.INVALID
-	P1_26 = gpio.INVALID
-	P1_27 = gpio.INVALID
-	P1_28 = gpio.INVALID
-	P1_29 = gpio.INVALID
-	P1_30 = pins.INVALID
-	P1_31 = gpio.INVALID
-	P1_32 = gpio.INVALID
-	P1_33 = gpio.INVALID
-	P1_34 = pins.INVALID
-	P1_35 = gpio.INVALID
-	P1_36 = gpio.INVALID
-	P1_37 = gpio.INVALID
-	P1_38 = gpio.INVALID
-	P1_39 = pins.INVALID
-	P1_40 = gpio.INVALID
-	P5_1 = pins.INVALID
-	P5_2 = pins.INVALID
-	P5_3 = gpio.INVALID
-	P5_4 = gpio.INVALID
-	P5_5 = gpio.INVALID
-	P5_6 = gpio.INVALID
-	P5_7 = pins.INVALID
-	P5_8 = pins.INVALID
-	AUDIO_LEFT = gpio.INVALID
-	AUDIO_RIGHT = gpio.INVALID
-	HDMI_HOTPLUG_DETECT = gpio.INVALID
-}
 
 // driver implements periph.Driver.
 type driver struct {
@@ -175,7 +121,6 @@ func (d *driver) Prerequisites() []string {
 
 func (d *driver) Init() (bool, error) {
 	if !Present() {
-		zapPins()
 		return false, errors.New("Raspberry Pi board not detected")
 	}
 
@@ -296,8 +241,6 @@ func (d *driver) Init() (bool, error) {
 func init() {
 	if isArm {
 		periph.MustRegister(&driver{})
-	} else {
-		zapPins()
 	}
 }
 
