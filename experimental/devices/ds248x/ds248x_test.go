@@ -58,7 +58,7 @@ func Example() {
 		fmt.Println(err)
 		return
 	}
-	fmt.Printf("Found %d 1-wire devices: ")
+	fmt.Printf("Found %d 1-wire devices: ", len(devices))
 	for _, d := range devices {
 		fmt.Printf(" %#16x", uint64(d))
 	}
