@@ -14,16 +14,18 @@ import (
 	"github.com/google/periph/host/distro"
 )
 
-// Present detects whether we have an Allwinner cpu by looking for one of the more specific
-// models. (There doesn't seem to be a generic way to detect Allwinner cpus.)
+// Present detects whether the host CPU is an Allwinner CPU.
 //
 // https://en.wikipedia.org/wiki/Allwinner_Technology
 func Present() bool {
+	// BUG(maruel): There doesn't seem to be a generic way to detect Allwinner
+	// CPUs.
 	return IsR8() || IsA64()
 }
 
-// IsR8 detects whether we have an Allwinner R8 cpu by looking into the device tree
-// to see whether /proc/device-tree/compatible contains "sun5i-r8".
+// IsR8 detects whether the host CPU is an Allwinner R8 CPU.
+//
+// It looks for the string "sun5i-r8" in /proc/device-tree/compatible.
 func IsR8() bool {
 	if isArm {
 		for _, c := range distro.DTCompatible() {
@@ -35,8 +37,9 @@ func IsR8() bool {
 	return false
 }
 
-// IsA64 detects whether we have an Allwinner A64 cpu by looking into the device tree
-// to see whether /proc/device-tree/compatible contains "sun50iw1p1"
+// IsA64 detects whether the host CPU is an Allwinner A64 CPU.
+//
+// It looks for the string "sun50iw1p1" in /proc/device-tree/compatible.
 func IsA64() bool {
 	if isArm {
 		for _, c := range distro.DTCompatible() {

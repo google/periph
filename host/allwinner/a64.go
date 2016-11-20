@@ -11,19 +11,30 @@ import (
 	"github.com/google/periph/conn/gpio"
 )
 
+// A64 specific pins.
 var (
-	X32KFOUT gpio.PinIO   = &gpio.BasicPin{N: "X32KFOUT"}  // A64 Clock output of 32Khz crystal
-	KEY_ADC  analog.PinIO = &analog.BasicPin{N: "KEY_ADC"} // A64 6 bits resolution ADC for key application; can work up to 250Hz conversion rate; reference voltage is 2.0V
-	EAROUTP  analog.PinIO = &analog.BasicPin{N: "EAROUTP"} // A64 Earpiece amplifier negative differential output
-	EAROUTN  analog.PinIO = &analog.BasicPin{N: "EAROUTN"} // A64 Earpiece amplifier positive differential output
+	X32KFOUT *gpio.BasicPin   // Clock output of 32Khz crystal
+	KEY_ADC  *analog.BasicPin // 6 bits resolution ADC for key application; can work up to 250Hz conversion rate; reference voltage is 2.0V
+	EAROUTP  *analog.BasicPin // Earpiece amplifier negative differential output
+	EAROUTN  *analog.BasicPin // Earpiece amplifier positive differential output
 )
 
-// mappingA64 describes the mapping of each processor pin to its alternate functions. It omits the
-// in & out functions which are available on all pins. The mapping comes from the datasheet
-// page 23:
+//
+
+func init() {
+	X32KFOUT = &gpio.BasicPin{N: "X32KFOUT"}
+	KEY_ADC = &analog.BasicPin{N: "KEY_ADC"}
+	EAROUTP = &analog.BasicPin{N: "EAROUTP"}
+	EAROUTN = &analog.BasicPin{N: "EAROUTN"}
+}
+
+// mappingA64 describes the mapping of each processor pin to its alternate
+// functions. It omits the in & out functions which are available on all pins.
+// The mapping comes from the datasheet page 23:
 // http://files.pine64.org/doc/datasheet/pine64/A64_Datasheet_V1.1.pdf
 //
-// - The datasheet uses TWI instead of I2C but it is renamed here for consistency.
+// - The datasheet uses TWI instead of I2C but it is renamed here for
+//   consistency.
 // - AIF is an audio interface, i.e. to connect to S/PDIF.
 // - RGMII means Reduced gigabit media-independent interface.
 // - SDC means SDCard?

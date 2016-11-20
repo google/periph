@@ -160,7 +160,7 @@ func (d *driver) String() string {
 
 func (d *driver) Prerequisites() []string {
 	// has allwinner cpu, needs sysfs for XIO0-XIO7 "gpio" pins
-	return []string{"allwinner", "sysfs-gpio"}
+	return []string{"allwinner-gpio", "sysfs-gpio"}
 }
 
 func (d *driver) Init() (bool, error) {

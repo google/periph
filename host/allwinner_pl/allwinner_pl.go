@@ -372,7 +372,7 @@ func (d *driverGPIOPL) String() string {
 }
 
 func (d *driverGPIOPL) Prerequisites() []string {
-	return []string{"allwinner"}
+	return []string{"allwinner-gpio"}
 }
 
 func (d *driverGPIOPL) Init() (bool, error) {
