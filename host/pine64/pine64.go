@@ -285,7 +285,7 @@ func (d *driver) String() string {
 }
 
 func (d *driver) Prerequisites() []string {
-	return []string{"allwinner_pl"}
+	return []string{"allwinner-gpio-pl"}
 }
 
 func (d *driver) Init() (bool, error) {
