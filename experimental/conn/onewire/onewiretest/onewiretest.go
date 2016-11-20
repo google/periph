@@ -117,7 +117,7 @@ func (p *Playback) Tx(w, r []byte, pull onewire.Pullup) error {
 		return fmt.Errorf("onewire: unexpected read buffer length %d != %d", len(r), len(p.Ops[0].Read))
 	}
 	if pull != p.Ops[0].Pull {
-		return fmt.Errorf("onewire: unexpected pullup %d != %d", pull, p.Ops[0].Pull)
+		return fmt.Errorf("onewire: unexpected pullup %s != %s", pull, p.Ops[0].Pull)
 	}
 	// Determine whether this starts a search and reset search state.
 	if len(w) > 0 && w[0] == 0xf0 {
