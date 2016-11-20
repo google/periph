@@ -162,6 +162,7 @@ type Pin struct {
 	defaultPull gpio.Pull  // default pull at startup
 	altFunc     [5]string  // alternate functions
 	isOut       bool       // whether the pin is currently an output
+	usingEdge   bool       //
 	edge        *sysfs.Pin // mutable, set once, then never set back to nil
 }
 
@@ -231,8 +232,10 @@ func (p *Pin) Function() string {
 	}
 }
 
-// In sets the pin direction to input and optionally enables a pull-up/down resistor as well as edge
-// detection. Not all pins support edge detection on Allwinner processors!
+// In sets the pin direction to input and optionally enables a pull-up/down
+// resistor as well as edge detection.
+//
+// Not all pins support edge detection on Allwinner processors!
 //
 // Edge detection requires opening a gpio sysfs file handle. The pin will be
 // exported at /sys/class/gpio/gpio*/. Note that the pin will not be unexported
@@ -240,6 +243,14 @@ func (p *Pin) Function() string {
 func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	if gpioMemory == nil {
 		return errors.New("subsystem not initialized")
+	}
+	if edge != gpio.None {
+		switch p.group {
+		case 1, 6, 7:
+			// TODO(maruel): Some pins do not support Alt5 in these groups.
+		default:
+			return errors.New("only groups PB, PG, PH (and PL if available) support edge based triggering")
+		}
 	}
 	if !p.setFunction(in) {
 		return fmt.Errorf("failed to set pin %s as input", p.name)
@@ -257,21 +268,16 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 		default:
 		}
 	}
-	if edge != gpio.None {
-		switch p.group {
-		case 1, 6, 7:
-			// TODO(maruel): Some pins do not support Alt5 in these groups.
-		default:
-			return errors.New("only groups PB, PG, PH (and PL if available) support edge based triggering")
-		}
-		if p.edge == nil {
-			ok := false
-			if p.edge, ok = sysfs.Pins[p.Number()]; !ok {
-				return fmt.Errorf("pin %s is not exported by sysfs", p)
-			}
+	wasUsing := p.usingEdge
+	p.usingEdge = edge != gpio.None
+	if p.usingEdge && p.edge == nil {
+		ok := false
+		if p.edge, ok = sysfs.Pins[p.Number()]; !ok {
+			return fmt.Errorf("pin %s is not exported by sysfs", p)
 		}
 	}
-	if p.edge != nil {
+	if p.usingEdge || wasUsing {
+		// This resets pending edges.
 		if err := p.edge.In(gpio.PullNoChange, edge); err != nil {
 			return err
 		}
@@ -319,6 +325,13 @@ func (p *Pin) Pull() gpio.Pull {
 func (p *Pin) Out(l gpio.Level) error {
 	if gpioMemory == nil {
 		return errors.New("subsystem not initialized")
+	}
+	if p.usingEdge {
+		// First disable edges.
+		if err := p.edge.In(gpio.PullNoChange, gpio.None); err != nil {
+			return err
+		}
+		p.usingEdge = false
 	}
 	if !(p.isOut || p.setFunction(out)) {
 		return fmt.Errorf("failed to set pin %s as output", p.name)

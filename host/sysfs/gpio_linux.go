@@ -9,11 +9,18 @@ import (
 	"syscall"
 )
 
-type event [1]syscall.EpollEvent
+const (
+	epollET       = 1 << 31
+	epollPRI      = 2
+	epoll_CTL_ADD = 1
+	epoll_CTL_DEL = 2
+	epoll_CTL_MOD = 3
+)
 
-func (e event) wait(ep, timeoutms int) (int, error) {
-	// http://man7.org/linux/man-pages/man2/epoll_wait.2.html
-	return syscall.EpollWait(ep, e[:], timeoutms)
+type event struct {
+	event   [1]syscall.EpollEvent
+	epollFd int
+	fd      int
 }
 
 // makeEvent creates an epoll *edge* triggered event.
@@ -33,22 +40,25 @@ func (e event) wait(ep, timeoutms int) (int, error) {
 // behavior and flags: http://man7.org/linux/man-pages/man7/epoll.7.html
 // syscall.EpollCreate: http://man7.org/linux/man-pages/man2/epoll_create.2.html
 // syscall.EpollCtl: http://man7.org/linux/man-pages/man2/epoll_ctl.2.html
-func (e event) makeEvent(f *os.File) (int, error) {
+func (e *event) makeEvent(f *os.File) error {
 	epollFd, err := syscall.EpollCreate(1)
 	if err != nil {
-		return 0, err
+		return err
 	}
+	e.epollFd = epollFd
+	e.fd = int(f.Fd())
 	// EPOLLWAKEUP could be used to force the system to not go do sleep while
 	// waiting for an edge. This is generally a bad idea, as we'd instead have
 	// the system to *wake up* when an edge is triggered. Achieving this is
 	// outside the scope of this interface.
-	const EPOLLPRI = 2
-	const EPOLLET = 1 << 31
-	const EPOLL_CTL_ADD = 1
-	fd := f.Fd()
-	e[0].Events = EPOLLPRI | EPOLLET
-	e[0].Fd = int32(fd)
-	return epollFd, syscall.EpollCtl(epollFd, EPOLL_CTL_ADD, int(fd), &e[0])
+	e.event[0].Events = epollPRI | epollET
+	e.event[0].Fd = int32(e.fd)
+	return syscall.EpollCtl(e.epollFd, epoll_CTL_ADD, e.fd, &e.event[0])
+}
+
+func (e *event) wait(timeoutms int) (int, error) {
+	// http://man7.org/linux/man-pages/man2/epoll_wait.2.html
+	return syscall.EpollWait(e.epollFd, e.event[:], timeoutms)
 }
 
 func isErrBusy(err error) bool {
