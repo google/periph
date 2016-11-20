@@ -47,10 +47,9 @@ func Search(bus BusSearcher, alarmOnly bool) ([]Address, error) {
 		if alarmOnly {
 			cmd = 0xec // alarm search
 		}
-		err := bus.Tx([]byte{cmd}, nil, WeakPullup)
-		// Expect an NoDevicesError if no device is present on the bus and
-		// pass that back.
-		if err != nil {
+		if err := bus.Tx([]byte{cmd}, nil, WeakPullup); err != nil {
+			// Expect an NoDevicesError if no device is present on the bus and
+			// pass that back.
 			return devices, err
 		}
 
@@ -107,8 +106,7 @@ func Search(bus BusSearcher, alarmOnly bool) ([]Address, error) {
 		}
 		devices = append(devices, Address(device))
 		lastDevice = device
-		lastDiscrepancy = discrepancy
-		if lastDiscrepancy == -1 {
+		if lastDiscrepancy = discrepancy; lastDiscrepancy == -1 {
 			return devices, nil // we reached the last device
 		}
 	}

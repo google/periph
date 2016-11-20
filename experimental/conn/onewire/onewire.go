@@ -12,7 +12,7 @@
 //
 // Overview: https://www.maximintegrated.com/en/app-notes/index.mvp/id/1796
 //
-// App notes: https://www.maximintegrated.com/en/design/techdocs/app-notes/index.mvp/id/1/c/1-Wire%26reg%3B%20Devices#c1
+// App notes: https://www.maximintegrated.com/en/design/techdocs/app-notes/index.mvp/id/1/c/1-Wire%26reg%3B%20Devices
 package onewire
 
 import (
@@ -61,13 +61,13 @@ type Bus interface {
 type Address uint64
 
 // Pullup encodes the type of pull-up used at the end of a bus transaction.
-type Pullup int
+type Pullup bool
 
 const (
 	// WeakPullup ends the transaction with weak pull-up
-	WeakPullup Pullup = iota
+	WeakPullup Pullup = false
 	// StrongPullup end the transaction with strong pull-up to power devices
-	StrongPullup
+	StrongPullup Pullup = true
 )
 
 // BusCloser is a 1-wire bus that can be closed.
