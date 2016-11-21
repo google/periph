@@ -15,18 +15,18 @@ func TestDevTx(t *testing.T) {
 	p := Playback{
 		Ops: []IO{
 			{
-				Write: []byte{10, 11},
+				Write: []byte{0x55, 0x28, 0xac, 0x41, 0xe, 0x7, 0x0, 0x0, 0x74, 10, 11},
 				Read:  []byte{12, 13},
 				Pull:  onewire.WeakPullup,
 			},
 			{
-				Write: []byte{20, 21},
+				Write: []byte{0x55, 0x28, 0xac, 0x41, 0xe, 0x7, 0x0, 0x0, 0x74, 20, 21},
 				Read:  []byte{22, 23},
 				Pull:  onewire.StrongPullup,
 			},
 		},
 	}
-	d := onewire.Dev{Bus: &p}
+	d := onewire.Dev{Bus: &p, Addr: 0x740000070e41ac28}
 	buf := []byte{0, 0}
 
 	// Test Tx.
