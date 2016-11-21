@@ -29,11 +29,10 @@ It is as simple as:
 
 ```bash
 go get -u github.com/google/periph/cmd/...
-sudo periph-setup
 ```
 
-`periph-setup` initializes the host to enables as much functionality as
-possible.
+On many platforms, many tools requires running as root (via _sudo_) to have
+access to the necessary CPU GPIO registers or even just kernel exposed APIs.
 
 
 ## Cross-compiling
@@ -57,8 +56,8 @@ It is basically a wrapper around `GOOS=linux GOARCH=arm go build .; scp <exe>
 More often than not on Debian based distros, you may have to run the executable
 as root to be able to access the LEDs, GPIOs and other functionality.
 
-`periph-setup` initializes the host to enables as much functionality as
-possible.  Use `-dry-run` to inspect the modifications that would be done.
+It is possible to change the ACL on the _sysfs files_ via _udev_ rules. The
+actual rules are OS specific.
 
 
 ### Debian
