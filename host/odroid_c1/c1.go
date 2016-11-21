@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/google/periph"
-	"github.com/google/periph/conn/analog"
 	"github.com/google/periph/conn/gpio"
 	"github.com/google/periph/conn/pins"
 	"github.com/google/periph/host/distro"
@@ -20,46 +19,46 @@ import (
 // The J2 header is rPi compatible, except for the two analog pins and the 1.8V
 // output.
 var (
-	J2_1               = pins.V3_3      // 3.3V; max 30mA
-	J2_2               = pins.V5        // 5V (after filtering)
-	J2_3  gpio.PinIO   = gpio.INVALID   // I2C1_SDA
-	J2_4               = pins.V5        // 5V (after filtering)
-	J2_5  gpio.PinIO   = gpio.INVALID   // I2C1_SCL
-	J2_6               = pins.GROUND    //
-	J2_7  gpio.PinIO   = gpio.INVALID   // GPCLK0
-	J2_8  gpio.PinIO   = gpio.INVALID   // UART0_TXD, UART1_TXD
-	J2_9               = pins.GROUND    //
-	J2_10 gpio.PinIO   = gpio.INVALID   // UART0_RXD, UART1_RXD
-	J2_11 gpio.PinIO   = gpio.INVALID   // UART0_RTS, SPI1_CS1, UART1_RTS
-	J2_12 gpio.PinIO   = gpio.INVALID   // PCM_CLK, SPI1_CS0, PWM0_OUT
-	J2_13 gpio.PinIO   = gpio.INVALID   // GPIO116
-	J2_14              = pins.GROUND    //
-	J2_15 gpio.PinIO   = gpio.INVALID   // GPIO115
-	J2_16 gpio.PinIO   = gpio.INVALID   // GPIO104
-	J2_17              = pins.V3_3      //
-	J2_18 gpio.PinIO   = gpio.INVALID   // GPIO102
-	J2_19 gpio.PinIO   = gpio.INVALID   // SPI0_MOSI
-	J2_20              = pins.GROUND    //
-	J2_21 gpio.PinIO   = gpio.INVALID   // SPI0_MISO
-	J2_22 gpio.PinIO   = gpio.INVALID   // GPIO103
-	J2_23 gpio.PinIO   = gpio.INVALID   // SPI0_SCLK
-	J2_24 gpio.PinIO   = gpio.INVALID   // SPI0_CS0
-	J2_25              = pins.GROUND    //
-	J2_26 gpio.PinIO   = gpio.INVALID   // SPI0_CE1
-	J2_27 gpio.PinIO   = gpio.INVALID   // I2C0_SDA
-	J2_28 gpio.PinIO   = gpio.INVALID   // I2C0_SCL
-	J2_29 gpio.PinIO   = gpio.INVALID   // GPCLK1
-	J2_30              = pins.GROUND    //
-	J2_31 gpio.PinIO   = gpio.INVALID   // GPCLK2
-	J2_32 gpio.PinIO   = gpio.INVALID   // PWM0_OUT
-	J2_33 gpio.PinIO   = gpio.INVALID   // PWM1_OUT
-	J2_34              = pins.GROUND    //
-	J2_35 gpio.PinIO   = gpio.INVALID   // PCM_FS, SPI1_MISO, PWM1_OUT
-	J2_36 gpio.PinIO   = gpio.INVALID   // UART0_CTS, SPI1_CE2, UART1_CTS
-	J2_37 analog.PinIO = analog.INVALID // TODO(tve): make this functional
-	J2_38              = pins.V1_8      //
-	J2_39              = pins.GROUND    //
-	J2_40 analog.PinIO = analog.INVALID // TODO(tve): make this functional
+	J2_1             = pins.V3_3    // 3.3V; max 30mA
+	J2_2             = pins.V5      // 5V (after filtering)
+	J2_3  gpio.PinIO = gpio.INVALID // I2C1_SDA
+	J2_4             = pins.V5      // 5V (after filtering)
+	J2_5  gpio.PinIO = gpio.INVALID // I2C1_SCL
+	J2_6             = pins.GROUND  //
+	J2_7  gpio.PinIO = gpio.INVALID // GPCLK0
+	J2_8  gpio.PinIO = gpio.INVALID // UART0_TXD, UART1_TXD
+	J2_9             = pins.GROUND  //
+	J2_10 gpio.PinIO = gpio.INVALID // UART0_RXD, UART1_RXD
+	J2_11 gpio.PinIO = gpio.INVALID // UART0_RTS, SPI1_CS1, UART1_RTS
+	J2_12 gpio.PinIO = gpio.INVALID // PCM_CLK, SPI1_CS0, PWM0_OUT
+	J2_13 gpio.PinIO = gpio.INVALID // GPIO116
+	J2_14            = pins.GROUND  //
+	J2_15 gpio.PinIO = gpio.INVALID // GPIO115
+	J2_16 gpio.PinIO = gpio.INVALID // GPIO104
+	J2_17            = pins.V3_3    //
+	J2_18 gpio.PinIO = gpio.INVALID // GPIO102
+	J2_19 gpio.PinIO = gpio.INVALID // SPI0_MOSI
+	J2_20            = pins.GROUND  //
+	J2_21 gpio.PinIO = gpio.INVALID // SPI0_MISO
+	J2_22 gpio.PinIO = gpio.INVALID // GPIO103
+	J2_23 gpio.PinIO = gpio.INVALID // SPI0_SCLK
+	J2_24 gpio.PinIO = gpio.INVALID // SPI0_CS0
+	J2_25            = pins.GROUND  //
+	J2_26 gpio.PinIO = gpio.INVALID // SPI0_CE1
+	J2_27 gpio.PinIO = gpio.INVALID // I2C0_SDA
+	J2_28 gpio.PinIO = gpio.INVALID // I2C0_SCL
+	J2_29 gpio.PinIO = gpio.INVALID // GPCLK1
+	J2_30            = pins.GROUND  //
+	J2_31 gpio.PinIO = gpio.INVALID // GPCLK2
+	J2_32 gpio.PinIO = gpio.INVALID // PWM0_OUT
+	J2_33 gpio.PinIO = gpio.INVALID // PWM1_OUT
+	J2_34            = pins.GROUND  //
+	J2_35 gpio.PinIO = gpio.INVALID // PCM_FS, SPI1_MISO, PWM1_OUT
+	J2_36 gpio.PinIO = gpio.INVALID // UART0_CTS, SPI1_CE2, UART1_CTS
+	J2_37            = pins.INVALID // BUG(tve): make pins J2_37 and J2_40 functional once analog support is implemented
+	J2_38            = pins.V1_8    //
+	J2_39            = pins.GROUND  //
+	J2_40            = pins.INVALID // See above.
 )
 
 // Present returns true if running on a Hardkernel ODROID-C0/C1/C1+ board.

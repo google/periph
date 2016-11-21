@@ -9,7 +9,6 @@ import (
 	"os"
 
 	"github.com/google/periph"
-	"github.com/google/periph/conn/analog"
 	"github.com/google/periph/conn/gpio"
 	"github.com/google/periph/conn/pins"
 	"github.com/google/periph/host/allwinner"
@@ -155,16 +154,11 @@ var (
 	WIFI_BT_25 = VCC                //
 	WIFI_BT_26 = IOVCC              //
 
-	AUDIO_LEFT  *analog.BasicPin // TODO(maruel): Figure out, is that EAROUT?
-	AUDIO_RIGHT *analog.BasicPin //
+	AUDIO_LEFT  = pins.INVALID // BUG(maruel): Fix once analog is implemented.
+	AUDIO_RIGHT = pins.INVALID //
 )
 
 //
-
-func init() {
-	AUDIO_LEFT = &analog.BasicPin{N: "AUDIO_LEFT"}
-	AUDIO_RIGHT = &analog.BasicPin{N: "AUDIO_RIGHT"}
-}
 
 // driver implements periph.Driver.
 type driver struct {
