@@ -40,6 +40,8 @@ func Example() {
 		fmt.Println(err)
 		return
 	}
+	defer i2cBus.Close()
+
 	// Open the DS248x to get a 1-wire bus.
 	owBus, err := New(i2cBus, nil)
 	if err != nil {
