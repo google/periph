@@ -27,8 +27,7 @@ func TestInit(t *testing.T) {
 	}
 
 	bus := &i2ctest.Playback{Ops: ops}
-	_, err := New(bus, nil)
-	if err != nil {
+	if _, err := New(bus, nil); err != nil {
 		t.Fatal(err)
 	}
 }

@@ -77,12 +77,11 @@ func TestConvertAll(t *testing.T) {
 	// Perform the conversion
 	t0 := time.Now()
 	err := ConvertAll(owBus, 9)
-	dt := time.Since(t0)
 	if err != nil {
 		t.Fatal(err)
 	}
 	// Expect it to take >93ms
-	if dt < 94*time.Millisecond {
+	if dt := time.Since(t0); dt < 94*time.Millisecond {
 		t.Errorf("expected conversion to take >93ms, took %s", dt)
 	}
 }

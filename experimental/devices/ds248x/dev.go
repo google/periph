@@ -39,8 +39,10 @@ func (d *Dev) String() string {
 
 // Tx performs a bus transaction, sending and receiving bytes, and
 // ending by pulling the bus high either weakly or strongly depending
-// on the value of power. A strong pull-up is typically required to
-// power temperature conversion or EEPROM writes.
+// on the value of power.
+//
+// A strong pull-up is typically required to power temperature conversion
+// or EEPROM writes.
 func (d *Dev) Tx(w, r []byte, power onewire.Pullup) error {
 	d.Lock()
 	defer d.Unlock()
