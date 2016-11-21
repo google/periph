@@ -78,7 +78,7 @@ func ConvertAll(o onewire.Bus, maxResolutionBits int) error {
 	if maxResolutionBits < 9 || maxResolutionBits > 12 {
 		return errors.New("ds18b20: invalid maxResolutionBits")
 	}
-	o.Tx([]byte{0x44}, nil, onewire.StrongPullup)
+	o.Tx([]byte{0xcc, 0x44}, nil, onewire.StrongPullup)
 	conversionSleep(maxResolutionBits)
 	return nil
 }

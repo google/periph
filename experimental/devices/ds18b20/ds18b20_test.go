@@ -61,7 +61,29 @@ func TestTemperature(t *testing.T) {
 	}
 	// Expect it to take >187ms
 	if dt < 188*time.Millisecond {
-		t.Errorf("expected conversion to take >187ms, took %dms", dt/time.Millisecond)
+		t.Errorf("expected conversion to take >187ms, took %s", dt)
+	}
+}
+
+// TestConvertAll tests a temperature conversion on all ds18b20 using
+// recorded bus transactions.
+func TestConvertAll(t *testing.T) {
+	// set-up playback using the recording output.
+	ops := []onewiretest.IO{
+		// Skip ROM + Convert
+		{Write: []uint8{0xcc, 0x44}, Read: []uint8(nil), Pull: true},
+	}
+	owBus := &onewiretest.Playback{Ops: ops}
+	// Perform the conversion
+	t0 := time.Now()
+	err := ConvertAll(owBus, 9)
+	dt := time.Since(t0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Expect it to take >93ms
+	if dt < 94*time.Millisecond {
+		t.Errorf("expected conversion to take >93ms, took %s", dt)
 	}
 }
 
