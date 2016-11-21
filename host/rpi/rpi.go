@@ -170,7 +170,7 @@ func (d *driver) String() string {
 }
 
 func (d *driver) Prerequisites() []string {
-	return []string{"bcm283x"}
+	return []string{"bcm283x-gpio"}
 }
 
 func (d *driver) Init() (bool, error) {

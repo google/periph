@@ -22,6 +22,64 @@ import (
 	"github.com/google/periph/host/sysfs"
 )
 
+// All the pins supported by the CPU.
+var (
+	GPIO0  *Pin // I2C0_SDA
+	GPIO1  *Pin // I2C0_SCL
+	GPIO2  *Pin // I2C1_SDA
+	GPIO3  *Pin // I2C1_SCL
+	GPIO4  *Pin // GPCLK0
+	GPIO5  *Pin // GPCLK1
+	GPIO6  *Pin // GPCLK2
+	GPIO7  *Pin // SPI0_CS1
+	GPIO8  *Pin // SPI0_CS0
+	GPIO9  *Pin // SPI0_MISO
+	GPIO10 *Pin // SPI0_MOSI
+	GPIO11 *Pin // SPI0_CLK
+	GPIO12 *Pin // PWM0_OUT
+	GPIO13 *Pin // PWM1_OUT
+	GPIO14 *Pin // UART0_TXD, UART1_TXD
+	GPIO15 *Pin // UART0_RXD, UART1_RXD
+	GPIO16 *Pin // UART0_CTS, SPI1_CS2, UART1_CTS
+	GPIO17 *Pin // UART0_RTS, SPI1_CS1, UART1_RTS
+	GPIO18 *Pin // PCM_CLK, SPI1_CS0, PWM0_OUT
+	GPIO19 *Pin // PCM_FS, SPI1_MISO, PWM1_OUT
+	GPIO20 *Pin // PCM_DIN, SPI1_MOSI, GPCLK0
+	GPIO21 *Pin // PCM_DOUT, SPI1_CLK, GPCLK1
+	GPIO22 *Pin //
+	GPIO23 *Pin //
+	GPIO24 *Pin //
+	GPIO25 *Pin //
+	GPIO26 *Pin //
+	GPIO27 *Pin //
+	GPIO28 *Pin // I2C0_SDA, PCM_CLK
+	GPIO29 *Pin // I2C0_SCL, PCM_FS
+	GPIO30 *Pin // PCM_DIN, UART0_CTS, UART1_CTS
+	GPIO31 *Pin // PCM_DOUT, UART0_RTS, UART1_RTS
+	GPIO32 *Pin // GPCLK0, UART0_TXD, UART1_TXD
+	GPIO33 *Pin // UART0_RXD, UART1_RXD
+	GPIO34 *Pin // GPCLK0
+	GPIO35 *Pin // SPI0_CS1
+	GPIO36 *Pin // SPI0_CS0, UART0_TXD
+	GPIO37 *Pin // SPI0_MISO, UART0_RXD
+	GPIO38 *Pin // SPI0_MOSI, UART0_RTS
+	GPIO39 *Pin // SPI0_CLK, UART0_CTS
+	GPIO40 *Pin // PWM0_OUT, SPI2_MISO, UART1_TXD
+	GPIO41 *Pin // PWM1_OUT, SPI2_MOSI, UART1_RXD
+	GPIO42 *Pin // GPCLK1, SPI2_CLK, UART1_RTS
+	GPIO43 *Pin // GPCLK2, SPI2_CS0, UART1_CTS
+	GPIO44 *Pin // GPCLK1, I2C0_SDA, I2C1_SDA, SPI2_CS1
+	GPIO45 *Pin // PWM1_OUT, I2C0_SCL, I2C1_SCL, SPI2_CS2
+	GPIO46 *Pin //
+	GPIO47 *Pin // SDCard
+	GPIO48 *Pin // SDCard
+	GPIO49 *Pin // SDCard
+	GPIO50 *Pin // SDCard
+	GPIO51 *Pin // SDCard
+	GPIO52 *Pin // SDCard
+	GPIO53 *Pin // SDCard
+)
+
 // Present returns true if running on a Broadcom bcm283x based CPU.
 func Present() bool {
 	if isArm {
@@ -31,217 +89,19 @@ func Present() bool {
 	return false
 }
 
-var functional = map[string]gpio.PinIO{
-	"GPCLK0":    gpio.INVALID,
-	"GPCLK1":    gpio.INVALID,
-	"GPCLK2":    gpio.INVALID,
-	"I2C0_SCL":  gpio.INVALID,
-	"I2C0_SDA":  gpio.INVALID,
-	"I2C1_SCL":  gpio.INVALID,
-	"I2C1_SDA":  gpio.INVALID,
-	"PCM_CLK":   gpio.INVALID,
-	"PCM_FS":    gpio.INVALID,
-	"PCM_DIN":   gpio.INVALID,
-	"PCM_DOUT":  gpio.INVALID,
-	"PWM0_OUT":  gpio.INVALID,
-	"PWM1_OUT":  gpio.INVALID,
-	"SPI0_CS0":  gpio.INVALID,
-	"SPI0_CS1":  gpio.INVALID,
-	"SPI0_CLK":  gpio.INVALID,
-	"SPI0_MISO": gpio.INVALID,
-	"SPI0_MOSI": gpio.INVALID,
-	"SPI1_CS0":  gpio.INVALID,
-	"SPI1_CS1":  gpio.INVALID,
-	"SPI1_CS2":  gpio.INVALID,
-	"SPI1_CLK":  gpio.INVALID,
-	"SPI1_MISO": gpio.INVALID,
-	"SPI1_MOSI": gpio.INVALID,
-	"SPI2_MISO": gpio.INVALID,
-	"SPI2_MOSI": gpio.INVALID,
-	"SPI2_CLK":  gpio.INVALID,
-	"SPI2_CS0":  gpio.INVALID,
-	"SPI2_CS1":  gpio.INVALID,
-	"SPI2_CS2":  gpio.INVALID,
-	"UART0_RXD": gpio.INVALID,
-	"UART0_CTS": gpio.INVALID,
-	"UART1_CTS": gpio.INVALID,
-	"UART0_RTS": gpio.INVALID,
-	"UART1_RTS": gpio.INVALID,
-	"UART0_TXD": gpio.INVALID,
-	"UART1_RXD": gpio.INVALID,
-	"UART1_TXD": gpio.INVALID,
-}
-
 // Pin is a GPIO number (GPIOnn) on BCM238(5|6|7).
 //
 // Pin implements gpio.PinIO.
 type Pin struct {
+	// Immutable.
 	number      int
 	name        string
 	defaultPull gpio.Pull
-	edge        *sysfs.Pin // Mutable, set once, then never set back to nil
-	usingEdge   bool
+
+	// Mutable.
+	edge      *sysfs.Pin // Set once, then never set back to nil.
+	usingEdge bool       // Set when edge detection is enabled.
 }
-
-// Pins is all the pins as supported by the CPU. There is no guarantee that
-// they are actually connected to anything on the board.
-var Pins = [54]Pin{
-	{number: 0, name: "GPIO0", defaultPull: gpio.Up},
-	{number: 1, name: "GPIO1", defaultPull: gpio.Up},
-	{number: 2, name: "GPIO2", defaultPull: gpio.Up},
-	{number: 3, name: "GPIO3", defaultPull: gpio.Up},
-	{number: 4, name: "GPIO4", defaultPull: gpio.Up},
-	{number: 5, name: "GPIO5", defaultPull: gpio.Up},
-	{number: 6, name: "GPIO6", defaultPull: gpio.Up},
-	{number: 7, name: "GPIO7", defaultPull: gpio.Up},
-	{number: 8, name: "GPIO8", defaultPull: gpio.Up},
-	{number: 9, name: "GPIO9", defaultPull: gpio.Down},
-	{number: 10, name: "GPIO10", defaultPull: gpio.Down},
-	{number: 11, name: "GPIO11", defaultPull: gpio.Down},
-	{number: 12, name: "GPIO12", defaultPull: gpio.Down},
-	{number: 13, name: "GPIO13", defaultPull: gpio.Down},
-	{number: 14, name: "GPIO14", defaultPull: gpio.Down},
-	{number: 15, name: "GPIO15", defaultPull: gpio.Down},
-	{number: 16, name: "GPIO16", defaultPull: gpio.Down},
-	{number: 17, name: "GPIO17", defaultPull: gpio.Down},
-	{number: 18, name: "GPIO18", defaultPull: gpio.Down},
-	{number: 19, name: "GPIO19", defaultPull: gpio.Down},
-	{number: 20, name: "GPIO20", defaultPull: gpio.Down},
-	{number: 21, name: "GPIO21", defaultPull: gpio.Down},
-	{number: 22, name: "GPIO22", defaultPull: gpio.Down},
-	{number: 23, name: "GPIO23", defaultPull: gpio.Down},
-	{number: 24, name: "GPIO24", defaultPull: gpio.Down},
-	{number: 25, name: "GPIO25", defaultPull: gpio.Down},
-	{number: 26, name: "GPIO26", defaultPull: gpio.Down},
-	{number: 27, name: "GPIO27", defaultPull: gpio.Down},
-	{number: 28, name: "GPIO28", defaultPull: gpio.Float},
-	{number: 29, name: "GPIO29", defaultPull: gpio.Float},
-	{number: 30, name: "GPIO30", defaultPull: gpio.Down},
-	{number: 31, name: "GPIO31", defaultPull: gpio.Down},
-	{number: 32, name: "GPIO32", defaultPull: gpio.Down},
-	{number: 33, name: "GPIO33", defaultPull: gpio.Down},
-	{number: 34, name: "GPIO34", defaultPull: gpio.Up},
-	{number: 35, name: "GPIO35", defaultPull: gpio.Up},
-	{number: 36, name: "GPIO36", defaultPull: gpio.Up},
-	{number: 37, name: "GPIO37", defaultPull: gpio.Down},
-	{number: 38, name: "GPIO38", defaultPull: gpio.Down},
-	{number: 39, name: "GPIO39", defaultPull: gpio.Down},
-	{number: 40, name: "GPIO40", defaultPull: gpio.Down},
-	{number: 41, name: "GPIO41", defaultPull: gpio.Down},
-	{number: 42, name: "GPIO42", defaultPull: gpio.Down},
-	{number: 43, name: "GPIO43", defaultPull: gpio.Down},
-	{number: 44, name: "GPIO44", defaultPull: gpio.Float},
-	{number: 45, name: "GPIO45", defaultPull: gpio.Float},
-	{number: 46, name: "GPIO46", defaultPull: gpio.Up},
-	{number: 47, name: "GPIO47", defaultPull: gpio.Up},
-	{number: 48, name: "GPIO48", defaultPull: gpio.Up},
-	{number: 49, name: "GPIO49", defaultPull: gpio.Up},
-	{number: 50, name: "GPIO50", defaultPull: gpio.Up},
-	{number: 51, name: "GPIO51", defaultPull: gpio.Up},
-	{number: 52, name: "GPIO52", defaultPull: gpio.Up},
-	{number: 53, name: "GPIO53", defaultPull: gpio.Up},
-}
-
-// All the pins supported by the CPU.
-var (
-	GPIO0  *Pin = &Pins[0]  // I2C0_SDA
-	GPIO1  *Pin = &Pins[1]  // I2C0_SCL
-	GPIO2  *Pin = &Pins[2]  // I2C1_SDA
-	GPIO3  *Pin = &Pins[3]  // I2C1_SCL
-	GPIO4  *Pin = &Pins[4]  // GPCLK0
-	GPIO5  *Pin = &Pins[5]  // GPCLK1
-	GPIO6  *Pin = &Pins[6]  // GPCLK2
-	GPIO7  *Pin = &Pins[7]  // SPI0_CS1
-	GPIO8  *Pin = &Pins[8]  // SPI0_CS0
-	GPIO9  *Pin = &Pins[9]  // SPI0_MISO
-	GPIO10 *Pin = &Pins[10] // SPI0_MOSI
-	GPIO11 *Pin = &Pins[11] // SPI0_CLK
-	GPIO12 *Pin = &Pins[12] // PWM0_OUT
-	GPIO13 *Pin = &Pins[13] // PWM1_OUT
-	GPIO14 *Pin = &Pins[14] // UART0_TXD, UART1_TXD
-	GPIO15 *Pin = &Pins[15] // UART0_RXD, UART1_RXD
-	GPIO16 *Pin = &Pins[16] // UART0_CTS, SPI1_CS2, UART1_CTS
-	GPIO17 *Pin = &Pins[17] // UART0_RTS, SPI1_CS1, UART1_RTS
-	GPIO18 *Pin = &Pins[18] // PCM_CLK, SPI1_CS0, PWM0_OUT
-	GPIO19 *Pin = &Pins[19] // PCM_FS, SPI1_MISO, PWM1_OUT
-	GPIO20 *Pin = &Pins[20] // PCM_DIN, SPI1_MOSI, GPCLK0
-	GPIO21 *Pin = &Pins[21] // PCM_DOUT, SPI1_CLK, GPCLK1
-	GPIO22 *Pin = &Pins[22] //
-	GPIO23 *Pin = &Pins[23] //
-	GPIO24 *Pin = &Pins[24] //
-	GPIO25 *Pin = &Pins[25] //
-	GPIO26 *Pin = &Pins[26] //
-	GPIO27 *Pin = &Pins[27] //
-	GPIO28 *Pin = &Pins[28] // I2C0_SDA, PCM_CLK
-	GPIO29 *Pin = &Pins[29] // I2C0_SCL, PCM_FS
-	GPIO30 *Pin = &Pins[30] // PCM_DIN, UART0_CTS, UART1_CTS
-	GPIO31 *Pin = &Pins[31] // PCM_DOUT, UART0_RTS, UART1_RTS
-	GPIO32 *Pin = &Pins[32] // GPCLK0, UART0_TXD, UART1_TXD
-	GPIO33 *Pin = &Pins[33] // UART0_RXD, UART1_RXD
-	GPIO34 *Pin = &Pins[34] // GPCLK0
-	GPIO35 *Pin = &Pins[35] // SPI0_CS1
-	GPIO36 *Pin = &Pins[36] // SPI0_CS0, UART0_TXD
-	GPIO37 *Pin = &Pins[37] // SPI0_MISO, UART0_RXD
-	GPIO38 *Pin = &Pins[38] // SPI0_MOSI, UART0_RTS
-	GPIO39 *Pin = &Pins[39] // SPI0_CLK, UART0_CTS
-	GPIO40 *Pin = &Pins[40] // PWM0_OUT, SPI2_MISO, UART1_TXD
-	GPIO41 *Pin = &Pins[41] // PWM1_OUT, SPI2_MOSI, UART1_RXD
-	GPIO42 *Pin = &Pins[42] // GPCLK1, SPI2_CLK, UART1_RTS
-	GPIO43 *Pin = &Pins[43] // GPCLK2, SPI2_CS0, UART1_CTS
-	GPIO44 *Pin = &Pins[44] // GPCLK1, I2C0_SDA, I2C1_SDA, SPI2_CS1
-	GPIO45 *Pin = &Pins[45] // PWM1_OUT, I2C0_SCL, I2C1_SCL, SPI2_CS2
-	GPIO46 *Pin = &Pins[46] //
-	GPIO47 *Pin = &Pins[47] // SDCard
-	GPIO48 *Pin = &Pins[48] // SDCard
-	GPIO49 *Pin = &Pins[49] // SDCard
-	GPIO50 *Pin = &Pins[50] // SDCard
-	GPIO51 *Pin = &Pins[51] // SDCard
-	GPIO52 *Pin = &Pins[52] // SDCard
-	GPIO53 *Pin = &Pins[53] // SDCard
-)
-
-// Special functions that can be assigned to a GPIO. The values are probed and
-// set at runtime. Changing the value of the variables has no effect.
-var (
-	GPCLK0    gpio.PinIO = gpio.INVALID // GPIO4, GPIO20, GPIO32, GPIO34 (also named GPIO_GCLK)
-	GPCLK1    gpio.PinIO = gpio.INVALID // GPIO5, GPIO21, GPIO42, GPIO44
-	GPCLK2    gpio.PinIO = gpio.INVALID // GPIO6, GPIO43
-	I2C0_SCL  gpio.PinIO = gpio.INVALID // GPIO1, GPIO29, GPIO45
-	I2C0_SDA  gpio.PinIO = gpio.INVALID // GPIO0, GPIO28, GPIO44
-	I2C1_SCL  gpio.PinIO = gpio.INVALID // GPIO3, GPIO45
-	I2C1_SDA  gpio.PinIO = gpio.INVALID // GPIO2, GPIO44
-	PCM_CLK   gpio.PinIO = gpio.INVALID // GPIO18, GPIO28 (I2S)
-	PCM_FS    gpio.PinIO = gpio.INVALID // GPIO19, GPIO29
-	PCM_DIN   gpio.PinIO = gpio.INVALID // GPIO20, GPIO30
-	PCM_DOUT  gpio.PinIO = gpio.INVALID // GPIO21, GPIO31
-	PWM0_OUT  gpio.PinIO = gpio.INVALID // GPIO12, GPIO18, GPIO40
-	PWM1_OUT  gpio.PinIO = gpio.INVALID // GPIO13, GPIO19, GPIO41, GPIO45
-	SPI0_CS0  gpio.PinIO = gpio.INVALID // GPIO8,  GPIO36
-	SPI0_CS1  gpio.PinIO = gpio.INVALID // GPIO7,  GPIO35
-	SPI0_CLK  gpio.PinIO = gpio.INVALID // GPIO11, GPIO39
-	SPI0_MISO gpio.PinIO = gpio.INVALID // GPIO9,  GPIO37
-	SPI0_MOSI gpio.PinIO = gpio.INVALID // GPIO10, GPIO38
-	SPI1_CS0  gpio.PinIO = gpio.INVALID // GPIO18
-	SPI1_CS1  gpio.PinIO = gpio.INVALID // GPIO17
-	SPI1_CS2  gpio.PinIO = gpio.INVALID // GPIO16
-	SPI1_CLK  gpio.PinIO = gpio.INVALID // GPIO21
-	SPI1_MISO gpio.PinIO = gpio.INVALID // GPIO19
-	SPI1_MOSI gpio.PinIO = gpio.INVALID // GPIO20
-	SPI2_MISO gpio.PinIO = gpio.INVALID // GPIO40
-	SPI2_MOSI gpio.PinIO = gpio.INVALID // GPIO41
-	SPI2_CLK  gpio.PinIO = gpio.INVALID // GPIO42
-	SPI2_CS0  gpio.PinIO = gpio.INVALID // GPIO43
-	SPI2_CS1  gpio.PinIO = gpio.INVALID // GPIO44
-	SPI2_CS2  gpio.PinIO = gpio.INVALID // GPIO45
-	UART0_CTS gpio.PinIO = gpio.INVALID // GPIO16, GPIO30, GPIO39
-	UART0_RTS gpio.PinIO = gpio.INVALID // GPIO17, GPIO31, GPIO38
-	UART0_RXD gpio.PinIO = gpio.INVALID // GPIO15, GPIO33, GPIO37
-	UART0_TXD gpio.PinIO = gpio.INVALID // GPIO14, GPIO32, GPIO36
-	UART1_CTS gpio.PinIO = gpio.INVALID // GPIO16, GPIO30
-	UART1_RTS gpio.PinIO = gpio.INVALID // GPIO17, GPIO31
-	UART1_RXD gpio.PinIO = gpio.INVALID // GPIO15, GPIO33, GPIO41
-	UART1_TXD gpio.PinIO = gpio.INVALID // GPIO14, GPIO32, GPIO40
-)
 
 // PinIO implementation.
 
@@ -325,10 +185,10 @@ func (p *Pin) Function() string {
 // glitches. Because gpio sysfs is used, the latency is unpredictable.
 func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	if gpioMemory == nil {
-		return errors.New("subsystem not initialized")
+		return p.wrap(errors.New("subsystem not initialized"))
 	}
 	if !p.setFunction(in) {
-		return errors.New("failed to change pin mode")
+		return p.wrap(errors.New("failed to set pin as input"))
 	}
 	if pull != gpio.PullNoChange {
 		// Changing pull resistor requires a specific dance as described at
@@ -359,15 +219,16 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	if p.usingEdge {
 		if p.edge == nil {
 			ok := false
-			if p.edge, ok = sysfs.Pins[p.Number()]; !ok {
-				return fmt.Errorf("pin %s is not exported by sysfs", p)
+			n := p.Number()
+			if p.edge, ok = sysfs.Pins[n]; !ok {
+				return p.wrap(fmt.Errorf("pin %d is not exported by sysfs", n))
 			}
 		}
 	}
 	if p.usingEdge || wasUsing {
 		// This resets pending edges.
 		if err := p.edge.In(gpio.PullNoChange, edge); err != nil {
-			return err
+			return p.wrap(err)
 		}
 	}
 	return nil
@@ -377,6 +238,9 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 //
 // This function is very fast. It works even if the pin is set as output.
 func (p *Pin) Read() gpio.Level {
+	if gpioMemory == nil {
+		return gpio.Low
+	}
 	return gpio.Level((gpioMemory.level[p.number/32] & (1 << uint(p.number&31))) != 0)
 }
 
@@ -402,12 +266,12 @@ func (p *Pin) Pull() gpio.Pull {
 // Fails if requesting to change a pin that is set to special functionality.
 func (p *Pin) Out(l gpio.Level) error {
 	if gpioMemory == nil {
-		return errors.New("subsystem not initialized")
+		return p.wrap(errors.New("subsystem not initialized"))
 	}
 	if p.usingEdge {
 		// First disable edges.
 		if err := p.edge.In(gpio.PullNoChange, gpio.None); err != nil {
-			return err
+			return p.wrap(err)
 		}
 		p.usingEdge = false
 	}
@@ -419,14 +283,14 @@ func (p *Pin) Out(l gpio.Level) error {
 		gpioMemory.outputSet[offset] = 1 << uint(p.number&31)
 	}
 	if !p.setFunction(out) {
-		return errors.New("failed to change pin mode")
+		return p.wrap(errors.New("failed to set pin as output"))
 	}
 	return nil
 }
 
 // PWM implements gpio.PinOut.
 func (p *Pin) PWM(duty int) error {
-	return errors.New("pwm is not supported")
+	return p.wrap(errors.New("pwm is not supported"))
 }
 
 // Special functionality.
@@ -464,11 +328,11 @@ func (p *Pin) setFunction(f function) bool {
 	return true
 }
 
-//
+func (p *Pin) wrap(err error) error {
+	return fmt.Errorf("bcm283x-gpio (%s): %v", p, err)
+}
 
-// function specifies the active functionality of a pin. The alternative
-// function is GPIO pin dependent.
-type function uint8
+//
 
 // Each pin can have one of 7 functions.
 const (
@@ -481,6 +345,121 @@ const (
 	alt4 function = 3
 	alt5 function = 2
 )
+
+var gpioMemory *gpioMap
+
+// cpuPins is all the pins as supported by the CPU. There is no guarantee that
+// they are actually connected to anything on the board.
+var cpuPins = [54]Pin{
+	{number: 0, name: "GPIO0", defaultPull: gpio.Up},
+	{number: 1, name: "GPIO1", defaultPull: gpio.Up},
+	{number: 2, name: "GPIO2", defaultPull: gpio.Up},
+	{number: 3, name: "GPIO3", defaultPull: gpio.Up},
+	{number: 4, name: "GPIO4", defaultPull: gpio.Up},
+	{number: 5, name: "GPIO5", defaultPull: gpio.Up},
+	{number: 6, name: "GPIO6", defaultPull: gpio.Up},
+	{number: 7, name: "GPIO7", defaultPull: gpio.Up},
+	{number: 8, name: "GPIO8", defaultPull: gpio.Up},
+	{number: 9, name: "GPIO9", defaultPull: gpio.Down},
+	{number: 10, name: "GPIO10", defaultPull: gpio.Down},
+	{number: 11, name: "GPIO11", defaultPull: gpio.Down},
+	{number: 12, name: "GPIO12", defaultPull: gpio.Down},
+	{number: 13, name: "GPIO13", defaultPull: gpio.Down},
+	{number: 14, name: "GPIO14", defaultPull: gpio.Down},
+	{number: 15, name: "GPIO15", defaultPull: gpio.Down},
+	{number: 16, name: "GPIO16", defaultPull: gpio.Down},
+	{number: 17, name: "GPIO17", defaultPull: gpio.Down},
+	{number: 18, name: "GPIO18", defaultPull: gpio.Down},
+	{number: 19, name: "GPIO19", defaultPull: gpio.Down},
+	{number: 20, name: "GPIO20", defaultPull: gpio.Down},
+	{number: 21, name: "GPIO21", defaultPull: gpio.Down},
+	{number: 22, name: "GPIO22", defaultPull: gpio.Down},
+	{number: 23, name: "GPIO23", defaultPull: gpio.Down},
+	{number: 24, name: "GPIO24", defaultPull: gpio.Down},
+	{number: 25, name: "GPIO25", defaultPull: gpio.Down},
+	{number: 26, name: "GPIO26", defaultPull: gpio.Down},
+	{number: 27, name: "GPIO27", defaultPull: gpio.Down},
+	{number: 28, name: "GPIO28", defaultPull: gpio.Float},
+	{number: 29, name: "GPIO29", defaultPull: gpio.Float},
+	{number: 30, name: "GPIO30", defaultPull: gpio.Down},
+	{number: 31, name: "GPIO31", defaultPull: gpio.Down},
+	{number: 32, name: "GPIO32", defaultPull: gpio.Down},
+	{number: 33, name: "GPIO33", defaultPull: gpio.Down},
+	{number: 34, name: "GPIO34", defaultPull: gpio.Up},
+	{number: 35, name: "GPIO35", defaultPull: gpio.Up},
+	{number: 36, name: "GPIO36", defaultPull: gpio.Up},
+	{number: 37, name: "GPIO37", defaultPull: gpio.Down},
+	{number: 38, name: "GPIO38", defaultPull: gpio.Down},
+	{number: 39, name: "GPIO39", defaultPull: gpio.Down},
+	{number: 40, name: "GPIO40", defaultPull: gpio.Down},
+	{number: 41, name: "GPIO41", defaultPull: gpio.Down},
+	{number: 42, name: "GPIO42", defaultPull: gpio.Down},
+	{number: 43, name: "GPIO43", defaultPull: gpio.Down},
+	{number: 44, name: "GPIO44", defaultPull: gpio.Float},
+	{number: 45, name: "GPIO45", defaultPull: gpio.Float},
+	{number: 46, name: "GPIO46", defaultPull: gpio.Up},
+	{number: 47, name: "GPIO47", defaultPull: gpio.Up},
+	{number: 48, name: "GPIO48", defaultPull: gpio.Up},
+	{number: 49, name: "GPIO49", defaultPull: gpio.Up},
+	{number: 50, name: "GPIO50", defaultPull: gpio.Up},
+	{number: 51, name: "GPIO51", defaultPull: gpio.Up},
+	{number: 52, name: "GPIO52", defaultPull: gpio.Up},
+	{number: 53, name: "GPIO53", defaultPull: gpio.Up},
+}
+
+// This excludes the functions in and out.
+var mapping = [54][6]string{
+	{"I2C0_SDA"}, // 0
+	{"I2C0_SCL"},
+	{"I2C1_SDA"},
+	{"I2C1_SCL"},
+	{"GPCLK0"},
+	{"GPCLK1"},
+	{"GPCLK2"},
+	{"SPI0_CS1"},
+	{"SPI0_CS0"},
+	{"SPI0_MISO"},
+	{"SPI0_MOSI"}, // 10
+	{"SPI0_CLK"},
+	{"PWM0_OUT"},
+	{"PWM1_OUT"},
+	{"UART0_TXD", "", "", "", "", "UART1_TXD"},
+	{"UART0_RXD", "", "", "", "", "UART1_RXD"},
+	{"", "", "", "UART0_CTS", "SPI1_CS2", "UART1_CTS"},
+	{"", "", "", "UART0_RTS", "SPI1_CS1", "UART1_RTS"},
+	{"PCM_CLK", "", "", "", "SPI1_CS0", "PWM0_OUT"},
+	{"PCM_FS", "", "", "", "SPI1_MISO", "PWM1_OUT"},
+	{"PCM_DIN", "", "", "", "SPI1_MOSI", "GPCLK0"}, // 20
+	{"PCM_DOUT", "", "", "", "SPI1_CLK", "GPCLK1"},
+	{},
+	{},
+	{},
+	{},
+	{},
+	{},
+	{"I2C0_SDA", "", "PCM_CLK", "", "", ""},
+	{"I2C0_SCL", "", "PCM_FS", "", "", ""},
+	{"", "", "PCM_DIN", "UART0_CTS", "", "UART1_CTS"}, // 30
+	{"", "", "PCM_DOUT", "UART0_RTS", "", "UART1_RTS"},
+	{"GPCLK0", "", "", "UART0_TXD", "", "UART1_TXD"},
+	{"", "", "", "UART0_RXD", "", "UART1_RXD"},
+	{"GPCLK0"},
+	{"SPI0_CS1"},
+	{"SPI0_CS0", "", "UART0_TXD", "", "", ""},
+	{"SPI0_MISO", "", "UART0_RXD", "", "", ""},
+	{"SPI0_MOSI", "", "UART0_RTS", "", "", ""},
+	{"SPI0_CLK", "", "UART0_CTS", "", "", ""},
+	{"PWM0_OUT", "", "", "", "SPI2_MISO", "UART1_TXD"}, // 40
+	{"PWM1_OUT", "", "", "", "SPI2_MOSI", "UART1_RXD"},
+	{"GPCLK1", "", "", "", "SPI2_CLK", "UART1_RTS"},
+	{"GPCLK2", "", "", "", "SPI2_CS0", "UART1_CTS"},
+	{"GPCLK1", "I2C0_SDA", "I2C1_SDA", "", "SPI2_CS1", ""},
+	{"PWM1_OUT", "I2C0_SCL", "I2C1_SCL", "", "SPI2_CS2", ""},
+}
+
+// function specifies the active functionality of a pin. The alternative
+// function is GPIO pin dependent.
+type function uint8
 
 // Mapping as
 // https://www.raspberrypi.org/wp-content/uploads/2012/02/BCM2835-ARM-Peripherals.pdf
@@ -555,7 +534,62 @@ type gpioMap struct {
 	// 0xB0    -    Test (byte)
 }
 
-var gpioMemory *gpioMap
+func init() {
+	GPIO0 = &cpuPins[0]
+	GPIO1 = &cpuPins[1]
+	GPIO2 = &cpuPins[2]
+	GPIO3 = &cpuPins[3]
+	GPIO4 = &cpuPins[4]
+	GPIO5 = &cpuPins[5]
+	GPIO6 = &cpuPins[6]
+	GPIO7 = &cpuPins[7]
+	GPIO8 = &cpuPins[8]
+	GPIO9 = &cpuPins[9]
+	GPIO10 = &cpuPins[10]
+	GPIO11 = &cpuPins[11]
+	GPIO12 = &cpuPins[12]
+	GPIO13 = &cpuPins[13]
+	GPIO14 = &cpuPins[14]
+	GPIO15 = &cpuPins[15]
+	GPIO16 = &cpuPins[16]
+	GPIO17 = &cpuPins[17]
+	GPIO18 = &cpuPins[18]
+	GPIO19 = &cpuPins[19]
+	GPIO20 = &cpuPins[20]
+	GPIO21 = &cpuPins[21]
+	GPIO22 = &cpuPins[22]
+	GPIO23 = &cpuPins[23]
+	GPIO24 = &cpuPins[24]
+	GPIO25 = &cpuPins[25]
+	GPIO26 = &cpuPins[26]
+	GPIO27 = &cpuPins[27]
+	GPIO28 = &cpuPins[28]
+	GPIO29 = &cpuPins[29]
+	GPIO30 = &cpuPins[30]
+	GPIO31 = &cpuPins[31]
+	GPIO32 = &cpuPins[32]
+	GPIO33 = &cpuPins[33]
+	GPIO34 = &cpuPins[34]
+	GPIO35 = &cpuPins[35]
+	GPIO36 = &cpuPins[36]
+	GPIO37 = &cpuPins[37]
+	GPIO38 = &cpuPins[38]
+	GPIO39 = &cpuPins[39]
+	GPIO40 = &cpuPins[40]
+	GPIO41 = &cpuPins[41]
+	GPIO42 = &cpuPins[42]
+	GPIO43 = &cpuPins[43]
+	GPIO44 = &cpuPins[44]
+	GPIO45 = &cpuPins[45]
+	GPIO46 = &cpuPins[46]
+	GPIO47 = &cpuPins[47]
+	GPIO48 = &cpuPins[48]
+	GPIO49 = &cpuPins[49]
+	GPIO50 = &cpuPins[50]
+	GPIO51 = &cpuPins[51]
+	GPIO52 = &cpuPins[52]
+	GPIO53 = &cpuPins[53]
+}
 
 // Changing pull resistor require a 150 cycles sleep.
 //
@@ -572,112 +606,6 @@ func sleep150cycles() uint32 {
 		out += gpioMemory.functionSelect[0]
 	}
 	return out
-}
-
-func setIfAlt0(p *Pin, special *gpio.PinIO) {
-	if p.function() == alt0 {
-		if (*special).String() != "INVALID" {
-			//fmt.Printf("%s and %s have same functionality\n", p, *special)
-		}
-		*special = p
-	}
-}
-
-func setIfAlt(p *Pin, special0 *gpio.PinIO, special1 *gpio.PinIO, special2 *gpio.PinIO, special3 *gpio.PinIO, special4 *gpio.PinIO, special5 *gpio.PinIO) {
-	switch p.function() {
-	case alt0:
-		if special0 != nil {
-			if (*special0).String() != "INVALID" {
-				//fmt.Printf("%s and %s have same functionality\n", p, *special0)
-			}
-			*special0 = p
-		}
-	case alt1:
-		if special1 != nil {
-			if (*special1).String() != "INVALID" {
-				//fmt.Printf("%s and %s have same functionality\n", p, *special1)
-			}
-			*special1 = p
-		}
-	case alt2:
-		if special2 != nil {
-			if (*special2).String() != "INVALID" {
-				//log.Printf("%s and %s have same functionality\n", p, *special2)
-			}
-			*special2 = p
-		}
-	case alt3:
-		if special3 != nil {
-			if (*special3).String() != "INVALID" {
-				//log.Printf("%s and %s have same functionality\n", p, *special3)
-			}
-			*special3 = p
-		}
-	case alt4:
-		if special4 != nil {
-			if (*special4).String() != "INVALID" {
-				//log.Printf("%s and %s have same functionality\n", p, *special4)
-			}
-			*special4 = p
-		}
-	case alt5:
-		if special5 != nil {
-			if (*special5).String() != "INVALID" {
-				//log.Printf("%s and %s have same functionality\n", p, *special5)
-			}
-			*special5 = p
-		}
-	}
-}
-
-// This excludes the functions in and out.
-var mapping = [54][6]string{
-	{"I2C0_SDA"}, // 0
-	{"I2C0_SCL"},
-	{"I2C1_SDA"},
-	{"I2C1_SCL"},
-	{"GPCLK0"},
-	{"GPCLK1"},
-	{"GPCLK2"},
-	{"SPI0_CS1"},
-	{"SPI0_CS0"},
-	{"SPI0_MISO"},
-	{"SPI0_MOSI"}, // 10
-	{"SPI0_CLK"},
-	{"PWM0_OUT"},
-	{"PWM1_OUT"},
-	{"UART0_TXD", "", "", "", "", "UART1_TXD"},
-	{"UART0_RXD", "", "", "", "", "UART1_RXD"},
-	{"", "", "", "UART0_CTS", "SPI1_CS2", "UART1_CTS"},
-	{"", "", "", "UART0_RTS", "SPI1_CS1", "UART1_RTS"},
-	{"PCM_CLK", "", "", "", "SPI1_CS0", "PWM0_OUT"},
-	{"PCM_FS", "", "", "", "SPI1_MISO", "PWM1_OUT"},
-	{"PCM_DIN", "", "", "", "SPI1_MOSI", "GPCLK0"}, // 20
-	{"PCM_DOUT", "", "", "", "SPI1_CLK", "GPCLK1"},
-	{},
-	{},
-	{},
-	{},
-	{},
-	{},
-	{"I2C0_SDA", "", "PCM_CLK", "", "", ""},
-	{"I2C0_SCL", "", "PCM_FS", "", "", ""},
-	{"", "", "PCM_DIN", "UART0_CTS", "", "UART1_CTS"}, // 30
-	{"", "", "PCM_DOUT", "UART0_RTS", "", "UART1_RTS"},
-	{"GPCLK0", "", "", "UART0_TXD", "", "UART1_TXD"},
-	{"", "", "", "UART0_RXD", "", "UART1_RXD"},
-	{"GPCLK0"},
-	{"SPI0_CS1"},
-	{"SPI0_CS0", "", "UART0_TXD", "", "", ""},
-	{"SPI0_MISO", "", "UART0_RXD", "", "", ""},
-	{"SPI0_MOSI", "", "UART0_RTS", "", "", ""},
-	{"SPI0_CLK", "", "UART0_CTS", "", "", ""},
-	{"PWM0_OUT", "", "", "", "SPI2_MISO", "UART1_TXD"}, // 40
-	{"PWM1_OUT", "", "", "", "SPI2_MOSI", "UART1_RXD"},
-	{"GPCLK1", "", "", "", "SPI2_CLK", "UART1_RTS"},
-	{"GPCLK2", "", "", "", "SPI2_CS0", "UART1_CTS"},
-	{"GPCLK1", "I2C0_SDA", "I2C1_SDA", "", "SPI2_CS1", ""},
-	{"PWM1_OUT", "I2C0_SCL", "I2C1_SCL", "", "SPI2_CS2", ""},
 }
 
 // getBaseAddress queries the virtual file system to retrieve the base address
@@ -702,19 +630,19 @@ func getBaseAddress() uint64 {
 	return 0x3F200000
 }
 
-// driver implements periph.Driver.
-type driver struct {
+// driverGPIO implements periph.Driver.
+type driverGPIO struct {
 }
 
-func (d *driver) String() string {
-	return "bcm283x"
+func (d *driverGPIO) String() string {
+	return "bcm283x-gpio"
 }
 
-func (d *driver) Prerequisites() []string {
+func (d *driverGPIO) Prerequisites() []string {
 	return nil
 }
 
-func (d *driver) Init() (bool, error) {
+func (d *driverGPIO) Init() (bool, error) {
 	if !Present() {
 		return false, errors.New("bcm283x CPU not detected")
 	}
@@ -742,66 +670,18 @@ func (d *driver) Init() (bool, error) {
 		return true, err
 	}
 
-	// https://www.raspberrypi.org/wp-content/uploads/2012/02/BCM2835-ARM-Peripherals.pdf
-	// Page 102.
-	setIfAlt0(GPIO0, &I2C0_SDA)
-	setIfAlt0(GPIO1, &I2C0_SCL)
-	setIfAlt0(GPIO2, &I2C1_SDA)
-	setIfAlt0(GPIO3, &I2C1_SCL)
-	setIfAlt0(GPIO4, &GPCLK0)
-	setIfAlt0(GPIO5, &GPCLK1)
-	setIfAlt0(GPIO6, &GPCLK2)
-	setIfAlt0(GPIO7, &SPI0_CS1)
-	setIfAlt0(GPIO8, &SPI0_CS0)
-	setIfAlt0(GPIO9, &SPI0_MISO)
-	setIfAlt0(GPIO10, &SPI0_MOSI)
-	setIfAlt0(GPIO11, &SPI0_CLK)
-	setIfAlt0(GPIO12, &PWM0_OUT)
-	setIfAlt0(GPIO13, &PWM1_OUT)
-	setIfAlt(GPIO14, &UART0_TXD, nil, nil, nil, nil, &UART1_TXD)
-	setIfAlt(GPIO15, &UART0_RXD, nil, nil, nil, nil, &UART1_RXD)
-	setIfAlt(GPIO16, nil, nil, nil, &UART0_CTS, &SPI1_CS2, &UART1_CTS)
-	setIfAlt(GPIO17, nil, nil, nil, &UART0_RTS, &SPI1_CS1, &UART1_RTS)
-	setIfAlt(GPIO18, &PCM_CLK, nil, nil, nil, &SPI1_CS0, &PWM0_OUT)
-	setIfAlt(GPIO19, &PCM_FS, nil, nil, nil, &SPI1_MISO, &PWM1_OUT)
-	setIfAlt(GPIO20, &PCM_DIN, nil, nil, nil, &SPI1_MOSI, &GPCLK0)
-	setIfAlt(GPIO21, &PCM_DOUT, nil, nil, nil, &SPI1_CLK, &GPCLK1)
-	// GPIO22-GPIO27 do not have interesting alternate function.
-	setIfAlt(GPIO28, &I2C0_SDA, nil, &PCM_CLK, nil, nil, nil)
-	setIfAlt(GPIO29, &I2C0_SCL, nil, &PCM_FS, nil, nil, nil)
-	setIfAlt(GPIO30, nil, nil, &PCM_DIN, &UART0_CTS, nil, &UART1_CTS)
-	setIfAlt(GPIO31, nil, nil, &PCM_DOUT, &UART0_RTS, nil, &UART1_RTS)
-	setIfAlt(GPIO32, &GPCLK0, nil, nil, &UART0_TXD, nil, &UART1_TXD)
-	setIfAlt(GPIO33, nil, nil, nil, &UART0_RXD, nil, &UART1_RXD)
-	setIfAlt0(GPIO34, &GPCLK0)
-	setIfAlt0(GPIO35, &SPI0_CS1)
-	setIfAlt(GPIO36, &SPI0_CS0, nil, &UART0_TXD, nil, nil, nil)
-	setIfAlt(GPIO37, &SPI0_MISO, nil, &UART0_RXD, nil, nil, nil)
-	setIfAlt(GPIO38, &SPI0_MOSI, nil, &UART0_RTS, nil, nil, nil)
-	setIfAlt(GPIO39, &SPI0_CLK, nil, &UART0_CTS, nil, nil, nil)
-	setIfAlt(GPIO40, &PWM0_OUT, nil, nil, nil, &SPI2_MISO, &UART1_TXD)
-	setIfAlt(GPIO41, &PWM1_OUT, nil, nil, nil, &SPI2_MOSI, &UART1_RXD)
-	setIfAlt(GPIO42, &GPCLK1, nil, nil, nil, &SPI2_CLK, &UART1_RTS)
-	setIfAlt(GPIO43, &GPCLK2, nil, nil, nil, &SPI2_CS0, &UART1_CTS)
-	setIfAlt(GPIO44, &GPCLK1, &I2C0_SDA, &I2C1_SDA, nil, &SPI2_CS1, nil)
-	setIfAlt(GPIO45, &PWM1_OUT, &I2C0_SCL, &I2C1_SCL, nil, &SPI2_CS2, nil)
-	// GPIO46 doesn't have interesting alternate function.
-	// GPIO47-GPIO53 are connected to the SDCard.
-
-	// TODO(maruel): Remove all the functional variables?
-	for i := range Pins {
-		if err := gpio.Register(&Pins[i], true); err != nil {
+	for i := range cpuPins {
+		if err := gpio.Register(&cpuPins[i], true); err != nil {
 			return true, err
 		}
-		if i < 46 {
-			if f := Pins[i].Function(); len(f) < 3 || (f[:2] != "In" && f[:3] != "Out") {
-				functional[f] = &Pins[i]
+		// The pins after 46 are connected to the SD Card. Modifying them would
+		// break the device.
+		if i <= 46 {
+			if f := cpuPins[i].Function(); len(f) < 3 || (f[:2] != "In" && f[:3] != "Out") {
+				if err := gpio.RegisterAlias(f, i); err != nil {
+					return true, err
+				}
 			}
-		}
-	}
-	for name, p := range functional {
-		if err := gpio.RegisterAlias(name, p.Number()); err != nil {
-			return true, err
 		}
 	}
 	return true, nil
@@ -809,7 +689,7 @@ func (d *driver) Init() (bool, error) {
 
 func init() {
 	if isArm {
-		periph.MustRegister(&driver{})
+		periph.MustRegister(&driverGPIO{})
 	}
 }
 
