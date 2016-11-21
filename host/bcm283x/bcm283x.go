@@ -674,7 +674,9 @@ func (d *driverGPIO) Init() (bool, error) {
 		if err := gpio.Register(&cpuPins[i], true); err != nil {
 			return true, err
 		}
-		if i < 46 {
+		// The pins after 46 are connected to the SD Card. Modifying them would
+		// break the device.
+		if i <= 46 {
 			if f := cpuPins[i].Function(); len(f) < 3 || (f[:2] != "In" && f[:3] != "Out") {
 				if err := gpio.RegisterAlias(f, i); err != nil {
 					return true, err
