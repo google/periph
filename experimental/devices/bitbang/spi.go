@@ -19,7 +19,7 @@ import (
 
 	"github.com/google/periph/conn/gpio"
 	"github.com/google/periph/conn/spi"
-	"github.com/google/periph/host"
+	"github.com/google/periph/host/cpu"
 )
 
 // SPI represents a SPI master implemented as bit-banging on 3 or 4 GPIO pins.
@@ -164,7 +164,7 @@ func NewSPI(clk, mosi gpio.PinOut, miso gpio.PinIn, cs gpio.PinOut, speedHz int6
 
 // sleep does a busy loop to act as fast as possible.
 func (s *SPI) sleepHalfCycle() {
-	host.Nanospin(s.halfCycle)
+	cpu.Nanospin(s.halfCycle)
 }
 
 var _ spi.Conn = &SPI{}

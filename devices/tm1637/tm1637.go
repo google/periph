@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/google/periph/conn/gpio"
-	"github.com/google/periph/host"
+	"github.com/google/periph/host/cpu"
 )
 
 // Clock converts time to a slice of bytes as segments.
@@ -184,5 +184,5 @@ func (d *Dev) writeByte(b byte) (bool, error) {
 
 // sleep does a busy loop to act as fast as possible.
 func (d *Dev) sleepHalfCycle() {
-	host.Nanospin(clockHalfCycle)
+	cpu.Nanospin(clockHalfCycle)
 }
