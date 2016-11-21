@@ -11,23 +11,36 @@ import (
 	"github.com/google/periph/conn/pins"
 )
 
+// R8 specific pins.
 var (
-	FEL      pins.Pin   = &pins.BasicPin{N: "FEL"}      // R8 Boot mode selection
-	MIC_IN   gpio.PinIO = &gpio.BasicPin{N: "MIC_IN"}   // R8 Microphone In
-	MIC_GND  pins.Pin   = &pins.BasicPin{N: "MIC_GND"}  // R8 Microphone out
-	HP_LEFT  gpio.PinIO = &gpio.BasicPin{N: "HP_LEFT"}  // R8 left speaker out
-	HP_RIGHT gpio.PinIO = &gpio.BasicPin{N: "HP_RIGHT"} // R8 right speaker out
-	HP_COM   pins.Pin   = &pins.BasicPin{N: "HP_COM"}   // R8 speaker common
-
-	X1 gpio.PinIO = &gpio.BasicPin{N: "X1"} // R8 touch screen
-	X2 gpio.PinIO = &gpio.BasicPin{N: "X2"} // R8 touch screen
-	Y1 gpio.PinIO = &gpio.BasicPin{N: "Y1"} // R8 touch screen
-	Y2 gpio.PinIO = &gpio.BasicPin{N: "Y2"} // R8 touch screen
+	FEL            *pins.BasicPin // Boot mode selection
+	MIC_IN         *gpio.BasicPin // Microphone in
+	MIC_GND        *pins.BasicPin // Microphone ground
+	HP_LEFT        *gpio.BasicPin // Left speaker out
+	HP_RIGHT       *gpio.BasicPin // Right speaker out
+	HP_COM         *pins.BasicPin // Speaker common
+	X1, X2, Y1, Y2 *gpio.BasicPin // Touch screen pins
 )
 
-// mappingR8 describes the mapping of each processor pin to its alternate functions. It omits the
-// in & out functions which are available on all pins. The mapping comes from the datasheet
-// page 18:
+//
+
+func init() {
+	FEL = &pins.BasicPin{N: "FEL"}
+	MIC_IN = &gpio.BasicPin{N: "MIC_IN"}
+	MIC_GND = &pins.BasicPin{N: "MIC_GND"}
+	HP_LEFT = &gpio.BasicPin{N: "HP_LEFT"}
+	HP_RIGHT = &gpio.BasicPin{N: "HP_RIGHT"}
+	HP_COM = &pins.BasicPin{N: "HP_COM"}
+
+	X1 = &gpio.BasicPin{N: "X1"}
+	X2 = &gpio.BasicPin{N: "X2"}
+	Y1 = &gpio.BasicPin{N: "Y1"}
+	Y2 = &gpio.BasicPin{N: "Y2"}
+}
+
+// mappingR8 describes the mapping of each processor pin to its alternate
+// functions. It omits the in & out functions which are available on all pins.
+// The mapping comes from the datasheet page 18:
 // https://github.com/NextThingCo/CHIP-Hardware/raw/master/CHIP%5Bv1_0%5D/CHIPv1_0-BOM-Datasheets/Allwinner%20R8%20Datasheet%20V1.2.pdf
 //
 // - The datasheet uses TWI instead of I2C but this is renamed here for consistency.
@@ -109,8 +122,9 @@ var mappingR8 = map[string][5]string{
 	"PG12": {"SPI1_MISO", "UART3_RTS", "", "", "PG_EINT12"},
 }
 
-// mapR8Pins uses mappingR8 to actually set the altFunc fields of all pins. It is called by the
-// generic allwinner processor code if an R8 is indeed detected.
+// mapR8Pins uses mappingR8 to actually set the altFunc fields of all pins. It
+// is called by the generic allwinner processor code if an R8 is indeed
+// detected.
 func mapR8Pins() {
 	// Set the altFunc fields of all pins that are on the R8.
 	for name, altFuncs := range mappingR8 {
