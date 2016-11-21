@@ -5,13 +5,11 @@
 package ds248x
 
 import (
-	"flag"
 	"fmt"
 	"testing"
 
 	"github.com/google/periph/conn/i2c"
 	"github.com/google/periph/conn/i2c/i2ctest"
-	"github.com/google/periph/host"
 )
 
 // TestInit tests the initialization of a ds2483 using a recording.
@@ -60,6 +58,7 @@ func Example() {
 	fmt.Print('\n')
 }
 
+/* Commented out in order not to import periph/host, need to move to smoke test
 // TestRecordInit tests and records the initialization of a ds248x by accessing
 // real hardware and outputs the recording ready to use for playback in
 // TestInit.
@@ -104,3 +103,4 @@ var record *bool
 func init() {
 	record = flag.Bool("record", false, "record real hardware accesses")
 }
+*/

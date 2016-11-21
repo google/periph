@@ -5,17 +5,13 @@
 package ds18b20
 
 import (
-	"flag"
-	"fmt"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/google/periph/conn/i2c"
 	"github.com/google/periph/devices"
 	"github.com/google/periph/experimental/conn/onewire"
 	"github.com/google/periph/experimental/conn/onewire/onewiretest"
-	"github.com/google/periph/experimental/devices/ds248x"
 	"github.com/google/periph/host"
 )
 
@@ -76,8 +72,7 @@ func TestConvertAll(t *testing.T) {
 	owBus := &onewiretest.Playback{Ops: ops}
 	// Perform the conversion
 	t0 := time.Now()
-	err := ConvertAll(owBus, 9)
-	if err != nil {
+	if err := ConvertAll(owBus, 9); err != nil {
 		t.Fatal(err)
 	}
 	// Expect it to take >93ms
@@ -86,6 +81,7 @@ func TestConvertAll(t *testing.T) {
 	}
 }
 
+/* Commented out in order not to import periph/host, need to move to smoke test
 // TestRecordTemp tests and records a temperature conversion. It outputs
 // the recording if the tests are run with the verbose option.
 //
@@ -154,3 +150,4 @@ var record *bool
 func init() {
 	record = flag.Bool("record", false, "record real hardware accesses")
 }
+*/
