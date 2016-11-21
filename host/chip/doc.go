@@ -24,4 +24,7 @@
 // http://www.chip-community.org/index.php/Hardware_Information
 //
 // http://docs.getchip.com/chip.html#chip-hardware
+//
+// A graphical view of the board headers is available at:
+// http://docs.getchip.com/chip.html#pin-headers
 package chip

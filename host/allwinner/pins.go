@@ -17,6 +17,14 @@ import (
 )
 
 // List of all known pins. These global variables can be used directly.
+//
+// The supported functionality of each gpio differs between CPUs. For example
+// the R8 has the LCD-DE signal on gpio PD25 but the A64 has it on PD19.
+//
+// The availability of each gpio differs between CPUs. For example the R8 has
+// 19 pins in the group PB but the A64 only has 10.
+//
+// So make sure to read the datasheet for the exact right CPU.
 var (
 	PB0, PB1, PB2, PB3, PB4, PB5, PB6, PB7, PB8, PB9, PB10, PB11, PB12, PB13, PB14, PB15, PB16, PB17, PB18                                                       *Pin
 	PC0, PC1, PC2, PC3, PC4, PC5, PC6, PC7, PC8, PC9, PC10, PC11, PC12, PC13, PC14, PC15, PC16                                                                   *Pin

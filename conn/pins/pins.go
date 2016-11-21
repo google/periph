@@ -13,11 +13,13 @@ import "fmt"
 
 // These are well known pins.
 var (
-	INVALID Pin = &BasicPin{N: "INVALID"} // Either floating or invalid pin
-	GROUND  Pin = &BasicPin{N: "GROUND"}  // Ground
-	V1_8    Pin = &BasicPin{N: "V1_8"}    // 1.8 volt
-	V3_3    Pin = &BasicPin{N: "V3_3"}    // 3.3 volt
-	V5      Pin = &BasicPin{N: "V5"}      // 5 vol
+	INVALID  *BasicPin // Either floating or invalid pin
+	GROUND   *BasicPin // Ground
+	V1_8     *BasicPin // 1.8V (filtered)
+	V3_3     *BasicPin // 3.3V (filtered)
+	V5       *BasicPin // 5V (filtered)
+	DC_IN    *BasicPin // DC IN; this is normally the 5V input
+	BAT_PLUS *BasicPin // LiPo Battery + connector
 )
 
 // Pin is the minimal common interface shared between gpio.PinIO and
@@ -61,4 +63,14 @@ func (b *BasicPin) Number() int {
 // Function returns "" as pin function.
 func (b *BasicPin) Function() string {
 	return ""
+}
+
+func init() {
+	INVALID = &BasicPin{N: "INVALID"}
+	GROUND = &BasicPin{N: "GROUND"}
+	V1_8 = &BasicPin{N: "V1_8"}
+	V3_3 = &BasicPin{N: "V3_3"}
+	V5 = &BasicPin{N: "V5"}
+	DC_IN = &BasicPin{N: "DC_IN"}
+	BAT_PLUS = &BasicPin{N: "BAT_PLUS"}
 }

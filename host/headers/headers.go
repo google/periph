@@ -41,24 +41,22 @@ func IsConnected(p pins.Pin) bool {
 }
 
 // Register registers a physical header.
-func Register(name string, pins [][]pins.Pin) error {
+func Register(name string, allPins [][]pins.Pin) error {
 	mu.Lock()
 	defer mu.Unlock()
-	// TODO(maruel): Copy the slices?
 	if _, ok := allHeaders[name]; ok {
-		return fmt.Errorf("header %q was already registered", name)
+		return fmt.Errorf("headers: header %q was already registered", name)
 	}
-	for i, line := range pins {
+	for i, line := range allPins {
 		for j, pin := range line {
 			if pin == nil || len(pin.Name()) == 0 {
-				return fmt.Errorf("missing pin on header %s[%d][%d]\n", name, i+1, j+1)
+				return fmt.Errorf("headers: invalid pin on header %s[%d][%d]\n", name, i+1, j+1)
 			}
 		}
 	}
-
-	allHeaders[name] = pins
+	allHeaders[name] = allPins
 	number := 1
-	for _, line := range pins {
+	for _, line := range allPins {
 		for _, pin := range line {
 			n := pin.Name()
 			byPin[n] = position{name, number}
