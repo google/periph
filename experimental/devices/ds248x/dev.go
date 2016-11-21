@@ -6,6 +6,7 @@ package ds248x
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/google/periph/conn"
@@ -22,12 +23,13 @@ import (
 // (or the I²C bus used to access it). Errors on the 1-wire bus do not cause persistent
 // errors and implement the onewire.BusError interface to indicate this fact.
 type Dev struct {
-	i2c      conn.Conn     // i2c device handle for the ds248x
-	isDS2483 bool          // true: ds2483, false: ds2482-100
-	confReg  byte          // value written to configuration register
-	tReset   time.Duration // time to perform a 1-wire reset
-	tSlot    time.Duration // time to perform a 1-bit 1-wire read/write
-	err      error         // persistent error, device will no longer operate
+	sync.Mutex               // lock for the bus while a transaction is in progress
+	i2c        conn.Conn     // i2c device handle for the ds248x
+	isDS2483   bool          // true: ds2483, false: ds2482-100
+	confReg    byte          // value written to configuration register
+	tReset     time.Duration // time to perform a 1-wire reset
+	tSlot      time.Duration // time to perform a 1-bit 1-wire read/write
+	err        error         // persistent error, device will no longer operate
 }
 
 // String
@@ -40,11 +42,14 @@ func (d *Dev) String() string {
 // on the value of power. A strong pull-up is typically required to
 // power temperature conversion or EEPROM writes.
 func (d *Dev) Tx(w, r []byte, power onewire.Pullup) error {
+	d.Lock()
+	defer d.Unlock()
+
 	// Issue 1-wire bus reset.
 	if present, err := d.reset(); err != nil {
 		return err
 	} else if !present {
-		return busError("onewire/ds248x: no device present")
+		return busError("ds248x: no device present")
 	}
 
 	// Send bytes onto 1-wire bus.
