@@ -23,8 +23,6 @@ package ds18b20
 
 import (
 	"errors"
-	"fmt"
-	"os"
 	"time"
 
 	"github.com/google/periph/experimental/conn/onewire"
@@ -36,6 +34,7 @@ import (
 // resolutionBits must be in the range 9..12 and determines how many bits of precision
 // the readings have. The resolution affects the conversion time: 9bits:94ms, 10bits:188ms,
 // 11bits:375ms, 12bits:750ms.
+//
 // A resolution of 10 bits corresponds to 0.25C and tends to be a good compromise between
 // conversion time and the device's inherent accuracy of +/-0.5C.
 func New(o onewire.Bus, addr onewire.Address, resolutionBits int) (*Dev, error) {
@@ -47,21 +46,19 @@ func New(o onewire.Bus, addr onewire.Address, resolutionBits int) (*Dev, error) 
 
 	// Start by reading the scratchpad memory, this will tell us whether we can talk to the
 	// device correctly and also how it's configured.
-	spad := make([]byte, 9)
-	if err := d.onewire.Tx([]byte{0xbe}, spad); err != nil {
+	var spad [9]byte
+	if err := d.onewire.Tx([]byte{0xbe}, spad[:]); err != nil {
 		return nil, err
 	}
 
 	// Check the scratchpad CRC.
-	if !onewire.CheckCRC(spad) {
-		fmt.Fprintf(os.Stderr, "ds18b20: bad CRC %#x != %#x %+v\n",
-			onewire.CalcCRC(spad[0:8]), spad[8], spad)
+	if !onewire.CheckCRC(spad[:]) {
 		for _, s := range spad {
 			if s != 0xff {
-				return nil, errors.New("ds18b20: incorrect scratchpad CRC")
+				return nil, busError("ds18b20: incorrect scratchpad CRC")
 			}
 		}
-		return nil, errors.New("ds18b20: device did not respond")
+		return nil, busError("ds18b20: device did not respond")
 	}
 
 	// Change the resolution, if necessary (datasheet p.6).

@@ -127,9 +127,7 @@ func (d *Dev) i2cTx(w, r []byte) {
 	if d.err != nil {
 		return
 	}
-	if err := d.i2c.Tx(w, r); err != nil {
-		d.err = err
-	}
+	d.err = d.i2c.Tx(w, r)
 }
 
 // waitIdle waits for the one wire bus to be idle.
@@ -151,15 +149,15 @@ func (d *Dev) waitIdle(delay time.Duration) byte {
 		// Read status register.
 		var status [1]byte
 		d.i2cTx(nil, status[:])
-		// If bus idle complete, return status.
-		// No explicit error check needed here because status[0]==0 on error.
+		// If bus idle complete, return status. This also returns if d.err!=nil
+		// because in that case status[0]==0.
 		if (status[0] & 1) == 0 {
 			return status[0]
 		}
 		// If we're timing out return error. This is an error with the ds248x, not with
 		// devices on the 1-wire bus, hence it is persistent.
 		if time.Now().After(tOut) {
-			d.err = fmt.Errorf("onewire/ds248x: timeout waiting for bus cycle to finish")
+			d.err = fmt.Errorf("ds248x: timeout waiting for bus cycle to finish")
 			return 0
 		}
 		// Try not to hog the kernel thread.

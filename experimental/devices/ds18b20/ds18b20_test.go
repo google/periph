@@ -5,6 +5,7 @@
 package ds18b20
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"testing"
@@ -28,7 +29,7 @@ func TestMain(m *testing.M) {
 // recorded bus transactions.
 func TestTemperature(t *testing.T) {
 	// set-up playback using the recording output.
-	var ops = []onewiretest.IO{
+	ops := []onewiretest.IO{
 		// Match ROM + Read Scratchpad (init)
 		{Write: []uint8{0x55, 0x28, 0xac, 0x41, 0xe, 0x7, 0x0, 0x0, 0x74, 0xbe},
 			Read: []uint8{0xe0, 0x1, 0x0, 0x0, 0x3f, 0xff, 0x10, 0x10, 0x3f}, Pull: false},
@@ -67,20 +68,26 @@ func TestTemperature(t *testing.T) {
 // TestRecordTemp tests and records a temperature conversion. It outputs
 // the recording if the tests are run with the verbose option.
 //
-// This test is skipped if no i2c bus with a ds248x and at least one ds18b20
-// is found.
+// This test is skipped unless the -record flag is passed to the test executable.
+// Use either `go test -args -record` or `ds18b20.test -test.v -record`.
 func TestRecordTemp(t *testing.T) {
+	// Only proceed to init hardware and test if -record flag is passed
+	if !*record {
+		t.SkipNow()
+	}
+	host.Init()
+
 	i2cBus, err := i2c.New(-1)
 	if err != nil {
-		t.Skip(err)
+		t.Fatal(err)
 	}
 	owBus, err := ds248x.New(i2cBus, nil)
 	if err != nil {
-		t.Skip(err)
+		t.Fatal(err)
 	}
 	devices, err := owBus.Search(false)
 	if err != nil {
-		t.Skip(err)
+		t.Fatal(err)
 	}
 	addrs := "1-wire devices found:"
 	for _, a := range devices {
@@ -96,7 +103,7 @@ func TestRecordTemp(t *testing.T) {
 		}
 	}
 	if addr == 0 {
-		t.Skip("no DS18B20 found")
+		t.Fatal("no DS18B20 found")
 	}
 	t.Logf("var addr onewire.Address = %#016x", addr)
 	// Start recording and perform a temperature conversion.
@@ -117,4 +124,12 @@ func TestRecordTemp(t *testing.T) {
 	}
 	t.Log("}")
 	t.Logf("var temp devices.Celsius = %d // %s", temp, temp.String())
+}
+
+//
+
+var record *bool
+
+func init() {
+	record = flag.Bool("record", false, "record real hardware accesses")
 }

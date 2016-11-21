@@ -5,20 +5,14 @@
 package ds248x
 
 import (
+	"flag"
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/google/periph/conn/i2c"
 	"github.com/google/periph/conn/i2c/i2ctest"
 	"github.com/google/periph/host"
 )
-
-// TestMain lets periph load all drivers and then runs the tests.
-func TestMain(m *testing.M) {
-	host.Init()
-	os.Exit(m.Run())
-}
 
 // TestInit tests the initialization of a ds2483 using a recording.
 func TestInit(t *testing.T) {
@@ -65,22 +59,28 @@ func Example() {
 	fmt.Print('\n')
 }
 
-// TestRecordInit tests and records the initialization of a ds248x assuming
+// TestRecordInit tests and records the initialization of a ds248x by accessing
 // real hardware and outputs the recording ready to use for playback in
 // TestInit.
 //
-// This test is skipped if there is no i2c device or if no ds248x responds.
-// Run the test suite with -v to see the recording output.
+// This test is skipped unless the -record flag is passed to the test executable.
+// Use either `go test -args -record` or `ds2483.test -test.v -record`.
 func TestRecordInit(t *testing.T) {
+	// Only proceed to init hardware and test if -record flag is passed
+	if !*record {
+		t.SkipNow()
+	}
+	host.Init()
+
 	i2cReal, err := i2c.New(-1)
 	if err != nil {
-		t.Skip(err)
+		t.Fatal(err)
 	}
 	i2cBus := &i2ctest.Record{Bus: i2cReal}
 	// Now init the ds248x.
 	owBus, err := New(i2cBus, nil)
 	if err != nil {
-		t.Skip(err)
+		t.Fatal(err)
 	}
 	// Perform a search triplet operation to see whether anyone is on the bus
 	// (we could do a full search but that would produce a very long recording).
@@ -94,4 +94,12 @@ func TestRecordInit(t *testing.T) {
 		t.Logf("  {Addr: %#x, Write: %#v, Read: %#v},\n", op.Addr, op.Write, op.Read)
 	}
 	t.Logf("}\n")
+}
+
+//
+
+var record *bool
+
+func init() {
+	record = flag.Bool("record", false, "record real hardware accesses")
 }

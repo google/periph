@@ -5,10 +5,6 @@
 package ds18b20
 
 import (
-	"errors"
-	"fmt"
-	"math"
-
 	"github.com/google/periph/devices"
 	"github.com/google/periph/experimental/conn/onewire"
 )
@@ -28,32 +24,23 @@ func (d *Dev) Temperature() (devices.Celsius, error) {
 	return d.LastTemp()
 }
 
-// TemperatureFloat performs a conversion and returns the temperature.
-func (d *Dev) TemperatureFloat() (float64, error) {
-	t, err := d.Temperature()
-	if err != nil {
-		return 0.0, err
-	}
-	return t.Float64(), nil
-}
-
 // LastTemp reads the temperature resulting from the last conversion from the device.
 // It is useful in combination with ConvertAll.
 func (d *Dev) LastTemp() (devices.Celsius, error) {
 	// Read the scratchpad memory.
-	spad := make([]byte, 9)
-	if err := d.onewire.Tx([]byte{0xbe}, spad); err != nil {
+	var spad [9]byte
+	if err := d.onewire.Tx([]byte{0xbe}, spad[:]); err != nil {
 		return 0, err
 	}
 
 	// Check the scratchpad CRC.
-	if !onewire.CheckCRC(spad) {
+	if !onewire.CheckCRC(spad[:]) {
 		for _, s := range spad {
 			if s != 0xff {
-				return 0, fmt.Errorf("incorrect DS18B20 scratchpad CRC: %v", spad)
+				return 0, busError("ds18b20: incorrect scratchpad CRC")
 			}
 		}
-		return 0, errors.New("DS18B20 device did not respond")
+		return 0, busError("ds18b20: device did not respond")
 	}
 
 	// spad[1] is MSB, spad[0] is LSB and has 4 fractional bits. Need to do sign extension
@@ -65,18 +52,16 @@ func (d *Dev) LastTemp() (devices.Celsius, error) {
 	// that either no conversion was performed or that the covnersion falied due to lack of
 	// power.
 	if c == 85000 {
-		return 0, errors.New("DS18B20 has not performed a temperature conversion")
+		return 0, busError("ds18b20: has not performed a temperature conversion (insufficient pull-up?)")
 	}
 
 	return c, nil
 }
 
-// LastTempFloat reads the temperature resulting from the last conversion from the device.
-// It is useful in combination with ConvertAll.
-func (d *Dev) LastTempFloat() (float64, error) {
-	t, err := d.LastTemp()
-	if err != nil {
-		return math.NaN(), err
-	}
-	return t.Float64(), nil
-}
+//
+
+// busError implements error and onewire.BusError.
+type busError string
+
+func (e busError) Error() string  { return string(e) }
+func (e busError) BusError() bool { return true }

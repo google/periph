@@ -30,27 +30,26 @@ const (
 
 // Opts contains options to pass to the constructor.
 type Opts struct {
-	Address       uint16 // I2C address: must be 0x18 for a ds2483
+	Addr          uint16 // I²C address, default 0x18
 	PassivePullup bool   // false:use active pull-up, true: disable active pullup
 
 	// The following options are only available on the ds2483 (not ds2482-100).
 	// The actual value used is the closest possible value (rounded up or down).
-	ResetLowμs       int    // reset low time in μs, range 440..740
-	PresenceDetectμs int    // presence detect sample time in μs, range 58..76
-	Write0Lowμs      int    // write zero low time in μs, range 52..70
-	Write0RecoveryNs int    // write zero recovery time in ns, range 2750..25250
-	PullupRes        PupOhm // passive pull-up resistance, true: 500Ω, false: 1kΩ
+	ResetLow       time.Duration // reset low time, range 440μs..740μs
+	PresenceDetect time.Duration // presence detect sample time, range 58μs..76μs
+	Write0Low      time.Duration // write zero low time, range 52μs..70μs
+	Write0Recovery time.Duration // write zero recovery time, range 2750ns..25250ns
+	PullupRes      PupOhm        // passive pull-up resistance, true: 500Ω, false: 1kΩ
 }
 
 // New returns an device object that communicates over I²C to the DS2482/DS2483 controller.
 func New(i i2c.Bus, opts *Opts) (*Dev, error) {
 	addr := uint16(0x18)
 	if opts != nil {
-		switch opts.Address {
-		case 0x18, 0x19:
-			addr = opts.Address
+		switch opts.Addr {
+		case 0x18, 0x19, 0x20, 0x21:
+			addr = opts.Addr
 		case 0x00:
-			// do not do anything
 		default:
 			return nil, errors.New("ds248x: given address not supported by device")
 		}
@@ -66,12 +65,12 @@ func New(i i2c.Bus, opts *Opts) (*Dev, error) {
 
 // defaults holds default values for optional parameters.
 var defaults = Opts{
-	PassivePullup:    false,
-	ResetLowμs:       560,
-	PresenceDetectμs: 68,
-	Write0Lowμs:      64,
-	Write0RecoveryNs: 5250,
-	PullupRes:        R1000Ω,
+	PassivePullup:  false,
+	ResetLow:       560 * time.Microsecond,
+	PresenceDetect: 68 * time.Microsecond,
+	Write0Low:      64 * time.Microsecond,
+	Write0Recovery: 5250 * time.Nanosecond,
+	PullupRes:      R1000Ω,
 }
 
 func (d *Dev) makeDev(opts *Opts) error {
@@ -79,23 +78,23 @@ func (d *Dev) makeDev(opts *Opts) error {
 	if opts == nil {
 		opts = &defaults
 	}
-	if opts.ResetLowμs == 0 {
-		opts.ResetLowμs = defaults.ResetLowμs
+	if opts.ResetLow == 0 {
+		opts.ResetLow = defaults.ResetLow
 	}
-	if opts.PresenceDetectμs == 0 {
-		opts.PresenceDetectμs = defaults.PresenceDetectμs
+	if opts.PresenceDetect == 0 {
+		opts.PresenceDetect = defaults.PresenceDetect
 	}
-	if opts.Write0Lowμs == 0 {
-		opts.Write0Lowμs = defaults.Write0Lowμs
+	if opts.Write0Low == 0 {
+		opts.Write0Low = defaults.Write0Low
 	}
-	if opts.Write0RecoveryNs == 0 {
-		opts.Write0RecoveryNs = defaults.Write0RecoveryNs
+	if opts.Write0Recovery == 0 {
+		opts.Write0Recovery = defaults.Write0Recovery
 	}
 	if opts.PullupRes == 0 {
 		opts.PullupRes = defaults.PullupRes
 	}
-	d.tReset = time.Duration(2*opts.ResetLowμs) * microsecond
-	d.tSlot = time.Duration(1000*opts.Write0Lowμs + opts.Write0RecoveryNs)
+	d.tReset = 2 * opts.ResetLow
+	d.tSlot = opts.Write0Low + opts.Write0Recovery
 
 	// Issue a reset command.
 	if err := d.i2c.Tx([]byte{cmdReset}, nil); err != nil {
@@ -103,8 +102,8 @@ func (d *Dev) makeDev(opts *Opts) error {
 	}
 
 	// Read the status register to confirm that we have a responding ds248x
-	stat := make([]byte, 1)
-	if err := d.i2c.Tx([]byte{cmdSetReadPtr, regStatus}, stat); err != nil {
+	var stat [1]byte
+	if err := d.i2c.Tx([]byte{cmdSetReadPtr, regStatus}, stat[:]); err != nil {
 		return fmt.Errorf("ds248x: error while reading status register: %s", err)
 	}
 	if stat[0] != 0x18 {
@@ -117,8 +116,8 @@ func (d *Dev) makeDev(opts *Opts) error {
 	if opts.PassivePullup {
 		d.confReg ^= 0x11
 	}
-	dcr := make([]byte, 1)
-	if err := d.i2c.Tx([]byte{cmdWriteConfig, d.confReg}, dcr); err != nil {
+	var dcr [1]byte
+	if err := d.i2c.Tx([]byte{cmdWriteConfig, d.confReg}, dcr[:]); err != nil {
 		return fmt.Errorf("ds248x: error while writing device config register: %s", err)
 	}
 	// When reading back we only get the bottom nibble
@@ -128,16 +127,17 @@ func (d *Dev) makeDev(opts *Opts) error {
 	}
 
 	// Set the read ptr to the port configuration register to determine whether we have a
-	// ds2483 vs ds2482-100. This will fail on the ds2482-100.
+	// ds2483 vs ds2482-100. This will fail on devices that do not have a port config
+	// register, such as the ds2482-100.
 	d.isDS2483 = d.i2c.Tx([]byte{cmdSetReadPtr, regPCR}, nil) == nil
 
 	// Set the options for the ds2483.
 	if d.isDS2483 {
 		buf := []byte{cmdAdjPort,
-			byte(0x00 + ((opts.ResetLowμs - 430) / 20 & 0x0f)),
-			byte(0x20 + ((opts.PresenceDetectμs - 55) / 2 & 0x0f)),
-			byte(0x40 + ((opts.Write0Lowμs - 51) / 2 & 0x0f)),
-			byte(0x60 + (((opts.Write0RecoveryNs-1250)/2500 + 5) & 0x0f)),
+			byte(0x00 + ((opts.ResetLow/time.Microsecond - 430) / 20 & 0x0f)),
+			byte(0x20 + ((opts.PresenceDetect/time.Microsecond - 55) / 2 & 0x0f)),
+			byte(0x40 + ((opts.Write0Low/time.Microsecond - 51) / 2 & 0x0f)),
+			byte(0x60 + (((opts.Write0Recovery-1250)/2500 + 5) & 0x0f)),
 			byte(0x80 + (opts.PullupRes & 0x0f)),
 		}
 		if err := d.i2c.Tx(buf, nil); err != nil {
@@ -149,8 +149,6 @@ func (d *Dev) makeDev(opts *Opts) error {
 }
 
 const (
-	microsecond = 1000 * time.Nanosecond
-
 	cmdReset       = 0xf0 // reset ds248x
 	cmdSetReadPtr  = 0xe1 // set the read pointer
 	cmdWriteConfig = 0xd2 // write the device configuration
