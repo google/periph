@@ -114,9 +114,10 @@ func (d *Dev) LastTemp() (devices.Celsius, error) {
 	// Datasheet p.4.
 	c := (devices.Celsius(int8(spad[1]))<<8 + devices.Celsius(spad[0])) * 1000 / 16
 
-	// The device powers up with a value of 85 degrees C, so if we read that odds are very high
-	// that either no conversion was performed or that the covnersion falied due to lack of
-	// power.
+	// The device powers up with a value of 85°C, so if we read that odds are very high
+	// that either no conversion was performed or that the conversion failed due to lack of
+	// power. This prevents reading a temp of exactly 85°C, but that seems like the right
+	// tradeoff.
 	if c == 85000 {
 		return 0, busError("ds18b20: has not performed a temperature conversion (insufficient pull-up?)")
 	}
