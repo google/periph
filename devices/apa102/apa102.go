@@ -11,7 +11,6 @@ import (
 
 	"github.com/google/periph/conn/spi"
 	"github.com/google/periph/devices"
-	"github.com/maruel/temperature"
 )
 
 // maxOut is the maximum intensity of each channel on a APA102 LED.
@@ -64,7 +63,7 @@ func (l *lut) init(i uint8, t uint16) {
 	if i != l.intensity || t != l.temperature {
 		l.intensity = i
 		l.temperature = t
-		tr, tg, tb := temperature.ToRGB(l.temperature)
+		tr, tg, tb := toRGBFast(l.temperature)
 		maxR := uint16((uint32(maxOut)*uint32(l.intensity)*uint32(tr) + 127*127) / 65025)
 		maxG := uint16((uint32(maxOut)*uint32(l.intensity)*uint32(tg) + 127*127) / 65025)
 		maxB := uint16((uint32(maxOut)*uint32(l.intensity)*uint32(tb) + 127*127) / 65025)
