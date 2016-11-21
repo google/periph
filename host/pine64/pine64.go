@@ -13,7 +13,6 @@ import (
 	"github.com/google/periph/conn/gpio"
 	"github.com/google/periph/conn/pins"
 	"github.com/google/periph/host/allwinner"
-	"github.com/google/periph/host/allwinner_pl"
 	"github.com/google/periph/host/headers"
 )
 
@@ -42,46 +41,46 @@ var (
 
 // All the individual pins on the headers.
 var (
-	P1_1  = pins.V3_3         // max 40mA
-	P1_2  = pins.V5           // (filtered)
-	P1_3  = allwinner.PH3     //
-	P1_4  = pins.V5           // (filtered)
-	P1_5  = allwinner.PH2     //
-	P1_6  = pins.GROUND       //
-	P1_7  = allwinner_pl.PL10 //
-	P1_8  = allwinner.PB0     //
-	P1_9  = pins.GROUND       //
-	P1_10 = allwinner.PB1     //
-	P1_11 = allwinner.PC7     //
-	P1_12 = allwinner.PC8     //
-	P1_13 = allwinner.PH9     //
-	P1_14 = pins.GROUND       //
-	P1_15 = allwinner.PC12    //
-	P1_16 = allwinner.PC13    //
-	P1_17 = pins.V3_3         //
-	P1_18 = allwinner.PC14    //
-	P1_19 = allwinner.PC0     //
-	P1_20 = pins.GROUND       //
-	P1_21 = allwinner.PC1     //
-	P1_22 = allwinner.PC15    //
-	P1_23 = allwinner.PC2     //
-	P1_24 = allwinner.PC3     //
-	P1_25 = pins.GROUND       //
-	P1_26 = allwinner.PH7     //
-	P1_27 = allwinner_pl.PL9  //
-	P1_28 = allwinner_pl.PL8  //
-	P1_29 = allwinner.PH5     //
-	P1_30 = pins.GROUND       //
-	P1_31 = allwinner.PH6     //
-	P1_32 = allwinner.PC4     //
-	P1_33 = allwinner.PC5     //
-	P1_34 = pins.GROUND       //
-	P1_35 = allwinner.PC9     //
-	P1_36 = allwinner.PC6     //
-	P1_37 = allwinner.PC16    //
-	P1_38 = allwinner.PC10    //
-	P1_39 = pins.GROUND       //
-	P1_40 = allwinner.PC11    //
+	P1_1  = pins.V3_3      // max 40mA
+	P1_2  = pins.V5        // (filtered)
+	P1_3  = allwinner.PH3  //
+	P1_4  = pins.V5        // (filtered)
+	P1_5  = allwinner.PH2  //
+	P1_6  = pins.GROUND    //
+	P1_7  = allwinner.PL10 //
+	P1_8  = allwinner.PB0  //
+	P1_9  = pins.GROUND    //
+	P1_10 = allwinner.PB1  //
+	P1_11 = allwinner.PC7  //
+	P1_12 = allwinner.PC8  //
+	P1_13 = allwinner.PH9  //
+	P1_14 = pins.GROUND    //
+	P1_15 = allwinner.PC12 //
+	P1_16 = allwinner.PC13 //
+	P1_17 = pins.V3_3      //
+	P1_18 = allwinner.PC14 //
+	P1_19 = allwinner.PC0  //
+	P1_20 = pins.GROUND    //
+	P1_21 = allwinner.PC1  //
+	P1_22 = allwinner.PC15 //
+	P1_23 = allwinner.PC2  //
+	P1_24 = allwinner.PC3  //
+	P1_25 = pins.GROUND    //
+	P1_26 = allwinner.PH7  //
+	P1_27 = allwinner.PL9  //
+	P1_28 = allwinner.PL8  //
+	P1_29 = allwinner.PH5  //
+	P1_30 = pins.GROUND    //
+	P1_31 = allwinner.PH6  //
+	P1_32 = allwinner.PC4  //
+	P1_33 = allwinner.PC5  //
+	P1_34 = pins.GROUND    //
+	P1_35 = allwinner.PC9  //
+	P1_36 = allwinner.PC6  //
+	P1_37 = allwinner.PC16 //
+	P1_38 = allwinner.PC10 //
+	P1_39 = pins.GROUND    //
+	P1_40 = allwinner.PC11 //
 
 	EULER_1  = pins.V3_3         //
 	EULER_2  = pins.DC_IN        //
@@ -119,7 +118,7 @@ var (
 	EULER_34 = pins.GROUND       //
 
 	EXP_1  = pins.V3_3         //
-	EXP_2  = allwinner_pl.PL7  //
+	EXP_2  = allwinner.PL7     //
 	EXP_3  = CHARGER_LED       //
 	EXP_4  = RESET             //
 	EXP_5  = PWR_SWITCH        //
@@ -145,14 +144,14 @@ var (
 	WIFI_BT_14 = allwinner.PG12     //
 	WIFI_BT_15 = allwinner.PG5      //
 	WIFI_BT_16 = allwinner.PG13     //
-	WIFI_BT_17 = allwinner_pl.PL2   //
+	WIFI_BT_17 = allwinner.PL2      //
 	WIFI_BT_18 = pins.GROUND        //
-	WIFI_BT_19 = allwinner_pl.PL3   //
-	WIFI_BT_20 = allwinner_pl.PL5   //
+	WIFI_BT_19 = allwinner.PL3      //
+	WIFI_BT_20 = allwinner.PL5      //
 	WIFI_BT_21 = allwinner.X32KFOUT //
-	WIFI_BT_22 = allwinner_pl.PL5   //
+	WIFI_BT_22 = allwinner.PL5      //
 	WIFI_BT_23 = pins.GROUND        //
-	WIFI_BT_24 = allwinner_pl.PL6   //
+	WIFI_BT_24 = allwinner.PL6      //
 	WIFI_BT_25 = VCC                //
 	WIFI_BT_26 = IOVCC              //
 
