@@ -2,9 +2,5 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-package host
-
-import (
-	// Make sure sysfs drivers are registered.
-	_ "github.com/google/periph/host/sysfs"
-)
+// Package cpu implements functions relating to the host CPU itself.
+package cpu

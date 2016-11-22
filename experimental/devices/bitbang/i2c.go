@@ -17,7 +17,7 @@ import (
 
 	"github.com/google/periph/conn/gpio"
 	"github.com/google/periph/conn/i2c"
-	"github.com/google/periph/host"
+	"github.com/google/periph/host/cpu"
 )
 
 // Use SkipAddr to skip the address from being sent.
@@ -251,7 +251,7 @@ func (i *I2C) readByte() (byte, error) {
 
 // sleep does a busy loop to act as fast as possible.
 func (i *I2C) sleepHalfCycle() {
-	host.Nanospin(i.halfCycle)
+	cpu.Nanospin(i.halfCycle)
 }
 
 var _ i2c.Bus = &I2C{}
