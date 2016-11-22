@@ -37,11 +37,21 @@ device support.
 
 ## Testing
 
-We use [sci](https://github.com/maruel/sci) for automated testing on devices.
-The devices run unit tests and [periph-smoketest](../../cmd/periph-smoketest).
+We use [gohci](https://github.com/maruel/gohci) for automated testing on
+devices. The devices run unit tests, `go vet` and
+[periph-smoketest](../../cmd/periph-smoketest).
 
-The fleet currently include Raspberry Pi 3 and a Pine 64. The tests must not be
-broken by a PR.
+The fleet currently includes:
+- [Raspberry Pi 3](https://www.raspberrypi.org/) running [Raspbian Jessie
+  Lite](https://www.raspberrypi.org/downloads/raspbian/); device provided by
+  [maruel](https://github.com/maruel)
+- [Pine 64](https://www.pine64.org/) (512Mb version) running [Armbian Jessie
+  server](http://www.armbian.com/); device provided by
+  [maruel](https://github.com/maruel)
+- [C.H.I.P.](https://getchip.com/pages/chip) running Debian headless image
+  provided by NTC; device provided by [maruel](https://github.com/maruel)
+
+The tests must not be broken by a PR.
 
 
 ## Conduct

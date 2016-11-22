@@ -80,6 +80,9 @@ designed to work well with drivers living in external repositories so you are
 not _required_ to fork the periph repository to load out-of-tree drivers for
 your platform.
 
+**Every commit is [tested on real hardware](doc/drivers/CONTRIBUTING.md#testing)
+via [gohci](https://github.com/maruel/gohci) workers.**
+
 We gladly accept contributions from device driver developers via GitHub pull
 requests, as long as the author has signed the Google Contributor License.
 Please see [doc/drivers/CONTRIBUTING.md](doc/drivers/CONTRIBUTING.md) for more
@@ -100,10 +103,7 @@ details.
    * e.g. A user can use statically typed global variables
      [rpi.P1_3](https://godoc.org/github.com/google/periph/host/rpi#pkg-variables),
      [bcm283x.GPIO2](https://godoc.org/github.com/google/periph/host/bcm283x#Pin)
-     or
-     [bcm283x.I2C1_SDA](https://godoc.org/github.com/google/periph/host/bcm283x#pkg-variables)
-     to refer to the exact same pin when I²C bus #1 is enabled on a Raspberry
-     Pi.
+     to refer to the exact same pin on a Raspberry Pi.
 3. The user can chose to optimize for performance instead of usability.
    * e.g.
      [apa102.Dev](https://godoc.org/github.com/google/periph/devices/apa102#Dev)
@@ -132,8 +132,9 @@ details.
 
 ## Authors
 
-The main author is [Marc-Antoine Ruel](https://github.com/maruel). The full list
-is in [AUTHORS](AUTHORS) and [CONTRIBUTORS](CONTRIBUTORS).
+`Periph` was initiated by [Marc-Antoine Ruel](https://github.com/maruel). The
+full list of contributors is in [AUTHORS](AUTHORS) and
+[CONTRIBUTORS](CONTRIBUTORS).
 
 
 ## Disclaimer
