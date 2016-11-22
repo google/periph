@@ -9,9 +9,6 @@ github.com/google/periph/cmd/...`.
 Try first `periph-info`. It will print out if any driver failed to run, for
 example if you have to run as root to access certain drivers.
 
-`periph-setup` is a rule based configuration tool that will modify the host to
-enable more functionality.
-
 Then run `headers-list` to list all the headers on your board and confirm that
 you get the expected output. If your board is missing, you can [contribute
 it](../doc/drivers/CONTRIBUTING.md).
@@ -50,8 +47,6 @@ it](../doc/drivers/CONTRIBUTING.md).
 
 * [periph-info](periph-info): Lists which periph drivers loaded and which
   failed.
-* [periph-setup](periph-setup): Modifies the host to enable more functionality
-  (load drivers, install udev rules, etc).
 * [periph-smoketest](periph-smoketest): Runs one of the smoke test for the
   drivers. The smoke test differs from unit tests as they require real hardware
   to confirm that the driver being tested works.
