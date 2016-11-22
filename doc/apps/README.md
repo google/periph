@@ -20,7 +20,7 @@ Most micro computers expose at least some of the following:
 pins](https://godoc.org/github.com/google/periph/conn/gpio#PinIO),
 [analog
 pins](https://godoc.org/github.com/google/periph/experimental/conn/analog),
-[UART](https://godoc.org/github.com/google/periph/conn/uart), I2S
+[UART](https://godoc.org/github.com/google/periph/experimental/conn/uart), I2S
 and PWM.
 
 Note: not all of the above is implemented yet!
