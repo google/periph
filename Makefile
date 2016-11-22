@@ -2,8 +2,8 @@
 # Use of this source code is governed under the Apache License, Version 2.0
 # that can be found in the LICENSE file.
 
-# This Makefile captures common tasks for the periph library. The hope is that this Makefile can remain
-# simple and straightforward...
+# This Makefile captures common tasks for the periph library. The hope is that
+# this Makefile can remain simple and straightforward...
 
 # *** This Makefile is a work in progress, please help impove it! ***
 
@@ -23,15 +23,17 @@ test: depend
 	else echo "OK gofmt"; fi
 	-go vet ./...
 
-# depend fetches dependencies, this takes <0.2s if the dependencies are there already so just do it...
+# depend fetches dependencies, this takes <0.2s if the dependencies are there
+# already so just do it...
 depend:
 	go get -d ./...
 
 # BUILD
 #
-# The build target cross compiles each program in cmd to a binary for each platform in the bin
-# directory. It is assumed that each command has a main.go file in its directory. Trying to keep all
-# this relatively simple and not descend into makefile hell...
+# The build target cross compiles each program in cmd to a binary for each
+# platform in the bin directory. It is assumed that each command has a main.go
+# file in its directory. Trying to keep all this relatively simple and not
+# descend into makefile hell...
 
 # Get a list of all main.go in cmd subdirs
 # MAINS becomes: cmd/gpio-list/main.go cmd/periph-info/main.go ...
