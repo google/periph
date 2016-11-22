@@ -2,7 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// chipsmoketest verifies that basic Chip specific functionality works.
+// chipsmoketest verifies that basic CHIP specific functionality works.
 package chipsmoketest
 
 import (
@@ -110,7 +110,7 @@ func testChipGpioNames() error {
 // testChipAliases tests that the various gpio pin aliases get set-up
 func testChipAliases() error {
 	tests := map[string]string{ // alias->real
-		"XIO-P4": "GPIO1020", "LCD-D2": "PD2", "GPIO98": "PD2",
+		"XIO-P4": "GPIO1020", "LCD-D2": "PD2",
 	}
 	for a, r := range tests {
 		p := gpio.ByName(a)
@@ -142,11 +142,10 @@ func (s *SmokeTest) Description() string {
 
 func (s *SmokeTest) Run(args []string) error {
 	tests := []func() error{
-		testChipPresent, testChipHeaders, testChipGpioNames, testChipAliases,
+		testChipPresent, testChipHeaders, testChipGpioNumbers, testChipGpioNames, testChipAliases,
 	}
 	for _, t := range tests {
-		err := t()
-		if err != nil {
+		if err := t(); err != nil {
 			return err
 		}
 	}
