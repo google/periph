@@ -677,7 +677,9 @@ func (d *driverGPIO) Init() (bool, error) {
 		// The pins after 46 are connected to the SD Card. Modifying them would
 		// break the device.
 		if i <= 46 {
-			if f := cpuPins[i].Function(); len(f) < 3 || (f[:2] != "In" && f[:3] != "Out") {
+			// A pin set in alternate function but not described in `mapping` will
+			// show up as "<AltX>". We don't want there to be registered as aliases.
+			if f := cpuPins[i].Function(); len(f) < 3 || (f[:2] != "In" && f[:3] != "Out" && f[0] != '<') {
 				if err := gpio.RegisterAlias(f, i); err != nil {
 					return true, err
 				}
