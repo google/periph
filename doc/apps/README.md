@@ -19,9 +19,11 @@ Most micro computers expose at least some of the following:
 [gpio
 pins](https://godoc.org/github.com/google/periph/conn/gpio#PinIO),
 [analog
-pins](https://godoc.org/github.com/google/periph/conn/analog),
+pins](https://godoc.org/github.com/google/periph/experimental/conn/analog),
 [UART](https://godoc.org/github.com/google/periph/conn/uart), I2S
 and PWM.
+
+Note: not all of the above is implemented yet!
 
 * The interfaces are defined in [conn/](../../conn/).
 * The concrete objects _implementing_ the interfaces are in

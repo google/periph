@@ -7,25 +7,27 @@
 package allwinner
 
 import (
-	"github.com/google/periph/conn/analog"
 	"github.com/google/periph/conn/gpio"
+	"github.com/google/periph/conn/pins"
 )
 
 // A64 specific pins.
 var (
-	X32KFOUT *gpio.BasicPin   // Clock output of 32Khz crystal
-	KEY_ADC  *analog.BasicPin // 6 bits resolution ADC for key application; can work up to 250Hz conversion rate; reference voltage is 2.0V
-	EAROUTP  *analog.BasicPin // Earpiece amplifier negative differential output
-	EAROUTN  *analog.BasicPin // Earpiece amplifier positive differential output
+	X32KFOUT *gpio.BasicPin // Clock output of 32Khz crystal
+	KEY_ADC  *pins.BasicPin // 6 bits resolution ADC for key application; can work up to 250Hz conversion rate; reference voltage is 2.0V
+	EAROUTP  *pins.BasicPin // Earpiece amplifier negative differential output
+	EAROUTN  *pins.BasicPin // Earpiece amplifier positive differential output
 )
 
 //
 
 func init() {
 	X32KFOUT = &gpio.BasicPin{N: "X32KFOUT"}
-	KEY_ADC = &analog.BasicPin{N: "KEY_ADC"}
-	EAROUTP = &analog.BasicPin{N: "EAROUTP"}
-	EAROUTN = &analog.BasicPin{N: "EAROUTN"}
+	// BUG(maruel): These need to be converted to an analog.PinIO implementation
+	// once analog support is implemented.
+	KEY_ADC = &pins.BasicPin{N: "KEY_ADC"}
+	EAROUTP = &pins.BasicPin{N: "EAROUTP"}
+	EAROUTN = &pins.BasicPin{N: "EAROUTN"}
 }
 
 // mappingA64 describes the mapping of each processor pin to its alternate

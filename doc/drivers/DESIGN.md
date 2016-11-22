@@ -49,12 +49,13 @@ twice is an error. This helps reducing ambiguity for the users.
 ## pins
 
 There's a strict separation between
-[analog](https://godoc.org/github.com/google/periph/conn/analog#PinIO),
+[analog](https://godoc.org/github.com/google/periph/experimental/conn/analog#PinIO),
 [digital
 (gpio)](https://godoc.org/github.com/google/periph/conn/gpio#PinIO)
 and [generic
-pins](https://godoc.org/github.com/google/periph/conn/pins#Pin). The
-common base is
+pins](https://godoc.org/github.com/google/periph/conn/pins#Pin).
+
+The common base is
 [pins.Pin](https://godoc.org/github.com/google/periph/conn/pins#Pin),
 which is a purely generic pin. This describes GROUND,
 VCC, etc. Each pin is registered by the relevant device driver at initialization
@@ -65,9 +66,11 @@ The only pins not registered are the INVALID ones. There's one generic
 at
 [pins.INVALID](https://godoc.org/github.com/google/periph/conn/pins#INVALID)
 and two specialized,
-[analog.INVALID](https://godoc.org/github.com/google/periph/conn/analog#INVALID)
+[analog.INVALID](https://godoc.org/github.com/google/periph/experimental/conn/analog#INVALID)
 and
 [gpio.INVALID](https://godoc.org/github.com/google/periph/conn/gpio#INVALID).
+
+*Warning:* analog is not yet implemented.
 
 
 ## Edge based triggering and input pull resistor
