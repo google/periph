@@ -31,7 +31,7 @@ func ThermalSensorByName(name string) (*ThermalSensor, error) {
 			return t, nil
 		}
 	}
-	return nil, errors.New("invalid thermal sensor name")
+	return nil, errors.New("sysfs-thermal: invalid sensor name")
 }
 
 // ThermalSensor represents one thermal sensor on the system.
@@ -88,7 +88,7 @@ func (t *ThermalSensor) Sense(env *devices.Environment) error {
 		return err
 	}
 	if n < 2 {
-		return errors.New("failed to read temperature")
+		return errors.New("sysfs-thermal: failed to read temperature")
 	}
 	i, err := strconv.Atoi(string(buf[:n-1]))
 	if err != nil {
@@ -139,7 +139,7 @@ func (d *driverThermalSensor) Init() (bool, error) {
 		return true, err
 	}
 	if len(items) == 0 {
-		return false, errors.New("no thermal sensor found")
+		return false, errors.New("sysfs-thermal: no sensor found")
 	}
 	sort.Strings(items)
 	for _, item := range items {

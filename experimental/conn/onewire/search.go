@@ -80,7 +80,7 @@ func Search(bus BusSearcher, alarmOnly bool) ([]Address, error) {
 			// Check for the absence of devices on the bus. This is a 1-wire
 			// bus error condition and we return a partial result.
 			if !result.GotZero && !result.GotOne {
-				return devices, fmt.Errorf("1-wire: devices disappeared during search")
+				return devices, fmt.Errorf("onewire: devices disappeared during search")
 			}
 
 			// Check whether we have devices responding for 0 and 1 and we
@@ -101,7 +101,7 @@ func Search(bus BusSearcher, alarmOnly bool) ([]Address, error) {
 		// Verify the CRC and record device if we got it right.
 		if !CheckCRC(idBytes[:]) {
 			// CRC error: return partial result.  This is a transient error.
-			e := fmt.Sprintf("1-wire: CRC error during search, addr=%+v", idBytes)
+			e := fmt.Sprintf("onewire: CRC error during search, addr=%+v", idBytes)
 			return devices, busError(e)
 		}
 		devices = append(devices, Address(device))

@@ -29,7 +29,7 @@ import (
 // duty must be [0, 1].
 func SetPWM(p gpio.PinIO, duty float32) error {
 	if duty < 0 || duty > 1 {
-		return fmt.Errorf("duty %f is invalid for blaster", duty)
+		return fmt.Errorf("piblaster: duty %f is invalid for blaster", duty)
 	}
 	err := openPiblaster()
 	if err == nil {

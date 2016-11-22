@@ -83,10 +83,10 @@ your platform.
 **Every commit is [tested on real hardware](doc/drivers/CONTRIBUTING.md#testing)
 via [gohci](https://github.com/maruel/gohci) workers.**
 
-We gladly accept contributions from device driver developers via GitHub pull
-requests, as long as the author has signed the Google Contributor License.
-Please see [doc/drivers/CONTRIBUTING.md](doc/drivers/CONTRIBUTING.md) for more
-details.
+We gladly accept contributions for documentation improvements and from device
+driver developers via GitHub pull requests, as long as the author has signed the
+Google Contributor License. Please see
+[doc/drivers/CONTRIBUTING.md](doc/drivers/CONTRIBUTING.md) for more details.
 
 
 ## Philosophy

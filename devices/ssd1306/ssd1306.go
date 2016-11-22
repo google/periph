@@ -20,6 +20,7 @@ package ssd1306
 
 import (
 	"errors"
+	"fmt"
 	"image"
 	"image/color"
 	"io"
@@ -95,16 +96,12 @@ func NewI2C(i i2c.Bus, w, h int, rotated bool) (*Dev, error) {
 // newDev is the common initialization code that is independent of the bus
 // being used.
 func newDev(dev io.Writer, w, h int, rotated bool) (*Dev, error) {
-	if w&7 != 0 || h&7 != 0 {
-		return nil, errors.New("height and width must be multiple of 8")
+	if w < 8 || w > 128 || w&7 != 0 {
+		return nil, fmt.Errorf("ssd1306: invalid width %d", w)
 	}
-	if w < 8 || w > 128 {
-		return nil, errors.New("invalid height")
+	if h < 8 || h > 64 || h&7 != 0 {
+		return nil, fmt.Errorf("ssd1306: invalid height %d", h)
 	}
-	if h < 8 || h > 64 {
-		return nil, errors.New("invalid width")
-	}
-
 	d := &Dev{w: dev, W: w, H: h}
 
 	contrast := byte(0x7F) // (default value)
@@ -226,7 +223,7 @@ func (d *Dev) Draw(r image.Rectangle, src image.Image, sp image.Point) {
 // the memory is effectively horizontal bands of 8 pixels high.
 func (d *Dev) Write(pixels []byte) (int, error) {
 	if len(pixels) != d.H*d.W/8 {
-		return 0, errors.New("invalid pixel stream")
+		return 0, errors.New("ssd1306: invalid pixel stream")
 	}
 
 	// Run as 2 big transactions to reduce downtime on the bus. Doing with one

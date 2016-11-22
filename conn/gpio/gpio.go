@@ -373,7 +373,7 @@ func RegisterAlias(name string, number int) error {
 //
 
 // errInvalidPin is returned when trying to use INVALID.
-var errInvalidPin = errors.New("invalid pin")
+var errInvalidPin = errors.New("gpio: invalid pin")
 
 var (
 	mu sync.Mutex

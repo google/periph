@@ -41,7 +41,7 @@ func (r *Record) Tx(w, read []byte, pull onewire.Pullup) error {
 	defer r.Unlock()
 	if r.Bus == nil {
 		if len(read) != 0 {
-			return errors.New("onewire: read unsupported when no bus is connected")
+			return errors.New("onewiretest: read unsupported when no bus is connected")
 		}
 	} else {
 		if err := r.Bus.Tx(w, read, pull); err != nil {
@@ -97,7 +97,7 @@ func (p *Playback) Close() error {
 	p.Lock()
 	defer p.Unlock()
 	if len(p.Ops) != 0 {
-		return fmt.Errorf("onewire: expected playback to be empty:\n%#v", p.Ops)
+		return fmt.Errorf("onewiretest: expected playback to be empty:\n%#v", p.Ops)
 	}
 	return nil
 }
@@ -108,16 +108,16 @@ func (p *Playback) Tx(w, r []byte, pull onewire.Pullup) error {
 	defer p.Unlock()
 	if len(p.Ops) == 0 {
 		// log.Fatal() ?
-		return errors.New("onewire: unexpected Tx()")
+		return errors.New("onewiretest: unexpected Tx()")
 	}
 	if !bytes.Equal(p.Ops[0].Write, w) {
-		return fmt.Errorf("onewire: unexpected write %#v != %#v", w, p.Ops[0].Write)
+		return fmt.Errorf("onewiretest: unexpected write %#v != %#v", w, p.Ops[0].Write)
 	}
 	if len(p.Ops[0].Read) != len(r) {
-		return fmt.Errorf("onewire: unexpected read buffer length %d != %d", len(r), len(p.Ops[0].Read))
+		return fmt.Errorf("onewiretest: unexpected read buffer length %d != %d", len(r), len(p.Ops[0].Read))
 	}
 	if pull != p.Ops[0].Pull {
-		return fmt.Errorf("onewire: unexpected pullup %s != %s", pull, p.Ops[0].Pull)
+		return fmt.Errorf("onewiretest: unexpected pullup %s != %s", pull, p.Ops[0].Pull)
 	}
 	// Determine whether this starts a search and reset search state.
 	if len(w) > 0 && w[0] == 0xf0 {
@@ -139,10 +139,10 @@ func (p *Playback) Search(alarmOnly bool) ([]onewire.Address, error) {
 func (p *Playback) SearchTriplet(direction byte) (onewire.TripletResult, error) {
 	tr := onewire.TripletResult{}
 	if p.searchBit > 63 {
-		return tr, errors.New("onewire: search performs more than 64 triplet operations")
+		return tr, errors.New("onewiretest: search performs more than 64 triplet operations")
 	}
 	if len(p.inactive) != len(p.Devices) {
-		return tr, errors.New("onewire: Devices must be initialized before starting seach")
+		return tr, errors.New("onewiretest: Devices must be initialized before starting seach")
 	}
 	// Figure out the devices' response.
 	for i := range p.Devices {

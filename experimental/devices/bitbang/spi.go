@@ -71,7 +71,7 @@ func (s *SPI) Configure(mode spi.Mode, bits int) error {
 // BUG(maruel): Test if read works.
 func (s *SPI) Tx(w, r []byte) error {
 	if len(r) != 0 && len(w) != len(r) {
-		return errors.New("write and read buffers must be the same length")
+		return errors.New("bitbang-spi: write and read buffers must be the same length")
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()

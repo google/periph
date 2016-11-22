@@ -235,9 +235,6 @@ func Register(name string, busNumber int, opener Opener) error {
 		return fmt.Errorf("onewire: registering the same 1-wire bus %d twice", busNumber)
 	}
 
-	if first == -1 {
-		first = busNumber
-	}
 	byName[name] = opener
 	byNumber[busNumber] = opener
 	return nil
@@ -258,17 +255,6 @@ func Unregister(name string, busNumber int) error {
 		return fmt.Errorf("onewire: can't unregister %d, wasn't registered", busNumber)
 	}
 
-	// If the first bus is being deleted, pick another one.
-	if busNumber == first {
-		first = -1
-		for f := range byNumber {
-			if f != busNumber {
-				first = f
-				break
-			}
-		}
-	}
-
 	delete(byName, name)
 	delete(byNumber, busNumber)
 	return nil
@@ -280,11 +266,16 @@ func Unregister(name string, busNumber int) error {
 func find(busNumber int) (Opener, error) {
 	mu.Lock()
 	defer mu.Unlock()
+	if len(byNumber) == 0 {
+		return nil, errors.New("onewire: no bus found; did you forget to call Init()?")
+	}
 	if busNumber == -1 {
-		if first == -1 {
-			return nil, errors.New("onewire: no bus found")
+		busNumber = int((^uint(0)) >> 1)
+		for n := range byNumber {
+			if busNumber > n {
+				busNumber = n
+			}
 		}
-		return byNumber[first], nil
 	}
 	bus, ok := byNumber[busNumber]
 	if !ok {
@@ -297,7 +288,6 @@ var (
 	mu       sync.Mutex
 	byName   = map[string]Opener{}
 	byNumber = map[int]Opener{}
-	first    = -1
 )
 
 // Ensure that the appropriate interfaces are implemented.

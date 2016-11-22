@@ -48,7 +48,7 @@ func Register(id ID, opener Opener) error {
 	mu.Lock()
 	defer mu.Unlock()
 	if _, ok := byID[id]; ok {
-		return fmt.Errorf("registering the same USB id %s twice", id)
+		return fmt.Errorf("usb: registering the same USB device id %s twice", id)
 	}
 
 	byID[id] = opener
