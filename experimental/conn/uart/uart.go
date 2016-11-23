@@ -110,17 +110,14 @@ func Register(name string, busNumber int, opener Opener) error {
 	mu.Lock()
 	defer mu.Unlock()
 	if _, ok := byName[name]; ok {
-		return fmt.Errorf("registering the same UART %s twice", name)
+		return fmt.Errorf("uart: registering the same port %s twice", name)
 	}
 	if busNumber != -1 {
 		if _, ok := byNumber[busNumber]; ok {
-			return fmt.Errorf("registering the same UART #%d twice", busNumber)
+			return fmt.Errorf("uart: registering the same port #%d twice", busNumber)
 		}
 	}
 
-	if first == nil {
-		first = opener
-	}
 	byName[name] = opener
 	if busNumber != -1 {
 		byNumber[busNumber] = opener
@@ -137,27 +134,14 @@ func Unregister(name string, busNumber int) error {
 	defer mu.Unlock()
 	_, ok := byName[name]
 	if !ok {
-		return errors.New("unknown name")
+		return fmt.Errorf("uart: unknown port name %s", name)
 	}
 	if _, ok := byNumber[busNumber]; !ok {
-		return errors.New("unknown number")
+		return fmt.Errorf("uart: unknown port number %d", busNumber)
 	}
 
 	delete(byName, name)
 	delete(byNumber, busNumber)
-	first = nil
-	/* TODO(maruel): Figure out a way.
-	if first == bus {
-		first = nil
-		last := ""
-		for name, b := range byName {
-			if last == "" || last > name {
-				last = name
-				first = b
-			}
-		}
-	}
-	*/
 	return nil
 }
 
@@ -166,22 +150,26 @@ func Unregister(name string, busNumber int) error {
 func find(busNumber int) (Opener, error) {
 	mu.Lock()
 	defer mu.Unlock()
+	if len(byNumber) == 0 {
+		return nil, errors.New("uart: no port found; did you forget to call Init()?")
+	}
 	if busNumber == -1 {
-		if first == nil {
-			return nil, errors.New("no UART bus found")
+		busNumber = int((^uint(0)) >> 1)
+		for n := range byNumber {
+			if busNumber > n {
+				busNumber = n
+			}
 		}
-		return first, nil
 	}
 	bus, ok := byNumber[busNumber]
 	if !ok {
-		return nil, fmt.Errorf("no UART bus %d", busNumber)
+		return nil, fmt.Errorf("uart: no port %d found", busNumber)
 	}
 	return bus, nil
 }
 
 var (
 	mu       sync.Mutex
-	first    Opener
 	byName   = map[string]Opener{}
 	byNumber = map[int]Opener{}
 )

@@ -66,22 +66,22 @@ func (u *UART) String() string {
 
 // Configure implements uart.Conn.
 func (u *UART) Configure(stopBit uart.Stop, parity uart.Parity, bits int) error {
-	return errors.New("uart: not implemented")
+	return errors.New("sysfs-uart: not implemented")
 }
 
 // Write implements uart.Conn.
 func (u *UART) Write(b []byte) (int, error) {
-	return 0, errors.New("uart: not implemented")
+	return 0, errors.New("sysfs-uart: not implemented")
 }
 
 // Tx implements uart.Conn.
 func (u *UART) Tx(w, r []byte) error {
-	return errors.New("uart: not implemented")
+	return errors.New("sysfs-uart: not implemented")
 }
 
 // Speed implements uart.Conn.
 func (u *UART) Speed(hz int64) error {
-	return errors.New("uart: not implemented")
+	return errors.New("sysfs-uart: not implemented")
 }
 
 // RX implements uart.Pins.

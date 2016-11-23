@@ -150,7 +150,7 @@ func mapLinux(base uint64, size int) (*View, error) {
 		syscall.PROT_READ|syscall.PROT_WRITE,
 		syscall.MAP_SHARED)
 	if err != nil {
-		return nil, fmt.Errorf("physview: mapping at 0x%x failed: %v", base, err)
+		return nil, fmt.Errorf("pmem: mapping at 0x%x failed: %v", base, err)
 	}
 	return &View{Slice: i[offset:size], orig: i}, nil
 }

@@ -99,20 +99,17 @@ func Register(name string, busNumber, cs int, opener Opener) error {
 	mu.Lock()
 	defer mu.Unlock()
 	if _, ok := byName[name]; ok {
-		return fmt.Errorf("registering the same SPI bus %s twice", name)
+		return fmt.Errorf("spi: registering the same bus %s twice", name)
 	}
 	if busNumber != -1 {
 		if _, ok := byNumber[busNumber]; !ok {
 			byNumber[busNumber] = map[int]Opener{}
 		}
 		if _, ok := byNumber[busNumber][cs]; ok {
-			return fmt.Errorf("registering the same SPI bus %d.%d twice", busNumber, cs)
+			return fmt.Errorf("spi: registering the same bus %d.%d twice", busNumber, cs)
 		}
 	}
 
-	if first == nil {
-		first = opener
-	}
 	byName[name] = opener
 	if busNumber != -1 {
 		byNumber[busNumber][cs] = opener
@@ -129,27 +126,14 @@ func Unregister(name string, busNumber int) error {
 	defer mu.Unlock()
 	_, ok := byName[name]
 	if !ok {
-		return errors.New("unknown name")
+		return fmt.Errorf("spi: unknown bus name %q", name)
 	}
 	if _, ok := byNumber[busNumber]; !ok {
-		return errors.New("unknown number")
+		return fmt.Errorf("spi: unknown bus number %d", busNumber)
 	}
 
 	delete(byName, name)
 	delete(byNumber, busNumber)
-	first = nil
-	/* TODO(maruel): Figure out a way.
-	if first == bus {
-		first = nil
-		last := ""
-		for name, b := range byName {
-			if last == "" || last > name {
-				last = name
-				first = b
-			}
-		}
-	}
-	*/
 	return nil
 }
 
@@ -162,18 +146,20 @@ func find(busNumber, cs int) (Opener, error) {
 		return nil, errors.New("no SPI bus found; did you forget to call Init()?")
 	}
 	if busNumber == -1 {
-		if first == nil {
-			return nil, errors.New("no SPI bus found")
+		busNumber = int((^uint(0)) >> 1)
+		for n := range byNumber {
+			if busNumber > n {
+				busNumber = n
+			}
 		}
-		return first, nil
 	}
 	bus, ok := byNumber[busNumber]
 	if !ok {
-		return nil, fmt.Errorf("no SPI bus %d found", busNumber)
+		return nil, fmt.Errorf("spi: no bus %d found", busNumber)
 	}
 	opener, ok := bus[cs]
 	if !ok {
-		return nil, fmt.Errorf("no SPI bus %d.%d found", busNumber, cs)
+		return nil, fmt.Errorf("spi: no bus %d.%d found", busNumber, cs)
 	}
 	return opener, nil
 }
@@ -182,5 +168,4 @@ var (
 	mu       sync.Mutex
 	byName   = map[string]Opener{}
 	byNumber = map[int]map[int]Opener{}
-	first    Opener
 )

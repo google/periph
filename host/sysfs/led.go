@@ -36,7 +36,7 @@ func LEDByName(name string) (*LED, error) {
 			return led, nil
 		}
 	}
-	return nil, errors.New("invalid LED name")
+	return nil, errors.New("sysfs-led: invalid LED name")
 }
 
 // LED represents one LED on the system.
@@ -75,10 +75,10 @@ func (l *LED) Function() string {
 // In implements gpio.PinIn.
 func (l *LED) In(pull gpio.Pull, edge gpio.Edge) error {
 	if pull != gpio.Float && pull != gpio.PullNoChange {
-		return errors.New("pull is not supported on LED")
+		return errors.New("sysfs-led: pull is not supported on LED")
 	}
 	if edge != gpio.None {
-		return errors.New("edge is not supported on LED")
+		return errors.New("sysfs-led: edge is not supported on LED")
 	}
 	return nil
 }
@@ -135,7 +135,7 @@ func (l *LED) Out(level gpio.Level) error {
 
 // PWM implements gpio.PinOut.
 func (l *LED) PWM(duty int) error {
-	return errors.New("pwm is not supported")
+	return errors.New("sysfs-led: pwm is not supported")
 }
 
 //

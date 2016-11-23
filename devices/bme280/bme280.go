@@ -146,7 +146,7 @@ func NewI2C(b i2c.Bus, opts *Opts) (*Dev, error) {
 		case 0x00:
 			// do not do anything
 		default:
-			return nil, errors.New("given address not supported by device")
+			return nil, errors.New("bme280: given address not supported by device")
 		}
 	}
 	d := &Dev{d: &i2c.Dev{Bus: b, Addr: addr}, isSPI: false}
@@ -232,7 +232,7 @@ func (d *Dev) makeDev(opts *Opts) error {
 		return err
 	}
 	if chipID[0] != 0x60 {
-		return errors.New("unexpected chip id; is this a BME280?")
+		return errors.New("bme280: unexpected chip id; is this a BME280?")
 	}
 	// Read calibration data t1~3, p1~9, 8bits padding, h1.
 	var tph [0xA2 - 0x88]byte

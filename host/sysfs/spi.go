@@ -47,10 +47,10 @@ type SPI struct {
 
 func newSPI(busNumber, chipSelect int) (*SPI, error) {
 	if busNumber < 0 || busNumber > 255 {
-		return nil, errors.New("invalid bus")
+		return nil, fmt.Errorf("sysfs-spi: invalid bus %d", busNumber)
 	}
 	if chipSelect < 0 || chipSelect > 255 {
-		return nil, errors.New("invalid chip select")
+		return nil, fmt.Errorf("sysfs-spi: invalid chip select %d", chipSelect)
 	}
 	// Use the devfs path for now.
 	f, err := os.OpenFile(fmt.Sprintf("/dev/spidev%d.%d", busNumber, chipSelect), os.O_RDWR, os.ModeExclusive)
@@ -80,7 +80,7 @@ func (s *SPI) String() string {
 // Speed implements spi.Conn.
 func (s *SPI) Speed(hz int64) error {
 	if hz < 1000 {
-		return errors.New("invalid speed")
+		return fmt.Errorf("sysfs-spi: invalid speed %d", hz)
 	}
 	return s.setFlag(spiIOCMaxSpeedHz, uint64(hz))
 }
@@ -88,7 +88,7 @@ func (s *SPI) Speed(hz int64) error {
 // Configure implements spi.Conn.
 func (s *SPI) Configure(mode spi.Mode, bits int) error {
 	if bits < 1 || bits > 256 {
-		return errors.New("invalid bits")
+		return fmt.Errorf("sysfs-spi: invalid bits %d", bits)
 	}
 	if err := s.setFlag(spiIOCMode, uint64(mode)); err != nil {
 		return err
@@ -180,14 +180,14 @@ func (s *SPI) setFlag(op uint, arg uint64) error {
 		return err
 	}
 	if actual != arg {
-		return fmt.Errorf("spi op 0x%x: set 0x%x, read 0x%x", op, arg, actual)
+		return fmt.Errorf("sysfs-spi: op 0x%x: set 0x%x, read 0x%x", op, arg, actual)
 	}
 	return nil
 }
 
 func (s *SPI) ioctl(op uint, arg unsafe.Pointer) error {
 	if err := ioctl(s.f.Fd(), op, uintptr(arg)); err != nil {
-		return fmt.Errorf("spi ioctl: %v", err)
+		return fmt.Errorf("sysfs-spi: ioctl: %v", err)
 	}
 	return nil
 }

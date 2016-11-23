@@ -19,8 +19,17 @@ import (
 func All() map[string][][]pins.Pin {
 	mu.Lock()
 	defer mu.Unlock()
-	// TODO(maruel): Return a copy?
-	return allHeaders
+	out := make(map[string][][]pins.Pin, len(allHeaders))
+	for k, v := range allHeaders {
+		outV := make([][]pins.Pin, len(v))
+		for i, w := range v {
+			outW := make([]pins.Pin, len(w))
+			copy(outW, w)
+			outV[i] = outW
+		}
+		out[k] = outV
+	}
+	return out
 }
 
 // Position returns the position on a pin if found.

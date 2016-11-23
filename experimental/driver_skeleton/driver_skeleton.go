@@ -30,7 +30,7 @@ func New(i i2c.Bus) (*Dev, error) {
 		return nil, err
 	}
 	if b[0] != 'I' || b[1] != 'N' {
-		return nil, errors.New("unexpected reply")
+		return nil, errors.New("driver_skeleton: unexpected reply")
 	}
 	return d, nil
 }

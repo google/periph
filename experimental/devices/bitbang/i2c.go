@@ -54,7 +54,7 @@ func (i *I2C) Tx(addr uint16, w, r []byte) error {
 		if addr > 0xFF {
 			// Page 15, section 3.1.11 10-bit addressing
 			// TOOD(maruel): Implement if desired; prefix 0b11110xx.
-			return errors.New("invalid address")
+			return errors.New("bitbang-i2c: invalid address")
 		}
 		// Page 13, section 3.1.10 The slave address and R/W bit
 		addr <<= 1
@@ -66,7 +66,7 @@ func (i *I2C) Tx(addr uint16, w, r []byte) error {
 			return err
 		}
 		if !ack {
-			return errors.New("i2c: got NACK")
+			return errors.New("bitbang-i2c: got NACK")
 		}
 	}
 	for _, b := range w {
@@ -75,7 +75,7 @@ func (i *I2C) Tx(addr uint16, w, r []byte) error {
 			return err
 		}
 		if !ack {
-			return errors.New("i2c: got NACK")
+			return errors.New("bitbang-i2c: got NACK")
 		}
 	}
 	for x := range r {

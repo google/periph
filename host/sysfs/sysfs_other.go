@@ -11,5 +11,5 @@ import "errors"
 const isLinux = false
 
 func ioctl(f uintptr, op uint, arg uintptr) error {
-	return errors.New("ioctl not supported on non-linux")
+	return errors.New("sysfs: ioctl not supported on non-linux")
 }

@@ -114,18 +114,18 @@ func (p *Pin) Function() string {
 // at shutdown.
 func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	if gpioMemory == nil {
-		return errors.New("subsystem not initialized")
+		return p.wrap(errors.New("subsystem not initialized"))
 	}
 	if edge != gpio.None {
 		switch p.group {
 		case 1, 6, 7:
 			// TODO(maruel): Some pins do not support Alt5 in these groups.
 		default:
-			return errors.New("only groups PB, PG, PH (and PL if available) support edge based triggering")
+			return p.wrap(errors.New("only groups PB, PG, PH (and PL if available) support edge based triggering"))
 		}
 	}
 	if !p.setFunction(in) {
-		return fmt.Errorf("failed to set pin %s as input", p.name)
+		return p.wrap(errors.New("failed to set pin as input"))
 	}
 	if pull != gpio.PullNoChange {
 		off := p.offset / 16
@@ -145,7 +145,7 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	if p.usingEdge && p.edge == nil {
 		ok := false
 		if p.edge, ok = sysfs.Pins[p.Number()]; !ok {
-			return fmt.Errorf("pin %s is not exported by sysfs", p)
+			return p.wrap(errors.New("pin is not exported by sysfs"))
 		}
 	}
 	if p.usingEdge || wasUsing {
@@ -196,7 +196,7 @@ func (p *Pin) Pull() gpio.Pull {
 // Out ensures that the pin is configured as an output and outputs the value.
 func (p *Pin) Out(l gpio.Level) error {
 	if gpioMemory == nil {
-		return errors.New("subsystem not initialized")
+		return p.wrap(errors.New("subsystem not initialized"))
 	}
 	if p.usingEdge {
 		// First disable edges.
@@ -206,7 +206,7 @@ func (p *Pin) Out(l gpio.Level) error {
 		p.usingEdge = false
 	}
 	if !p.setFunction(out) {
-		return fmt.Errorf("failed to set pin %s as output", p.name)
+		return p.wrap(errors.New("failed to set pin as output"))
 	}
 	// TODO(maruel): Set the value *before* changing the pin to be an output, so
 	// there is no glitch.
@@ -222,7 +222,7 @@ func (p *Pin) Out(l gpio.Level) error {
 
 // PWM is not supported.
 func (p *Pin) PWM(duty int) error {
-	return errors.New("pwm is not supported")
+	return p.wrap(errors.New("pwm is not supported"))
 }
 
 // function returns the current GPIO pin function.
@@ -260,6 +260,10 @@ func (p *Pin) setFunction(f function) bool {
 		panic(f)
 	}
 	return true
+}
+
+func (p *Pin) wrap(err error) error {
+	return fmt.Errorf("allwinner-gpio (%s): %v", p, err)
 }
 
 //

@@ -74,7 +74,7 @@ func (r *Record) Tx(w, read []byte) error {
 	defer r.Unlock()
 	if r.Conn == nil {
 		if len(read) != 0 {
-			return errors.New("read unsupported when no bus is connected")
+			return errors.New("conntest: read unsupported when no bus is connected")
 		}
 	} else {
 		if err := r.Conn.Tx(w, read); err != nil {
@@ -117,14 +117,13 @@ func (p *Playback) Tx(w, r []byte) error {
 	p.Lock()
 	defer p.Unlock()
 	if len(p.Ops) == 0 {
-		// log.Fatal() ?
-		return errors.New("unexpected Tx()")
+		return errors.New("conntest: unexpected Tx()")
 	}
 	if !bytes.Equal(p.Ops[0].Write, w) {
-		return fmt.Errorf("unexpected write %#v != %#v", w, p.Ops[0].Write)
+		return fmt.Errorf("conntest: unexpected write %#v != %#v", w, p.Ops[0].Write)
 	}
 	if len(p.Ops[0].Read) != len(r) {
-		return fmt.Errorf("unexpected read buffer length %d != %d", len(r), len(p.Ops[0].Read))
+		return fmt.Errorf("conntest: unexpected read buffer length %d != %d", len(r), len(p.Ops[0].Read))
 	}
 	copy(r, p.Ops[0].Read)
 	p.Ops = p.Ops[1:]

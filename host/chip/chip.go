@@ -275,7 +275,7 @@ func (d *driver) Init() (bool, error) {
 	for alias, real := range aliases {
 		r := gpio.ByName(real)
 		if r == nil {
-			return true, fmt.Errorf("Cannot create alias for %s: it doesn't exist", real)
+			return true, fmt.Errorf("cannot create alias for %s: it doesn't exist", real)
 		}
 		if err := gpio.RegisterAlias(alias, r.Number()); err != nil {
 			return true, err

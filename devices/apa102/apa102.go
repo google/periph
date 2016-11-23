@@ -300,6 +300,6 @@ func New(s spi.Conn, numLights int, intensity uint8, temperature uint16) (*Dev, 
 
 //
 
-var errLength = errors.New("invalid RGB stream length")
+var errLength = errors.New("apa102: invalid RGB stream length")
 
 var _ devices.Display = &Dev{}

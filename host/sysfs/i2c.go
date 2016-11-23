@@ -44,7 +44,7 @@ func NewI2C(busNumber int) (*I2C, error) {
 	if isLinux {
 		return newI2C(busNumber)
 	}
-	return nil, errors.New("sysfs.i2c is not supported on this platform")
+	return nil, errors.New("sysfs-i2c: is not supported on this platform")
 }
 
 func newI2C(busNumber int) (*I2C, error) {
@@ -56,8 +56,9 @@ func newI2C(busNumber int) (*I2C, error) {
 		//   edited to enable I²C then the device must be rebooted.
 		// - permission denied. In this case, the user has to be added to plugdev.
 		if os.IsNotExist(err) {
-			return nil, fmt.Errorf("sysfs-i2c: I²C bus #%d is not configured: %v", busNumber, err)
+			return nil, fmt.Errorf("sysfs-i2c: bus #%d is not configured: %v", busNumber, err)
 		}
+		// TODO(maruel): This is a debianism.
 		return nil, fmt.Errorf("sysfs-i2c: are you member of group 'plugdev'? %v", err)
 	}
 	i := &I2C{f: f, busNumber: busNumber}
@@ -137,7 +138,7 @@ func (i *I2C) Speed(hz int64) error {
 	// Sadly it doesn't seem like Allwinner drivers implement the same
 	// functionality:
 	// - /sys/module/i2c_sunxi/
-	return errors.New("not supported")
+	return errors.New("sysfs-i2c: not supported")
 }
 
 // SCL implements i2c.Pins.
@@ -162,7 +163,7 @@ func (i *I2C) SDA() gpio.PinIO {
 
 func (i *I2C) ioctl(op uint, arg uintptr) error {
 	if err := ioctl(i.f.Fd(), op, arg); err != nil {
-		return fmt.Errorf("i²c ioctl: %v", err)
+		return fmt.Errorf("sysfs-i2c: ioctl: %v", err)
 	}
 	return nil
 }

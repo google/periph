@@ -21,7 +21,7 @@ type Display struct {
 // Write implements devices.Display.
 func (d *Display) Write(pixels []byte) (int, error) {
 	if len(pixels)%3 != 0 {
-		return 0, errors.New("invalid RGB stream length")
+		return 0, errors.New("devicetest: invalid RGB stream length")
 	}
 	copy(d.Img.Pix, pixels)
 	return len(pixels), nil

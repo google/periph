@@ -56,7 +56,7 @@ func New(r image.Rectangle) (*Image, error) {
 	h := r.Dy()
 	w := r.Dx()
 	if h&7 != 0 {
-		return nil, errors.New("height must be multiple of 8")
+		return nil, errors.New("image1bit: height must be multiple of 8")
 	}
 	return &Image{w, h, make([]byte, w*h/8)}, nil
 }

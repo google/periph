@@ -41,7 +41,7 @@ func (r *Record) Tx(addr uint16, w, read []byte) error {
 	defer r.Unlock()
 	if r.Bus == nil {
 		if len(read) != 0 {
-			return errors.New("read unsupported when no bus is connected")
+			return errors.New("i2ctest: read unsupported when no bus is connected")
 		}
 	} else {
 		if err := r.Bus.Tx(addr, w, read); err != nil {
@@ -100,7 +100,7 @@ func (p *Playback) Close() error {
 	p.Lock()
 	defer p.Unlock()
 	if len(p.Ops) != 0 {
-		return fmt.Errorf("expected playback to be empty:\n%#v", p.Ops)
+		return fmt.Errorf("i2ctest: expected playback to be empty:\n%#v", p.Ops)
 	}
 	return nil
 }
@@ -110,17 +110,16 @@ func (p *Playback) Tx(addr uint16, w, r []byte) error {
 	p.Lock()
 	defer p.Unlock()
 	if len(p.Ops) == 0 {
-		// log.Fatal() ?
-		return errors.New("unexpected Tx()")
+		return errors.New("i2ctest: unexpected Tx()")
 	}
 	if addr != p.Ops[0].Addr {
-		return fmt.Errorf("unexpected addr %d != %d", addr, p.Ops[0].Addr)
+		return fmt.Errorf("i2ctest: unexpected addr %d != %d", addr, p.Ops[0].Addr)
 	}
 	if !bytes.Equal(p.Ops[0].Write, w) {
-		return fmt.Errorf("unexpected write %#v != %#v", w, p.Ops[0].Write)
+		return fmt.Errorf("i2ctest: unexpected write %#v != %#v", w, p.Ops[0].Write)
 	}
 	if len(p.Ops[0].Read) != len(r) {
-		return fmt.Errorf("unexpected read buffer length %d != %d", len(r), len(p.Ops[0].Read))
+		return fmt.Errorf("i2ctest: unexpected read buffer length %d != %d", len(r), len(p.Ops[0].Read))
 	}
 	copy(r, p.Ops[0].Read)
 	p.Ops = p.Ops[1:]
