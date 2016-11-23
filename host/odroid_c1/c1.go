@@ -120,13 +120,6 @@ func (d *driver) Init() (bool, error) {
 	if !Present() {
 		return false, errors.New("Hardkernel ODROID-C0/C1/C1+ board not detected")
 	}
-	// At this point the sysfs driver has initialized and discovered its pins,
-	// we can now hook-up the appropriate named pins to sysfs gpio pins.
-	for name, number := range aliases {
-		if err := gpio.RegisterAlias(name, number); err != nil {
-			return true, err
-		}
-	}
 	J2_3 = sysfsPin(74)
 	J2_5 = sysfsPin(75)
 	J2_7 = sysfsPin(83)   // usually taken by 1-wire driver
