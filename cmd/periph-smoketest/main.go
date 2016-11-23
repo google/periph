@@ -107,7 +107,9 @@ func mainImpl() error {
 
 	for i := range tests {
 		if tests[i].Name() == cmd {
-			return tests[i].Run(flag.Args()[1:])
+			err := tests[i].Run(flag.Args()[1:])
+			log.Printf("Test %s returned err==%v", cmd, err)
+			return err
 		}
 	}
 	return fmt.Errorf("test case %q was not found", cmd)
