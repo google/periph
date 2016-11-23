@@ -109,8 +109,9 @@ func mainImpl() error {
 
 	for i := range tests {
 		if tests[i].Name() == cmd {
-			err := tests[i].Run(flag.Args()[1:])
-			log.Printf("Test %s returned err==%v", cmd, err)
+			if err = tests[i].Run(flag.Args()[1:]); err == nil {
+				log.Printf("Test %s successful", cmd)
+			}
 			return err
 		}
 	}

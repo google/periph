@@ -10,25 +10,32 @@ package i2csmoketest
 import (
 	"flag"
 	"fmt"
+	"log"
+	"math/rand"
+	"time"
 
+	"github.com/google/periph/conn/gpio"
 	"github.com/google/periph/conn/i2c"
 )
 
 type SmokeTest struct {
 }
 
-// Name
+// Name implements the SmokeTest interface.
 func (s *SmokeTest) Name() string {
 	return "i2c-testboard"
 }
 
+// Description implements the SmokeTest interface.
 func (s *SmokeTest) Description() string {
 	return "Tests EEPROM and DS2483 on periph-tester board"
 }
 
+// Run implements the SmokeTest interface.
 func (s *SmokeTest) Run(args []string) error {
 	f := flag.NewFlagSet("i2c", flag.ExitOnError)
-	busNum := f.Int("n", -1, "bus number, -1 for lowest numbered bus")
+	busNum := f.Int("bus", -1, "bus number, -1 for lowest numbered bus")
+	wc := f.Int("wc", 0, "gpio pin number for EEPROM write-control pin")
 	f.Parse(args)
 
 	// Open the bus.
@@ -36,12 +43,22 @@ func (s *SmokeTest) Run(args []string) error {
 	if err != nil {
 		return fmt.Errorf("i2c-smoke: %s", err)
 	}
+	defer i2cBus.Close()
+
+	// Open the WC pin.
+	var wcPin gpio.PinIO
+	if *wc != 0 {
+		wcPin = gpio.ByNumber(*wc)
+		if wcPin == nil {
+			return fmt.Errorf("i2c-smoke: cannot open gpio pin %d for EEPROM write control", *wc)
+		}
+	}
 
 	// Run the tests.
 	if err := s.ds248x(i2cBus); err != nil {
 		return fmt.Errorf("i2c-smoke: %s", err)
 	}
-	if err := s.eeprom(i2cBus); err != nil {
+	if err := s.eeprom(i2cBus, wcPin); err != nil {
 		return fmt.Errorf("i2c-smoke: %s", err)
 	}
 
@@ -51,7 +68,7 @@ func (s *SmokeTest) Run(args []string) error {
 // ds248x tests a Maxim DS248x 1-wire interface chip attached to the I²C bus. Such a chip
 // is included on the periph-tester board.
 //
-// The test performs a reset of the chip and erads its status register using canned command
+// The test performs a reset of the chip and reads its status register using canned command
 // sequences gleaned from the ds248x driver in order to avoid introducing a dependency on the
 // full driver.
 func (s *SmokeTest) ds248x(bus i2c.Bus) error {
@@ -81,20 +98,23 @@ const (
 	regStatus     = 0xf0 // read ptr for status register
 )
 
-// eeprom tests a 24C08 8Kbit serial EEPROM attached to the I²C bus. Such a chip
-// is included on the periph-tester board at addresses 0x50-0x53.
+// eeprom tests a 24C08 8Kbit serial EEPROM attached to the I²C bus.
+// Such a chip is included on the periph-tester board at addresses 0x50-0x53.
 //
-// The test performs some longish writes and reads and also tests a write error. It uses some
-// ad-hoc command sequences for expediency that should be replaced by a proper driver eventually.
-// Only the first 1KB of the chip is tested, thus a smaller EEPROM could be substituted.
+// The test performs some longish writes and reads and also tests a
+// write error. It uses some ad-hoc command sequences for expediency
+// that should be replaced by a proper driver eventually.
+// Only the first 256 bytes of the chip are tested, thus a smaller
+// EEPROM could be substituted.
 //
-// On the periph-tester board the write-enable is hooked-up to a gpio pin which must be driven
-// low to write to the EEPROM. If no pin is passed to the test only the completion of reads
-// will be tested.
+// On the periph-tester board the write-enable is hooked-up to a gpio
+// pin which must be driven low to write to the EEPROM. If no pin is
+// passed to the test only the completion of reads will be tested.
 //
 // Datasheet: http://www.st.com/content/ccc/resource/technical/document/datasheet/cc/f5/a5/01/6f/4b/47/d2/DM00070057.pdf/files/DM00070057.pdf/jcr:content/translations/en.DM00070057.pdf
-func (s *SmokeTest) eeprom(bus i2c.Bus) error {
+func (s *SmokeTest) eeprom(bus i2c.Bus, wcPin gpio.PinIO) error {
 	d := i2c.Dev{Bus: bus, Addr: 0x50}
+	rand.Seed(time.Now().UnixNano())
 
 	// Read byte 10 of the EEPROM and expect to get something.
 	var oneByte [1]byte
@@ -106,6 +126,78 @@ func (s *SmokeTest) eeprom(bus i2c.Bus) error {
 	var onePage [16]byte
 	if err := d.Tx([]byte{5 * 16}, onePage[:]); err != nil {
 		return fmt.Errorf("eeprom: error reading page 5")
+	}
+
+	// Stop here if we don't have write-control for the chip.
+	if wcPin == nil {
+		log.Println("i2c-smoke: no WC pin specified, skipping eeprom write tests")
+		return nil
+	}
+
+	// Enable write-control
+	if err := wcPin.Out(gpio.Low); err != nil {
+		return fmt.Errorf("eeprom: cannot init WC control pin: %s", err)
+	}
+	time.Sleep(time.Millisecond)
+	wcPin.Out(gpio.High)
+	time.Sleep(time.Millisecond)
+	wcPin.Out(gpio.Low)
+
+	// Pick a byte in the first 256 bytes and try to write it and read it back a couple
+	// of times. Using a random byte for "wear leveling"...
+	addr := byte(rand.Intn(256))
+	values := []byte{0x55, 0xAA, 0xF0, 0x0F, 0x13}
+	log.Printf("i2c-smoke writing&reading EEPROM byte %#x", addr)
+	for _, v := range values {
+		// Write byte.
+		if err := d.Tx([]byte{addr, v}, nil); err != nil {
+			return fmt.Errorf("eeprom: error writing %#x to byte at %#x: %s", v, addr, err)
+		}
+		// Read byte back, looping until the chip is ready (it takes a while to complete
+		// the write (5ms max).
+		for {
+			err := d.Tx([]byte{addr}, oneByte[:])
+			if err == nil {
+				break
+			}
+			return fmt.Errorf("eeprom: error reading byte written: %s", err)
+		}
+	}
+
+	// Pick a page in the first 256 bytes and try to write it and read it back.
+	// Using a random page for "wear leveling" and randomizing what gets written
+	// so it actually changes from one test run to the next.
+	addr = byte(rand.Intn(256)) & 0xf0 // round to page boundary
+	r := byte(rand.Intn(256))          // randomizer for value written
+	log.Printf("i2c-smoke writing&reading EEPROM page %#x with randomizer %#x", addr, r)
+	// val calculates the value for byte i.
+	val := func(i int) byte { return byte((i<<4)|(16-i)) ^ r }
+	for i := 0; i < 16; i++ {
+		onePage[i] = val(i)
+	}
+	// Write page.
+	if err := d.Tx(append([]byte{addr}, onePage[:]...), nil); err != nil {
+		return fmt.Errorf("eeprom: error writing to page %#x: %s", addr, err)
+	}
+	// Read page back, looping until the chip is ready (it takes a while to complete
+	// the write. Start by zeroing the buffer.
+	for i := 0; i < 16; i++ {
+		onePage[i] = 0
+	}
+	for {
+		err := d.Tx([]byte{addr}, onePage[:])
+		if err == nil {
+			break
+		}
+		return fmt.Errorf("eeprom: error reading page written: %s", err)
+	}
+	// Ensure we got the correct data.
+	for i := 0; i < 16; i++ {
+		if onePage[i] != val(i) {
+			return fmt.Errorf("eeprom: incorrect read of addr %#x: expected %#x got %#x",
+				addr+byte(i), val(i), onePage[i])
+		}
+
 	}
 
 	return nil
