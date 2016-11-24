@@ -8,6 +8,7 @@
 package i2csmoketest
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -205,6 +206,13 @@ func (s *SmokeTest) eeprom(bus i2c.Bus, wcPin gpio.PinIO) error {
 				addr+byte(i), val(i), onePage[i])
 		}
 
+	}
+
+	// Disable write-control, attempt a write, and expect to get an i2c error.
+	// TODO: create a clearly identifiable error.
+	wcPin.Out(gpio.High)
+	if err := d.Tx([]byte{0x10, 0xA5}, nil); err == nil {
+		return errors.New("eeprom: write with write-control disabled didn't return an error")
 	}
 
 	return nil
