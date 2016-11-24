@@ -171,7 +171,7 @@ type PinIO interface {
 }
 
 // INVALID implements PinIO and fails on all access.
-var INVALID PinIO = invalidPin{}
+var INVALID PinIO
 
 // RealPin is implemented by aliased pin and allows the retrieval of the real
 // pin underlying an alias.
@@ -356,6 +356,10 @@ var (
 	byName   = [2]map[string]PinIO{map[string]PinIO{}, map[string]PinIO{}}
 	byAlias  = map[string]*pinAlias{}
 )
+
+func init() {
+	INVALID = invalidPin{}
+}
 
 // invalidPin implements PinIO for compability but fails on all access.
 type invalidPin struct {
