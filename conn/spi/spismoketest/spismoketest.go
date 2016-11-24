@@ -101,7 +101,7 @@ func (s *SmokeTest) eeprom(d spi.Conn, wpPin gpio.PinIO) error {
 	// Read status register of the EEPROM and expect not to get an error (the device
 	// can't produce an error with SPI, but the driver/OS could act up).
 	if err := d.Tx([]byte{cmdReadStatus, 0}, rBuf[:2]); err != nil {
-		return fmt.Errorf("eeprom: error on the first read status access")
+		return fmt.Errorf("eeprom: error on the first read status access: %v", err)
 	}
 
 	// Invert one of the block protect bits and expect to read the modified status reg back.
