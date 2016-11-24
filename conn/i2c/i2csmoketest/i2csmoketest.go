@@ -36,6 +36,7 @@ func (s *SmokeTest) Run(args []string) error {
 	f := flag.NewFlagSet("i2c", flag.ExitOnError)
 	busNum := f.Int("bus", -1, "bus number, -1 for lowest numbered bus")
 	wc := f.Int("wc", 0, "gpio pin number for EEPROM write-control pin")
+	seed := f.Int64("seed", 0, "random number seed, default is to use the time")
 	f.Parse(args)
 
 	// Open the bus.
@@ -53,6 +54,13 @@ func (s *SmokeTest) Run(args []string) error {
 			return fmt.Errorf("i2c-smoke: cannot open gpio pin %d for EEPROM write control", *wc)
 		}
 	}
+
+	// Init rand.
+	if *seed == 0 {
+		*seed = time.Now().UnixNano()
+	}
+	rand.Seed(*seed)
+	log.Printf("i2c-smoke: random number seed %d", *seed)
 
 	// Run the tests.
 	if err := s.ds248x(i2cBus); err != nil {
@@ -114,7 +122,6 @@ const (
 // Datasheet: http://www.st.com/content/ccc/resource/technical/document/datasheet/cc/f5/a5/01/6f/4b/47/d2/DM00070057.pdf/files/DM00070057.pdf/jcr:content/translations/en.DM00070057.pdf
 func (s *SmokeTest) eeprom(bus i2c.Bus, wcPin gpio.PinIO) error {
 	d := i2c.Dev{Bus: bus, Addr: 0x50}
-	rand.Seed(time.Now().UnixNano())
 
 	// Read byte 10 of the EEPROM and expect to get something.
 	var oneByte [1]byte
@@ -136,7 +143,7 @@ func (s *SmokeTest) eeprom(bus i2c.Bus, wcPin gpio.PinIO) error {
 
 	// Enable write-control
 	if err := wcPin.Out(gpio.Low); err != nil {
-		return fmt.Errorf("eeprom: cannot init WC control pin: %s", err)
+		return fmt.Errorf("eeprom: cannot init WC control pin: %v", err)
 	}
 	time.Sleep(time.Millisecond)
 	wcPin.Out(gpio.High)
@@ -151,16 +158,16 @@ func (s *SmokeTest) eeprom(bus i2c.Bus, wcPin gpio.PinIO) error {
 	for _, v := range values {
 		// Write byte.
 		if err := d.Tx([]byte{addr, v}, nil); err != nil {
-			return fmt.Errorf("eeprom: error writing %#x to byte at %#x: %s", v, addr, err)
+			return fmt.Errorf("eeprom: error writing %#x to byte at %#x: %v", v, addr, err)
 		}
-		// Read byte back, looping until the chip is ready (it takes a while to complete
-		// the write (5ms max).
+		// Read byte back using a for loop because we need to wait for the write to
+		// complete (it takes 5ms max and this is the recommended method).
 		for {
 			err := d.Tx([]byte{addr}, oneByte[:])
 			if err == nil {
 				break
 			}
-			return fmt.Errorf("eeprom: error reading byte written: %s", err)
+			return fmt.Errorf("eeprom: error reading byte written: %v", err)
 		}
 	}
 
@@ -169,7 +176,7 @@ func (s *SmokeTest) eeprom(bus i2c.Bus, wcPin gpio.PinIO) error {
 	// so it actually changes from one test run to the next.
 	addr = byte(rand.Intn(256)) & 0xf0 // round to page boundary
 	r := byte(rand.Intn(256))          // randomizer for value written
-	log.Printf("i2c-smoke writing&reading EEPROM page %#x with randomizer %#x", addr, r)
+	log.Printf("i2c-smoke writing&reading EEPROM page %#x", addr)
 	// val calculates the value for byte i.
 	val := func(i int) byte { return byte((i<<4)|(16-i)) ^ r }
 	for i := 0; i < 16; i++ {
@@ -177,10 +184,10 @@ func (s *SmokeTest) eeprom(bus i2c.Bus, wcPin gpio.PinIO) error {
 	}
 	// Write page.
 	if err := d.Tx(append([]byte{addr}, onePage[:]...), nil); err != nil {
-		return fmt.Errorf("eeprom: error writing to page %#x: %s", addr, err)
+		return fmt.Errorf("eeprom: error writing to page %#x: %v", addr, err)
 	}
-	// Read page back, looping until the chip is ready (it takes a while to complete
-	// the write. Start by zeroing the buffer.
+	// Read page back using a for loop because we need to wait for the write to complete.
+	// Start by clearing the buffer.
 	for i := 0; i < 16; i++ {
 		onePage[i] = 0
 	}
@@ -189,7 +196,7 @@ func (s *SmokeTest) eeprom(bus i2c.Bus, wcPin gpio.PinIO) error {
 		if err == nil {
 			break
 		}
-		return fmt.Errorf("eeprom: error reading page written: %s", err)
+		return fmt.Errorf("eeprom: error reading page written: %v", err)
 	}
 	// Ensure we got the correct data.
 	for i := 0; i < 16; i++ {
