@@ -160,11 +160,10 @@ func (s *SmokeTest) eeprom(bus i2c.Bus, wcPin gpio.PinIO) error {
 		if err := d.Tx([]byte{addr, v}, nil); err != nil {
 			return fmt.Errorf("eeprom: error writing %#x to byte at %#x: %v", v, addr, err)
 		}
-		// Read byte back using a for loop because we need to wait for the write to
-		// complete (it takes 5ms max and this is the recommended method).
-		for {
-			err := d.Tx([]byte{addr}, oneByte[:])
-			if err == nil {
+		// Read byte back once the device is ready (takes several ms for the write to
+		// complete).
+		for start := time.Now(); time.Since(start) <= 100*time.Millisecond; {
+			if err := d.Tx([]byte{addr}, oneByte[:]); err == nil {
 				break
 			}
 		}
@@ -188,14 +187,13 @@ func (s *SmokeTest) eeprom(bus i2c.Bus, wcPin gpio.PinIO) error {
 	if err := d.Tx(append([]byte{addr}, onePage[:]...), nil); err != nil {
 		return fmt.Errorf("eeprom: error writing to page %#x: %v", addr, err)
 	}
-	// Read page back using a for loop because we need to wait for the write to complete.
-	// Start by clearing the buffer.
+	// Clear the buffer to prep for reading back.
 	for i := 0; i < 16; i++ {
 		onePage[i] = 0
 	}
-	for {
-		err := d.Tx([]byte{addr}, onePage[:])
-		if err == nil {
+	// Read page back once the device is ready (takes several ms for the write to complete).
+	for start := time.Now(); time.Since(start) <= 100*time.Millisecond; {
+		if err := d.Tx([]byte{addr}, onePage[:]); err == nil {
 			break
 		}
 	}
