@@ -17,6 +17,7 @@ import (
 
 	"github.com/google/periph/conn/gpio/gpiosmoketest"
 	"github.com/google/periph/conn/i2c/i2csmoketest"
+	"github.com/google/periph/conn/spi/spismoketest"
 	"github.com/google/periph/host"
 	"github.com/google/periph/host/chip/chipsmoketest"
 	"github.com/google/periph/host/odroid_c1/odroidc1smoketest"
@@ -42,6 +43,7 @@ var tests = []SmokeTest{
 	&gpiosmoketest.SmokeTest{},
 	&odroidc1smoketest.SmokeTest{},
 	&i2csmoketest.SmokeTest{},
+	&spismoketest.SmokeTest{},
 }
 
 func usage() {

@@ -103,6 +103,9 @@ func (s *SPI) Write(b []byte) (int, error) {
 
 // Tx sends and receives data simultaneously.
 func (s *SPI) Tx(w, r []byte) error {
+	if len(w) == 0 || len(w) != len(r) {
+		return errors.New("Tx with zero or non-equal length w&r slices")
+	}
 	p := spiIOCTransfer{
 		tx:          uint64(uintptr(unsafe.Pointer(&w[0]))),
 		rx:          uint64(uintptr(unsafe.Pointer(&r[0]))),
