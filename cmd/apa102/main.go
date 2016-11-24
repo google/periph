@@ -21,11 +21,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/periph/conn/gpio"
 	"github.com/google/periph/conn/spi"
 	"github.com/google/periph/devices"
 	"github.com/google/periph/devices/apa102"
-	"github.com/google/periph/experimental/devices/bitbang"
 	"github.com/google/periph/host"
 	"github.com/nfnt/resize"
 )
@@ -97,8 +95,6 @@ func showImage(display devices.Display, img image.Image, sleep time.Duration, lo
 func mainImpl() error {
 	verbose := flag.Bool("v", false, "verbose mode")
 	busNumber := flag.Int("b", -1, "SPI bus to use")
-	clk := flag.Int("c", -1, "clk pin for bitbanging")
-	mosi := flag.Int("m", -1, "mosi pin for bitbanging")
 
 	numLights := flag.Int("n", 150, "number of lights on the strip")
 	intensity := flag.Int("l", 127, "light intensity [1-255]")
@@ -128,33 +124,20 @@ func mainImpl() error {
 	}
 
 	// Open the display device.
-	var bus spi.Conn
-	if *clk != -1 && *mosi != -1 {
-		pclk := gpio.ByNumber(*clk)
-		pmosi := gpio.ByNumber(*mosi)
-		b, err := bitbang.NewSPI(pclk, pmosi, nil, nil, int64(*speed))
-		if err != nil {
+	bus, err := spi.New(*busNumber, 0)
+	if err != nil {
+		return err
+	}
+	defer bus.Close()
+	if *speed != 0 {
+		if err := bus.Speed(int64(*speed)); err != nil {
 			return err
 		}
-		bus = b
-	} else {
-		b, err := spi.New(*busNumber, 0)
-		if err != nil {
-			return err
-		}
-		defer b.Close()
-		if *speed != 0 {
-			if err := b.Speed(int64(*speed)); err != nil {
-				return err
-			}
-		}
-		bus = b
 	}
 	if p, ok := bus.(spi.Pins); ok {
 		// TODO(maruel): Print where the pins are located.
 		log.Printf("Using pins CLK: %s  MOSI: %s  MISO: %s", p.CLK(), p.MOSI(), p.MISO())
 	}
-	var err error
 	display, err := apa102.New(bus, *numLights, uint8(*intensity), uint16(*temperature))
 	if err != nil {
 		return err

@@ -7,36 +7,33 @@
 
 package allwinner
 
-import (
-	"github.com/google/periph/conn/gpio"
-	"github.com/google/periph/conn/pins"
-)
+import "github.com/google/periph/conn/pins"
 
 // R8 specific pins.
 var (
 	FEL            *pins.BasicPin // Boot mode selection
-	MIC_IN         *gpio.BasicPin // Microphone in
+	MIC_IN         *pins.BasicPin // Microphone in
 	MIC_GND        *pins.BasicPin // Microphone ground
-	HP_LEFT        *gpio.BasicPin // Left speaker out
-	HP_RIGHT       *gpio.BasicPin // Right speaker out
+	HP_LEFT        *pins.BasicPin // Left speaker out
+	HP_RIGHT       *pins.BasicPin // Right speaker out
 	HP_COM         *pins.BasicPin // Speaker common
-	X1, X2, Y1, Y2 *gpio.BasicPin // Touch screen pins
+	X1, X2, Y1, Y2 *pins.BasicPin // Touch screen pins
 )
 
 //
 
 func init() {
 	FEL = &pins.BasicPin{N: "FEL"}
-	MIC_IN = &gpio.BasicPin{N: "MIC_IN"}
+	MIC_IN = &pins.BasicPin{N: "MIC_IN"}
 	MIC_GND = &pins.BasicPin{N: "MIC_GND"}
-	HP_LEFT = &gpio.BasicPin{N: "HP_LEFT"}
-	HP_RIGHT = &gpio.BasicPin{N: "HP_RIGHT"}
+	HP_LEFT = &pins.BasicPin{N: "HP_LEFT"}
+	HP_RIGHT = &pins.BasicPin{N: "HP_RIGHT"}
 	HP_COM = &pins.BasicPin{N: "HP_COM"}
 
-	X1 = &gpio.BasicPin{N: "X1"}
-	X2 = &gpio.BasicPin{N: "X2"}
-	Y1 = &gpio.BasicPin{N: "Y1"}
-	Y2 = &gpio.BasicPin{N: "Y2"}
+	X1 = &pins.BasicPin{N: "X1"}
+	X2 = &pins.BasicPin{N: "X2"}
+	Y1 = &pins.BasicPin{N: "Y1"}
+	Y2 = &pins.BasicPin{N: "Y2"}
 }
 
 // mappingR8 describes the mapping of each processor pin to its alternate

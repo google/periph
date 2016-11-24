@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strconv"
 
 	"github.com/google/periph/conn/gpio"
 	"github.com/google/periph/host"
@@ -18,10 +17,6 @@ import (
 func mainImpl() error {
 	if len(os.Args) != 3 {
 		return errors.New("specify GPIO pin to write to and its level (0 or 1)")
-	}
-	pin, err := strconv.Atoi(os.Args[1])
-	if err != nil {
-		return err
 	}
 
 	l := gpio.Low
@@ -37,7 +32,7 @@ func mainImpl() error {
 		return err
 	}
 
-	p := gpio.ByNumber(pin)
+	p := gpio.ByName(os.Args[1])
 	if p == nil {
 		return errors.New("invalid GPIO pin number")
 	}

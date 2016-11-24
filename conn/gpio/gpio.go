@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strconv"
 	"sync"
 	"time"
 
@@ -124,6 +125,7 @@ type PinIn interface {
 	// Specify -1 to effectively disable timeout.
 	WaitForEdge(timeout time.Duration) bool
 	// Pull returns the internal pull resistor if the pin is set as input pin.
+	//
 	// Returns PullNoChange if the value cannot be read.
 	Pull() Pull
 }
@@ -171,61 +173,6 @@ type PinIO interface {
 // INVALID implements PinIO and fails on all access.
 var INVALID PinIO = invalidPin{}
 
-// BasicPin implements Pin as a non-functional pin.
-type BasicPin struct {
-	N string
-}
-
-// String returns the pin name.
-func (b *BasicPin) String() string {
-	return b.N
-}
-
-// Name returns the pin name.
-func (b *BasicPin) Name() string {
-	return b.N
-}
-
-// Number returns a pin number of -1.
-func (b *BasicPin) Number() int {
-	return -1
-}
-
-// Function returns a pin function of "".
-func (b *BasicPin) Function() string {
-	return ""
-}
-
-// In returns an error since the pin is non-functional.
-func (b *BasicPin) In(Pull, Edge) error {
-	return fmt.Errorf("gpio: %s cannot be used as input", b.N)
-}
-
-// Read always returns Low.
-func (b *BasicPin) Read() Level {
-	return Low
-}
-
-// WaitForEdge always returns false since the pin is non-functional.
-func (b *BasicPin) WaitForEdge(timeout time.Duration) bool {
-	return false
-}
-
-// Pull always returns PullNoChange.
-func (b *BasicPin) Pull() Pull {
-	return PullNoChange
-}
-
-// Out returns an error since the pin is non-functional.
-func (b *BasicPin) Out(Level) error {
-	return fmt.Errorf("gpio: %s cannot be used as output", b.N)
-}
-
-// PWM returns an error since the pin is non-functional.
-func (b *BasicPin) PWM(duty int) error {
-	return fmt.Errorf("gpio: %s cannot be used as PWM", b.N)
-}
-
 // RealPin is implemented by aliased pin and allows the retrieval of the real
 // pin underlying an alias.
 //
@@ -250,6 +197,9 @@ func ByNumber(number int) PinIO {
 //
 // This can be strings like GPIO2, PB8, etc.
 //
+// This function also parses string representation of numbers, so that calling
+// with "6" will return the pin registered as number 6.
+//
 // Returns nil in case the pin is not present.
 func ByName(name string) PinIO {
 	mu.Lock()
@@ -267,6 +217,9 @@ func ByName(name string) PinIO {
 			}
 		}
 		return p
+	}
+	if i, err := strconv.Atoi(name); err == nil {
+		return getByNumber(i)
 	}
 	return nil
 }
@@ -331,17 +284,27 @@ func Aliases() []PinIO {
 //
 // The pin registered cannot implement the interface RealPin.
 func Register(p PinIO, preferred bool) error {
-	mu.Lock()
-	defer mu.Unlock()
+	name := p.Name()
+	if len(name) == 0 {
+		return errors.New("gpio: can't register a pin with no name")
+	}
+	if _, err := strconv.Atoi(name); err == nil {
+		return fmt.Errorf("gpio: can't register a pin with a name being only a number %q", name)
+	}
 	number := p.Number()
+	if number < 0 {
+		return fmt.Errorf("gpio: can't register a pin with a negative number %d", number)
+	}
 	i := 0
 	if !preferred {
 		i = 1
 	}
+
+	mu.Lock()
+	defer mu.Unlock()
 	if orig, ok := byNumber[i][number]; ok {
 		return fmt.Errorf("gpio: can't register the same pin %d twice; had %q, registering %q", number, orig, p)
 	}
-	name := p.Name()
 	if orig, ok := byName[i][name]; ok {
 		return fmt.Errorf("gpio: can't register the same pin %q twice; had %q, registering %q", name, orig, p)
 	}
@@ -361,6 +324,16 @@ func Register(p PinIO, preferred bool) error {
 // It is possible to register an alias for a pin number that itself has not
 // been registered yet.
 func RegisterAlias(name string, number int) error {
+	if len(name) == 0 {
+		return errors.New("gpio: can't register an alias with no name")
+	}
+	if _, err := strconv.Atoi(name); err == nil {
+		return fmt.Errorf("gpio: can't register an alias with a name being only a number %q", name)
+	}
+	if number < 0 {
+		return fmt.Errorf("gpio: can't register an alias to a pin with a negative number %d", number)
+	}
+
 	mu.Lock()
 	defer mu.Unlock()
 	if orig, ok := byAlias[name]; ok {

@@ -444,19 +444,18 @@ func printPin(p gpio.PinIO) {
 }
 
 func getPin(s string, useSysfs bool) (gpio.PinIO, error) {
-	number, err := strconv.Atoi(s)
-	if err != nil {
-		return nil, err
-	}
-	var p gpio.PinIO
 	if useSysfs {
-		ok := false
-		if p, ok = sysfs.Pins[number]; !ok {
+		number, err := strconv.Atoi(s)
+		if err != nil {
+			return nil, err
+		}
+		p, ok := sysfs.Pins[number]
+		if !ok {
 			return nil, fmt.Errorf("pin %s is not exported by sysfs", p)
 		}
-	} else {
-		p = gpio.ByNumber(number)
+		return p, nil
 	}
+	p := gpio.ByName(s)
 	if p == nil {
 		return nil, errors.New("invalid pin number")
 	}

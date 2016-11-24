@@ -12,7 +12,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"strconv"
 
 	"github.com/google/periph/conn/gpio"
 	"github.com/google/periph/host"
@@ -58,11 +57,7 @@ func mainImpl() error {
 		return err
 	}
 
-	pin, err := strconv.Atoi(flag.Args()[0])
-	if err != nil {
-		return err
-	}
-	p := gpio.ByNumber(pin)
+	p := gpio.ByName(flag.Args()[0])
 	if p == nil {
 		return errors.New("specify a valid GPIO pin number")
 	}
@@ -70,7 +65,7 @@ func mainImpl() error {
 	if *edges {
 		edge = gpio.Both
 	}
-	if err = p.In(pull, edge); err != nil {
+	if err := p.In(pull, edge); err != nil {
 		return err
 	}
 	if *edges {
