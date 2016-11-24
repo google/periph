@@ -20,8 +20,8 @@ import (
 
 // C.H.I.P. hardware pins.
 var (
-	TEMP_SENSOR = &gpio.BasicPin{N: "TEMP_SENSOR"}
-	PWR_SWITCH  = &gpio.BasicPin{N: "PWR_SWITCH"}
+	TEMP_SENSOR = &pins.BasicPin{N: "TEMP_SENSOR"}
+	PWR_SWITCH  = &pins.BasicPin{N: "PWR_SWITCH"}
 	// XIO "gpio" pins attached to the pcf8574 I²C port extender.
 	XIO0, XIO1, XIO2, XIO3, XIO4, XIO5, XIO6, XIO7 gpio.PinIO
 )

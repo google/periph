@@ -9,7 +9,6 @@ import (
 	"os"
 
 	"github.com/google/periph"
-	"github.com/google/periph/conn/gpio"
 	"github.com/google/periph/conn/pins"
 	"github.com/google/periph/host/allwinner"
 	"github.com/google/periph/host/headers"
@@ -31,11 +30,11 @@ func Present() bool {
 var (
 	VCC         = &pins.BasicPin{N: "VCC"}         //
 	IOVCC       = &pins.BasicPin{N: "IOVCC"}       // Power supply for port A
-	TEMP_SENSOR = &gpio.BasicPin{N: "TEMP_SENSOR"} //
-	IR_RX       = &gpio.BasicPin{N: "IR_RX"}       // IR Data Receive
-	CHARGER_LED = &gpio.BasicPin{N: "CHARGER_LED"} //
-	RESET       = &gpio.BasicPin{N: "RESET"}       //
-	PWR_SWITCH  = &gpio.BasicPin{N: "PWR_SWITCH "} //
+	TEMP_SENSOR = &pins.BasicPin{N: "TEMP_SENSOR"} //
+	IR_RX       = &pins.BasicPin{N: "IR_RX"}       // IR Data Receive
+	CHARGER_LED = &pins.BasicPin{N: "CHARGER_LED"} //
+	RESET       = &pins.BasicPin{N: "RESET"}       //
+	PWR_SWITCH  = &pins.BasicPin{N: "PWR_SWITCH "} //
 )
 
 // All the individual pins on the headers.

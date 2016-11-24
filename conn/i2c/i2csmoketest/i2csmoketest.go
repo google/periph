@@ -36,7 +36,7 @@ func (s *SmokeTest) Description() string {
 func (s *SmokeTest) Run(args []string) error {
 	f := flag.NewFlagSet("i2c", flag.ExitOnError)
 	busNum := f.Int("bus", -1, "bus number, -1 for lowest numbered bus")
-	wc := f.Int("wc", 0, "gpio pin number for EEPROM write-control pin")
+	wc := f.String("wc", "", "gpio pin for EEPROM write-control pin")
 	seed := f.Int64("seed", 0, "random number seed, default is to use the time")
 	f.Parse(args)
 
@@ -49,9 +49,9 @@ func (s *SmokeTest) Run(args []string) error {
 
 	// Open the WC pin.
 	var wcPin gpio.PinIO
-	if *wc != 0 {
-		if wcPin = gpio.ByNumber(*wc); wcPin == nil {
-			return fmt.Errorf("i2c-smoke: cannot open gpio pin %d for EEPROM write control", *wc)
+	if *wc != "" {
+		if wcPin = gpio.ByName(*wc); wcPin == nil {
+			return fmt.Errorf("i2c-smoke: cannot open gpio pin %s for EEPROM write control", *wc)
 		}
 	}
 
