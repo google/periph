@@ -16,6 +16,7 @@ import (
 	"sort"
 
 	"github.com/google/periph/conn/gpio/gpiosmoketest"
+	"github.com/google/periph/conn/i2c/i2csmoketest"
 	"github.com/google/periph/host"
 	"github.com/google/periph/host/chip/chipsmoketest"
 	"github.com/google/periph/host/odroid_c1/odroidc1smoketest"
@@ -40,6 +41,7 @@ var tests = []SmokeTest{
 	&chipsmoketest.SmokeTest{},
 	&gpiosmoketest.SmokeTest{},
 	&odroidc1smoketest.SmokeTest{},
+	&i2csmoketest.SmokeTest{},
 }
 
 func usage() {
@@ -107,7 +109,10 @@ func mainImpl() error {
 
 	for i := range tests {
 		if tests[i].Name() == cmd {
-			return tests[i].Run(flag.Args()[1:])
+			if err = tests[i].Run(flag.Args()[1:]); err == nil {
+				log.Printf("Test %s successful", cmd)
+			}
+			return err
 		}
 	}
 	return fmt.Errorf("test case %q was not found", cmd)
