@@ -36,8 +36,8 @@ func (s *SmokeTest) Description() string {
 func (s *SmokeTest) Run(args []string) error {
 	f := flag.NewFlagSet("spi", flag.ExitOnError)
 	busNum := f.Int("bus", -1, "bus number, -1 for lowest numbered bus")
-	csNum := f.Int("cs", -1, "chip select number, -1 for the lowest numbered")
-	wp := f.Int("wp", 0, "gpio pin number for EEPROM write-protect pin")
+	csNum := f.Int("cs", 0, "chip select number")
+	wp := f.String("wp", "", "gpio pin for EEPROM write-protect")
 	seed := f.Int64("seed", 0, "random number seed, default is to use the time")
 	f.Parse(args)
 
@@ -50,9 +50,9 @@ func (s *SmokeTest) Run(args []string) error {
 
 	// Open the WC pin.
 	var wpPin gpio.PinIO
-	if *wp != 0 {
-		if wpPin = gpio.ByNumber(*wp); wpPin == nil {
-			return fmt.Errorf("spi-smoke: cannot open gpio pin %d for EEPROM write protect", *wp)
+	if *wp != "" {
+		if wpPin = gpio.ByName(*wp); wpPin == nil {
+			return fmt.Errorf("spi-smoke: cannot open gpio pin %s for EEPROM write protect", *wp)
 		}
 	}
 
@@ -106,19 +106,29 @@ func (s *SmokeTest) eeprom(d spi.Conn, wpPin gpio.PinIO) error {
 
 	// Invert one of the block protect bits and expect to read the modified status reg back.
 	sr := 0x02 | ((rBuf[1] & 0x0c) ^ 0x08) // flip BP1
-	d.Tx([]byte{cmdWriteEnable}, rBuf[:1])
-	d.Tx([]byte{cmdWriteStatus, sr}, rBuf[:2])
+	if err := d.Tx([]byte{cmdWriteEnable}, rBuf[:1]); err != nil {
+		return err
+	}
+	if err := d.Tx([]byte{cmdWriteStatus, sr}, rBuf[:2]); err != nil {
+		return err
+	}
 	if err := waitReady(d); err != nil {
 		return err
 	}
-	d.Tx([]byte{cmdReadStatus, 0}, rBuf[:2])
+	if err := d.Tx([]byte{cmdReadStatus, 0}, rBuf[:2]); err != nil {
+		return err
+	}
 	if (rBuf[1] & 0xc) != (sr & 0x0c) {
 		return fmt.Errorf("eeprom: wrote %#x to status register but got %#x back", sr, rBuf[1])
 	}
 
 	// Clear status register so we can write anywhere.
-	d.Tx([]byte{cmdWriteEnable}, rBuf[:1])
-	d.Tx([]byte{cmdWriteStatus, 0x00}, rBuf[:2])
+	if err := d.Tx([]byte{cmdWriteEnable}, rBuf[:1]); err != nil {
+		return err
+	}
+	if err := d.Tx([]byte{cmdWriteStatus, 0x00}, rBuf[:2]); err != nil {
+		return err
+	}
 	if err := waitReady(d); err != nil {
 		return err
 	}
@@ -155,8 +165,12 @@ func (s *SmokeTest) eeprom(d spi.Conn, wpPin gpio.PinIO) error {
 		onePage[i] = val(i)
 	}
 	// Write page.
-	d.Tx([]byte{cmdWriteEnable}, rBuf[:1])
-	d.Tx(append([]byte{cmdWriteMemory, addr[0], addr[1]}, onePage[:]...), rBuf[:35])
+	if err := d.Tx([]byte{cmdWriteEnable}, rBuf[:1]); err != nil {
+		return err
+	}
+	if err := d.Tx(append([]byte{cmdWriteMemory, addr[0], addr[1]}, onePage[:]...), rBuf[:35]); err != nil {
+		return err
+	}
 	// Zero buffer in anticipation of read.
 	for i := 0; i < 32; i++ {
 		onePage[i] = 0
@@ -165,7 +179,9 @@ func (s *SmokeTest) eeprom(d spi.Conn, wpPin gpio.PinIO) error {
 	if err := waitReady(d); err != nil {
 		return err
 	}
-	d.Tx(append([]byte{cmdReadMemory, addr[0], addr[1]}, onePage[:]...), rBuf[:35])
+	if err := d.Tx(append([]byte{cmdReadMemory, addr[0], addr[1]}, onePage[:]...), rBuf[:35]); err != nil {
+		return err
+	}
 	// Ensure we got the correct data.
 	for i := 0; i < 32; i++ {
 		if rBuf[i+3] != val(i) {
@@ -183,13 +199,19 @@ func (s *SmokeTest) eeprom(d spi.Conn, wpPin gpio.PinIO) error {
 	// Write the value of the second byte in the just-written page into the first byte.
 	first := rBuf[0]
 	second := rBuf[1]
-	d.Tx([]byte{cmdWriteEnable}, rBuf[:1])
-	d.Tx([]byte{cmdWriteMemory, addr[0], addr[1], second}, rBuf[:4])
+	if err := d.Tx([]byte{cmdWriteEnable}, rBuf[:1]); err != nil {
+		return err
+	}
+	if err := d.Tx([]byte{cmdWriteMemory, addr[0], addr[1], second}, rBuf[:4]); err != nil {
+		return err
+	}
 	// Read byte back after the chip is ready.
 	if err := waitReady(d); err != nil {
 		return err
 	}
-	d.Tx([]byte{cmdReadMemory, addr[0], addr[1], 0}, rBuf[:4])
+	if err := d.Tx([]byte{cmdReadMemory, addr[0], addr[1], 0}, rBuf[:4]); err != nil {
+		return err
+	}
 	if rBuf[3] != first {
 		return fmt.Errorf("eeprom: write protect failed, expected %#x got %#x", first, rBuf[3])
 	}
