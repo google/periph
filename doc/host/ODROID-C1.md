@@ -1,5 +1,4 @@
-Periph on Odroid-C1
-===================
+# Periph on Odroid-C1
 
 The Odroid-C1, Odroid-C1+, and Odroid-C0 boards are supported by periph
 using the sysfs drivers.  These boards use an Amlogic S805 processor (called
@@ -14,8 +13,7 @@ In terms of headers, the `host/odroid_c1` package exports the main J2 header,
 which is rPi compatible except for a couple of analog pins (which are not
 currently supported).
 
-Tips and tricks
----------------
+## Tips and tricks
 
 The ODROID-C1+ is described on Hardkernel's web site:
 [ODroid-C1+](http://www.hardkernel.com/main/products/prdt_info.php?g_code=G143703355573&tab_idx=2).
