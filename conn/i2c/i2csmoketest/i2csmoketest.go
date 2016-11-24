@@ -50,8 +50,7 @@ func (s *SmokeTest) Run(args []string) error {
 	// Open the WC pin.
 	var wcPin gpio.PinIO
 	if *wc != 0 {
-		wcPin = gpio.ByNumber(*wc)
-		if wcPin == nil {
+		if wcPin = gpio.ByNumber(*wc); wcPin == nil {
 			return fmt.Errorf("i2c-smoke: cannot open gpio pin %d for EEPROM write control", *wc)
 		}
 	}
@@ -168,7 +167,9 @@ func (s *SmokeTest) eeprom(bus i2c.Bus, wcPin gpio.PinIO) error {
 			if err == nil {
 				break
 			}
-			return fmt.Errorf("eeprom: error reading byte written: %v", err)
+		}
+		if oneByte[0] != v {
+			return fmt.Errorf("eeprom: wrote %#v but read back %#v", v, oneByte[0])
 		}
 	}
 
@@ -197,7 +198,6 @@ func (s *SmokeTest) eeprom(bus i2c.Bus, wcPin gpio.PinIO) error {
 		if err == nil {
 			break
 		}
-		return fmt.Errorf("eeprom: error reading page written: %v", err)
 	}
 	// Ensure we got the correct data.
 	for i := 0; i < 16; i++ {
