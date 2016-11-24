@@ -2,7 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// spismoketest verifies that an I²C EEPROM device can be accessed on
+// spismoketest verifies that an EEPROM device can be accessed on
 // an SPI bus. This assumes the presence of the periph-tester board,
 // which includes these two devices.
 package spismoketest
