@@ -1,5 +1,18 @@
 # periph - Peripherals I/O in Go
 
+
+## Features
+
+* Continuously tested on [Raspberry Pi](https://raspberrypi.org),
+  [C.H.I.P.](https://getchip.com/) and Windows 10 via
+  [gohci](https://github.com/maruel/gohci).
+* Interfaces: I²C, SPI, gpio (both low latency memory mapped registers and
+  zero-CPU edge detection), 1-wire and more.
+* Devices: apa102, bme280, ds18b20, ssd1306, tm1637, and more coming.
+
+
+## Quick links
+
 * [doc/users/](doc/users/) for ready-to-use tools.
 * [doc/apps/](doc/apps/) to use `periph` as a library. The complete API
   documentation, including examples, is at
@@ -9,63 +22,55 @@
 
 ## Users
 
-periph includes [many ready-to-use tools](cmd/)! See [doc/users/](doc/users/) for
-more info on configuring the host and using the included tools.
+periph includes [many ready-to-use tools](cmd/)! See [doc/users/](doc/users/)
+for more info on configuring the host and using the included tools.
 
 ```bash
+# Retrieve and install all the commands at once:
 go get github.com/google/periph/cmd/...
+# List the host drivers registered and/or initialized:
 periph-info
+# List the known headers:
 headers-list
+# List the known GPIO state:
+gpio-list
 ```
 
 
 ## Application developers
 
 For [application developers](doc/apps/), `periph` provides OS-independent bus
-interfacing. The following gets the current temperature, barometric pressure and
-relative humidity using a bme280:
+interfacing. It really tries hard to _get out of the way_. Here's the canonical
+"toggle a LED" sample:
+
 
 ```go
 package main
 
 import (
-    "fmt"
-    "log"
-
-    "github.com/google/periph/devices"
-    "github.com/google/periph/devices/bme280"
+    "time"
+    "github.com/google/periph/conn/gpio"
     "github.com/google/periph/host"
+    "github.com/google/periph/host/rpi"
 )
 
 func main() {
-    // Load all the drivers:
-    if _, err := host.Init(); err != nil {
-        log.Fatal(err)
+    host.Init()
+    for l := gpio.Low; ; l = !l {
+        rpi.P1_33.Out(l)
+        time.Sleep(500 * time.Millisecond)
     }
-
-    // Open a handle to the first available I²C bus. It could be via a FT232H
-    // over USB or an I²C bus exposed on the host's headers, it doesn't matter.
-    bus, err := i2c.New(-1)
-    if err != nil {
-        log.Fatal(err)
-    }
-    defer bus.Close()
-
-    // Open a handle to a bme280 connected on the I²C bus using default settings:
-    dev, err := bme280.NewI2C(bus, nil)
-    if err != nil {
-        log.Fatal(err)
-    }
-    defer dev.Close()
-
-    // Read temperature from the sensor:
-    var env devices.Environment
-    if err = dev.Sense(&env); err != nil {
-        log.Fatal(err)
-    }
-    fmt.Printf("%8s %10s %9s\n", env.Temperature, env.Pressure, env.Humidity)
 }
 ```
+
+Notice how one can use the global variable `rpi.P1_33` to directly access a gpio
+pin by its header position. Alternatively, `bcm283x.GPIO13` could be used, which
+effectively refers to the same pin but using its name at the process level
+instead.
+
+This sample uses basically no CPU: the rpi.P1_33.Out() doesn't call into the
+kernel. Instead it directly changes the GPIO memory mapped register.
+
 
 ### Samples
 
@@ -132,7 +137,7 @@ Google Contributor License. Please see
 
 ## Authors
 
-`Periph` was initiated by [Marc-Antoine Ruel](https://github.com/maruel). The
+`periph` was initiated by [Marc-Antoine Ruel](https://github.com/maruel). The
 full list of contributors is in [AUTHORS](AUTHORS) and
 [CONTRIBUTORS](CONTRIBUTORS).
 
