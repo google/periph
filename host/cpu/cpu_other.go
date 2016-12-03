@@ -4,7 +4,7 @@
 
 // +build !linux
 
-package host
+package cpu
 
 import "time"
 

@@ -10,7 +10,6 @@ import (
 	"os"
 	"reflect"
 	"sync"
-	"syscall"
 	"unsafe"
 )
 
@@ -76,7 +75,7 @@ type View struct {
 // This is done naturally by the OS on process teardown (when the process
 // exits) so this is not a hard requirement to call this function.
 func (v *View) Close() error {
-	return syscall.Munmap(v.orig)
+	return munmap(v.orig)
 }
 
 // MapGPIO returns a CPU specific memory mapping of the CPU I/O registers using
@@ -123,7 +122,7 @@ func mapGPIOLinux() (*View, error) {
 	if gpioMemView == nil && gpioMemErr == nil {
 		if f, err := os.OpenFile("/dev/gpiomem", os.O_RDWR|os.O_SYNC, 0); err == nil {
 			defer f.Close()
-			if i, err := syscall.Mmap(int(f.Fd()), 0, 4096, syscall.PROT_READ|syscall.PROT_WRITE, syscall.MAP_SHARED); err == nil {
+			if i, err := mmap(f.Fd(), 0, 4096); err == nil {
 				gpioMemView = &View{Slice: i, orig: i}
 			} else {
 				gpioMemErr = err
@@ -143,12 +142,7 @@ func mapLinux(base uint64, size int) (*View, error) {
 	}
 	// Align base and size at 4Kb.
 	offset := int(base & 0xFFF)
-	i, err := syscall.Mmap(
-		int(f.Fd()),
-		int64(base&^0xFFF),
-		(size+offset+0xFFF)&^0xFFF,
-		syscall.PROT_READ|syscall.PROT_WRITE,
-		syscall.MAP_SHARED)
+	i, err := mmap(f.Fd(), int64(base&^0xFFF), (size+offset+0xFFF)&^0xFFF)
 	if err != nil {
 		return nil, fmt.Errorf("pmem: mapping at 0x%x failed: %v", base, err)
 	}

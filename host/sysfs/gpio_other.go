@@ -14,7 +14,7 @@ import (
 type event struct{}
 
 func (e event) makeEvent(f *os.File) error {
-	return 0, errors.New("sysfs-gpio: unreachable code")
+	return errors.New("sysfs-gpio: unreachable code")
 }
 
 func (e event) wait(timeoutms int) (int, error) {
