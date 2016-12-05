@@ -41,15 +41,12 @@ We use [gohci](https://github.com/maruel/gohci) for automated testing on
 devices. The devices run unit tests, `go vet` and
 [periph-smoketest](../../cmd/periph-smoketest).
 
-The fleet currently includes:
+The fleet currently is currently hosted by [maruel](https://github.com/maruel):
 - [Raspberry Pi 3](https://www.raspberrypi.org/) running [Raspbian Jessie
-  Lite](https://www.raspberrypi.org/downloads/raspbian/); device provided by
-  [maruel](https://github.com/maruel)
-- [Pine 64](https://www.pine64.org/) (512Mb version) running [Armbian Jessie
-  server](http://www.armbian.com/); device provided by
-  [maruel](https://github.com/maruel)
+  Lite](https://www.raspberrypi.org/downloads/raspbian/)
 - [C.H.I.P.](https://getchip.com/pages/chip) running Debian headless image
-  provided by NTC; device provided by [maruel](https://github.com/maruel)
+  provided by NTC
+- Windows 10 VM
 
 The tests must not be broken by a PR.
 
