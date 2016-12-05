@@ -27,7 +27,7 @@ import (
 // So make sure to read the datasheet for the exact right CPU.
 var (
 	PB0, PB1, PB2, PB3, PB4, PB5, PB6, PB7, PB8, PB9, PB10, PB11, PB12, PB13, PB14, PB15, PB16, PB17, PB18                                                       *Pin
-	PC0, PC1, PC2, PC3, PC4, PC5, PC6, PC7, PC8, PC9, PC10, PC11, PC12, PC13, PC14, PC15, PC16                                                                   *Pin
+	PC0, PC1, PC2, PC3, PC4, PC5, PC6, PC7, PC8, PC9, PC10, PC11, PC12, PC13, PC14, PC15, PC16, PC17, PC18, PC19                                                 *Pin
 	PD0, PD1, PD2, PD3, PD4, PD5, PD6, PD7, PD8, PD9, PD10, PD11, PD12, PD13, PD14, PD15, PD16, PD17, PD18, PD19, PD20, PD21, PD22, PD23, PD24, PD25, PD26, PD27 *Pin
 	PE0, PE1, PE2, PE3, PE4, PE5, PE6, PE7, PE8, PE9, PE10, PE11, PE12, PE13, PE14, PE15, PE16, PE17                                                             *Pin
 	PF0, PF1, PF2, PF3, PF4, PF5, PF6                                                                                                                            *Pin
@@ -46,8 +46,10 @@ type Pin struct {
 	altFunc     [5]string // alternate functions
 
 	// Mutable.
-	edge      *sysfs.Pin // Set once, then never set back to nil.
-	usingEdge bool       // Set when edge detection is enabled.
+	edge        *sysfs.Pin // Set once, then never set back to nil.
+	usingEdge   bool       // Set when edge detection is enabled.
+	available   bool       // Set when the pin is available on this CPU architecture.
+	supportEdge bool       // Set when the pin supports interupt based edge detection.
 }
 
 // String returns the name of the pin in the processor and the GPIO pin number.
@@ -67,6 +69,9 @@ func (p *Pin) Number() int {
 
 // Function returns the current function of the pin in printable form.
 func (p *Pin) Function() string {
+	if !p.available {
+		return "N/A"
+	}
 	switch f := p.function(); f {
 	case in:
 		return "In/" + p.Read().String() + "/" + p.Pull().String()
@@ -116,17 +121,13 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	if gpioMemory == nil {
 		return p.wrap(errors.New("subsystem not initialized"))
 	}
-	if edge != gpio.None {
-		switch p.group {
-		case 1, 6, 7:
-			// TODO(maruel): Some pins do not support Alt5 in these groups.
-		default:
-			return p.wrap(errors.New("only groups PB, PG, PH (and PL if available) support edge based triggering"))
-		}
+	if !p.available {
+		return p.wrap(errors.New("not available on this CPU architecture"))
 	}
-	if !p.setFunction(in) {
-		return p.wrap(errors.New("failed to set pin as input"))
+	if edge != gpio.None && !p.supportEdge {
+		return p.wrap(errors.New("edge detection is not supported on this pin"))
 	}
+	p.setFunction(in)
 	if pull != gpio.PullNoChange {
 		off := p.offset / 16
 		shift := 2 * (p.offset % 16)
@@ -160,7 +161,7 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 // Read returns the current level of the pin. Due to the way the Allwinner hardware functions it
 // will do this regardless of the pin's function but this should not be relied upon.
 func (p *Pin) Read() gpio.Level {
-	if gpioMemory == nil {
+	if gpioMemory == nil || !p.available {
 		return gpio.Low
 	}
 	return gpio.Level(gpioMemory.groups[p.group].data&(1<<p.offset) != 0)
@@ -176,7 +177,7 @@ func (p *Pin) WaitForEdge(timeout time.Duration) bool {
 
 // Pull returns the current pull-up/down registor setting.
 func (p *Pin) Pull() gpio.Pull {
-	if gpioMemory == nil {
+	if gpioMemory == nil || !p.available {
 		return gpio.PullNoChange
 	}
 	v := gpioMemory.groups[p.group].pull[p.offset/16]
@@ -198,6 +199,9 @@ func (p *Pin) Out(l gpio.Level) error {
 	if gpioMemory == nil {
 		return p.wrap(errors.New("subsystem not initialized"))
 	}
+	if !p.available {
+		return p.wrap(errors.New("not available on this CPU architecture"))
+	}
 	if p.usingEdge {
 		// First disable edges.
 		if err := p.edge.In(gpio.PullNoChange, gpio.None); err != nil {
@@ -205,9 +209,7 @@ func (p *Pin) Out(l gpio.Level) error {
 		}
 		p.usingEdge = false
 	}
-	if !p.setFunction(out) {
-		return p.wrap(errors.New("failed to set pin as output"))
-	}
+	p.setFunction(out)
 	// TODO(maruel): Set the value *before* changing the pin to be an output, so
 	// there is no glitch.
 	bit := uint32(1 << p.offset)
@@ -225,6 +227,8 @@ func (p *Pin) PWM(duty int) error {
 	return p.wrap(errors.New("pwm is not supported"))
 }
 
+//
+
 // function returns the current GPIO pin function.
 func (p *Pin) function() function {
 	if gpioMemory == nil {
@@ -234,21 +238,8 @@ func (p *Pin) function() function {
 	return function((gpioMemory.groups[p.group].cfg[p.offset/8] >> shift) & 7)
 }
 
-// setFunction changes the GPIO pin function to in or out if the current function is in, out or
-// alt5. It returns false if the function could not be changed.
-func (p *Pin) setFunction(f function) bool {
-	if f != in && f != out {
-		return false
-	}
-	if p == nil {
-		return false
-	}
-	// Interrupt based edge triggering is Alt5 but this is only supported on some pins.
-	// TODO(maruel): This check should use a whitelist of pins.
-	if actual := p.function(); actual != in && actual != out && actual != disabled && actual != alt5 {
-		// Pin is in special mode.
-		return false
-	}
+// setFunction changes the GPIO pin function.
+func (p *Pin) setFunction(f function) {
 	off := p.offset / 8
 	shift := 4 * (p.offset % 8)
 	mask := uint32(disabled) << shift
@@ -259,7 +250,6 @@ func (p *Pin) setFunction(f function) bool {
 	if p.function() != f {
 		panic(f)
 	}
-	return true
 }
 
 func (p *Pin) wrap(err error) error {
@@ -301,8 +291,6 @@ var gpioMemory *gpioMap
 // look like more pins are available than really are, but trying to get the pin
 // list 100% correct on all platforms seems futile, hence periph errs on the
 // side of caution.
-//
-// Group/offset calculation from http://forum.pine64.org/showthread.php?tid=474
 var cpupins = map[string]*Pin{
 	"PB0":  {group: 1, offset: 0, name: "PB0", defaultPull: gpio.Float},
 	"PB1":  {group: 1, offset: 1, name: "PB1", defaultPull: gpio.Float},
@@ -340,6 +328,9 @@ var cpupins = map[string]*Pin{
 	"PC14": {group: 2, offset: 14, name: "PC14", defaultPull: gpio.Float},
 	"PC15": {group: 2, offset: 15, name: "PC15", defaultPull: gpio.Float},
 	"PC16": {group: 2, offset: 16, name: "PC16", defaultPull: gpio.Float},
+	"PC17": {group: 2, offset: 17, name: "PC17", defaultPull: gpio.Float},
+	"PC18": {group: 2, offset: 18, name: "PC18", defaultPull: gpio.Float},
+	"PC19": {group: 2, offset: 19, name: "PC19", defaultPull: gpio.Float},
 	"PD0":  {group: 3, offset: 0, name: "PD0", defaultPull: gpio.Float},
 	"PD1":  {group: 3, offset: 1, name: "PD1", defaultPull: gpio.Float},
 	"PD2":  {group: 3, offset: 2, name: "PD2", defaultPull: gpio.Float},
@@ -577,13 +568,14 @@ type function uint8
 // http://files.pine64.org/doc/datasheet/pine64/Allwinner_A64_User_Manual_V1.0.pdf
 // Page 376 GPIO PB to PH.
 // Page 410 GPIO PL.
+// Size is 36 bytes.
 type gpioGroup struct {
 	// Pn_CFGx n*0x24+x*4       Port n Configure Register x (n from 1(B) to 7(H))
 	cfg [4]uint32
 	// Pn_DAT  n*0x24+0x10      Port n Data Register (n from 1(B) to 7(H))
 	data uint32
 	// Pn_DRVx n*0x24+0x14+x*4  Port n Multi-Driving Register x (n from 1 to 7)
-	drv [2]uint32
+	drv [2]uint32 // TODO(maruel): Figure out how to use this.
 	// Pn_PULL n*0x24+0x1C+x*4  Port n Pull Register (n from 1(B) to 7(H))
 	pull [2]uint32
 }

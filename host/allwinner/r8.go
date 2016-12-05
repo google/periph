@@ -7,7 +7,11 @@
 
 package allwinner
 
-import "github.com/google/periph/conn/pins"
+import (
+	"strings"
+
+	"github.com/google/periph/conn/pins"
+)
 
 // R8 specific pins.
 var (
@@ -36,8 +40,11 @@ func init() {
 	Y2 = &pins.BasicPin{N: "Y2"}
 }
 
-// mappingR8 describes the mapping of each processor pin to its alternate
-// functions. It omits the in & out functions which are available on all pins.
+// mappingR8 describes the mapping of each R8 processor gpio to their alternate
+// functions.
+//
+// It omits the in & out functions which are available on all pins.
+//
 // The mapping comes from the datasheet page 18:
 // https://github.com/NextThingCo/CHIP-Hardware/raw/master/CHIP%5Bv1_0%5D/CHIPv1_0-BOM-Datasheets/Allwinner%20R8%20Datasheet%20V1.2.pdf
 //
@@ -45,7 +52,7 @@ func init() {
 var mappingR8 = map[string][5]string{
 	"PB0":  {"I2C0_SCL"},
 	"PB1":  {"I2C0_SDA"},
-	"PB2":  {"PWM", "", "", "", "EINT16"},
+	"PB2":  {"PWM0", "", "", "", "EINT16"},
 	"PB3":  {"IR_TX", "", "", "", "EINT17"},
 	"PB4":  {"IR_RX", "", "", "", "EINT18"},
 	"PB10": {"SPI2_CS1"},
@@ -69,6 +76,7 @@ var mappingR8 = map[string][5]string{
 	"PC13": {"NAND_DQ5", "SDC2_D5"},
 	"PC14": {"NAND_DQ6", "SDC2_D6"},
 	"PC15": {"NAND_DQ7", "SDC2_D7"},
+	"PC19": {""},
 	"PD2":  {"LCD_D2", "UART2_TX"},
 	"PD3":  {"LCD_D3", "UART2_RX"},
 	"PD4":  {"LCD_D4", "UART2_CTX"},
@@ -114,20 +122,23 @@ var mappingR8 = map[string][5]string{
 	"PG2":  {"GPS_MAG", "", "", "", "EINT2"},
 	"PG3":  {"", "", "UART1_TX", "", "EINT3"},
 	"PG4":  {"", "", "UART1_RX", "", "EINT4"},
-	"PG9":  {"SPI1_CS0", "UART3_TX", "", "", "PG_EINT9"},
-	"PG10": {"SPI1_CLK", "UART3_RX", "", "", "PG_EINT10"},
-	"PG11": {"SPI1_MOSI", "UART3_CTS", "", "", "PG_EINT11"},
-	"PG12": {"SPI1_MISO", "UART3_RTS", "", "", "PG_EINT12"},
+	"PG9":  {"SPI1_CS0", "UART3_TX", "", "", "EINT9"},
+	"PG10": {"SPI1_CLK", "UART3_RX", "", "", "EINT10"},
+	"PG11": {"SPI1_MOSI", "UART3_CTS", "", "", "EINT11"},
+	"PG12": {"SPI1_MISO", "UART3_RTS", "", "", "EINT12"},
 }
 
-// mapR8Pins uses mappingR8 to actually set the altFunc fields of all pins. It
-// is called by the generic allwinner processor code if an R8 is indeed
-// detected.
+// mapR8Pins uses mappingR8 to actually set the altFunc fields of all gpio and
+// mark them as available.
+//
+// It is called by the generic allwinner processor code if a R8 is detected.
 func mapR8Pins() {
-	// Set the altFunc fields of all pins that are on the R8.
 	for name, altFuncs := range mappingR8 {
-		if pin := cpupins[name]; pin != nil {
-			pin.altFunc = altFuncs
+		pin := cpupins[name]
+		pin.altFunc = altFuncs
+		pin.available = true
+		if strings.Contains(altFuncs[4], "EINT") {
+			pin.supportEdge = true
 		}
 	}
 }

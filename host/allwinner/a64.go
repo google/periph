@@ -2,11 +2,16 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// This file contains pin mapping information that is specific to the Allwinner A64 model.
+// This file contains pin mapping information that is specific to the Allwinner
+// A64 model.
 
 package allwinner
 
-import "github.com/google/periph/conn/pins"
+import (
+	"strings"
+
+	"github.com/google/periph/conn/pins"
+)
 
 // A64 specific pins.
 var (
@@ -27,8 +32,11 @@ func init() {
 	EAROUTN = &pins.BasicPin{N: "EAROUTN"}
 }
 
-// mappingA64 describes the mapping of each processor pin to its alternate
-// functions. It omits the in & out functions which are available on all pins.
+// mappingA64 describes the mapping of the A64 processor gpios to their
+// alternate functions.
+//
+// It omits the in & out functions which are available on all gpio.
+//
 // The mapping comes from the datasheet page 23:
 // http://files.pine64.org/doc/datasheet/pine64/A64_Datasheet_V1.1.pdf
 //
@@ -91,7 +99,7 @@ var mappingA64 = map[string][5]string{
 	"PD21": {"LCD_VSYNC", "LVDS_VN3", "RGMII_CLKI"},
 	"PD22": {"PWM0", "", "MDC"},
 	"PD23": {"", "", "MDIO"},
-	"PD24": {"", ""},
+	"PD24": {""},
 	"PE0":  {"CSI_PCLK", "", "TS_CLK"},
 	"PE1":  {"CSI_MCLK", "", "TS_ERR"},
 	"PE2":  {"CSI_HSYNC", "", "TS_SYNC"},
@@ -108,15 +116,15 @@ var mappingA64 = map[string][5]string{
 	"PE13": {"CSI_SDA"},
 	"PE14": {"PLL_LOCK_DBG", "I2C2_SCL"},
 	"PE15": {"", "I2C2_SDA"},
-	"PE16": {},
-	"PE17": {"", ""},
+	"PE16": {""},
+	"PE17": {""},
 	"PF0":  {"SDC0_D1", "JTAG_MS1"},
 	"PF1":  {"SDC0_D0", "JTAG_DI1"},
 	"PF2":  {"SDC0_CLK", "UART0_TX"},
 	"PF3":  {"SDC0_CMD", "JTAG_DO1"},
 	"PF4":  {"SDC0_D3", "UART0_RX"},
 	"PF5":  {"SDC0_D2", "JTAG_CK1"},
-	"PF6":  {"", "", ""},
+	"PF6":  {""},
 	"PG0":  {"SDC1_CLK", "", "", "", "PG_EINT0"},
 	"PG1":  {"SDC1_CMD", "", "", "", "PG_EINT1"},
 	"PG2":  {"SDC1_D0", "", "", "", "PG_EINT2"},
@@ -145,13 +153,17 @@ var mappingA64 = map[string][5]string{
 	"PH11": {"MIC_DATA", "", "", "", "PH_EINT11"},
 }
 
-// mapA64Pins uses mappingA64 to actually set the altFunc fields of all pins. It is called by the
-// generic allwinner processor code if an A64 is indeed detected.
+// mapA64Pins uses mappingA64 to actually set the altFunc fields of all gpio
+// and mark them as available.
+//
+// It is called by the generic allwinner processor code if an A64 is detected.
 func mapA64Pins() {
-	// set the altFunc fields of all pins that are on the A64
 	for name, altFuncs := range mappingA64 {
-		if pin := cpupins[name]; pin != nil {
-			pin.altFunc = altFuncs
+		pin := cpupins[name]
+		pin.altFunc = altFuncs
+		pin.available = true
+		if strings.Contains(altFuncs[4], "EINT") {
+			pin.supportEdge = true
 		}
 	}
 }
