@@ -394,7 +394,7 @@ func (s *SmokeTest) testPull(p1, p2 gpio.PinIO) error {
 	if err := preparePins(p1, p2); err != nil {
 		return err
 	}
-	if err := p2.In(gpio.Down, gpio.None); err != nil {
+	if err := p2.In(gpio.PullDown, gpio.None); err != nil {
 		return err
 	}
 	time.Sleep(s.shortDelay)
@@ -404,7 +404,7 @@ func (s *SmokeTest) testPull(p1, p2 gpio.PinIO) error {
 	}
 
 	s.slowSleep()
-	if err := p2.In(gpio.Up, gpio.None); err != nil {
+	if err := p2.In(gpio.PullUp, gpio.None); err != nil {
 		return err
 	}
 	time.Sleep(s.shortDelay)

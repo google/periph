@@ -113,9 +113,9 @@ func (p *PinPL) In(pull gpio.Pull, edge gpio.Edge) error {
 		// Do it in a way that is concurrent safe.
 		gpioMemoryPL.pull[off] &^= 3 << shift
 		switch pull {
-		case gpio.Down:
+		case gpio.PullDown:
 			gpioMemoryPL.pull[off] = 2 << shift
-		case gpio.Up:
+		case gpio.PullUp:
 			gpioMemoryPL.pull[off] = 1 << shift
 		default:
 		}
@@ -160,9 +160,9 @@ func (p *PinPL) Pull() gpio.Pull {
 	case 0:
 		return gpio.Float
 	case 1:
-		return gpio.Up
+		return gpio.PullUp
 	case 2:
-		return gpio.Down
+		return gpio.PullDown
 	default:
 		// Confused.
 		return gpio.PullNoChange
@@ -247,8 +247,8 @@ func (p *PinPL) wrap(err error) error {
 // cpuPinsPL is all the pins as supported by the CPU. There is no guarantee that
 // they are actually connected to anything on the board.
 var cpuPinsPL = []PinPL{
-	{offset: 0, name: "PL0", defaultPull: gpio.Up},
-	{offset: 1, name: "PL1", defaultPull: gpio.Up},
+	{offset: 0, name: "PL0", defaultPull: gpio.PullUp},
+	{offset: 1, name: "PL1", defaultPull: gpio.PullUp},
 	{offset: 2, name: "PL2", defaultPull: gpio.Float},
 	{offset: 3, name: "PL3", defaultPull: gpio.Float},
 	{offset: 4, name: "PL4", defaultPull: gpio.Float},

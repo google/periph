@@ -60,7 +60,7 @@ func ExamplePinIn() {
 	if p == nil {
 		log.Fatal("Failed to find #6")
 	}
-	if err := p.In(Down, Rising); err != nil {
+	if err := p.In(PullDown, Rising); err != nil {
 		log.Fatal(err)
 	}
 	fmt.Printf("%s is %s\n", p, p.Read())

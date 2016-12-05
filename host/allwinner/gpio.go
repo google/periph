@@ -134,9 +134,9 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 		// Do it in a way that is concurrency safe.
 		gpioMemory.groups[p.group].pull[off] &^= 3 << shift
 		switch pull {
-		case gpio.Down:
+		case gpio.PullDown:
 			gpioMemory.groups[p.group].pull[off] = 2 << shift
-		case gpio.Up:
+		case gpio.PullUp:
 			gpioMemory.groups[p.group].pull[off] = 1 << shift
 		default:
 		}
@@ -185,9 +185,9 @@ func (p *Pin) Pull() gpio.Pull {
 	case 0:
 		return gpio.Float
 	case 1:
-		return gpio.Up
+		return gpio.PullUp
 	case 2:
-		return gpio.Down
+		return gpio.PullDown
 	default:
 		// Confused.
 		return gpio.PullNoChange
@@ -314,11 +314,11 @@ var cpupins = map[string]*Pin{
 	"PC0":  {group: 2, offset: 0, name: "PC0", defaultPull: gpio.Float},
 	"PC1":  {group: 2, offset: 1, name: "PC1", defaultPull: gpio.Float},
 	"PC2":  {group: 2, offset: 2, name: "PC2", defaultPull: gpio.Float},
-	"PC3":  {group: 2, offset: 3, name: "PC3", defaultPull: gpio.Up},
-	"PC4":  {group: 2, offset: 4, name: "PC4", defaultPull: gpio.Up},
+	"PC3":  {group: 2, offset: 3, name: "PC3", defaultPull: gpio.PullUp},
+	"PC4":  {group: 2, offset: 4, name: "PC4", defaultPull: gpio.PullUp},
 	"PC5":  {group: 2, offset: 5, name: "PC5", defaultPull: gpio.Float},
-	"PC6":  {group: 2, offset: 6, name: "PC6", defaultPull: gpio.Up},
-	"PC7":  {group: 2, offset: 7, name: "PC7", defaultPull: gpio.Up},
+	"PC6":  {group: 2, offset: 6, name: "PC6", defaultPull: gpio.PullUp},
+	"PC7":  {group: 2, offset: 7, name: "PC7", defaultPull: gpio.PullUp},
 	"PC8":  {group: 2, offset: 8, name: "PC8", defaultPull: gpio.Float},
 	"PC9":  {group: 2, offset: 9, name: "PC9", defaultPull: gpio.Float},
 	"PC10": {group: 2, offset: 10, name: "PC10", defaultPull: gpio.Float},
