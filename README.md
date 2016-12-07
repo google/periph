@@ -51,24 +51,26 @@ import (
     "time"
     "github.com/google/periph/conn/gpio"
     "github.com/google/periph/host"
-    "github.com/google/periph/host/rpi"
 )
 
 func main() {
     host.Init()
     for l := gpio.Low; ; l = !l {
-        rpi.P1_33.Out(l)
+        gpio.ByNumber(13).Out(l)
         time.Sleep(500 * time.Millisecond)
     }
 }
 ```
 
-Notice how one can use the global variable `rpi.P1_33` to directly access a gpio
-pin by its header position. Alternatively, `bcm283x.GPIO13` could be used, which
-effectively refers to the same pin but using its name at the process level
-instead.
+The following are synonyms, use the form you prefer:
+* Runtime discovery:
+  * [`gpio.ByNumber(13)`](https://godoc.org/github.com/google/periph/conn/gpio/#ByNumber) or [`gpio.ByName("13")`](https://godoc.org/github.com/google/periph/conn/gpio/#ByName)
+  *  [`gpio.ByName("GPIO13")`](https://godoc.org/github.com/google/periph/conn/gpio/#ByName)
+* Using global variables:
+  * [`rpi.P1_33`](https://godoc.org/github.com/google/periph/host/rpi#/P1_33) to select the pin via its position on the board
+  * [`bcm283x.GPIO13`](https://godoc.org/github.com/google/periph/host/bcm283x/#GPIO13)
 
-This sample uses basically no CPU: the rpi.P1_33.Out() doesn't call into the
+This example uses basically no CPU: the `Out()` call doesn't call into the
 kernel. Instead it directly changes the GPIO memory mapped register.
 
 
