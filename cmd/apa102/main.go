@@ -25,7 +25,6 @@ import (
 	"github.com/google/periph/devices"
 	"github.com/google/periph/devices/apa102"
 	"github.com/google/periph/host"
-	"github.com/nfnt/resize"
 )
 
 func access(name string) bool {
@@ -67,6 +66,22 @@ func loadImg(name string) (image.Image, error) {
 	return img, nil
 }
 
+// resize is a simple but fast nearest neighbor implementation.
+//
+// If you need something better, please use one of the various high quality
+// (slower!) Go packages available on github.
+func resize(src image.Image, width, height int) *image.NRGBA {
+	srcMax := src.Bounds().Max
+	dst := image.NewNRGBA(image.Rect(0, 0, width, height))
+	for y := 0; y < height; y++ {
+		sY := (y*srcMax.Y + height/2) / height
+		for x := 0; x < width; x++ {
+			dst.Set(x, y, src.At((x*srcMax.X+width/2)/width, sY))
+		}
+	}
+	return dst
+}
+
 func showImage(display devices.Display, img image.Image, sleep time.Duration, loop bool, height int) {
 	r := display.Bounds()
 	w := r.Dx()
@@ -76,7 +91,7 @@ func showImage(display devices.Display, img image.Image, sleep time.Duration, lo
 	}
 	p := image.Point{}
 	now := time.Now()
-	img = resize.Resize(uint(w), uint(height), img, resize.Bilinear)
+	img = resize(img, w, height)
 	log.Printf("Resizing %dx%d -> %dx%d took %s", orig.X, orig.Y, w, height, time.Since(now))
 	now = time.Now()
 	for {

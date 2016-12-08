@@ -29,7 +29,6 @@ import (
 	"github.com/google/periph/devices/ssd1306"
 	"github.com/google/periph/devices/ssd1306/image1bit"
 	"github.com/google/periph/host"
-	"github.com/nfnt/resize"
 )
 
 func access(name string) bool {
@@ -81,6 +80,22 @@ func loadImg(name string) (image.Image, *gif.GIF, error) {
 	}
 	log.Printf("Image %s", name)
 	return img, nil, nil
+}
+
+// resize is a simple but fast nearest neighbor implementation.
+//
+// If you need something better, please use one of the various high quality
+// (slower!) Go packages available on github.
+func resize(src image.Image, width, height int) *image.NRGBA {
+	srcMax := src.Bounds().Max
+	dst := image.NewNRGBA(image.Rect(0, 0, width, height))
+	for y := 0; y < height; y++ {
+		sY := (y*srcMax.Y + height/2) / height
+		for x := 0; x < width; x++ {
+			dst.Set(x, y, src.At((x*srcMax.X+width/2)/width, sY))
+		}
+	}
+	return dst
 }
 
 func demo(s *ssd1306.Dev) error {
@@ -136,7 +151,7 @@ func drawText(img draw.Image, text string) {
 // convert resizes and converts to black and white an image while keeping
 // aspect ratio, put it in a centered image of the same size as the display.
 func convert(s *ssd1306.Dev, src image.Image) (*image1bit.Image, error) {
-	src = resize.Thumbnail(uint(s.W), uint(s.H), src, resize.Bicubic)
+	src = resize(src, s.W, s.H)
 	img, err := image1bit.New(image.Rect(0, 0, s.W, s.H))
 	if err != nil {
 		return nil, err
