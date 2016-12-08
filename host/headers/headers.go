@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/google/periph/conn/gpio"
 	"github.com/google/periph/conn/pins"
 )
 
@@ -35,18 +36,19 @@ func All() map[string][][]pins.Pin {
 // Position returns the position on a pin if found.
 //
 // The header and the pin number. Pin numbers are 1-based.
+//
+// Returns "", 0 if not connected.
 func Position(p pins.Pin) (string, int) {
 	mu.Lock()
 	defer mu.Unlock()
-	pos := byPin[p.Name()]
+	pos, _ := byPin[realPin(p).Name()]
 	return pos.name, pos.number
 }
 
 // IsConnected returns true if the pin is on a header.
 func IsConnected(p pins.Pin) bool {
-	mu.Lock()
-	defer mu.Unlock()
-	return connected[p.Name()]
+	_, i := Position(p)
+	return i != 0
 }
 
 // Register registers a physical header.
@@ -59,17 +61,15 @@ func Register(name string, allPins [][]pins.Pin) error {
 	for i, line := range allPins {
 		for j, pin := range line {
 			if pin == nil || len(pin.Name()) == 0 {
-				return fmt.Errorf("headers: invalid pin on header %s[%d][%d]\n", name, i+1, j+1)
+				return fmt.Errorf("headers: invalid pin on header %s[%d][%d]", name, i+1, j+1)
 			}
 		}
 	}
 	allHeaders[name] = allPins
 	number := 1
 	for _, line := range allPins {
-		for _, pin := range line {
-			n := pin.Name()
-			byPin[n] = position{name, number}
-			connected[n] = true
+		for _, p := range line {
+			byPin[realPin(p).Name()] = position{name, number}
 			number++
 		}
 	}
@@ -87,5 +87,15 @@ var (
 	mu         sync.Mutex
 	allHeaders = map[string][][]pins.Pin{} // every known headers as per internal lookup table
 	byPin      = map[string]position{}     // GPIO pin name to position
-	connected  = map[string]bool{}         // GPIO pin name to position
 )
+
+// realPin returns the real pin from an alias.
+func realPin(p pins.Pin) pins.Pin {
+	for {
+		if r, ok := p.(gpio.RealPin); ok {
+			p = r.Real()
+		} else {
+			return p
+		}
+	}
+}
