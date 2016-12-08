@@ -36,6 +36,7 @@ type Pin struct {
 	root   string // Something like /sys/class/gpio/gpio%d/
 
 	mu         sync.Mutex
+	err        error     // If open() failed
 	direction  direction // Cache of the last known direction
 	edge       gpio.Edge // Cache of the last edge used.
 	fDirection *os.File  // handle to /sys/class/gpio/gpio*/direction; never closed
@@ -64,11 +65,11 @@ func (p *Pin) Function() string {
 	// TODO(maruel): There's an internal bug which causes p.direction to be
 	// invalid (!?) Need to figure it out ASAP.
 	if err := p.open(); err != nil {
-		return err.Error()
+		return "ERR"
 	}
 	var buf [4]byte
 	if err := seekRead(p.fDirection, buf[:]); err != nil {
-		return err.Error()
+		return "ERR"
 	}
 	if buf[0] == 'i' && buf[1] == 'n' {
 		p.direction = dIn
@@ -80,7 +81,7 @@ func (p *Pin) Function() string {
 	} else if p.direction == dOut {
 		return "Out/" + p.Read().String()
 	}
-	return "N/A"
+	return "ERR"
 }
 
 // In setups a pin as an input.
@@ -182,6 +183,8 @@ func (p *Pin) WaitForEdge(timeout time.Duration) bool {
 		if nr, err := p.event.wait(ms); err != nil {
 			return false
 		} else if nr == 1 {
+			// TODO(maruel): According to pigpio, the correct way to consume the
+			// interrupt is to call Seek().
 			return true
 		}
 		// A signal occurred.
@@ -259,12 +262,15 @@ func (p *Pin) open() error {
 	if p.fDirection != nil {
 		return nil
 	}
-	_, err := exportHandle.Write([]byte(strconv.Itoa(p.number)))
-	if err != nil && !isErrBusy(err) {
-		if os.IsPermission(err) {
-			return fmt.Errorf("need more access, try as root or setup udev rules: %v", err)
+	if p.err != nil {
+		return p.err
+	}
+	_, p.err = exportHandle.Write([]byte(strconv.Itoa(p.number)))
+	if p.err != nil && !isErrBusy(p.err) {
+		if os.IsPermission(p.err) {
+			return fmt.Errorf("need more access, try as root or setup udev rules: %v", p.err)
 		}
-		return err
+		return p.err
 	}
 	// There's a race condition where the file may be created but udev is still
 	// running the Raspbian udev rule to make it readable to the current user.
@@ -272,19 +278,22 @@ func (p *Pin) open() error {
 	// make sense that gpioN/value doesn't become accessible eventually.
 	timeout := 5 * time.Second
 	for start := time.Now(); time.Since(start) < timeout; {
-		p.fValue, err = os.OpenFile(p.root+"value", os.O_RDWR, 0600)
+		p.fValue, p.err = os.OpenFile(p.root+"value", os.O_RDWR, 0600)
 		// The virtual file creation is synchronous when writing to /export for
 		// udev rule execution is asynchronous.
-		if err == nil || !os.IsPermission(err) {
+		if p.err == nil || !os.IsPermission(p.err) {
 			break
 		}
 	}
-	p.fDirection, err = os.OpenFile(p.root+"direction", os.O_RDWR, 0600)
-	if err != nil {
+	if p.err != nil {
+		return p.err
+	}
+	p.fDirection, p.err = os.OpenFile(p.root+"direction", os.O_RDWR, 0600)
+	if p.err != nil {
 		p.fValue.Close()
 		p.fValue = nil
 	}
-	return err
+	return p.err
 }
 
 func (p *Pin) wrap(err error) error {
