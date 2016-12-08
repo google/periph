@@ -40,6 +40,7 @@ package periph
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"sync"
 )
 
@@ -82,6 +83,8 @@ func (d DriverFailure) String() string {
 }
 
 // State is the state of loaded device drivers.
+//
+// Each list is sorted by the driver name.
 type State struct {
 	Loaded  []Driver
 	Skipped []DriverFailure
@@ -135,13 +138,22 @@ func Init() (*State, error) {
 		return state, err
 	}
 	loaded := map[string]struct{}{}
-	for _, drivers := range stages {
-		loadStage(drivers, loaded, cD, cS, cE)
+	for _, drvs := range stages {
+		loadStage(drvs, loaded, cD, cS, cE)
 	}
 	close(cD)
 	close(cS)
 	close(cE)
 	wg.Wait()
+	d := drivers(state.Loaded)
+	sort.Sort(d)
+	state.Loaded = d
+	f := failures(state.Skipped)
+	sort.Sort(f)
+	state.Skipped = f
+	f = failures(state.Failed)
+	sort.Sort(f)
+	state.Failed = f
 	return state, nil
 }
 
@@ -188,17 +200,17 @@ var (
 //
 // It searches if there's any driver than has dependency on another driver from
 // this stage and creates intermediate stage if so.
-func explodeStages(drivers []Driver) ([][]Driver, error) {
+func explodeStages(drvs []Driver) ([][]Driver, error) {
 	dependencies := map[string]map[string]struct{}{}
-	for _, d := range drivers {
+	for _, d := range drvs {
 		dependencies[d.String()] = map[string]struct{}{}
 	}
 	// TODO(maruel): Lower number of stages by merging parallel dependencies.
-	for _, d := range drivers {
+	for _, d := range drvs {
 		name := d.String()
 		for _, depName := range d.Prerequisites() {
 			if _, ok := byName[depName]; !ok {
-				return nil, fmt.Errorf("drivers: unsatisfied dependency %q->%q; it is missing; skipping", name, depName)
+				return nil, fmt.Errorf("periph: unsatisfied dependency %q->%q; it is missing; skipping", name, depName)
 			}
 			// Dependency between two drivers of the same type. This can happen
 			// when there's a process class driver and a processor specialization
@@ -220,7 +232,7 @@ func explodeStages(drivers []Driver) ([][]Driver, error) {
 			}
 		}
 		if len(stage) == 0 {
-			return nil, fmt.Errorf("drivers: found cycle(s) in drivers dependencies; %v", dependencies)
+			return nil, fmt.Errorf("periph: found cycle(s) in drivers dependencies; %v", dependencies)
 		}
 		stages = append(stages, l)
 
@@ -235,14 +247,14 @@ func explodeStages(drivers []Driver) ([][]Driver, error) {
 }
 
 // loadStage loads all the drivers in this stage concurrently.
-func loadStage(drivers []Driver, loaded map[string]struct{}, cD chan<- Driver, cS chan<- DriverFailure, cE chan<- DriverFailure) {
+func loadStage(drvs []Driver, loaded map[string]struct{}, cD chan<- Driver, cS chan<- DriverFailure, cE chan<- DriverFailure) {
 	var wg sync.WaitGroup
 	// Use int for concurrent access.
-	skip := make([]error, len(drivers))
-	for i, driver := range drivers {
+	skip := make([]error, len(drvs))
+	for i, d := range drvs {
 		// Load only the driver if prerequisites were loaded. They are
 		// guaranteed to be in a previous stage by explodeStages().
-		for _, dep := range driver.Prerequisites() {
+		for _, dep := range d.Prerequisites() {
 			if _, ok := loaded[dep]; !ok {
 				skip[i] = fmt.Errorf("dependency not loaded: %q", dep)
 				break
@@ -250,9 +262,9 @@ func loadStage(drivers []Driver, loaded map[string]struct{}, cD chan<- Driver, c
 		}
 	}
 
-	for i, driver := range drivers {
+	for i, drv := range drvs {
 		if err := skip[i]; err != nil {
-			cS <- DriverFailure{driver, err}
+			cS <- DriverFailure{drv, err}
 			continue
 		}
 		wg.Add(1)
@@ -272,14 +284,26 @@ func loadStage(drivers []Driver, loaded map[string]struct{}, cD chan<- Driver, c
 				}
 				skip[j] = err
 			}
-		}(driver, i)
+		}(drv, i)
 	}
 	wg.Wait()
 
-	for i, driver := range drivers {
+	for i, d := range drvs {
 		if skip[i] != nil {
 			continue
 		}
-		loaded[driver.String()] = struct{}{}
+		loaded[d.String()] = struct{}{}
 	}
 }
+
+type drivers []Driver
+
+func (d drivers) Len() int           { return len(d) }
+func (d drivers) Less(i, j int) bool { return d[i].String() < d[j].String() }
+func (d drivers) Swap(i, j int)      { d[i], d[j] = d[j], d[i] }
+
+type failures []DriverFailure
+
+func (f failures) Len() int           { return len(f) }
+func (f failures) Less(i, j int) bool { return f[i].D.String() < f[j].D.String() }
+func (f failures) Swap(i, j int)      { f[i], f[j] = f[j], f[i] }
