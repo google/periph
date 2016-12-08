@@ -18,3 +18,6 @@
 //
 // Physical overview: http://files.pine64.org/doc/datasheet/pine64/A64_Datasheet_V1.1.pdf
 package allwinner
+
+// The most active kernel branch is
+// https://github.com/linux-sunxi/linux-sunxi/commits/sunxi-next

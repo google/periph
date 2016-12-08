@@ -10,4 +10,9 @@
 // Datasheet
 //
 // https://www.raspberrypi.org/wp-content/uploads/2012/02/BCM2835-ARM-Peripherals.pdf
+//
+// Its crowd-sourced errata: http://elinux.org/BCM2835_datasheet_errata
+//
+// Another doc about PCM and PWM:
+// https://fr.scribd.com/doc/127599939/BCM2835-Audio-clocks
 package bcm283x

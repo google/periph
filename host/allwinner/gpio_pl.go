@@ -269,19 +269,19 @@ var gpioMemoryPL *gpioGroup
 // See ../allwinner/allwinner.go for details.
 // TODO(maruel): Figure out what the S_ prefix means.
 var mapping = [13][5]string{
-	{"S_RSB_SCK", "S_I2C_SCL", "", "", "S_PL_EINT0"}, // PL0
-	{"S_RSB_SDA", "S_I2C_SDA", "", "", "S_PL_EINT1"}, // PL1
-	{"S_UART_TX", "", "", "", "S_PL_EINT2"},          // PL2
-	{"S_UART_RX", "", "", "", "S_PL_EINT3"},          // PL3
-	{"S_JTAG_MS", "", "", "", "S_PL_EINT4"},          // PL4
-	{"S_JTAG_CK", "", "", "", "S_PL_EINT5"},          // PL5
-	{"S_JTAG_DO", "", "", "", "S_PL_EINT6"},          // PL6
-	{"S_JTAG_DI", "", "", "", "S_PL_EINT7"},          // PL7
-	{"S_I2C_CSK", "", "", "", "S_PL_EINT8"},          // PL8
-	{"S_I2C_SDA", "", "", "", "S_PL_EINT9"},          // PL9
-	{"S_PWM", "", "", "", "S_PL_EINT10"},             // PL10
-	{"S_CIR_RX", "", "", "", "S_PL_EINT11"},          // PL11
-	{"", "", "", "", "S_PL_EINT12"},                  // PL12
+	{"RSB_SCK", "I2C_SCL", "", "", "PL_EINT0"}, // PL0
+	{"RSB_SDA", "I2C_SDA", "", "", "PL_EINT1"}, // PL1
+	{"UART_TX", "", "", "", "PL_EINT2"},        // PL2
+	{"UART_RX", "", "", "", "PL_EINT3"},        // PL3
+	{"JTAG_MS", "", "", "", "PL_EINT4"},        // PL4
+	{"JTAG_CK", "", "", "", "PL_EINT5"},        // PL5
+	{"JTAG_DO", "", "", "", "PL_EINT6"},        // PL6
+	{"JTAG_DI", "", "", "", "PL_EINT7"},        // PL7
+	{"I2C_CSK", "", "", "", "PL_EINT8"},        // PL8
+	{"I2C_SDA", "", "", "", "PL_EINT9"},        // PL9
+	{"PWM0", "", "", "", "PL_EINT10"},          // PL10
+	{"CIR_RX", "", "", "", "PL_EINT11"},        // PL11
+	{"", "", "", "", "PL_EINT12"},              // PL12
 }
 
 func init() {

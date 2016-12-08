@@ -187,9 +187,7 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	if gpioMemory == nil {
 		return p.wrap(errors.New("subsystem not initialized"))
 	}
-	if !p.setFunction(in) {
-		return p.wrap(errors.New("failed to set pin as input"))
-	}
+	p.setFunction(in)
 	if pull != gpio.PullNoChange {
 		// Changing pull resistor requires a specific dance as described at
 		// https://www.raspberrypi.org/wp-content/uploads/2012/02/BCM2835-ARM-Peripherals.pdf
@@ -282,9 +280,7 @@ func (p *Pin) Out(l gpio.Level) error {
 	} else {
 		gpioMemory.outputSet[offset] = 1 << uint(p.number&31)
 	}
-	if !p.setFunction(out) {
-		return p.wrap(errors.New("failed to set pin as output"))
-	}
+	p.setFunction(out)
 	return nil
 }
 
@@ -313,19 +309,10 @@ func (p *Pin) function() function {
 }
 
 // setFunction changes the GPIO pin function.
-//
-// Returns false if the pin was in AltN. Only accepts in and out
-func (p *Pin) setFunction(f function) bool {
-	if f != in && f != out {
-		return false
-	}
-	if actual := p.function(); actual != in && actual != out {
-		return false
-	}
+func (p *Pin) setFunction(f function) {
 	off := p.number / 10
 	shift := uint(p.number%10) * 3
 	gpioMemory.functionSelect[off] = (gpioMemory.functionSelect[off] &^ (7 << shift)) | (uint32(f) << shift)
-	return true
 }
 
 func (p *Pin) wrap(err error) error {
@@ -471,64 +458,64 @@ type gpioMap struct {
 	// 0x0C    RW   GPIO Function Select 3 (GPIO30-39)
 	// 0x10    RW   GPIO Function Select 4 (GPIO40-49)
 	// 0x14    RW   GPIO Function Select 5 (GPIO50-53)
-	functionSelect [6]uint32
+	functionSelect [6]uint32 // GPFSEL0~GPFSEL5
 	// 0x18    -    Reserved
 	dummy0 uint32
 	// 0x1C    W    GPIO Pin Output Set 0 (GPIO0-31)
 	// 0x20    W    GPIO Pin Output Set 1 (GPIO32-53)
-	outputSet [2]uint32
+	outputSet [2]uint32 // GPSET0-GPSET1
 	// 0x24    -    Reserved
 	dummy1 uint32
 	// 0x28    W    GPIO Pin Output Clear 0 (GPIO0-31)
 	// 0x2C    W    GPIO Pin Output Clear 1 (GPIO32-53)
-	outputClear [2]uint32
+	outputClear [2]uint32 // GPCLR0-GPCLR1
 	// 0x30    -    Reserved
 	dummy2 uint32
 	// 0x34    R    GPIO Pin Level 0 (GPIO0-31)
 	// 0x38    R    GPIO Pin Level 1 (GPIO32-53)
-	level [2]uint32
+	level [2]uint32 // GPLEV0-GPLEV1
 	// 0x3C    -    Reserved
 	dummy3 uint32
 	// 0x40    RW   GPIO Pin Event Detect Status 0 (GPIO0-31)
 	// 0x44    RW   GPIO Pin Event Detect Status 1 (GPIO32-53)
-	eventDetectStatus [2]uint32
+	eventDetectStatus [2]uint32 // GPEDS0-GPEDS1
 	// 0x48    -    Reserved
 	dummy4 uint32
 	// 0x4C    RW   GPIO Pin Rising Edge Detect Enable 0 (GPIO0-31)
 	// 0x50    RW   GPIO Pin Rising Edge Detect Enable 1 (GPIO32-53)
-	risingEdgeDetectEnable [2]uint32
+	risingEdgeDetectEnable [2]uint32 // GPREN0-GPREN1
 	// 0x54    -    Reserved
 	dummy5 uint32
 	// 0x58    RW   GPIO Pin Falling Edge Detect Enable 0 (GPIO0-31)
 	// 0x5C    RW   GPIO Pin Falling Edge Detect Enable 1 (GPIO32-53)
-	fallingEdgeDetectEnable [2]uint32
+	fallingEdgeDetectEnable [2]uint32 // GPFEN0-GPFEN1
 	// 0x60    -    Reserved
 	dummy6 uint32
 	// 0x64    RW   GPIO Pin High Detect Enable 0 (GPIO0-31)
 	// 0x68    RW   GPIO Pin High Detect Enable 1 (GPIO32-53)
-	highDetectEnable [2]uint32
+	highDetectEnable [2]uint32 // GPHEN0-GPHEN1
 	// 0x6C    -    Reserved
 	dummy7 uint32
 	// 0x70    RW   GPIO Pin Low Detect Enable 0 (GPIO0-31)
 	// 0x74    RW   GPIO Pin Low Detect Enable 1 (GPIO32-53)
-	lowDetectEnable [2]uint32
+	lowDetectEnable [2]uint32 // GPLEN0-GPLEN1
 	// 0x78    -    Reserved
 	dummy8 uint32
 	// 0x7C    RW   GPIO Pin Async Rising Edge Detect 0 (GPIO0-31)
 	// 0x80    RW   GPIO Pin Async Rising Edge Detect 1 (GPIO32-53)
-	asyncRisingEdgeDetectEnable [2]uint32
+	asyncRisingEdgeDetectEnable [2]uint32 // GPAREN0-GPAREN1
 	// 0x84    -    Reserved
 	dummy9 uint32
 	// 0x88    RW   GPIO Pin Async Falling Edge Detect 0 (GPIO0-31)
 	// 0x8C    RW   GPIO Pin Async Falling Edge Detect 1 (GPIO32-53)
-	asyncFallingEdgeDetectEnable [2]uint32
+	asyncFallingEdgeDetectEnable [2]uint32 // GPAFEN0-GPAFEN1
 	// 0x90    -    Reserved
 	dummy10 uint32
 	// 0x94    RW   GPIO Pin Pull-up/down Enable (00=Float, 01=Down, 10=Up)
-	pullEnable uint32
+	pullEnable uint32 // GPPUD
 	// 0x98    RW   GPIO Pin Pull-up/down Enable Clock 0 (GPIO0-31)
 	// 0x9C    RW   GPIO Pin Pull-up/down Enable Clock 1 (GPIO32-53)
-	pullEnableClock [2]uint32
+	pullEnableClock [2]uint32 // GPPUDCLK0-GPPUDCLK1
 	// 0xA0    -    Reserved
 	dummy uint32
 	// 0xB0    -    Test (byte)
