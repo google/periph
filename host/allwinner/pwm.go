@@ -12,8 +12,8 @@ import (
 const pwmClock = 24000000
 const pwmMaxPeriod = 0x10000
 
-// prescales is the value for pwm0Prescale*
-var prescales = []struct {
+// prescalers is the value for pwm0Prescale*
+var prescalers = []struct {
 	freq   uint32
 	scaler pwmPrescale
 }{

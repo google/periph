@@ -2,7 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Implements DMA controller support. It can be used for two functionality:
+// The DMA controller can be used for two functionality:
 // - implement zero-CPU continuous PWM.
 // - bitbang a large stream of bits over a GPIO pin, for example for WS2812b
 //   support.
@@ -11,9 +11,8 @@
 // to set a bit and one to clear a bit.
 //
 // So two DMA controllers are used, one writting a "clear bit" stream and one
-// for the "set bit" stream.
-//
-// This requires two independent 32 bits wide streams per period.
+// for the "set bit" stream. This requires two independent 32 bits wide streams
+// per period.
 //
 // References
 //

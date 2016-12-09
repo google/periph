@@ -4,12 +4,12 @@
 
 // Unlike the bcm283x, the allwinner CPUs do not have a "clear bit" and "set
 // bit" registers, they only have the data register. Also, allwinner CPUs do
-// not support linked list of DMA buffers. On the other hand, the Allwinner DMA
-// controllers support 8 bits transfers instead of 32-128 bits that the bcm283x
-// DMA controllers supports.
+// not support linked lists of DMA buffers. On the other hand, the Allwinner DMA
+// controller supports 8 bits transfers instead of 32-128 bits that the bcm283x
+// DMA controller supports.
 //
 // This means that only 8 bits can be used per sample, and only one stream is
-// necessary. This results in 8 less memory usage than on the bcm283x. The
+// necessary. This results in 1/8th th memory usage than on the bcm283x. The
 // drawback is that a block of 8 contiguous GPIO pins must be dedicated to the
 // stream.
 
