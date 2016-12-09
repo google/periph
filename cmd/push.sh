@@ -18,11 +18,14 @@ shift
 
 for i; do
   NAME="${i%/}"
-  echo "- $NAME"
+  echo "- Building: $NAME"
   cd "./$NAME"
-  GOOS=linux GOARCH=arm go build .
-  scp "$NAME" "$HOST:bin/${NAME}2"
-  ssh "$HOST" "mv bin/${NAME}2 bin/$NAME"
+  GOOS=linux GOARCH=arm go test -i .
+  time GOOS=linux GOARCH=arm go build .
+  echo ""
+  echo -n "- Copying:  "
+  time rsync -v "$NAME" "$HOST:bin/${NAME}"
+  echo ""
   rm "$NAME"
   cd ..
 done
