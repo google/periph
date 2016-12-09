@@ -44,10 +44,10 @@ func mainImpl() error {
 		if *pullDown {
 			return errors.New("use only one of -d or -u")
 		}
-		pull = gpio.Up
+		pull = gpio.PullUp
 	}
 	if *pullDown {
-		pull = gpio.Down
+		pull = gpio.PullDown
 	}
 	if flag.NArg() != 1 {
 		return errors.New("specify GPIO pin to read")

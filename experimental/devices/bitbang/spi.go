@@ -138,7 +138,7 @@ func NewSPI(clk, mosi gpio.PinOut, miso gpio.PinIn, cs gpio.PinOut, speedHz int6
 		return nil, err
 	}
 	if miso != nil {
-		if err := miso.In(gpio.Up, gpio.None); err != nil {
+		if err := miso.In(gpio.PullUp, gpio.None); err != nil {
 			return nil, err
 		}
 	}

@@ -52,9 +52,9 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	p.Lock()
 	defer p.Unlock()
 	p.P = pull
-	if pull == gpio.Down {
+	if pull == gpio.PullDown {
 		p.L = gpio.Low
-	} else if pull == gpio.Up {
+	} else if pull == gpio.PullUp {
 		p.L = gpio.High
 	}
 	if edge != gpio.None && p.EdgesChan == nil {
