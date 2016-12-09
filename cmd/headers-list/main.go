@@ -7,6 +7,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -14,12 +15,25 @@ import (
 	"os"
 	"sort"
 
+	"github.com/google/periph"
+	"github.com/google/periph/conn/pins"
 	"github.com/google/periph/host"
 	"github.com/google/periph/host/headers"
 )
 
-func printHardware(invalid bool) {
-	all := headers.All()
+func printFailures(state *periph.State) {
+	max := 0
+	for _, f := range state.Failed {
+		if m := len(f.D.String()); m > max {
+			max = m
+		}
+	}
+	for _, f := range state.Failed {
+		fmt.Fprintf(os.Stderr, "- %-*s: %v\n", max, f.D, f.Err)
+	}
+}
+
+func printHardware(invalid bool, all map[string][][]pins.Pin) {
 	names := make([]string, 0, len(all))
 	for name := range all {
 		names = append(names, name)
@@ -83,11 +97,27 @@ func mainImpl() error {
 		log.SetOutput(ioutil.Discard)
 	}
 	log.SetFlags(0)
-
-	if _, err := host.Init(); err != nil {
+	state, err := host.Init()
+	if err != nil {
 		return err
 	}
-	printHardware(*invalid)
+	all := headers.All()
+	if len(all) == 0 && len(state.Failed) != 0 {
+		fmt.Fprintf(os.Stderr, "Got the following driver failures:\n")
+		printFailures(state)
+		return errors.New("no header found")
+	}
+	if flag.NArg() == 0 {
+		printHardware(*invalid, all)
+	} else {
+		for _, name := range flag.Args() {
+			hdr, ok := all[name]
+			if !ok {
+				return fmt.Errorf("header %q is not registered", name)
+			}
+			printHardware(*invalid, map[string][][]pins.Pin{name: hdr})
+		}
+	}
 	return nil
 }
 

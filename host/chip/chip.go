@@ -15,7 +15,6 @@ import (
 	"github.com/google/periph/host/allwinner"
 	"github.com/google/periph/host/distro"
 	"github.com/google/periph/host/headers"
-	"github.com/google/periph/host/sysfs"
 )
 
 // C.H.I.P. hardware pins.
@@ -138,15 +137,56 @@ func Present() bool {
 // using the documented and labeled names instead of some GPIOnnn name. The map key is the
 // alias and the value is the real pin name.
 var aliases = map[string]string{
-	"XIO-P0": "GPIO1016",
-	"XIO-P1": "GPIO1017",
-	"XIO-P2": "GPIO1018",
-	"XIO-P3": "GPIO1019",
-	"XIO-P4": "GPIO1020",
-	"XIO-P5": "GPIO1021",
-	"XIO-P6": "GPIO1022",
-	"XIO-P7": "GPIO1023",
-	"LCD-D2": "PD2",
+	"AP-EINT1":  "PG1",
+	"AP-EINT3":  "PB3",
+	"CSIPCK":    "PE0",
+	"CSIHSYNC":  "PE2",
+	"CSID0":     "PE4",
+	"CSID2":     "PE6",
+	"CSID4":     "PE8",
+	"CSID6":     "PE10",
+	"CSICK":     "PE1",
+	"CSIVSYNC":  "PE3",
+	"CSID1":     "PE5",
+	"CSID3":     "PE7",
+	"CSID5":     "PE9",
+	"CSID7":     "PE11",
+	"LCD-CLK":   "PD24",
+	"LCD-D10":   "PD10",
+	"LCD-D11":   "PD11",
+	"LCD-D12":   "PD12",
+	"LCD-D13":   "PD13",
+	"LCD-D14":   "PD14",
+	"LCD-D15":   "PD15",
+	"LCD-D18":   "PD18",
+	"LCD-D19":   "PD19",
+	"LCD-D2":    "PD2",
+	"LCD-D20":   "PD20",
+	"LCD-D21":   "PD21",
+	"LCD-D22":   "PD22",
+	"LCD-D23":   "PD23",
+	"LCD-D3":    "PD3",
+	"LCD-D4":    "PD4",
+	"LCD-D5":    "PD5",
+	"LCD-D6":    "PD6",
+	"LCD-D7":    "PD7",
+	"LCD-DE":    "PD25",
+	"LCD-HSYNC": "PD27",
+	"LCD-VSYNC": "PD26",
+	"TWI1-SCK":  "PB15",
+	"TWI1-SDA":  "PB16",
+	"TWI2-SCK":  "PB17",
+	"TWI2-SDA":  "PB18",
+	"UART1-RX":  "PG4",
+	"UART1-TX":  "PG3",
+	"XIO-P0":    "GPIO1016",
+	"XIO-P1":    "GPIO1017",
+	"XIO-P2":    "GPIO1018",
+	"XIO-P3":    "GPIO1019",
+	"XIO-P4":    "GPIO1020",
+	"XIO-P5":    "GPIO1021",
+	"XIO-P6":    "GPIO1022",
+	"XIO-P7":    "GPIO1023",
 }
 
 func init() {
@@ -188,26 +228,26 @@ func (d *driver) Init() (bool, error) {
 		return false, errors.New("NextThing Co. CHIP board not detected")
 	}
 
-	// sysfsPin is a safe way to get a sysfs pin
-	sysfsPin := func(n int) gpio.PinIO {
-		if pin, present := sysfs.Pins[n]; present {
-			return pin
-		} else {
-			return gpio.INVALID
-		}
-	}
-
 	// At this point the sysfs driver has initialized and discovered its pins,
 	// we can now hook-up the appropriate CHIP pins to sysfs gpio pins.
-	XIO0 = sysfsPin(1016)
-	XIO1 = sysfsPin(1017)
-	XIO2 = sysfsPin(1018)
-	XIO3 = sysfsPin(1019)
-	XIO4 = sysfsPin(1020)
-	XIO5 = sysfsPin(1021)
-	XIO6 = sysfsPin(1022)
-	XIO7 = sysfsPin(1023)
-	// These must be reinitialized.
+	for alias, real := range aliases {
+		r := gpio.ByName(real)
+		if r == nil {
+			return true, fmt.Errorf("cannot create alias for %s: it doesn't exist", real)
+		}
+		if err := gpio.RegisterAlias(alias, r.Number()); err != nil {
+			return true, err
+		}
+	}
+	// These must be explicitly initialized.
+	XIO0 = gpio.ByName("XIO-P0")
+	XIO1 = gpio.ByName("XIO-P1")
+	XIO2 = gpio.ByName("XIO-P2")
+	XIO3 = gpio.ByName("XIO-P3")
+	XIO4 = gpio.ByName("XIO-P4")
+	XIO5 = gpio.ByName("XIO-P5")
+	XIO6 = gpio.ByName("XIO-P6")
+	XIO7 = gpio.ByName("XIO-P7")
 	U14_13 = XIO0
 	U14_14 = XIO1
 	U14_15 = XIO2
@@ -223,22 +263,22 @@ func (d *driver) Init() (bool, error) {
 		{U13_3, U13_4},
 		{U13_5, U13_6},
 		{U13_7, U13_8},
-		{U13_9, U13_10},
-		{U13_11, U13_12},
+		{gpio.ByName("TWI1-SDA"), U13_10},
+		{gpio.ByName("TWI1-SCK"), U13_12},
 		{U13_13, U13_14},
 		{U13_15, U13_16},
-		{U13_17, U13_18},
-		{U13_19, U13_20},
-		{U13_21, U13_22},
-		{U13_23, U13_24},
-		{U13_25, U13_26},
-		{U13_27, U13_28},
-		{U13_29, U13_30},
-		{U13_31, U13_32},
-		{U13_33, U13_34},
-		{U13_35, U13_36},
-		{U13_37, U13_38},
-		{U13_39, U13_40},
+		{gpio.ByName("LCD-D2"), gpio.ByName("PWM0")},
+		{gpio.ByName("LCD-D4"), gpio.ByName("LCD-D3")},
+		{gpio.ByName("LCD-D6"), gpio.ByName("LCD-D5")},
+		{gpio.ByName("LCD-D10"), gpio.ByName("LCD-D7")},
+		{gpio.ByName("LCD-D12"), gpio.ByName("LCD-D11")},
+		{gpio.ByName("LCD-D14"), gpio.ByName("LCD-D13")},
+		{gpio.ByName("LCD-D18"), gpio.ByName("LCD-D15")},
+		{gpio.ByName("LCD-D20"), gpio.ByName("LCD-D19")},
+		{gpio.ByName("LCD-D22"), gpio.ByName("LCD-D21")},
+		{gpio.ByName("LCD-CLK"), gpio.ByName("LCD-D23")},
+		{gpio.ByName("LCD-VSYNC"), gpio.ByName("LCD-HSYNC")},
+		{U13_39, gpio.ByName("LCD-DE")},
 	}
 	if err := headers.Register("U13", U13); err != nil {
 		return true, err
@@ -247,39 +287,28 @@ func (d *driver) Init() (bool, error) {
 	// U14 is one of the 20x2 connectors.
 	U14 := [][]pins.Pin{
 		{U14_1, U14_2},
-		{U14_3, U14_4},
-		{U14_5, U14_6},
+		{gpio.ByName("UART1-TX"), U14_4},
+		{gpio.ByName("UART1-RX"), U14_6},
 		{U14_7, U14_8},
 		{U14_9, U14_10},
-		{U14_11, U14_12},
+		{U14_11, U14_12}, // TODO(maruel): switch to LRADC once analog support is added
 		{U14_13, U14_14},
 		{U14_15, U14_16},
 		{U14_17, U14_18},
 		{U14_19, U14_20},
 		{U14_21, U14_22},
-		{U14_23, U14_24},
-		{U14_25, U14_26},
-		{U14_27, U14_28},
-		{U14_29, U14_30},
-		{U14_31, U14_32},
-		{U14_33, U14_34},
-		{U14_35, U14_36},
-		{U14_37, U14_38},
+		{gpio.ByName("AP-EINT1"), gpio.ByName("AP-EINT3")},
+		{gpio.ByName("TWI2-SDA"), gpio.ByName("TWI2-SCK")},
+		{gpio.ByName("CSIPCK"), gpio.ByName("CSICK")},
+		{gpio.ByName("CSIHSYNC"), gpio.ByName("CSIVSYNC")},
+		{gpio.ByName("CSID0"), gpio.ByName("CSID1")},
+		{gpio.ByName("CSID2"), gpio.ByName("CSID3")},
+		{gpio.ByName("CSID4"), gpio.ByName("CSID5")},
+		{gpio.ByName("CSID6"), gpio.ByName("CSID7")},
 		{U14_39, U14_40},
 	}
 	if err := headers.Register("U14", U14); err != nil {
 		return true, err
-	}
-
-	// Register explicit pin aliases.
-	for alias, real := range aliases {
-		r := gpio.ByName(real)
-		if r == nil {
-			return true, fmt.Errorf("cannot create alias for %s: it doesn't exist", real)
-		}
-		if err := gpio.RegisterAlias(alias, r.Number()); err != nil {
-			return true, err
-		}
 	}
 
 	return true, nil

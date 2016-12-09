@@ -176,7 +176,7 @@ func TestRegisterAlias(t *testing.T) {
 		t.Fail()
 	} else if r := p.(RealPin).Real(); r.Name() != "GPIO0" {
 		t.Fatalf("Expected real GPIO0, got %v", r)
-	} else if s := p.String(); s != "alias0(->GPIO0)" {
+	} else if s := p.String(); s != "alias0(GPIO0)" {
 		t.Fatal(s)
 	}
 

@@ -415,13 +415,13 @@ type pinAlias struct {
 	number int
 }
 
-// String returns the pinAlias's name with the real pin's String() in
-// parenthesis.
+// String returns the alias name along the real pin's Name() in parenthesis, if
+// known, else the real pin's number.
 func (a *pinAlias) String() string {
 	if a.PinIO == nil {
-		return fmt.Sprintf("%s(->%d)", a.name, a.number)
+		return fmt.Sprintf("%s(%d)", a.name, a.number)
 	}
-	return fmt.Sprintf("%s(->%s)", a.name, a.PinIO)
+	return fmt.Sprintf("%s(%s)", a.name, a.PinIO.Name())
 }
 
 // Name returns the pinAlias's name.
