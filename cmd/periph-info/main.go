@@ -8,33 +8,24 @@ package main
 import (
 	"fmt"
 	"os"
-	"sort"
 
 	"github.com/google/periph"
 	"github.com/google/periph/host"
 )
 
-type failures []periph.DriverFailure
-
-func (f failures) Len() int           { return len(f) }
-func (f failures) Less(i, j int) bool { return f[i].D.String() < f[j].D.String() }
-func (f failures) Swap(i, j int)      { f[i], f[j] = f[j], f[i] }
-
-func printOrdered(drivers []periph.DriverFailure) {
+func printDrivers(drivers []periph.DriverFailure) {
 	if len(drivers) == 0 {
 		fmt.Print("  <none>\n")
-	} else {
-		list := failures(drivers)
-		sort.Sort(list)
-		max := 0
-		for _, f := range list {
-			if m := len(f.D.String()); m > max {
-				max = m
-			}
+		return
+	}
+	max := 0
+	for _, f := range drivers {
+		if m := len(f.D.String()); m > max {
+			max = m
 		}
-		for _, f := range list {
-			fmt.Printf("- %-*s: %v\n", max, f.D, f.Err)
-		}
+	}
+	for _, f := range drivers {
+		fmt.Printf("- %-*s: %v\n", max, f.D, f.Err)
 	}
 }
 
@@ -48,21 +39,14 @@ func mainImpl() error {
 	if len(state.Loaded) == 0 {
 		fmt.Print("  <none>\n")
 	} else {
-		names := make([]string, 0, len(state.Loaded))
-		m := make(map[string]periph.Driver, len(state.Loaded))
 		max := 0
 		for _, d := range state.Loaded {
-			n := d.String()
-			if m := len(n); m > max {
+			if m := len(d.String()); m > max {
 				max = m
 			}
-			names = append(names, n)
-			m[n] = d
 		}
-		sort.Strings(names)
-		for _, d := range names {
-			p := m[d].Prerequisites()
-			if len(p) != 0 {
+		for _, d := range state.Loaded {
+			if p := d.Prerequisites(); len(p) != 0 {
 				fmt.Printf("- %-*s: %s\n", max, d, p)
 			} else {
 				fmt.Printf("- %s\n", d)
@@ -71,9 +55,9 @@ func mainImpl() error {
 	}
 
 	fmt.Printf("Drivers skipped and the reason why:\n")
-	printOrdered(state.Skipped)
+	printDrivers(state.Skipped)
 	fmt.Printf("Drivers failed to load and the error:\n")
-	printOrdered(state.Failed)
+	printDrivers(state.Failed)
 	return err
 }
 

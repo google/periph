@@ -12,8 +12,8 @@ import (
 )
 
 func ExampleInit() {
-	// You probably want host.Init() instead as it registers all the periph-provided
-	// host drivers automatically.
+	// You probably want host.Init() instead as it registers all the
+	// periph-provided host drivers automatically.
 	state, err := Init()
 	if err != nil {
 		log.Fatalf("failed to initialize periph: %v", err)
