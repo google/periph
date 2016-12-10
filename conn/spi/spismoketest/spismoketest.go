@@ -44,9 +44,17 @@ func (s *SmokeTest) Run(args []string) error {
 	// Open the bus.
 	spiDev, err := spi.New(*busNum, *csNum)
 	if err != nil {
-		return fmt.Errorf("spi-smoke: %s", err)
+		return fmt.Errorf("spi-smoke: %v", err)
 	}
 	defer spiDev.Close()
+
+	// Set SPI parameters.
+	if err := spiDev.Speed(4 * 1000 * 1000 * 1000); err != nil {
+		return fmt.Errorf("spi-smoke: cannot set speed, %v", err)
+	}
+	if err := spiDev.Configure(spi.Mode0, 8); err != nil {
+		return fmt.Errorf("spi-smoke: cannot set mode, %v", err)
+	}
 
 	// Open the WC pin.
 	var wpPin gpio.PinIO
