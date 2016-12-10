@@ -48,6 +48,10 @@ func (s *SmokeTest) Run(args []string) error {
 	}
 	defer spiDev.Close()
 
+	// Set SPI parameters.
+	spiDev.Speed(4 * 1000 * 1000) // 4Mhz
+	spiDev.Configure(spi.Mode0, 8)
+
 	// Open the WC pin.
 	var wpPin gpio.PinIO
 	if *wp != "" {
