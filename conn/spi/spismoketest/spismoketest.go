@@ -49,7 +49,7 @@ func (s *SmokeTest) Run(args []string) error {
 	defer spiDev.Close()
 
 	// Set SPI parameters.
-	if err := spiDev.Speed(4 * 1000 * 1000 * 1000); err != nil {
+	if err := spiDev.Speed(4 * *1000 * 1000); err != nil {
 		return fmt.Errorf("spi-smoke: cannot set speed, %v", err)
 	}
 	if err := spiDev.Configure(spi.Mode0, 8); err != nil {
