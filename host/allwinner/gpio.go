@@ -19,6 +19,7 @@ import (
 	"periph.io/x/periph"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/host/pmem"
 	"periph.io/x/periph/host/sysfs"
 )
@@ -295,6 +296,26 @@ func (p *Pin) FastOut(l gpio.Level) {
 // DefaultPull returns the default pull for the pin.
 func (p *Pin) DefaultPull() gpio.Pull {
 	return p.defaultPull
+}
+
+// drive returns the configured output current drive strength for this GPIO.
+//
+// The value returned by this function is not yet verified to be correct. Use
+// with suspicion.
+func (p *Pin) drive() physic.ElectricCurrent {
+	if drvGPIO.gpioMemory == nil {
+		return 0
+	}
+	// Explanation of the buffer configuration, but doesn't state what's the
+	// expected drive strength!
+	// http://files.pine64.org/doc/datasheet/pine-h64/Allwinner_H6%20V200_User_Manual_V1.1.pdf
+	// Section 3.21.3.4 page 381~382
+	//
+	// The A64 and H3 datasheets call for 20mA, so it could be reasonable to
+	// think that the values are 5mA, 10mA, 15mA, 20mA but we don't know for
+	// sure.
+	v := (drvGPIO.gpioMemory.groups[p.group].drv[p.offset/16] >> (2 * (p.offset & 15))) & 3
+	return physic.ElectricCurrent(v+1) * 5 * physic.MilliAmpere
 }
 
 //
@@ -641,7 +662,7 @@ type gpioGroup struct {
 	// Pn_DAT  n*0x24+0x10      Port n Data Register (n from 1(B) to 7(H))
 	data uint32
 	// Pn_DRVx n*0x24+0x14+x*4  Port n Multi-Driving Register x (n from 1 to 7)
-	drv [2]uint32 // TODO(maruel): Figure out how to use this.
+	drv [2]uint32
 	// Pn_PULL n*0x24+0x1C+x*4  Port n Pull Register (n from 1(B) to 7(H))
 	pull [2]uint32
 }
