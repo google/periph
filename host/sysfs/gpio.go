@@ -109,7 +109,7 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	}
 	// Assume that when the pin was switched, the driver doesn't recall if edge
 	// triggering was enabled.
-	if edge != gpio.None {
+	if edge != gpio.NoEdge {
 		var err error
 		if p.fEdge == nil {
 			p.fEdge, err = os.OpenFile(p.root+"edge", os.O_RDWR|os.O_APPEND, 0600)
@@ -125,11 +125,11 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 		if p.edge != edge {
 			var b []byte
 			switch edge {
-			case gpio.Rising:
+			case gpio.RisingEdge:
 				b = bRising
-			case gpio.Falling:
+			case gpio.FallingEdge:
 				b = bFalling
-			case gpio.Both:
+			case gpio.BothEdges:
 				b = bBoth
 			}
 			if err := seekWrite(p.fEdge, b); err != nil {
@@ -145,7 +145,7 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	// processed for a long time, it can easily be >300µs even on a quite idle
 	// CPU. In this case, the loop below is not sufficient, since the interrupt
 	// will happen afterward "out of the blue".
-	if edge != gpio.None {
+	if edge != gpio.NoEdge {
 		p.WaitForEdge(0)
 	}
 	return nil
@@ -211,8 +211,8 @@ func (p *Pin) Out(l gpio.Level) error {
 		if err := p.open(); err != nil {
 			return p.wrap(err)
 		}
-		if p.edge != gpio.None {
-			p.edge = gpio.None
+		if p.edge != gpio.NoEdge {
+			p.edge = gpio.NoEdge
 			if err := seekWrite(p.fEdge, bNone); err != nil {
 				return p.wrap(err)
 			}

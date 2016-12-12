@@ -60,7 +60,7 @@ func ExamplePinIn() {
 	if p == nil {
 		log.Fatal("Failed to find #6")
 	}
-	if err := p.In(PullDown, Rising); err != nil {
+	if err := p.In(PullDown, RisingEdge); err != nil {
 		log.Fatal(err)
 	}
 	fmt.Printf("%s is %s\n", p, p.Read())
@@ -86,7 +86,7 @@ func TestStrings(t *testing.T) {
 	if Float.String() != "Float" || Pull(100).String() != "Pull(100)" {
 		t.Fail()
 	}
-	if None.String() != "None" || Edge(100).String() != "Edge(100)" {
+	if NoEdge.String() != "NoEdge" || Edge(100).String() != "Edge(100)" {
 		t.Fail()
 	}
 }
@@ -95,7 +95,7 @@ func TestInvalid(t *testing.T) {
 	if INVALID.String() != "INVALID" || INVALID.Name() != "INVALID" || INVALID.Number() != -1 || INVALID.Function() != "" {
 		t.Fail()
 	}
-	if INVALID.In(Float, None) != errInvalidPin || INVALID.Read() != Low || INVALID.WaitForEdge(time.Minute) || INVALID.Pull() != PullNoChange {
+	if INVALID.In(Float, NoEdge) != errInvalidPin || INVALID.Read() != Low || INVALID.WaitForEdge(time.Minute) || INVALID.Pull() != PullNoChange {
 		t.Fail()
 	}
 	if INVALID.Out(Low) != errInvalidPin || INVALID.PWM(0) != errInvalidPin {

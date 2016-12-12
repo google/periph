@@ -57,7 +57,7 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	} else if pull == gpio.PullUp {
 		p.L = gpio.High
 	}
-	if edge != gpio.None && p.EdgesChan == nil {
+	if edge != gpio.NoEdge && p.EdgesChan == nil {
 		return errors.New("gpiotest: please set p.EdgesChan first")
 	}
 	for {

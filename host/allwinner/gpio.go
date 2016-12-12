@@ -124,7 +124,7 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	if !p.available {
 		return p.wrap(errors.New("not available on this CPU architecture"))
 	}
-	if edge != gpio.None && !p.supportEdge {
+	if edge != gpio.NoEdge && !p.supportEdge {
 		return p.wrap(errors.New("edge detection is not supported on this pin"))
 	}
 	p.setFunction(in)
@@ -142,7 +142,7 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 		}
 	}
 	wasUsing := p.usingEdge
-	p.usingEdge = edge != gpio.None
+	p.usingEdge = edge != gpio.NoEdge
 	if p.usingEdge && p.edge == nil {
 		ok := false
 		if p.edge, ok = sysfs.Pins[p.Number()]; !ok {
@@ -204,7 +204,7 @@ func (p *Pin) Out(l gpio.Level) error {
 	}
 	if p.usingEdge {
 		// First disable edges.
-		if err := p.edge.In(gpio.PullNoChange, gpio.None); err != nil {
+		if err := p.edge.In(gpio.PullNoChange, gpio.NoEdge); err != nil {
 			return err
 		}
 		p.usingEdge = false

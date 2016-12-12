@@ -28,8 +28,8 @@ type event struct {
 // An edge triggered event is basically an "auto-reset" event, where waiting on
 // the edge resets it. A level triggered event requires manual resetting; this
 // could be done via a Read() call but there's no need to require the user to
-// call Read(). This is particularly useless in the case of gpio.Rising and
-// gpio.Falling.
+// call Read(). This is particularly useless in the case of gpio.RisingEdge and
+// gpio.FallingEdge.
 //
 // As per the official doc, edge triggers is still remembered even when no
 // epoll_wait() call is running, so no edge is missed. Two edges will be

@@ -213,7 +213,7 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 		gpioMemory.pullEnableClock[offset] = 0
 	}
 	wasUsing := p.usingEdge
-	p.usingEdge = edge != gpio.None
+	p.usingEdge = edge != gpio.NoEdge
 	if p.usingEdge {
 		if p.edge == nil {
 			ok := false
@@ -268,7 +268,7 @@ func (p *Pin) Out(l gpio.Level) error {
 	}
 	if p.usingEdge {
 		// First disable edges.
-		if err := p.edge.In(gpio.PullNoChange, gpio.None); err != nil {
+		if err := p.edge.In(gpio.PullNoChange, gpio.NoEdge); err != nil {
 			return p.wrap(err)
 		}
 		p.usingEdge = false

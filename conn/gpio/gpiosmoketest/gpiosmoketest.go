@@ -61,12 +61,12 @@ func (s *SmokeTest) Run(args []string) error {
 		// TODO(maruel): Find pins automatically:
 		// - For each header in headers.All():
 		//   - For each pin in header that are GPIO:
-		//     - p.In(Down, Rising)
+		//     - p.In(Down, RisingEdge)
 		//     - Start a goroutine to detect edge.
 		//   - For each pin in header that are GPIO:
 		//     - p.Out(High)
 		//     - See if a pin triggered
-		//     - p.In(Down, Rising)
+		//     - p.In(Down, RisingEdge)
 		// This assumes that everything actually work in the first place.
 		return errors.New("specify the two pins to use; they must be connected together")
 	}
@@ -119,10 +119,10 @@ func (s *SmokeTest) Run(args []string) error {
 		err = s.testCycle(pl2, pl1)
 	}
 	fmt.Printf("<terminating>\n")
-	if err2 := pl1.In(gpio.PullNoChange, gpio.None); err2 != nil {
+	if err2 := pl1.In(gpio.PullNoChange, gpio.NoEdge); err2 != nil {
 		fmt.Printf("(Exit) Failed to reset %s as input: %s\n", pl1, err2)
 	}
-	if err2 := pl2.In(gpio.PullNoChange, gpio.None); err2 != nil {
+	if err2 := pl2.In(gpio.PullNoChange, gpio.NoEdge); err2 != nil {
 		fmt.Printf("(Exit) Failed to reset %s as input: %s\n", pl1, err2)
 	}
 	return err
@@ -193,19 +193,19 @@ func (s *SmokeTest) togglePin(p gpio.PinIO, levels ...gpio.Level) error {
 	return nil
 }
 
-// testEdgesBoth tests with gpio.Both.
+// testEdgesBoth tests with gpio.BothEdges.
 //
 // The following events are tested for:
 // - Getting missing edges
 // - No accumulation of edges (only trigger once)
 // - No spurious edge
 func (s *SmokeTest) testEdgesBoth(p1, p2 gpio.PinIO) error {
-	fmt.Printf("  Testing edges with %s\n", gpio.Both)
+	fmt.Printf("  Testing edges with %s\n", gpio.BothEdges)
 	if err := preparePins(p1, p2); err != nil {
 		return err
 	}
 	time.Sleep(s.shortDelay)
-	if err := p1.In(gpio.Float, gpio.Both); err != nil {
+	if err := p1.In(gpio.Float, gpio.BothEdges); err != nil {
 		return err
 	}
 	time.Sleep(s.shortDelay)
@@ -268,7 +268,7 @@ func (s *SmokeTest) testEdgesBoth(p1, p2 gpio.PinIO) error {
 	// At that point, there's an accumulated event.
 	time.Sleep(s.shortDelay)
 	// This flushes the event.
-	if err := p1.In(gpio.Float, gpio.Both); err != nil {
+	if err := p1.In(gpio.Float, gpio.BothEdges); err != nil {
 		return err
 	}
 	if <-s.waitForEdge(p1) {
@@ -279,7 +279,7 @@ func (s *SmokeTest) testEdgesBoth(p1, p2 gpio.PinIO) error {
 	return nil
 }
 
-// testEdgesSide tests with gpio.Rising or gpio.Falling.
+// testEdgesSide tests with gpio.RisingEdge or gpio.FallingEdge.
 //
 // The following events are tested for:
 // - Getting missing edges
@@ -288,7 +288,7 @@ func (s *SmokeTest) testEdgesBoth(p1, p2 gpio.PinIO) error {
 func (s *SmokeTest) testEdgesSide(p1, p2 gpio.PinIO, e gpio.Edge) error {
 	set := gpio.High
 	idle := gpio.Low
-	if e == gpio.Falling {
+	if e == gpio.FallingEdge {
 		set, idle = idle, set
 	}
 	fmt.Printf("  Testing edges with %s\n", e)
@@ -374,15 +374,15 @@ func (s *SmokeTest) testEdgesSide(p1, p2 gpio.PinIO, e gpio.Edge) error {
 // testEdges ensures edge based triggering works.
 func (s *SmokeTest) testEdges(p1, p2 gpio.PinIO) error {
 	// Test for:
-	// - Falling, Rising, Both
-	// - None
+	// - FallingEdge, RisingEdge, BothEdges
+	// - NoEdge
 	if err := s.testEdgesBoth(p1, p2); err != nil {
 		return err
 	}
-	if err := s.testEdgesSide(p1, p2, gpio.Rising); err != nil {
+	if err := s.testEdgesSide(p1, p2, gpio.RisingEdge); err != nil {
 		return err
 	}
-	if err := s.testEdgesSide(p1, p2, gpio.Falling); err != nil {
+	if err := s.testEdgesSide(p1, p2, gpio.FallingEdge); err != nil {
 		return err
 	}
 	return nil
@@ -394,7 +394,7 @@ func (s *SmokeTest) testPull(p1, p2 gpio.PinIO) error {
 	if err := preparePins(p1, p2); err != nil {
 		return err
 	}
-	if err := p2.In(gpio.PullDown, gpio.None); err != nil {
+	if err := p2.In(gpio.PullDown, gpio.NoEdge); err != nil {
 		return err
 	}
 	time.Sleep(s.shortDelay)
@@ -404,7 +404,7 @@ func (s *SmokeTest) testPull(p1, p2 gpio.PinIO) error {
 	}
 
 	s.slowSleep()
-	if err := p2.In(gpio.PullUp, gpio.None); err != nil {
+	if err := p2.In(gpio.PullUp, gpio.NoEdge); err != nil {
 		return err
 	}
 	time.Sleep(s.shortDelay)
@@ -464,7 +464,7 @@ func getPin(s string, useSysfs bool) (gpio.PinIO, error) {
 
 // preparePins sets p1 as input without pull and p2 as output low.
 func preparePins(p1, p2 gpio.PinIO) error {
-	if err := p1.In(gpio.Float, gpio.None); err != nil {
+	if err := p1.In(gpio.Float, gpio.NoEdge); err != nil {
 		return err
 	}
 	return p2.Out(gpio.Low)
