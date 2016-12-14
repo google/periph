@@ -61,19 +61,19 @@ func (i Pull) String() string {
 // Edge specifies if an input pin should have edge detection enabled.
 //
 // Only enable it when needed, since this causes system interrupts.
-type Edge uint8
+type Edge int
 
 // Acceptable edge detection values.
 const (
-	None    Edge = 0
-	Rising  Edge = 1
-	Falling Edge = 2
-	Both    Edge = 3
+	NoEdge      Edge = 0
+	RisingEdge  Edge = 1
+	FallingEdge Edge = 2
+	BothEdges   Edge = 3
 )
 
-const edgeName = "NoneRisingFallingBoth"
+const edgeName = "NoEdgeRisingEdgeFallingEdgeBothEdges"
 
-var edgeIndex = [...]uint8{0, 4, 10, 17, 21}
+var edgeIndex = [...]uint8{0, 6, 16, 27, 36}
 
 func (i Edge) String() string {
 	if i >= Edge(len(edgeIndex)-1) {

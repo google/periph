@@ -118,14 +118,14 @@ func (i *I2C) SDA() gpio.PinIO {
 func New(clk gpio.PinIO, data gpio.PinIO, speedHz int) (*I2C, error) {
 	// Spec calls to idle at high. Page 8, section 3.1.1.
 	// Set SCL as pull-up.
-	if err := clk.In(gpio.PullUp, gpio.None); err != nil {
+	if err := clk.In(gpio.PullUp, gpio.NoEdge); err != nil {
 		return nil, err
 	}
 	if err := clk.Out(gpio.High); err != nil {
 		return nil, err
 	}
 	// Set SDA as pull-up.
-	if err := data.In(gpio.PullUp, gpio.None); err != nil {
+	if err := data.In(gpio.PullUp, gpio.NoEdge); err != nil {
 		return nil, err
 	}
 	if err := data.Out(gpio.High); err != nil {
@@ -196,11 +196,11 @@ func (i *I2C) writeByte(b byte) (bool, error) {
 	// 9th clock is ACK.
 	i.sleepHalfCycle()
 	// SCL was already set as pull-up. PullNoChange
-	if err := i.scl.In(gpio.PullUp, gpio.None); err != nil {
+	if err := i.scl.In(gpio.PullUp, gpio.NoEdge); err != nil {
 		return false, err
 	}
 	// SDA was already set as pull-up.
-	if err := i.sda.In(gpio.PullUp, gpio.None); err != nil {
+	if err := i.sda.In(gpio.PullUp, gpio.NoEdge); err != nil {
 		return false, err
 	}
 	// Implement clock stretching, the device may keep the line low.
@@ -227,7 +227,7 @@ func (i *I2C) writeByte(b byte) (bool, error) {
 // Lasts 9 cycles.
 func (i *I2C) readByte() (byte, error) {
 	var b byte
-	if err := i.sda.In(gpio.PullUp, gpio.None); err != nil {
+	if err := i.sda.In(gpio.PullUp, gpio.NoEdge); err != nil {
 		return b, err
 	}
 	for x := 0; x < 8; x++ {

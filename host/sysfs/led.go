@@ -77,7 +77,7 @@ func (l *LED) In(pull gpio.Pull, edge gpio.Edge) error {
 	if pull != gpio.Float && pull != gpio.PullNoChange {
 		return errors.New("sysfs-led: pull is not supported on LED")
 	}
-	if edge != gpio.None {
+	if edge != gpio.NoEdge {
 		return errors.New("sysfs-led: edge is not supported on LED")
 	}
 	return nil

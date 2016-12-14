@@ -213,7 +213,7 @@ func main() {
     fmt.Printf("%s: %s\n", p, p.Function())
 
     // Set it as input, with an internal pull down resistor:
-    if err = p.In(gpio.Down, gpio.Both); err != nil {
+    if err = p.In(gpio.Down, gpio.BothEdges); err != nil {
         log.Fatal(err)
     }
 
