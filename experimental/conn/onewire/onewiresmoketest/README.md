@@ -4,26 +4,26 @@ Verifies that a 1-wire bus with two devices can be searched and that a DS18b20
 temperature sensor as well as a ds2431 eeprom can be accessed. Typically used with
 the periph-tester board.
 
-Sample output running on an Odroid-C1:
+Sample output running on a C.H.I.P.:
 
 ```
-# ./periph-smoketest -v i2c-testboard -wc 83
-20:29:14.241551 Using drivers:
-20:29:14.241964 - sysfs-led
-20:29:14.242056 - sysfs-thermal
-20:29:14.242149 - sysfs-i2c
-20:29:14.242264 - sysfs-gpio
-20:29:14.242362 - sysfs-spi
-20:29:14.242434 - odroid_c1
-20:29:14.242511 Drivers skipped:
-20:29:14.242591 - bcm283x-gpio: bcm283x CPU not detected
-20:29:14.242685 - allwinner-gpio: Allwinner CPU not detected
-20:29:14.242765 - chip: dependency not loaded: "allwinner-gpio"
-20:29:14.242835 - rpi: dependency not loaded: "bcm283x-gpio"
-20:29:14.242909 - allwinner-gpio-pl: dependency not loaded: "allwinner-gpio"
-20:29:14.242988 - pine64: dependency not loaded: "allwinner-gpio-pl"
-20:29:14.243421 i2c-smoke: random number seed 1479961754243306323
-20:29:14.249073 i2c-smoke writing&reading EEPROM byte 0xcb
-20:29:14.289290 i2c-smoke writing&reading EEPROM page 0x60
-20:29:14.324772 Test i2c-testboard successful
+chip4 ~> sudo ./periph-smoketest -v onewire-testboard -i2cbus 1
+05:47:18.561821 Using drivers:
+05:47:18.562864 - allwinner-gpio
+05:47:18.563359 - chip
+05:47:18.563783 - sysfs-gpio
+05:47:18.564144 - sysfs-i2c
+05:47:18.564491 - sysfs-led
+05:47:18.564830 - sysfs-spi
+05:47:18.565161 - sysfs-thermal
+05:47:18.565470 Drivers skipped:
+05:47:18.566169 - allwinner-gpio-pl: A64 CPU not detected
+05:47:18.566265 - bcm283x-gpio: bcm283x CPU not detected
+05:47:18.566336 - odroid_c1: Hardkernel ODROID-C0/C1/C1+ board not detected
+05:47:18.566403 - pine64: dependency not loaded: "allwinner-gpio-pl"
+05:47:18.566466 - rpi: dependency not loaded: "bcm283x-gpio"
+05:47:18.569578 onewire-smoke: random number seed 1481694438569396253
+05:47:18.655117 onewire-smoke: found 2 devices 0xaf000001318c0128 0x28000014f3f0c52d
+05:47:18.920729 onewire-smoke: temperature is 28.50°C
+05:47:18.921942 Test onewire-testboard successful
 ```

@@ -37,6 +37,13 @@ func (d *Dev) String() string {
 	return fmt.Sprintf("ds248x")
 }
 
+// Close drops the I²C bus handle and sets a persistent error.
+func (d *Dev) Close() error {
+	d.i2c = nil
+	d.err = fmt.Errorf("ds248x: invalid operation on closed bus")
+	return nil
+}
+
 // Tx performs a bus transaction, sending and receiving bytes, and
 // ending by pulling the bus high either weakly or strongly depending
 // on the value of power.

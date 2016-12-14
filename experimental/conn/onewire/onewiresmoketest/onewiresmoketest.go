@@ -36,7 +36,7 @@ func (s *SmokeTest) Description() string {
 // Run implements the SmokeTest interface.
 func (s *SmokeTest) Run(args []string) error {
 	f := flag.NewFlagSet("onewire", flag.ExitOnError)
-	busNum := f.Int("i2cbus", -1, "bus number where to find DS2483 1-wire interface chip, -1 for lowest numbered bus")
+	busNum := f.Int("i2cbus", -1, "bus number for the DS2483 1-wire interface chip, -1 for lowest numbered bus")
 	seed := f.Int64("seed", 0, "random number seed, default is to use the time")
 	f.Parse(args)
 
@@ -52,7 +52,7 @@ func (s *SmokeTest) Run(args []string) error {
 	if err != nil {
 		return fmt.Errorf("onewire-smoke: cannot open DS248x: %v", err)
 	}
-	//defer onewireBus.Close() TODO: implement Close in ds248x Dev
+	defer onewireBus.Close()
 
 	// Init rand.
 	if *seed == 0 {
