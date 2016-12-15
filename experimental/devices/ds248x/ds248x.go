@@ -42,7 +42,11 @@ type Opts struct {
 	PullupRes      PupOhm        // passive pull-up resistance, true: 500Ω, false: 1kΩ
 }
 
-// New returns an device object that communicates over I²C to the DS2482/DS2483 controller.
+// New returns a device object that communicates over I²C to the DS2482/DS2483
+// controller.
+//
+// This device object implements onewire.Bus and can be used to
+// access devices on the bus.
 func New(i i2c.Bus, opts *Opts) (*Dev, error) {
 	addr := uint16(0x18)
 	if opts != nil {

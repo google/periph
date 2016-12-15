@@ -3,8 +3,10 @@
 // that can be found in the LICENSE file.
 
 // spismoketest verifies that an EEPROM device can be accessed on
-// an SPI bus. This assumes the presence of the periph-tester board,
-// which includes these two devices.
+// an SPI bus.
+//
+// This assumes the presence of the periph-tester board, which includes these two devices.
+// See https://github.com/tve/periph-tester
 package spismoketest
 
 import (
@@ -44,16 +46,16 @@ func (s *SmokeTest) Run(args []string) error {
 	// Open the bus.
 	spiDev, err := spi.New(*busNum, *csNum)
 	if err != nil {
-		return fmt.Errorf("spi-smoke: %v", err)
+		return fmt.Errorf("spi-smoke: opening SPI: %v", err)
 	}
 	defer spiDev.Close()
 
 	// Set SPI parameters.
-	if err := spiDev.Speed(4 * 1000 * 1000 * 1000); err != nil {
-		return fmt.Errorf("spi-smoke: cannot set speed, %v", err)
-	}
 	if err := spiDev.Configure(spi.Mode0, 8); err != nil {
 		return fmt.Errorf("spi-smoke: cannot set mode, %v", err)
+	}
+	if err := spiDev.Speed(4 * 1000 * 1000); err != nil {
+		return fmt.Errorf("spi-smoke: cannot set speed, %v", err)
 	}
 
 	// Open the WC pin.
@@ -73,7 +75,7 @@ func (s *SmokeTest) Run(args []string) error {
 
 	// Run the tests.
 	if err := s.eeprom(spiDev, wpPin); err != nil {
-		return fmt.Errorf("spi-smoke: %s", err)
+		return fmt.Errorf("spi-smoke: %v", err)
 	}
 
 	return nil
