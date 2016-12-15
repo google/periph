@@ -3,8 +3,10 @@
 // that can be found in the LICENSE file.
 
 // spismoketest verifies that an EEPROM device can be accessed on
-// an SPI bus. This assumes the presence of the periph-tester board,
-// which includes these two devices.
+// an SPI bus.
+//
+// This assumes the presence of the periph-tester board, which includes these two devices.
+// See https://github.com/tve/periph-tester
 package spismoketest
 
 import (

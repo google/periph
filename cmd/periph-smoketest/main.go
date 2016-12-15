@@ -42,10 +42,10 @@ type SmokeTest interface {
 var tests = []SmokeTest{
 	&chipsmoketest.SmokeTest{},
 	&gpiosmoketest.SmokeTest{},
-	&odroidc1smoketest.SmokeTest{},
 	&i2csmoketest.SmokeTest{},
-	&spismoketest.SmokeTest{},
+	&odroidc1smoketest.SmokeTest{},
 	&onewiresmoketest.SmokeTest{},
+	&spismoketest.SmokeTest{},
 }
 
 func usage() {
