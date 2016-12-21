@@ -23,32 +23,19 @@ func (s *Slice) Uint32() []uint32 {
 	return *(*[]uint32)(unsafe.Pointer(&header))
 }
 
-// Struct initializes a pointer to a struct to point to the memory mapped
-// region.
-//
-// pp must be a pointer to a pointer to a struct and the pointer to struct must
-// be nil. Returns an error otherwise.
+func (s *Slice) Bytes() []byte {
+	return *s
+}
+
+// Struct implements Mem.
 func (s *Slice) Struct(pp reflect.Value) error {
-	// Sanity checks to reduce likelihood of a panic().
-	if k := pp.Kind(); k != reflect.Ptr {
-		return fmt.Errorf("pmem: require Ptr, got %s", k)
-	}
-	if pp.IsNil() {
-		return errors.New("pmem: require Ptr to be valid")
+	size, err := isPP(pp)
+	if err != nil {
+		return err
 	}
 	p := pp.Elem()
-	if k := p.Kind(); k != reflect.Ptr {
-		return fmt.Errorf("pmem: require Ptr to Ptr, got %s", k)
-	}
-	if !p.IsNil() {
-		return errors.New("pmem: require Ptr to Ptr to be nil")
-	}
-	// p.Elem() can't be used since it's a nil pointer. Use the type instead.
 	t := p.Type().Elem()
-	if k := t.Kind(); k != reflect.Struct {
-		return fmt.Errorf("pmem: require Ptr to Ptr to a struct, got Ptr to Ptr to %d", k)
-	}
-	if size := int(t.Size()); size > len(*s) {
+	if size > len(*s) {
 		return fmt.Errorf("pmem: can't map struct %s (size %d) on [%d]byte", t, size, len(*s))
 	}
 	// Use casting black magic to read the internal slice headers.
@@ -68,6 +55,7 @@ func (s *Slice) Struct(pp reflect.Value) error {
 type View struct {
 	Slice
 	orig []uint8 // Reference rounded to the lowest 4Kb page containing Slice.
+	phys uint64  // physical address of the base of Slice.
 }
 
 // Close unmaps the memory from the user address space.
@@ -76,6 +64,11 @@ type View struct {
 // exits) so this is not a hard requirement to call this function.
 func (v *View) Close() error {
 	return munmap(v.orig)
+}
+
+// PhysAddr implements Mem.
+func (v *View) PhysAddr() uint64 {
+	return v.phys
 }
 
 // MapGPIO returns a CPU specific memory mapping of the CPU I/O registers using
@@ -104,6 +97,19 @@ func Map(base uint64, size int) (*View, error) {
 	return nil, errors.New("pmem: /dev/mem is not supported on this platform")
 }
 
+// MapStruct is a shorthand to call Map(base, sizeof(v)) then Struct(v).
+func MapStruct(base uint64, v reflect.Value) error {
+	size, err := isPP(v)
+	if err != nil {
+		return err
+	}
+	m, err := Map(base, size)
+	if err != nil {
+		return err
+	}
+	return m.Struct(v)
+}
+
 //
 
 // Keep a cache of open file handles instead of opening and closing repeatedly.
@@ -122,8 +128,8 @@ func mapGPIOLinux() (*View, error) {
 	if gpioMemView == nil && gpioMemErr == nil {
 		if f, err := os.OpenFile("/dev/gpiomem", os.O_RDWR|os.O_SYNC, 0); err == nil {
 			defer f.Close()
-			if i, err := mmap(f.Fd(), 0, 4096); err == nil {
-				gpioMemView = &View{Slice: i, orig: i}
+			if i, err := mmap(f.Fd(), 0, pageSize); err == nil {
+				gpioMemView = &View{Slice: i, orig: i, phys: 0}
 			} else {
 				gpioMemErr = err
 			}
@@ -146,7 +152,7 @@ func mapLinux(base uint64, size int) (*View, error) {
 	if err != nil {
 		return nil, fmt.Errorf("pmem: mapping at 0x%x failed: %v", base, err)
 	}
-	return &View{Slice: i[offset:size], orig: i}, nil
+	return &View{Slice: i[offset : offset+size], orig: i, phys: base + uint64(offset)}, nil
 }
 
 func openDevMemLinux() (*os.File, error) {
@@ -156,4 +162,28 @@ func openDevMemLinux() (*os.File, error) {
 		devMem, devMemErr = os.OpenFile("/dev/mem", os.O_RDWR|os.O_SYNC, 0)
 	}
 	return devMem, devMemErr
+}
+
+// isPP makes sure it is a pointer to a nil-pointer to something. It does
+// sanity checks to reduce likelihood of a panic().
+func isPP(pp reflect.Value) (int, error) {
+	if k := pp.Kind(); k != reflect.Ptr {
+		return 0, fmt.Errorf("pmem: require Ptr, got %s", k)
+	}
+	if pp.IsNil() {
+		return 0, errors.New("pmem: require Ptr to be valid")
+	}
+	p := pp.Elem()
+	if k := p.Kind(); k != reflect.Ptr {
+		return 0, fmt.Errorf("pmem: require Ptr to Ptr, got %s", k)
+	}
+	if !p.IsNil() {
+		return 0, errors.New("pmem: require Ptr to Ptr to be nil")
+	}
+	// p.Elem() can't be used since it's a nil pointer. Use the type instead.
+	t := p.Type().Elem()
+	if k := t.Kind(); k != reflect.Struct && k != reflect.Array {
+		return 0, fmt.Errorf("pmem: require Ptr to Ptr to a struct or an array, got Ptr to Ptr to %d", k)
+	}
+	return int(t.Size()), nil
 }
