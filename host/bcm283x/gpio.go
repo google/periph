@@ -71,13 +71,8 @@ var (
 	GPIO44 *Pin // GPCLK1, I2C0_SDA, I2C1_SDA, SPI2_CS1
 	GPIO45 *Pin // PWM1_OUT, I2C0_SCL, I2C1_SCL, SPI2_CS2
 	GPIO46 *Pin //
-	GPIO47 *Pin // SDCard
-	GPIO48 *Pin // SDCard
-	GPIO49 *Pin // SDCard
-	GPIO50 *Pin // SDCard
-	GPIO51 *Pin // SDCard
-	GPIO52 *Pin // SDCard
-	GPIO53 *Pin // SDCard
+	// Pins 47~53 are not exposed because using them would lead to immediate SD
+	// Card corruption.
 )
 
 // Present returns true if running on a Broadcom bcm283x based CPU.
@@ -337,7 +332,7 @@ var gpioMemory *gpioMap
 
 // cpuPins is all the pins as supported by the CPU. There is no guarantee that
 // they are actually connected to anything on the board.
-var cpuPins = [54]Pin{
+var cpuPins = []Pin{
 	{number: 0, name: "GPIO0", defaultPull: gpio.PullUp},
 	{number: 1, name: "GPIO1", defaultPull: gpio.PullUp},
 	{number: 2, name: "GPIO2", defaultPull: gpio.PullUp},
@@ -385,23 +380,16 @@ var cpuPins = [54]Pin{
 	{number: 44, name: "GPIO44", defaultPull: gpio.Float},
 	{number: 45, name: "GPIO45", defaultPull: gpio.Float},
 	{number: 46, name: "GPIO46", defaultPull: gpio.PullUp},
-	{number: 47, name: "GPIO47", defaultPull: gpio.PullUp},
-	{number: 48, name: "GPIO48", defaultPull: gpio.PullUp},
-	{number: 49, name: "GPIO49", defaultPull: gpio.PullUp},
-	{number: 50, name: "GPIO50", defaultPull: gpio.PullUp},
-	{number: 51, name: "GPIO51", defaultPull: gpio.PullUp},
-	{number: 52, name: "GPIO52", defaultPull: gpio.PullUp},
-	{number: 53, name: "GPIO53", defaultPull: gpio.PullUp},
 }
 
 // This excludes the functions in and out.
-var mapping = [54][6]string{
+var mapping = [][6]string{
 	{"I2C0_SDA"}, // 0
 	{"I2C0_SCL"},
 	{"I2C1_SDA"},
 	{"I2C1_SCL"},
 	{"GPCLK0"},
-	{"GPCLK1"},
+	{"GPCLK1"}, // 5
 	{"GPCLK2"},
 	{"SPI0_CS1"},
 	{"SPI0_CS0"},
@@ -411,19 +399,19 @@ var mapping = [54][6]string{
 	{"PWM0_OUT"},
 	{"PWM1_OUT"},
 	{"UART0_TXD", "", "", "", "", "UART1_TXD"},
-	{"UART0_RXD", "", "", "", "", "UART1_RXD"},
+	{"UART0_RXD", "", "", "", "", "UART1_RXD"}, // 15
 	{"", "", "", "UART0_CTS", "SPI1_CS2", "UART1_CTS"},
 	{"", "", "", "UART0_RTS", "SPI1_CS1", "UART1_RTS"},
 	{"PCM_CLK", "", "", "", "SPI1_CS0", "PWM0_OUT"},
 	{"PCM_FS", "", "", "", "SPI1_MISO", "PWM1_OUT"},
 	{"PCM_DIN", "", "", "", "SPI1_MOSI", "GPCLK0"}, // 20
 	{"PCM_DOUT", "", "", "", "SPI1_CLK", "GPCLK1"},
-	{},
-	{},
-	{},
-	{},
-	{},
-	{},
+	{""},
+	{""},
+	{""},
+	{""}, // 25
+	{""},
+	{""},
 	{"I2C0_SDA", "", "PCM_CLK", "", "", ""},
 	{"I2C0_SCL", "", "PCM_FS", "", "", ""},
 	{"", "", "PCM_DIN", "UART0_CTS", "", "UART1_CTS"}, // 30
@@ -431,7 +419,7 @@ var mapping = [54][6]string{
 	{"GPCLK0", "", "", "UART0_TXD", "", "UART1_TXD"},
 	{"", "", "", "UART0_RXD", "", "UART1_RXD"},
 	{"GPCLK0"},
-	{"SPI0_CS1"},
+	{"SPI0_CS1"}, // 35
 	{"SPI0_CS0", "", "UART0_TXD", "", "", ""},
 	{"SPI0_MISO", "", "UART0_RXD", "", "", ""},
 	{"SPI0_MOSI", "", "UART0_RTS", "", "", ""},
@@ -441,7 +429,8 @@ var mapping = [54][6]string{
 	{"GPCLK1", "", "", "", "SPI2_CLK", "UART1_RTS"},
 	{"GPCLK2", "", "", "", "SPI2_CS0", "UART1_CTS"},
 	{"GPCLK1", "I2C0_SDA", "I2C1_SDA", "", "SPI2_CS1", ""},
-	{"PWM1_OUT", "I2C0_SCL", "I2C1_SCL", "", "SPI2_CS2", ""},
+	{"PWM1_OUT", "I2C0_SCL", "I2C1_SCL", "", "SPI2_CS2", ""}, // 45
+	{""},
 }
 
 // function specifies the active functionality of a pin. The alternative
@@ -569,13 +558,6 @@ func init() {
 	GPIO44 = &cpuPins[44]
 	GPIO45 = &cpuPins[45]
 	GPIO46 = &cpuPins[46]
-	GPIO47 = &cpuPins[47]
-	GPIO48 = &cpuPins[48]
-	GPIO49 = &cpuPins[49]
-	GPIO50 = &cpuPins[50]
-	GPIO51 = &cpuPins[51]
-	GPIO52 = &cpuPins[52]
-	GPIO53 = &cpuPins[53]
 }
 
 // Changing pull resistor require a 150 cycles sleep.
@@ -657,16 +639,21 @@ func (d *driverGPIO) Init() (bool, error) {
 		return true, err
 	}
 
+	functions := map[string]struct{}{}
 	for i := range cpuPins {
 		if err := gpio.Register(&cpuPins[i], true); err != nil {
 			return true, err
 		}
-		// The pins after 46 are connected to the SD Card. Modifying them would
-		// break the device.
-		if i <= 46 {
-			// A pin set in alternate function but not described in `mapping` will
-			// show up as "<AltX>". We don't want there to be registered as aliases.
-			if f := cpuPins[i].Function(); len(f) < 3 || (f[:2] != "In" && f[:3] != "Out" && f[0] != '<') {
+		// A pin set in alternate function but not described in `mapping` will
+		// show up as "<AltX>". We don't want them to be registered as aliases.
+		if f := cpuPins[i].Function(); len(f) < 3 || (f[:2] != "In" && f[:3] != "Out" && f[0] != '<') {
+			// Registering the same alias twice fails. This can happen if two pins
+			// are configured with the same function. For example both pin #12, #18
+			// and #40 could be configured to work as PWM0_OUT.
+			// TODO(maruel): Dynamically register and unregister the pins as their
+			// functionality is changed.
+			if _, ok := functions[f]; !ok {
+				functions[f] = struct{}{}
 				if err := gpio.RegisterAlias(f, i); err != nil {
 					return true, err
 				}
