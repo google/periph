@@ -9,9 +9,13 @@
 // Changing between protocol is likely done through resistor soldering, for
 // boards that support both.
 //
-// Datasheet
+// Datasheets
 //
 // https://cdn-shop.adafruit.com/datasheets/SSD1306.pdf
+//
+// "DM-OLED096-624": https://drive.google.com/file/d/0B5lkVYnewKTGaEVENlYwbDkxSGM/view
+//
+// "ssd1306": https://drive.google.com/file/d/0B5lkVYnewKTGYzhyWWp0clBMR1E/view
 package ssd1306
 
 // Some have SPI enabled;
@@ -104,7 +108,7 @@ func newDev(dev io.Writer, w, h int, rotated bool) (*Dev, error) {
 	}
 	d := &Dev{w: dev, W: w, H: h}
 
-	contrast := byte(0x7F) // (default value)
+	contrast := byte(0x7F) // recommended value
 
 	// Set COM output scan direction; C0 means normal; C8 means reversed
 	comScan := byte(0xC8)
@@ -115,13 +119,13 @@ func newDev(dev io.Writer, w, h int, rotated bool) (*Dev, error) {
 		comScan = 0xC0
 		columnAddr = byte(0xA0)
 	}
-	// Initialize the device by fully reseting all values.
+	// Initialize the device by fully resetting all values.
 	// https://cdn-shop.adafruit.com/datasheets/SSD1306.pdf
 	// Page 64 has the full recommended flow.
 	// Page 28 lists all the commands.
-	// BUG(maruel): This flow may not recover a controller in a complete
-	// corrupted state. Figure out a more resilient startup init code.
+	// Some values come from the DM-OLED096 datasheet p15.
 	init := []byte{
+		i2cCmd,
 		0xAE,       // Display off
 		0xD3, 0x00, // Set display offset; 0
 		0x40,       // Start display start line; 0
@@ -130,17 +134,16 @@ func newDev(dev io.Writer, w, h int, rotated bool) (*Dev, error) {
 		0xDA, 0x12, // Set COM pins hardware configuration; see page 40
 		0x81, contrast, // Set contrast control
 		0xA4,       // Set display to use GDDRAM content
-		0xA6,       // Set normal display (0xA7 for reversed bitness i.e. bit set is black) (?)
-		0xD5, 0x40, // Set osc frequency and divide ratio; power on reset value is 0x3F.
+		0xA6,       // Set normal display (0xA7 for inverted 0=lit, 1=dark)
+		0xD5, 0x80, // Set osc frequency and divide ratio; power on reset value is 0x3F.
 		0x8D, 0x14, // Enable charge pump regulator; page 62
-
-		// Not sure
-		0xD9, 0xF1, // Set pre-charge period.
-		//0xDB, 0x40, // Set Vcomh deselect level; page 32
-		0x20, 0x00, // Set memory addressing mode to horizontal (can be page, horizontal or vertical)
+		0xD9, 0x22, // Set pre-charge period.
+		0xDB, 0x40, // Set Vcomh deselect level; page 32
+		0x20, 0x00, // Set memory addressing mode to horizontal
+		0xB0,                // Set page start address
 		0x2E,                // Deactivate scroll
-		0x00 | 0x00,         // Set column offset (lower nibble)
-		0x10 | 0x00,         // Set column offset (higher nibble)
+		0x00,                // Set column offset (lower nibble)
+		0x10,                // Set column offset (higher nibble)
 		0xA8, byte(d.H - 1), // Set multiplex ratio (number of lines to display)
 		0xAF, // Display on
 	}
@@ -226,16 +229,18 @@ func (d *Dev) Write(pixels []byte) (int, error) {
 		return 0, errors.New("ssd1306: invalid pixel stream")
 	}
 
-	// Run as 2 big transactions to reduce downtime on the bus. Doing with one
-	// transaction doesn't work (?)
+	// Run as 2 big transactions to reduce downtime on the bus.
+	// First tx is commands, second is data
 	hdr := []byte{
+		i2cCmd,
+		0xB0, 0x00, 0x10, 0x40,
 		0x21, 0x00, byte(d.W - 1), // Set column address (Width)
 		0x22, 0x00, byte(d.H/8 - 1), // Set page address (Pages)
 	}
 	if _, err := d.w.Write(hdr); err != nil {
 		return 0, err
 	}
-	if _, err := d.w.Write(append([]byte{0x40}, pixels...)); err != nil {
+	if _, err := d.w.Write(append([]byte{i2cData}, pixels...)); err != nil {
 		return 0, err
 	}
 	return len(pixels), nil
@@ -248,13 +253,13 @@ func (d *Dev) Scroll(o Orientation, rate FrameRate) error {
 	if o == Left || o == Right {
 		// page 28
 		// STOP, <op>, dummy, <start page>, <rate>,  <end page>, <dummy>, <dummy>, <ENABLE>
-		_, err := d.w.Write([]byte{0x2E, byte(o), 0x00, 0x00, byte(rate), 0x07, 0x00, 0xFF, 0x2F})
+		_, err := d.w.Write([]byte{i2cCmd, 0x2E, byte(o), 0x00, 0x00, byte(rate), 0x07, 0x00, 0xFF, 0x2F})
 		return err
 	}
 	// page 29
 	// STOP, <op>, dummy, <start page>, <rate>,  <end page>, <offset>, <ENABLE>
 	// page 30: 0xA3 permits to set rows for scroll area.
-	_, err := d.w.Write([]byte{0x2E, byte(o), 0x00, 0x00, byte(rate), 0x07, 0x01, 0x2F})
+	_, err := d.w.Write([]byte{i2cCmd, 0x2E, byte(o), 0x00, 0x00, byte(rate), 0x07, 0x01, 0x2F})
 	return err
 }
 
@@ -264,7 +269,7 @@ func (d *Dev) Scroll(o Orientation, rate FrameRate) error {
 //
 // BUG(maruel): Doesn't work.
 func (d *Dev) StopScroll() error {
-	_, err := d.w.Write([]byte{0x2E})
+	_, err := d.w.Write([]byte{i2cCmd, 0x2E})
 	return err
 }
 
@@ -272,7 +277,7 @@ func (d *Dev) StopScroll() error {
 //
 // BUG(maruel): Doesn't work.
 func (d *Dev) SetContrast(level byte) error {
-	_, err := d.w.Write([]byte{0x81, level})
+	_, err := d.w.Write([]byte{i2cCmd, 0x81, level})
 	return err
 }
 
@@ -284,8 +289,13 @@ func (d *Dev) Enable(on bool) error {
 	if on {
 		b = 0xAF
 	}
-	_, err := d.w.Write([]byte{b})
+	_, err := d.w.Write([]byte{i2cCmd, b})
 	return err
 }
+
+const (
+	i2cCmd  = 0x00 // i2c transaction has stream of command bytes
+	i2cData = 0x40 // i2c transaction has stream of data bytes
+)
 
 var _ devices.Display = &Dev{}
