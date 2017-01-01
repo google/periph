@@ -52,23 +52,21 @@ func testChipHeaders() error {
 	}
 
 	u13_17 := h["U13"][8][0]
-	if u13_17.Name() != "PD2" {
-		return fmt.Errorf("expected U13_17 to be PD2, not %s", u13_17.Name())
+	if u13_17.Name() != "LCD-D2" {
+		return fmt.Errorf("expected U13_17 to be LCD-D2, not %s", u13_17.Name())
 	}
-	p := gpio.ByName("PD2")
-	if p == nil || p.Name() != u13_17.Name() { // p is gpio.PinIO while u13_17 is pins.Pin
-		return fmt.Errorf(`expected gpio.ByName("PD2") to equal h["U13"][8][0], instead `+
-			"got %s and %s", p, u13_17)
+	if u13_17.String() != "LCD-D2(PD2)" {
+		return fmt.Errorf("expected U13_17.String() to be \"LCD-D2(PD2)\", instead got %s", u13_17.String())
 	}
 
 	u14_24 := h["U14"][11][1]
-	if p == nil || u14_24.Name() != "PB3" {
-		return fmt.Errorf("expected U14_24 to be PB3, not %s", u14_24.Name())
+	if u14_24.Name() != "AP-EINT3" {
+		return fmt.Errorf("expected U14_24 to be AP-EINT3, not %s", u14_24.Name())
 	}
 
 	u14_17 := h["U14"][8][0]
-	if p == nil || u14_17.Name() != "GPIO1020" {
-		return fmt.Errorf("expected U14_17 to be GPIO1020, not %s", u14_17.Name())
+	if u14_17.Name() != "XIO-P4" {
+		return fmt.Errorf("expected U14_17 to be XIO-P4, not %s", u14_17.Name())
 	}
 	return nil
 }
@@ -110,7 +108,9 @@ func testChipGpioNames() error {
 // testChipAliases tests that the various gpio pin aliases get set-up
 func testChipAliases() error {
 	tests := map[string]string{ // alias->real
-		"XIO-P4": "GPIO1020", "LCD-D2": "PD2",
+		"XIO-P4":   "GPIO1017",
+		"LCD-D2":   "PD2",
+		"AP-EINT3": "PB3",
 	}
 	for a, r := range tests {
 		p := gpio.ByName(a)

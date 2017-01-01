@@ -7,6 +7,9 @@ package chip
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/google/periph"
@@ -179,14 +182,6 @@ var aliases = map[string]string{
 	"TWI2-SDA":  "PB18",
 	"UART1-RX":  "PG4",
 	"UART1-TX":  "PG3",
-	"XIO-P0":    "GPIO1016",
-	"XIO-P1":    "GPIO1017",
-	"XIO-P2":    "GPIO1018",
-	"XIO-P3":    "GPIO1019",
-	"XIO-P4":    "GPIO1020",
-	"XIO-P5":    "GPIO1021",
-	"XIO-P6":    "GPIO1022",
-	"XIO-P7":    "GPIO1023",
 }
 
 func init() {
@@ -210,6 +205,32 @@ func init() {
 	U14_20 = XIO7
 }
 
+// findXIOBase calculates the base of the XIO-P? gpio pins as explained in
+// http://docs.getchip.com/chip.html#kernel-4-3-vs-4-4-gpio-how-to-tell-the-difference
+//
+// The XIO-P? sysfs mapped pin number changed in kernel 4.3, 4.4.11 and again
+// in 4.4.13 so it is better to query sysfs.
+func findXIOBase() int {
+	chips, err := filepath.Glob("/sys/class/gpio/gpiochip*/label")
+	if err != nil {
+		return -1
+	}
+	for _, item := range chips {
+		b, err := ioutil.ReadFile(item)
+		if err != nil {
+			continue
+		}
+		if string(b) == "pcf8574a\n" {
+			id, err := strconv.Atoi(filepath.Base(filepath.Dir(item))[8:])
+			if err != nil {
+				return -1
+			}
+			return id
+		}
+	}
+	return -1
+}
+
 // driver implements drivers.Driver.
 type driver struct {
 }
@@ -226,6 +247,14 @@ func (d *driver) Prerequisites() []string {
 func (d *driver) Init() (bool, error) {
 	if !Present() {
 		return false, errors.New("NextThing Co. CHIP board not detected")
+	}
+
+	base := findXIOBase()
+	if base == -1 {
+		return true, errors.New("couldn't find XIO pins base number")
+	}
+	for i := 0; i < 8; i++ {
+		aliases[fmt.Sprintf("XIO-P%d", i)] = fmt.Sprintf("GPIO%d", base+i)
 	}
 
 	// At this point the sysfs driver has initialized and discovered its pins,
