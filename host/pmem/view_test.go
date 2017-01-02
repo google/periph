@@ -5,6 +5,7 @@
 package pmem
 
 import (
+	"log"
 	"reflect"
 	"testing"
 )
@@ -30,9 +31,21 @@ func TestSlice(t *testing.T) {
 	if v.u != 0x01020304 {
 		t.Fatalf("%v", v.u)
 	}
+	var r *[1]uint32
+	if err := s.Struct(reflect.ValueOf(&r)); err != nil {
+		t.Fatalf("%v", err)
+	}
+	if r[0] != u32[0] {
+		t.Fatalf("%x != %x", r[0] != u32[0])
+	}
+}
+
+func TestSliceErrors(t *testing.T) {
+	s := Slice([]byte{4, 3, 2, 1})
 	if s.Struct(reflect.ValueOf(nil)) == nil {
 		t.FailNow()
 	}
+	var v *simpleStruct
 	if s.Struct(reflect.ValueOf(v)) == nil {
 		t.FailNow()
 	}
@@ -47,4 +60,14 @@ func TestSlice(t *testing.T) {
 	if s.Struct(reflect.ValueOf(&v)) == nil {
 		t.FailNow()
 	}
+}
+
+func ExampleMapStruct() {
+	// Let's say the CPU has 4 x 32 bits memory mapped registers at the address
+	// 0xDEADBEEF.
+	var reg *[4]uint32
+	if err := MapStruct(0xDEADBEAF, reflect.ValueOf(reg)); err != nil {
+		log.Fatal(err)
+	}
+	// reg now points to physical memory.
 }
