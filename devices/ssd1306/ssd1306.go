@@ -108,8 +108,6 @@ func newDev(dev io.Writer, w, h int, rotated bool) (*Dev, error) {
 	}
 	d := &Dev{w: dev, W: w, H: h}
 
-	contrast := byte(0x7F) // recommended value
-
 	// Set COM output scan direction; C0 means normal; C8 means reversed
 	comScan := byte(0xC8)
 	// See page 40.
@@ -132,12 +130,12 @@ func newDev(dev io.Writer, w, h int, rotated bool) (*Dev, error) {
 		columnAddr, // Set segment remap; RESET is column 127.
 		comScan,
 		0xDA, 0x12, // Set COM pins hardware configuration; see page 40
-		0x81, contrast, // Set contrast control
+		0x81, 0xff, // Set max contrast
 		0xA4,       // Set display to use GDDRAM content
 		0xA6,       // Set normal display (0xA7 for inverted 0=lit, 1=dark)
 		0xD5, 0x80, // Set osc frequency and divide ratio; power on reset value is 0x3F.
 		0x8D, 0x14, // Enable charge pump regulator; page 62
-		0xD9, 0x22, // Set pre-charge period.
+		0xD9, 0xf1, // Set pre-charge period; from adafruit driver
 		0xDB, 0x40, // Set Vcomh deselect level; page 32
 		0x20, 0x00, // Set memory addressing mode to horizontal
 		0xB0,                // Set page start address
@@ -150,6 +148,14 @@ func newDev(dev io.Writer, w, h int, rotated bool) (*Dev, error) {
 	if _, err := d.w.Write(init); err != nil {
 		return nil, err
 	}
+
+	/* For reference, init sequence from adafruit driver:
+	d.w.Write([]byte{i2cCmd,
+		0xae, 0xd5, 0x80, 0xa8, 0x3f, 0xd3, 0x00, 0x40, 0x8d, 0x14,
+		0x20, 0x00, 0xa1, 0xc8, 0xda, 0x12, 0x81, 0xcf, 0xd9, 0xf1,
+		0xdb, 0x40, 0xa4, 0xa6, 0x2e, 0xaf})
+	*/
+
 	return d, nil
 }
 
@@ -230,23 +236,32 @@ func (d *Dev) Write(pixels []byte) (int, error) {
 	}
 
 	// Run as 2 big transactions to reduce downtime on the bus.
-	// First tx is commands, second is data
+	// First tx is commands, second is data.
+
+	// The following commands should not be needed, but then if the ssd1306 gets out of sync
+	// for some reason the display ends up messed-up. Given the small overhead compared to
+	// sending all the data might as well reset things a bit.
 	hdr := []byte{
 		i2cCmd,
-		0xB0, 0x00, 0x10, 0x40,
-		0x21, 0x00, byte(d.W - 1), // Set column address (Width)
-		0x22, 0x00, byte(d.H/8 - 1), // Set page address (Pages)
+		0xB0,       // Set page start addr just in case
+		0x00, 0x10, // Set column start addr, lower & upper nibble
+		0x20, 0x00, // Ensure addressing mode is horizontal
+		0x21, 0x00, byte(d.W - 1), // Set start/end column
+		0x22, 0x00, byte(d.H/8 - 1), // Set start/end page
 	}
 	if _, err := d.w.Write(hdr); err != nil {
 		return 0, err
 	}
+
+	// Write the data.
 	if _, err := d.w.Write(append([]byte{i2cData}, pixels...)); err != nil {
 		return 0, err
 	}
+
 	return len(pixels), nil
 }
 
-// Scroll scrolls the entire.
+// Scroll scrolls the entire screen.
 func (d *Dev) Scroll(o Orientation, rate FrameRate) error {
 	// TODO(maruel): Allow to specify page.
 	// TODO(maruel): Allow to specify offset.
@@ -275,19 +290,27 @@ func (d *Dev) StopScroll() error {
 
 // SetContrast changes the screen contrast.
 //
-// BUG(maruel): Doesn't work.
+// Note: values other than 0xff do not seem useful...
 func (d *Dev) SetContrast(level byte) error {
 	_, err := d.w.Write([]byte{i2cCmd, 0x81, level})
 	return err
 }
 
 // Enable or disable the display.
-//
-// BUG(maruel): Doesn't work.
 func (d *Dev) Enable(on bool) error {
 	b := byte(0xAE)
 	if on {
 		b = 0xAF
+	}
+	_, err := d.w.Write([]byte{i2cCmd, b})
+	return err
+}
+
+// Invert the display (black on white vs white on black).
+func (d *Dev) Invert(blackOnWhite bool) error {
+	b := byte(0xA6)
+	if blackOnWhite {
+		b = 0xA7
 	}
 	_, err := d.w.Write([]byte{i2cCmd, b})
 	return err

@@ -162,6 +162,81 @@ func convert(s *ssd1306.Dev, src image.Image) (*image1bit.Image, error) {
 	return img, nil
 }
 
+// patterns runs a number of test patterns to verify that the basics are working.
+func patterns(s *ssd1306.Dev) error {
+	// Create synthetic images using a raw array. Each byte corresponds to 8
+	// vertical pixels, and then the array scans horizontally and down.
+	var img [128 * 64 / 8]byte
+
+	// Fill with broad stripes.
+	for y := 0; y < 8; y++ {
+		// Horizontal stripes.
+		for x := 0; x < 64; x++ {
+			img[x+128*y] = byte((y & 1) * 0xff)
+		}
+		// Vertical stripes.
+		for x := 64; x < 128; x++ {
+			img[x+128*y] = byte(((x / 8) & 1) * 0xff)
+		}
+	}
+	if _, err := s.Write(img[:]); err != nil {
+		return err
+	}
+
+	// Display off and back on.
+	log.Printf("off & on")
+	time.Sleep(500 * time.Millisecond)
+	if err := s.Enable(false); err != nil {
+		return err
+	}
+	time.Sleep(500 * time.Millisecond)
+	if err := s.Enable(true); err != nil {
+		return err
+	}
+
+	// Display inverted and back.
+	log.Printf("inverted and back")
+	time.Sleep(500 * time.Millisecond)
+	if err := s.Invert(true); err != nil {
+		return err
+	}
+	time.Sleep(500 * time.Millisecond)
+	if err := s.Invert(false); err != nil {
+		return err
+	}
+
+	// Change the contrast around.
+	log.Printf("contrast ramp")
+	for c := 0; c < 256; c++ {
+		if err := s.SetContrast(byte(c)); err != nil {
+			return err
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	s.SetContrast(0xff)
+
+	// Fill display with binary 0..255 pattern.
+	for i := 0; i < len(img); i++ {
+		img[i] = byte(i)
+	}
+	if _, err := s.Write(img[:]); err != nil {
+		return err
+	}
+
+	// Display inverted and back.
+	log.Printf("inverted and back")
+	time.Sleep(500 * time.Millisecond)
+	if err := s.Invert(true); err != nil {
+		return err
+	}
+	time.Sleep(500 * time.Millisecond)
+	if err := s.Invert(false); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func mainImpl() error {
 	i2cID := flag.Int("i2c", -1, "specify I²C bus to use")
 	spiID := flag.Int("spi", -1, "specify SPI bus to use")
@@ -173,6 +248,7 @@ func mainImpl() error {
 	w := flag.Int("w", 128, "display width")
 	demoMode := flag.Bool("d", false, "demo scrolling")
 	rotated := flag.Bool("r", false, "Rotate the display by 180°")
+	pattern := flag.Bool("p", false, "Display test patterns")
 	verbose := flag.Bool("v", false, "verbose mode")
 	flag.Parse()
 	if !*verbose {
@@ -220,6 +296,13 @@ func mainImpl() error {
 		}
 		s, err = ssd1306.NewI2C(bus, *w, *h, *rotated)
 		if err != nil {
+			return err
+		}
+	}
+
+	// Test patterns?
+	if *pattern {
+		if err := patterns(s); err != nil {
 			return err
 		}
 	}
