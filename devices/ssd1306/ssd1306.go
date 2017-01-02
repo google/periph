@@ -9,6 +9,17 @@
 // Changing between protocol is likely done through resistor soldering, for
 // boards that support both.
 //
+// Known issue
+//
+// The SPI version of this driver is not functional. To interface with the ssd1306
+// in 3-wire SPI mode each byte must be transmitted using 9 bits where the 9th bit
+// discriminates between command & data. To interface using 4-wire SPI a separate
+// gpio is needed to drive a c/d input. Neither of these two mechanisms have been
+// implemented yet.
+// For more info, see
+// https://drive.google.com/file/d/0B5lkVYnewKTGYzhyWWp0clBMR1E/view
+// pages 17-18 (8.1.3, 8.1.4).
+//
 // Datasheets
 //
 // https://cdn-shop.adafruit.com/datasheets/SSD1306.pdf
