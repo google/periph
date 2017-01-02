@@ -313,6 +313,7 @@ func mainImpl() error {
 		return err
 	}
 	// If an animated GIF, draw it in a loop.
+	// TODO: this probably shouldn't loop forever...
 	if g != nil {
 		// Resize all the images up front to save on CPU processing.
 		imgs := make([]*image1bit.Image, len(g.Image))

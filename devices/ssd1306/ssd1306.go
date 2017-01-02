@@ -281,8 +281,6 @@ func (d *Dev) Scroll(o Orientation, rate FrameRate) error {
 // StopScroll stops any scrolling previously set.
 //
 // It will only take effect after redrawing the ram.
-//
-// BUG(maruel): Doesn't work.
 func (d *Dev) StopScroll() error {
 	_, err := d.w.Write([]byte{i2cCmd, 0x2E})
 	return err
