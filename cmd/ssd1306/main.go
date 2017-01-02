@@ -300,7 +300,7 @@ func mainImpl() error {
 		}
 	}
 
-	// Test patterns?
+	// Run test patterns, if requested.
 	if *pattern {
 		if err := patterns(s); err != nil {
 			return err
