@@ -108,10 +108,6 @@ func (d *driver) String() string {
 	return "usb"
 }
 
-func (d *driver) Type() periph.Type {
-	return periph.Bus
-}
-
 func (d *driver) Prerequisites() []string {
 	return nil
 }

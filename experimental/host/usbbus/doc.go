@@ -11,4 +11,8 @@
 // dependency on https://github.com/kylelemons/gousb. This package uses cgo that
 // depends on libusb being installed. This is generally not the case by
 // default, so it causes a go get failure which is really obnoxious to users.
+//
+// Ubuntu
+//
+//     sudo apt install libusb-1.0-0-dev
 package usbbus
