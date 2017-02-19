@@ -12,12 +12,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/periph"
-	"github.com/google/periph/conn/gpio"
-	"github.com/google/periph/conn/pins"
-	"github.com/google/periph/host/allwinner"
-	"github.com/google/periph/host/distro"
-	"github.com/google/periph/host/headers"
+	"periph.io/x/periph"
+	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/pins"
+	"periph.io/x/periph/host/allwinner"
+	"periph.io/x/periph/host/distro"
+	"periph.io/x/periph/host/headers"
 )
 
 // C.H.I.P. hardware pins.

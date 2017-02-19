@@ -15,11 +15,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/periph"
-	"github.com/google/periph/conn/gpio"
-	"github.com/google/periph/host/distro"
-	"github.com/google/periph/host/pmem"
-	"github.com/google/periph/host/sysfs"
+	"periph.io/x/periph"
+	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/host/distro"
+	"periph.io/x/periph/host/pmem"
+	"periph.io/x/periph/host/sysfs"
 )
 
 // All the pins supported by the CPU.

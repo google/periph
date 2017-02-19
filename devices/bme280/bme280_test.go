@@ -9,9 +9,9 @@ import (
 	"log"
 	"testing"
 
-	"github.com/google/periph/conn/i2c"
-	"github.com/google/periph/conn/i2c/i2ctest"
-	"github.com/google/periph/devices"
+	"periph.io/x/periph/conn/i2c"
+	"periph.io/x/periph/conn/i2c/i2ctest"
+	"periph.io/x/periph/devices"
 )
 
 // Real data extracted from a device.

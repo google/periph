@@ -15,9 +15,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/periph/conn/gpio"
-	"github.com/google/periph/conn/i2c"
-	"github.com/google/periph/host/cpu"
+	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/i2c"
+	"periph.io/x/periph/host/cpu"
 )
 
 // Use SkipAddr to skip the address from being sent.

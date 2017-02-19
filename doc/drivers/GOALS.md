@@ -41,7 +41,7 @@ maintenance.
     whenever possible, etc.
 * Coverage:
   * Be as OS agnostic as possible. Abstract OS specific concepts like
-    [sysfs](https://godoc.org/github.com/google/periph/host/sysfs).
+    [sysfs](https://godoc.org/periph.io/x/periph/host/sysfs).
   * Each driver implements and exposes as much of the underlying device
     capability as possible and relevant.
   * [cmd/](../../cmd/) implements useful directly usable tool.
@@ -59,7 +59,7 @@ maintenance.
   * Breakage in the API should happen at a yearly parce at most once the library
     got to a stable state.
 * Strong distinction about the driver (as a user of a
-  [conn.Conn](https://godoc.org/github.com/google/periph/conn#Conn)
+  [conn.Conn](https://godoc.org/periph.io/x/periph/conn#Conn)
   instance) and an application writer (as a user of a device driver). It's the
   _application_ that controls the objects' lifetime.
 * Strong distinction between _enablers_ and _devices_. See
@@ -94,9 +94,9 @@ HAL -> the right hardware abstraction layer (not too deep, not too light) is the
 core here.
 
 Devices need common interfaces to help with application developers (like
-[devices.Display](https://godoc.org/github.com/google/periph/devices#Display)
+[devices.Display](https://godoc.org/periph.io/x/periph/devices#Display)
 and
-[devices.Environmental](https://godoc.org/github.com/google/periph/devices#Environmental))
+[devices.Environmental](https://godoc.org/periph.io/x/periph/devices#Environmental))
 but the lack of core repository and coherency is less dramatic.
 
 

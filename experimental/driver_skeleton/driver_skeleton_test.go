@@ -9,9 +9,9 @@ import (
 	"log"
 	"testing"
 
-	"github.com/google/periph/conn/i2c"
-	"github.com/google/periph/conn/i2c/i2ctest"
-	"github.com/google/periph/host"
+	"periph.io/x/periph/conn/i2c"
+	"periph.io/x/periph/conn/i2c/i2ctest"
+	"periph.io/x/periph/host"
 )
 
 func Example() {

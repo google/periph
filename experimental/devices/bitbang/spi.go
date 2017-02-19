@@ -17,9 +17,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/periph/conn/gpio"
-	"github.com/google/periph/conn/spi"
-	"github.com/google/periph/host/cpu"
+	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/spi"
+	"periph.io/x/periph/host/cpu"
 )
 
 // SPI represents a SPI master implemented as bit-banging on 3 or 4 GPIO pins.

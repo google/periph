@@ -8,9 +8,9 @@ import (
 	"log"
 	"testing"
 
-	"github.com/google/periph/conn/gpio"
-	"github.com/google/periph/conn/gpio/gpiotest"
-	"github.com/google/periph/host"
+	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/gpio/gpiotest"
+	"periph.io/x/periph/host"
 )
 
 func TestNew(t *testing.T) {

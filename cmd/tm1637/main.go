@@ -14,9 +14,9 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/google/periph/conn/gpio"
-	"github.com/google/periph/devices/tm1637"
-	"github.com/google/periph/host"
+	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/devices/tm1637"
+	"periph.io/x/periph/host"
 )
 
 func mainImpl() error {

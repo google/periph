@@ -14,8 +14,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/google/periph/conn/gpio"
-	"github.com/google/periph/conn/ir"
+	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/ir"
 )
 
 // Conn is an open port to lirc.

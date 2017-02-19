@@ -8,7 +8,7 @@ package analog
 import (
 	"errors"
 
-	"github.com/google/periph/conn/pins"
+	"periph.io/x/periph/conn/pins"
 )
 
 // ADC is an analog-to-digital-conversion input.

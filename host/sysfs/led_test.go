@@ -9,7 +9,7 @@ import (
 	"log"
 	"testing"
 
-	"github.com/google/periph/conn/gpio"
+	"periph.io/x/periph/conn/gpio"
 )
 
 func ExampleLEDByName() {

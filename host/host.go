@@ -4,7 +4,7 @@
 
 package host
 
-import "github.com/google/periph"
+import "periph.io/x/periph"
 
 // Init calls periph.Init() and returns it as-is.
 //

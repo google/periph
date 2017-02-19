@@ -16,7 +16,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/periph/conn/pins"
+	"periph.io/x/periph/conn/pins"
 )
 
 // Level is the level of the pin: Low or High.

@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/periph/devices"
-	"github.com/google/periph/experimental/conn/onewire"
-	"github.com/google/periph/experimental/conn/onewire/onewiretest"
-	"github.com/google/periph/host"
+	"periph.io/x/periph/devices"
+	"periph.io/x/periph/experimental/conn/onewire"
+	"periph.io/x/periph/experimental/conn/onewire/onewiretest"
+	"periph.io/x/periph/host"
 )
 
 // TestMain lets periph load all drivers and then runs the tests.

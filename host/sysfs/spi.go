@@ -14,9 +14,9 @@ import (
 	"strings"
 	"unsafe"
 
-	"github.com/google/periph"
-	"github.com/google/periph/conn/gpio"
-	"github.com/google/periph/conn/spi"
+	"periph.io/x/periph"
+	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/spi"
 )
 
 // NewSPI opens a SPI bus via its devfs interface as described at

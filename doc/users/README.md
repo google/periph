@@ -28,7 +28,7 @@ run `sudo apt-get install golang` to get the Go toolchain installed.
 It is as simple as:
 
 ```bash
-go get -u github.com/google/periph/cmd/...
+go get -u periph.io/x/periph/cmd/...
 ```
 
 On many platforms, many tools requires running as root (via _sudo_) to have
@@ -39,11 +39,11 @@ access to the necessary CPU GPIO registers or even just kernel exposed APIs.
 
 To have faster builds, you may wish to build on a desktop and send the
 executables to your ARM based micro computer (e.g.  Raspberry Pi).
-[push.sh](https://github.com/google/periph/blob/master/cmd/push.sh) is included
+[push.sh](https://periph.io/x/periph/blob/master/cmd/push.sh) is included
 to wrap this:
 
 ```bash
-cd $GOPATH/src/github.com/google/periph/cmd
+cd $GOPATH/src/periph.io/x/periph/cmd
 ./push.sh raspberrypi bme280
 ```
 

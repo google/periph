@@ -11,9 +11,9 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/google/periph"
-	"github.com/google/periph/experimental/conn/usb"
 	gousb "github.com/kylelemons/gousb/usb"
+	"periph.io/x/periph"
+	"periph.io/x/periph/experimental/conn/usb"
 )
 
 // Desc represents the description of an USB device on an USB bus.

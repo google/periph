@@ -22,8 +22,8 @@ import (
 	"io"
 	"sync"
 
-	"github.com/google/periph/conn"
-	"github.com/google/periph/conn/gpio"
+	"periph.io/x/periph/conn"
+	"periph.io/x/periph/conn/gpio"
 )
 
 // Bus defines the function a concrete driver for a 1-wire bus must implement.

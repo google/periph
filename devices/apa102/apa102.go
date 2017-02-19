@@ -9,8 +9,8 @@ import (
 	"image"
 	"image/color"
 
-	"github.com/google/periph/conn/spi"
-	"github.com/google/periph/devices"
+	"periph.io/x/periph/conn/spi"
+	"periph.io/x/periph/devices"
 )
 
 // maxOut is the maximum intensity of each channel on a APA102 LED.

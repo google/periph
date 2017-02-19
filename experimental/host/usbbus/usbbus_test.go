@@ -11,8 +11,8 @@ import (
 	"log"
 	"testing"
 
-	"github.com/google/periph/experimental/conn/usb"
-	"github.com/google/periph/host"
+	"periph.io/x/periph/experimental/conn/usb"
+	"periph.io/x/periph/host"
 )
 
 func Example() {

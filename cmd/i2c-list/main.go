@@ -10,10 +10,10 @@ import (
 	"os"
 	"sort"
 
-	"github.com/google/periph/conn/i2c"
-	"github.com/google/periph/conn/pins"
-	"github.com/google/periph/host"
-	"github.com/google/periph/host/headers"
+	"periph.io/x/periph/conn/i2c"
+	"periph.io/x/periph/conn/pins"
+	"periph.io/x/periph/host"
+	"periph.io/x/periph/host/headers"
 )
 
 func printPin(fn string, p pins.Pin) {

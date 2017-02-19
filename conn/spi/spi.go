@@ -11,7 +11,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/google/periph/conn/gpio"
+	"periph.io/x/periph/conn/gpio"
 )
 
 // Mode determines how communication is done. The bits can be OR'ed to change

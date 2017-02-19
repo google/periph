@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/google/periph/conn/gpio"
-	"github.com/google/periph/conn/pins"
+	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/pins"
 )
 
 // All contains all the on-board headers on a micro computer.

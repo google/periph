@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/google/periph"
-	"github.com/google/periph/host"
+	"periph.io/x/periph"
+	"periph.io/x/periph/host"
 )
 
 func printDrivers(drivers []periph.DriverFailure) {

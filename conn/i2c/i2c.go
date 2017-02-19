@@ -15,7 +15,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/google/periph/conn/gpio"
+	"periph.io/x/periph/conn/gpio"
 )
 
 // Bus defines the interface a concrete I²C driver must implement.

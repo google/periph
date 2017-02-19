@@ -41,10 +41,10 @@ import (
 	"io"
 	"log"
 
-	"github.com/google/periph/conn/i2c"
-	"github.com/google/periph/conn/spi"
-	"github.com/google/periph/devices"
-	"github.com/google/periph/devices/ssd1306/image1bit"
+	"periph.io/x/periph/conn/i2c"
+	"periph.io/x/periph/conn/spi"
+	"periph.io/x/periph/devices"
+	"periph.io/x/periph/devices/ssd1306/image1bit"
 )
 
 // FrameRate determines scrolling speed.

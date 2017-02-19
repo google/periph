@@ -13,8 +13,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/periph"
-	"github.com/google/periph/conn/gpio"
+	"periph.io/x/periph"
+	"periph.io/x/periph/conn/gpio"
 )
 
 // LEDs is all the leds discovered on this host via sysfs.

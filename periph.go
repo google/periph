@@ -35,7 +35,7 @@
 //     CPU and buses that are exposed by the host onto which devices can be
 //     connected, i.e. I²C, SPI, GPIO, etc. 'host' contains the interfaces
 //     and subpackages contain contain concrete types.
-package periph
+package periph // import "periph.io/x/periph"
 
 import (
 	"errors"

@@ -10,7 +10,7 @@ import (
 	"image/color"
 	"image/draw"
 
-	"github.com/google/periph/devices"
+	"periph.io/x/periph/devices"
 )
 
 // Display is a fake devices.Display.

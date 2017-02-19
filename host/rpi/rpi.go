@@ -12,12 +12,12 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/google/periph"
-	"github.com/google/periph/conn/gpio"
-	"github.com/google/periph/conn/pins"
-	"github.com/google/periph/host/bcm283x"
-	"github.com/google/periph/host/distro"
-	"github.com/google/periph/host/headers"
+	"periph.io/x/periph"
+	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/pins"
+	"periph.io/x/periph/host/bcm283x"
+	"periph.io/x/periph/host/distro"
+	"periph.io/x/periph/host/headers"
 )
 
 // Present returns true if running on a Raspberry Pi board.

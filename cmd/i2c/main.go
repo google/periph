@@ -15,8 +15,8 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/google/periph/conn/i2c"
-	"github.com/google/periph/host"
+	"periph.io/x/periph/conn/i2c"
+	"periph.io/x/periph/host"
 )
 
 func mainImpl() error {

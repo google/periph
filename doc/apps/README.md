@@ -4,7 +4,7 @@ Documentation for _application developers_ who want to write Go applications
 leveraging `periph`.
 
 The complete API documentation, including examples, is at
-[![GoDoc](https://godoc.org/github.com/google/periph?status.svg)](https://godoc.org/github.com/google/periph).
+[![GoDoc](https://godoc.org/periph.io/x/periph?status.svg)](https://godoc.org/periph.io/x/periph).
 
 
 ## Introduction
@@ -14,13 +14,13 @@ host it is running on. It differentiates between drivers that _enable_
 functionality on the host and drivers for devices connected _to_ the host.
 
 Most micro computers expose at least some of the following:
-[I²C bus](https://godoc.org/github.com/google/periph/conn/i2c#Bus),
-[SPI bus](https://godoc.org/github.com/google/periph/conn/spi#Conn),
+[I²C bus](https://godoc.org/periph.io/x/periph/conn/i2c#Bus),
+[SPI bus](https://godoc.org/periph.io/x/periph/conn/spi#Conn),
 [gpio
-pins](https://godoc.org/github.com/google/periph/conn/gpio#PinIO),
+pins](https://godoc.org/periph.io/x/periph/conn/gpio#PinIO),
 [analog
-pins](https://godoc.org/github.com/google/periph/experimental/conn/analog),
-[UART](https://godoc.org/github.com/google/periph/experimental/conn/uart), I2S
+pins](https://godoc.org/periph.io/x/periph/experimental/conn/analog),
+[UART](https://godoc.org/periph.io/x/periph/experimental/conn/uart), I2S
 and PWM.
 
 Note: not all of the above is implemented yet!
@@ -47,15 +47,15 @@ frequently.
 ## Initialization
 
 The function to initialize the drivers registered by default is
-[host.Init()](https://godoc.org/github.com/google/periph/host#Init). It
+[host.Init()](https://godoc.org/periph.io/x/periph/host#Init). It
 returns a
-[periph.State](https://godoc.org/github.com/google/periph#State):
+[periph.State](https://godoc.org/periph.io/x/periph#State):
 
 ```go
 state, err := host.Init()
 ```
 
-[periph.State](https://godoc.org/github.com/google/periph#State) contains
+[periph.State](https://godoc.org/periph.io/x/periph#State) contains
 information about:
 
 * The drivers loaded and active.
@@ -64,22 +64,22 @@ information about:
   these drivers.
 
 In addition,
-[host.Init()](https://godoc.org/github.com/google/periph/host#Init) may
+[host.Init()](https://godoc.org/periph.io/x/periph/host#Init) may
 return an error when there's a structural issue, for example two drivers with
 the same name were registered. This is a fatal failure. The package
-[host](https://godoc.org/github.com/google/periph/host) registers all the
+[host](https://godoc.org/periph.io/x/periph/host) registers all the
 drivers under [host/](../../host/).
 
 
 ## Connection
 
 A connection
-[conn.Conn](https://godoc.org/github.com/google/periph/conn#Conn)
+[conn.Conn](https://godoc.org/periph.io/x/periph/conn#Conn)
 is a **point-to-point** connection between the host and a device where the
 application is the master driving the I/O.
 
 A `Conn` can be multiplexed over the underlying bus. For example an I²C bus
-[i2c.Bus](https://godoc.org/github.com/google/periph/conn/i2c#Bus) may have
+[i2c.Bus](https://godoc.org/periph.io/x/periph/conn/i2c#Bus) may have
 multiple connections (slaves) to the master, each addressed by the device
 address.
 
@@ -87,20 +87,20 @@ address.
 ### SPI connection
 
 An
-[spi.Conn](https://godoc.org/github.com/google/periph/conn/spi#Conn)
+[spi.Conn](https://godoc.org/periph.io/x/periph/conn/spi#Conn)
 **is** a
-[conn.Conn](https://godoc.org/github.com/google/periph/conn#Conn).
+[conn.Conn](https://godoc.org/periph.io/x/periph/conn#Conn).
 
 
 ### I²C connection
 
-An [i2c.Bus](https://godoc.org/github.com/google/periph/conn/i2c#Bus) is **not**
-a [conn.Conn](https://godoc.org/github.com/google/periph/conn#Conn).
+An [i2c.Bus](https://godoc.org/periph.io/x/periph/conn/i2c#Bus) is **not**
+a [conn.Conn](https://godoc.org/periph.io/x/periph/conn#Conn).
 This is because an I²C bus is **not** a point-to-point connection but instead is
 a real bus where multiple devices can be connected simultaneously, like a USB
 bus. To create a point-to-point connection to a device which does implement
-[conn.Conn](https://godoc.org/github.com/google/periph/conn#Conn) use
-[i2c.Dev](https://godoc.org/github.com/google/periph/conn/i2c#Dev), which embeds
+[conn.Conn](https://godoc.org/periph.io/x/periph/conn#Conn) use
+[i2c.Dev](https://godoc.org/periph.io/x/periph/conn/i2c#Dev), which embeds
 the device's address:
 
 ```go
@@ -118,7 +118,7 @@ specify the address.
 
 ### GPIO
 
-[gpio pins](https://godoc.org/github.com/google/periph/conn/gpio#PinIO)
+[gpio pins](https://godoc.org/periph.io/x/periph/conn/gpio#PinIO)
 can be leveraged for arbitrary uses, such as buttons, LEDs, relays, etc. 
 
 
@@ -142,9 +142,9 @@ import (
     "log"
 
     "github.com/example/virtual_i2c"
-    "github.com/google/periph"
-    "github.com/google/periph/host"
-    "github.com/google/periph/conn/i2c"
+    "periph.io/x/periph"
+    "periph.io/x/periph/host"
+    "periph.io/x/periph/conn/i2c"
 )
 
 type driver struct{}

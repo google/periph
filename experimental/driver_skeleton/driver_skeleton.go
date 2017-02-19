@@ -7,13 +7,13 @@ package driver_skeleton
 import (
 	"errors"
 
-	"github.com/google/periph"
-	"github.com/google/periph/conn"
-	"github.com/google/periph/conn/i2c"
+	"periph.io/x/periph"
+	"periph.io/x/periph/conn"
+	"periph.io/x/periph/conn/i2c"
 )
 
 // FIXME: Expose public symbols as relevant. Do not export more than needed!
-// See https://github.com/google/periph/tree/master/doc/drivers#requirements
+// See https://periph.io/x/periph/tree/master/doc/drivers#requirements
 // for the expectations.
 
 // Dev is a handle to the device. FIXME.

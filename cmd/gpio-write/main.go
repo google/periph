@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/google/periph/conn/gpio"
-	"github.com/google/periph/host"
+	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/host"
 )
 
 func mainImpl() error {

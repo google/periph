@@ -12,8 +12,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/periph/conn/gpio"
-	"github.com/google/periph/host/sysfs"
+	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/host/sysfs"
 )
 
 // List of all known pins. These global variables can be used directly.

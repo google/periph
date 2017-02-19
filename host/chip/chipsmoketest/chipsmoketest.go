@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/google/periph/conn/gpio"
-	"github.com/google/periph/host/allwinner"
-	"github.com/google/periph/host/chip"
-	"github.com/google/periph/host/headers"
+	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/host/allwinner"
+	"periph.io/x/periph/host/chip"
+	"periph.io/x/periph/host/headers"
 )
 
 // testChipPresent verifies that CHIP and Allwinner are indeed detected.

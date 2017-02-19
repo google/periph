@@ -2,7 +2,7 @@
 
 [README.md](README.md) contains general information for application developpers.
 The complete API documentation, including examples, is at
-[![GoDoc](https://godoc.org/github.com/google/periph?status.svg)](https://godoc.org/github.com/google/periph).
+[![GoDoc](https://godoc.org/periph.io/x/periph?status.svg)](https://godoc.org/periph.io/x/periph).
 
 You are encouraged to look at tools in [cmd/](cmd/). These can be used as the
 basis of your projects.
@@ -26,9 +26,9 @@ import (
     "log"
     "time"
 
-    "github.com/google/periph/conn/gpio"
-    "github.com/google/periph/host"
-    "github.com/google/periph/host/rpi"
+    "periph.io/x/periph/conn/gpio"
+    "periph.io/x/periph/host"
+    "periph.io/x/periph/host/rpi"
 )
 
 func main() {
@@ -56,7 +56,7 @@ _Purpose:_ display IR remote keys.
 
 This sample uses lirc (http://www.lirc.org/). This assumes you installed lirc
 and configured it. See
-[devices/lirc](https://godoc.org/github.com/google/periph/devices/lirc)
+[devices/lirc](https://godoc.org/periph.io/x/periph/devices/lirc)
 for more information.
 
 ```go
@@ -66,8 +66,8 @@ import (
     "fmt"
     "log"
 
-    "github.com/google/periph/devices/lirc"
-    "github.com/google/periph/host"
+    "periph.io/x/periph/devices/lirc"
+    "periph.io/x/periph/host"
 )
 
 func main() {
@@ -98,7 +98,7 @@ func main() {
 _Purpose:_ display an animated GIF.
 
 This sample uses a
-[ssd1306](https://godoc.org/github.com/google/periph/devices/ssd1306).
+[ssd1306](https://godoc.org/periph.io/x/periph/devices/ssd1306).
 The frames in the GIF are resized and centered first to reduce the CPU overhead.
 
 ```go
@@ -112,8 +112,8 @@ import (
     "os"
     "time"
 
-    "github.com/google/periph/devices/ssd1306"
-    "github.com/google/periph/host"
+    "periph.io/x/periph/devices/ssd1306"
+    "periph.io/x/periph/host"
     "github.com/nfnt/resize"
 )
 
@@ -183,7 +183,7 @@ _Purpose:_ Signals when a button was pressed or a motion detector detected a
 movement.
 
 The
-[gpio.PinIn.Edge()](https://godoc.org/github.com/google/periph/conn/gpio#PinIn)
+[gpio.PinIn.Edge()](https://godoc.org/periph.io/x/periph/conn/gpio#PinIn)
 function permits a edge detection without a busy loop. This is useful for
 **motion detectors**, **buttons** and other kinds of inputs where a busy loop
 would burn CPU for no reason.
@@ -195,8 +195,8 @@ import (
     "fmt"
     "log"
 
-    "github.com/google/periph/host"
-    "github.com/google/periph/conn/gpio"
+    "periph.io/x/periph/host"
+    "periph.io/x/periph/conn/gpio"
 )
 
 func main() {
@@ -231,7 +231,7 @@ func main() {
 _Purpose:_ gather temperature, pressure and relative humidity.
 
 This sample uses a
-[bme280](https://godoc.org/github.com/google/periph/devices/bme280).
+[bme280](https://godoc.org/periph.io/x/periph/devices/bme280).
 
 ```go
 package main
@@ -240,9 +240,9 @@ import (
     "fmt"
     "log"
 
-    "github.com/google/periph/devices"
-    "github.com/google/periph/devices/bme280"
-    "github.com/google/periph/host"
+    "periph.io/x/periph/devices"
+    "periph.io/x/periph/devices/bme280"
+    "periph.io/x/periph/host"
 )
 
 func main() {
