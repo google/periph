@@ -16,7 +16,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/periph/conn/i2c"
+	"periph.io/x/periph/conn/i2c"
 )
 
 // PupOhm controls the strength of the passive pull-up resistor

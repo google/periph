@@ -10,9 +10,9 @@ import (
 	"io"
 	"sync"
 
-	"github.com/google/periph/conn/conntest"
-	"github.com/google/periph/conn/gpio"
-	"github.com/google/periph/conn/spi"
+	"periph.io/x/periph/conn/conntest"
+	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/spi"
 )
 
 // RecordRaw implements spi.Conn. It sends everything written to it to W.

@@ -13,8 +13,8 @@ import (
 	"log"
 	"testing"
 
-	"github.com/google/periph/conn/spi"
-	"github.com/google/periph/conn/spi/spitest"
+	"periph.io/x/periph/conn/spi"
+	"periph.io/x/periph/conn/spi/spitest"
 )
 
 func TestRamp(t *testing.T) {

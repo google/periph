@@ -8,12 +8,12 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/google/periph"
-	"github.com/google/periph/conn/gpio"
-	"github.com/google/periph/conn/pins"
-	"github.com/google/periph/host/distro"
-	"github.com/google/periph/host/headers"
-	"github.com/google/periph/host/sysfs"
+	"periph.io/x/periph"
+	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/pins"
+	"periph.io/x/periph/host/distro"
+	"periph.io/x/periph/host/headers"
+	"periph.io/x/periph/host/sysfs"
 )
 
 // The J2 header is rPi compatible, except for the two analog pins and the 1.8V

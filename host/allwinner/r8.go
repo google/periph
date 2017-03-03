@@ -10,7 +10,7 @@ package allwinner
 import (
 	"strings"
 
-	"github.com/google/periph/conn/pins"
+	"periph.io/x/periph/conn/pins"
 )
 
 // R8 specific pins.

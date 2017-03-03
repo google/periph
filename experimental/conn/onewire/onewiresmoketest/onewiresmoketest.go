@@ -16,10 +16,10 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/google/periph/conn/i2c"
-	"github.com/google/periph/experimental/conn/onewire"
-	"github.com/google/periph/experimental/devices/ds18b20"
-	"github.com/google/periph/experimental/devices/ds248x"
+	"periph.io/x/periph/conn/i2c"
+	"periph.io/x/periph/experimental/conn/onewire"
+	"periph.io/x/periph/experimental/devices/ds18b20"
+	"periph.io/x/periph/experimental/devices/ds248x"
 )
 
 type SmokeTest struct {

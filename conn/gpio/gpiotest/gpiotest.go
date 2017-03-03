@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/periph/conn/gpio"
+	"periph.io/x/periph/conn/gpio"
 )
 
 // Pin implements gpio.Pin.

@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/periph/conn"
-	"github.com/google/periph/experimental/conn/onewire"
+	"periph.io/x/periph/conn"
+	"periph.io/x/periph/experimental/conn/onewire"
 )
 
 // Dev is a handle to a ds248x device and it implements the onewire.Bus interface.

@@ -7,7 +7,7 @@ package gpiotest
 import (
 	"testing"
 
-	"github.com/google/periph/conn/gpio"
+	"periph.io/x/periph/conn/gpio"
 )
 
 func TestAll(t *testing.T) {

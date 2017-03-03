@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/google/periph/conn/gpio"
-	"github.com/google/periph/host/headers"
-	"github.com/google/periph/host/odroid_c1"
+	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/host/headers"
+	"periph.io/x/periph/host/odroid_c1"
 )
 
 // testOdroidC1Present verifies that odroid_c1 is indeed detected.

@@ -10,7 +10,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/google/periph/conn"
+	"periph.io/x/periph/conn"
 )
 
 // Conn represents a connection to an USB device.

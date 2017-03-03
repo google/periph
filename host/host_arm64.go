@@ -6,6 +6,6 @@ package host
 
 import (
 	// Make sure CPU and board drivers are registered.
-	_ "github.com/google/periph/host/allwinner"
-	_ "github.com/google/periph/host/pine64"
+	_ "periph.io/x/periph/host/allwinner"
+	_ "periph.io/x/periph/host/pine64"
 )

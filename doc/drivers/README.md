@@ -55,7 +55,7 @@ followed:
   [experimental/](../../experimental/) and respond to the code review.
 
 At this point, it is available for use to everyone but it is not loaded by
-default by [host.Init()](https://godoc.org/github.com/google/periph/host#Init).
+default by [host.Init()](https://godoc.org/periph.io/x/periph/host#Init).
 
 There is no API compatibility guarantee for drivers under
 [experimental/](../../experimental/).
@@ -115,7 +115,7 @@ experience.
   * Minimal use of factories except for protocol level registries.
   * No `init()` code that accesses peripherals on process startup. These belong
     to
-    [Driver.Init()](https://godoc.org/github.com/google/periph#Driver).
+    [Driver.Init()](https://godoc.org/periph.io/x/periph#Driver).
 * Exact naming
   * Driver for a chipset must have the name of the chipset or the chipset
     family. Don't use `oleddisplay`, use `ssd1306`.
@@ -149,7 +149,7 @@ experience.
   * Floating point arithmetic should only be used when absolutely necesary in
     the driver code. Most of the cases can be replaced by fixed point
     arithmetic, for example
-    [devices.Milli](https://godoc.org/github.com/google/periph/devices#Milli).
+    [devices.Milli](https://godoc.org/periph.io/x/periph/devices#Milli).
     Floating point arithmetic is acceptable in the unit tests and tools in
     [cmd/](../../cmd/) but should not be abused.
   * Drivers must be implemented with performance in mind. For example I²C
@@ -174,4 +174,4 @@ experience.
   should be wrapped at reasonable width.
 * Comments should start with a capitalized letter and end with a period.
 * Markdown tries to follow [Google Markdown
-  style](https://github.com/google/styleguide/blob/gh-pages/docguide/style.md)
+  style](https://periph.io/x/styleguide/blob/gh-pages/docguide/style.md)

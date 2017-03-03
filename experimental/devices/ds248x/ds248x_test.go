@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/google/periph/conn/i2c"
-	"github.com/google/periph/conn/i2c/i2ctest"
+	"periph.io/x/periph/conn/i2c"
+	"periph.io/x/periph/conn/i2c/i2ctest"
 )
 
 // TestInit tests the initialization of a ds2483 using a recording.

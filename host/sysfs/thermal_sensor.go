@@ -12,8 +12,8 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/google/periph"
-	"github.com/google/periph/devices"
+	"periph.io/x/periph"
+	"periph.io/x/periph/devices"
 )
 
 // ThermalSensors is all the sensors discovered on this host via sysfs.

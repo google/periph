@@ -13,9 +13,9 @@ import (
 	"os"
 	"sort"
 
-	"github.com/google/periph/conn/gpio"
-	"github.com/google/periph/host"
-	"github.com/google/periph/host/headers"
+	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/host"
+	"periph.io/x/periph/host/headers"
 )
 
 func printAliases(invalid bool) {

@@ -17,8 +17,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/google/periph/conn/gpio"
-	"github.com/google/periph/conn/i2c"
+	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/i2c"
 )
 
 type SmokeTest struct {

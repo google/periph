@@ -11,8 +11,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/google/periph/conn/gpio"
-	"github.com/google/periph/experimental/conn/onewire"
+	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/experimental/conn/onewire"
 )
 
 // IO registers the I/O that happened on either a real or fake 1-wire bus.

@@ -15,10 +15,10 @@ import (
 	"os"
 	"sort"
 
-	"github.com/google/periph"
-	"github.com/google/periph/conn/pins"
-	"github.com/google/periph/host"
-	"github.com/google/periph/host/headers"
+	"periph.io/x/periph"
+	"periph.io/x/periph/conn/pins"
+	"periph.io/x/periph/host"
+	"periph.io/x/periph/host/headers"
 )
 
 func printFailures(state *periph.State) {

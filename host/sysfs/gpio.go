@@ -15,8 +15,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/periph"
-	"github.com/google/periph/conn/gpio"
+	"periph.io/x/periph"
+	"periph.io/x/periph/conn/gpio"
 )
 
 // Pins is all the pins exported by GPIO sysfs.

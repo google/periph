@@ -7,8 +7,8 @@ package headers
 import (
 	"testing"
 
-	"github.com/google/periph/conn/gpio/gpiotest"
-	"github.com/google/periph/conn/pins"
+	"periph.io/x/periph/conn/gpio/gpiotest"
+	"periph.io/x/periph/conn/pins"
 )
 
 func TestAll(t *testing.T) {

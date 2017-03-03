@@ -7,7 +7,7 @@ package spitest
 import (
 	"testing"
 
-	"github.com/google/periph/conn/conntest"
+	"periph.io/x/periph/conn/conntest"
 )
 
 func TestBasic(t *testing.T) {

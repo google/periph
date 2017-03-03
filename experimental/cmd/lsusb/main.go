@@ -11,8 +11,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/google/periph/experimental/host/usbbus"
-	"github.com/google/periph/host"
+	"periph.io/x/periph/experimental/host/usbbus"
+	"periph.io/x/periph/host"
 )
 
 func mainImpl() error {

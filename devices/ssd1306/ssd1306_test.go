@@ -14,9 +14,9 @@ import (
 	"golang.org/x/image/font/basicfont"
 	"golang.org/x/image/math/fixed"
 
-	"github.com/google/periph/conn/i2c"
-	"github.com/google/periph/conn/i2c/i2ctest"
-	"github.com/google/periph/devices/ssd1306/image1bit"
+	"periph.io/x/periph/conn/i2c"
+	"periph.io/x/periph/conn/i2c/i2ctest"
+	"periph.io/x/periph/devices/ssd1306/image1bit"
 )
 
 func TestDrawGray(t *testing.T) {

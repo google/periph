@@ -15,13 +15,13 @@ import (
 	"os"
 	"sort"
 
-	"github.com/google/periph/conn/gpio/gpiosmoketest"
-	"github.com/google/periph/conn/i2c/i2csmoketest"
-	"github.com/google/periph/conn/spi/spismoketest"
-	"github.com/google/periph/experimental/conn/onewire/onewiresmoketest"
-	"github.com/google/periph/host"
-	"github.com/google/periph/host/chip/chipsmoketest"
-	"github.com/google/periph/host/odroid_c1/odroidc1smoketest"
+	"periph.io/x/periph/conn/gpio/gpiosmoketest"
+	"periph.io/x/periph/conn/i2c/i2csmoketest"
+	"periph.io/x/periph/conn/spi/spismoketest"
+	"periph.io/x/periph/experimental/conn/onewire/onewiresmoketest"
+	"periph.io/x/periph/host"
+	"periph.io/x/periph/host/chip/chipsmoketest"
+	"periph.io/x/periph/host/odroid_c1/odroidc1smoketest"
 )
 
 // SmokeTest must be implemented by a smoke test. It will be run by this

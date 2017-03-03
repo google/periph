@@ -10,9 +10,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/google/periph/devices"
-	"github.com/google/periph/host"
-	"github.com/google/periph/host/sysfs"
+	"periph.io/x/periph/devices"
+	"periph.io/x/periph/host"
+	"periph.io/x/periph/host/sysfs"
 )
 
 func mainImpl() error {

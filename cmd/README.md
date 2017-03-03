@@ -1,7 +1,7 @@
 # periph/cmd - read-to-use executables
 
 This directory contains directly usable tools installable via `go get
-github.com/google/periph/cmd/...`.
+periph.io/x/periph/cmd/...`.
 
 
 ## Recommended first use

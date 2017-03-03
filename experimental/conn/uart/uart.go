@@ -11,7 +11,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/google/periph/conn/gpio"
+	"periph.io/x/periph/conn/gpio"
 )
 
 // Parity determines the parity bit when transmitting, if any.

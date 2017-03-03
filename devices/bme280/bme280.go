@@ -12,10 +12,10 @@ package bme280
 import (
 	"errors"
 
-	"github.com/google/periph/conn"
-	"github.com/google/periph/conn/i2c"
-	"github.com/google/periph/conn/spi"
-	"github.com/google/periph/devices"
+	"periph.io/x/periph/conn"
+	"periph.io/x/periph/conn/i2c"
+	"periph.io/x/periph/conn/spi"
+	"periph.io/x/periph/devices"
 )
 
 // Oversampling affects how much time is taken to measure each of temperature,

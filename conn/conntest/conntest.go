@@ -12,7 +12,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/google/periph/conn"
+	"periph.io/x/periph/conn"
 )
 
 // RecordRaw implements conn.Conn. It sends everything written to it to W.

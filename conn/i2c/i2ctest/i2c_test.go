@@ -7,7 +7,7 @@ package i2ctest
 import (
 	"testing"
 
-	"github.com/google/periph/conn/i2c"
+	"periph.io/x/periph/conn/i2c"
 )
 
 func TestDev(t *testing.T) {

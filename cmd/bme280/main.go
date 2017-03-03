@@ -13,14 +13,14 @@ import (
 	"os"
 	"time"
 
-	"github.com/google/periph/conn/i2c"
-	"github.com/google/periph/conn/i2c/i2ctest"
-	"github.com/google/periph/conn/pins"
-	"github.com/google/periph/conn/spi"
-	"github.com/google/periph/devices"
-	"github.com/google/periph/devices/bme280"
-	"github.com/google/periph/host"
-	"github.com/google/periph/host/headers"
+	"periph.io/x/periph/conn/i2c"
+	"periph.io/x/periph/conn/i2c/i2ctest"
+	"periph.io/x/periph/conn/pins"
+	"periph.io/x/periph/conn/spi"
+	"periph.io/x/periph/devices"
+	"periph.io/x/periph/devices/bme280"
+	"periph.io/x/periph/host"
+	"periph.io/x/periph/host/headers"
 )
 
 func printPin(fn string, p pins.Pin) {
