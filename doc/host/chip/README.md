@@ -47,3 +47,17 @@ processor's pins: AP-EINT1(PG1), AP-EINT3(PB3), CSIPCK(PE0), and CSICK(PE1).
 Edge detection is also supported on the XIO pins, but this feature is
 rather limited due to the device and the driver (for example, the driver
 interrupts on all edges).
+
+
+## SPI
+
+SPI is not enabled by default. Run the following as root on a recent (4.4+)
+kernel:
+
+```
+mkdir -p /sys/kernel/config/device-tree/overlays/spi
+cat /lib/firmware/nextthingco/chip/sample-spi.dtbo > /sys/kernel/config/device-tree/overlays/spi/dtbo
+```
+
+This needs to be done at each boot. A simple location is to add the above into
+`/etc/rc.local` before the `exit 0` statement.
