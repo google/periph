@@ -3,9 +3,9 @@
 Prints the lists of drivers that were loaded, the ones skipped and the one that
 failed to load, if any.
 
-* Looking for the GPIO pins per functionality? Look at
+- Looking for the GPIO pins per functionality? Look at
   [gpio-list](../gpio-list).
-* Looking for the location of the pin on the header to connect your GPIO? Look
+- Looking for the location of the pin on the header to connect your GPIO? Look
   at [headers-list](../headers-list).
 
 

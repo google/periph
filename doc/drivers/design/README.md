@@ -1,7 +1,8 @@
 # periph - Design
 
-This document dives into some of the designs. Read more about the goals at
-[GOALS.md](GOALS.md).
+This document dives into some of the key design elements. Read more [about the
+goals](../goals/) first if necessary.
+
 
 ## Registries
 
@@ -10,21 +11,21 @@ This document dives into some of the designs. Read more about the goals at
 The core of extensibility is implemented as an in-process driver registry. The
 things that make it work are:
 
-* Clear priority classes via
+- Clear priority classes via
   [periph.Type](https://godoc.org/periph.io/x/periph#Type).
   Each category is loaded one after the other so a driver of a type can assume
   that all relevant drivers of lower level types were fully loaded.
-* Native way to skip a driver on unrelated platform.
-  * At compile time via conditional compilation.
-  * At runtime via early `Init()` exit.
-* Native way to return the state of all registered drivers. The ones loaded, the
+- Native way to skip a driver on unrelated platform.
+  - At compile time via conditional compilation.
+  - At runtime via early `Init()` exit.
+- Native way to return the state of all registered drivers. The ones loaded, the
   ones skipped and the ones that failed.
-* Native way to declare inter-driver dependency. A specialized
+- Native way to declare inter-driver dependency. A specialized
   [Processor](https://godoc.org/periph.io/x/periph#Type)
   driver may dependent on generic
   [Processor](https://godoc.org/periph.io/x/periph#Type)
   driver and the drivers will be loaded sequentially.
-* In another other case, the drivers are loaded in parallel for minimum total
+- In another other case, the drivers are loaded in parallel for minimum total
   latency.
 
 

@@ -5,8 +5,8 @@ Documentation for _users_ who want ready-to-use tools.
 
 ## Functionality included
 
-[cmd/](../../cmd/) contains all the tools. Take a look first to see the included
-functionality.
+[cmd/](https://github.com/google/periph/tree/master/cmd/) contains all the
+tools. Take a look first to see the included functionality.
 
 
 ## Installing locally
@@ -39,7 +39,7 @@ access to the necessary CPU GPIO registers or even just kernel exposed APIs.
 
 To have faster builds, you may wish to build on a desktop and send the
 executables to your ARM based micro computer (e.g.  Raspberry Pi).
-[push.sh](https://periph.io/x/periph/blob/master/cmd/push.sh) is included
+[push.sh](https://github.com/google/periph/blob/master/cmd/push.sh) is included
 to wrap this:
 
 ```bash

@@ -1,11 +1,12 @@
 # periph - Samples
 
-[README.md](README.md) contains general information for application developpers.
-The complete API documentation, including examples, is at
+[doc/apps/](../) contains general information for application developpers. The
+complete API documentation, including examples, is at
 [![GoDoc](https://godoc.org/periph.io/x/periph?status.svg)](https://godoc.org/periph.io/x/periph).
 
-You are encouraged to look at tools in [cmd/](cmd/). These can be used as the
-basis of your projects.
+You are encouraged to look at tools in
+[cmd/](https://github.com/google/periph/tree/master/cmd/). These can be used as
+the basis of your projects.
 
 To try the following samples, put the code into a file named `sample.go` then
 execute `go run sample.go`.
