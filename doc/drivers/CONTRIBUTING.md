@@ -37,11 +37,12 @@ device support.
 
 ## Testing
 
-We use [gohci](https://github.com/maruel/gohci) for automated testing on
+We use [gohci](https://github.com/periph/gohci) for automated testing on
 devices. The devices run unit tests, `go vet` and
 [periph-smoketest](../../cmd/periph-smoketest).
 
 The fleet currently is currently hosted by [maruel](https://github.com/maruel):
+
 - [Raspberry Pi 3](https://www.raspberrypi.org/) running [Raspbian Jessie
   Lite](https://www.raspberrypi.org/downloads/raspbian/)
 - [C.H.I.P.](https://getchip.com/pages/chip) running Debian headless image

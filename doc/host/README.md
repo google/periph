@@ -10,6 +10,7 @@ Pine64, the additional support means that in addition to the above high-speed
 memory-mapped I/O has been implemented.
 
 Current platforms:
+
 - Raspberry Pi
 - [NextThing C.H.I.P.](CHIP.md)
 - Pine 64

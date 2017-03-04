@@ -5,7 +5,7 @@
 
 * Continuously tested on [Raspberry Pi](https://raspberrypi.org),
   [C.H.I.P.](https://getchip.com/) and Windows 10 via
-  [gohci](https://github.com/maruel/gohci).
+  [gohci](https://github.com/periph/gohci).
 * Interfaces: I²C, SPI, gpio (both low latency memory mapped registers and
   zero-CPU edge detection), 1-wire and more.
 * Devices: apa102, bme280, ds18b20, ssd1306, tm1637, and more coming.
@@ -63,6 +63,7 @@ func main() {
 ```
 
 The following are synonyms, use the form you prefer:
+
 * Runtime discovery:
   * [`gpio.ByNumber(13)`](https://godoc.org/periph.io/x/periph/conn/gpio/#ByNumber) or [`gpio.ByName("13")`](https://godoc.org/periph.io/x/periph/conn/gpio/#ByName)
   *  [`gpio.ByName("GPIO13")`](https://godoc.org/periph.io/x/periph/conn/gpio/#ByName)
@@ -88,7 +89,7 @@ not _required_ to fork the periph repository to load out-of-tree drivers for
 your platform.
 
 **Every commit is [tested on real hardware](doc/drivers/CONTRIBUTING.md#testing)
-via [gohci](https://github.com/maruel/gohci) workers.**
+via [gohci](https://github.com/periph/gohci) workers.**
 
 We gladly accept contributions for documentation improvements and from device
 driver developers via GitHub pull requests, as long as the author has signed the
