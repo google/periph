@@ -9,6 +9,7 @@ This document dives into some of the designs. Read more about the goals at
 
 The core of extensibility is implemented as an in-process driver registry. The
 things that make it work are:
+
 * Clear priority classes via
   [periph.Type](https://godoc.org/periph.io/x/periph#Type).
   Each category is loaded one after the other so a driver of a type can assume

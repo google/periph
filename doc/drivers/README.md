@@ -47,6 +47,7 @@ that must be asserted.
 Any driver can be requested to be added to the library under the
 [experimental/](../../experimental/) directory. The following process must be
 followed:
+
 * Create a driver out of tree an make it work.
 * Improve the driver so it meets a minimal quality bar under the promise of
   being improved. See [Requirements](#requirements) for the extensive list.
@@ -66,6 +67,7 @@ There is no API compatibility guarantee for drivers under
 A driver in [experimental/](../../experimental/) can be promoted to stable in
 either [devices/](../../devices/) or [host/](../../host/) as appropriate. The
 following process must be followed:
+
 * Declare at least one (or multiple) owners that are responsive to
   feature requests and bug reports.
   * There could be a threshold, > _TO BE DETERMINED_ lines, where more than one

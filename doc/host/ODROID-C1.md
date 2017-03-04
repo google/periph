@@ -5,6 +5,7 @@ using the sysfs drivers.  These boards use an Amlogic S805 processor (called
 "meson_8b" in the linux kernel).  Currently no package for memory-mapped I/O
 has been written for this processor, thus all gpio functions are implemented
 via sysfs. The functionality supported is:
+
 - 2x I²C buses
 - 1x SPI bus with 1x chip-enable
 - 25x GPIO pins on the main J2 header
@@ -32,6 +33,7 @@ drivers and some of their peculiarities are described in the Ubuntu section of t
 [wiki page](http://odroid.com/dokuwiki/doku.php?id=en:odroid-c1#ubuntu).
 
 Driver cheat sheet:
+
 - For I²C: `modprobe aml_i2c`, buses: i2c1 on pins 3&5, i2c2 on pins 27&28.
 - For SPI: `modprobe spicc`, bus on pins 19, 21, 23 and chip enable pin 24.
 - To free up gpio83 from 1-wire: `rmmod w1-gpio`

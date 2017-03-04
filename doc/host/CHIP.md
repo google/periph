@@ -3,6 +3,7 @@
 The NextThing Co's C.H.I.P. board is supported by periph using sysfs drivers
 as well as using memory-mapped I/O for gpio pins. The CHIPs use an
 Allwinner R8 processor. The following functionality is supported:
+
 - 3x I²C buses
 - 1x SPI bus with 1x chip-enable
 - 8x GPIO pins via pcf8574 I²C I/O extender ("XIO" pins)
@@ -31,6 +32,7 @@ is required in order to create the /dev/spi32766.0 device and connect it
 to the pins.
 
 Buses cheat sheet:
+
 - i2c0: not available on the headers but has axp209 power control chip
 - i2c1: U13 pins 9 & 11
 - i2c2: U14 pins 25 & 26, has pcf8574 I/O extender
