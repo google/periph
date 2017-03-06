@@ -22,24 +22,24 @@ frustration later on.
 
 ## Code reviews
 
-All submissions, including submissions by project members, require review. We
-use Github pull requests for this purpose.
+All submissions, including submissions by project members, require review. The
+`periph` project uses Github pull requests for this purpose.
 
 
 ## Code quality
 
 All submissions, including submissions by project members, require abiding to
-high code quality. See [Requirements](README.md#requirements) for the
+high code quality. See [Requirements](../#requirements) for the
 expectations and take a look at the [driver lifetime
-management](README.md#driver-lifetime-management) to learn how to contribute new
+management](../#driver-lifetime-management) to learn how to contribute new
 device support.
 
 
 ## Testing
 
-We use [gohci](https://github.com/periph/gohci) for automated testing on
-devices. The devices run unit tests, `go vet` and
-[periph-smoketest](../../cmd/periph-smoketest).
+The `periph` project uses use [gohci](https://github.com/periph/gohci) for
+automated testing on devices. The devices run unit tests, `go vet` and
+[periph-smoketest](https://github.com/google/periph/tree/master/cmd/periph-smoketest).
 
 The fleet currently is currently hosted by [maruel](https://github.com/maruel):
 

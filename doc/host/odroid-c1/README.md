@@ -1,10 +1,10 @@
 # Periph on Odroid-C1
 
-The Odroid-C1, Odroid-C1+, and Odroid-C0 boards are supported by periph
-using the sysfs drivers.  These boards use an Amlogic S805 processor (called
-"meson_8b" in the linux kernel).  Currently no package for memory-mapped I/O
-has been written for this processor, thus all gpio functions are implemented
-via sysfs. The functionality supported is:
+The Odroid-C1, Odroid-C1+, and Odroid-C0 boards are supported by periph using
+the sysfs drivers.  These boards use an Amlogic S805 processor (called
+"meson_8b" in the linux kernel).  Currently no package for memory-mapped I/O has
+been written for this processor, thus all gpio functions are implemented via
+sysfs. The functionality supported is:
 
 - 2x I²C buses
 - 1x SPI bus with 1x chip-enable
@@ -13,6 +13,7 @@ via sysfs. The functionality supported is:
 In terms of headers, the `host/odroid_c1` package exports the main J2 header,
 which is rPi compatible except for a couple of analog pins (which are not
 currently supported).
+
 
 ## Tips and tricks
 
@@ -29,8 +30,8 @@ although more info may be available in this
 
 By default the i2c and spi drivers are not loaded and an unusable (with periph)
 1-wire driver is loaded. Most likely you will have to adjust this. The
-drivers and some of their peculiarities are described in the Ubuntu section of this
-[wiki page](http://odroid.com/dokuwiki/doku.php?id=en:odroid-c1#ubuntu).
+drivers and some of their peculiarities are described in the Ubuntu section of
+this [wiki page](http://odroid.com/dokuwiki/doku.php?id=en:odroid-c1#ubuntu).
 
 Driver cheat sheet:
 

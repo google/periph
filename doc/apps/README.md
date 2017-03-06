@@ -25,11 +25,12 @@ and PWM.
 
 Note: not all of the above is implemented yet!
 
-* The interfaces are defined in [conn/](../../conn/).
-* The concrete objects _implementing_ the interfaces are in
-  [host/](../../host/).
-* The device drivers _using_ these interfaces are located in
-  [devices/](../../devices/).
+- The interfaces are defined in
+  [conn](https://godoc.org/periph.io/x/periph/conn).
+- The concrete objects _implementing_ the interfaces are in
+  [host](https://godoc.org/periph.io/x/periph/host).
+- The device drivers _using_ these interfaces are located in
+  [devices](https://godoc.org/periph.io/x/periph/devices).
 
 A device can be connected on a bus, let's say an LED strip connected over SPI.
 In this case the application needs to obtain a handle to the SPI bus and then
@@ -48,8 +49,7 @@ frequently.
 
 The function to initialize the drivers registered by default is
 [host.Init()](https://godoc.org/periph.io/x/periph/host#Init). It
-returns a
-[periph.State](https://godoc.org/periph.io/x/periph#State):
+returns a [periph.State](https://godoc.org/periph.io/x/periph#State):
 
 ```go
 state, err := host.Init()
@@ -58,17 +58,17 @@ state, err := host.Init()
 [periph.State](https://godoc.org/periph.io/x/periph#State) contains
 information about:
 
-* The drivers loaded and active.
-* The drivers skipped, because the relevant hardware wasn't found.
-* The drivers that failed to load due to an error. The app may still run without
+- The drivers loaded and active.
+- The drivers skipped, because the relevant hardware wasn't found.
+- The drivers that failed to load due to an error. The app may still run without
   these drivers.
 
 In addition,
 [host.Init()](https://godoc.org/periph.io/x/periph/host#Init) may
 return an error when there's a structural issue, for example two drivers with
 the same name were registered. This is a fatal failure. The package
-[host](https://godoc.org/periph.io/x/periph/host) registers all the
-drivers under [host/](../../host/).
+[periph/host](https://godoc.org/periph.io/x/periph/host) registers all the
+drivers under it.
 
 
 ## Connection
@@ -89,7 +89,9 @@ address.
 An
 [spi.Conn](https://godoc.org/periph.io/x/periph/conn/spi#Conn)
 **is** a
-[conn.Conn](https://godoc.org/periph.io/x/periph/conn#Conn).
+[conn.Conn](https://godoc.org/periph.io/x/periph/conn#Conn). The reason is that
+spi.Conn is locked on a specific CS line, so it is effectively treated as a
+point-to-point connection and not as a bus.
 
 
 ### I²C connection
@@ -124,7 +126,7 @@ can be leveraged for arbitrary uses, such as buttons, LEDs, relays, etc.
 
 ## Samples
 
-See [SAMPLES.md](SAMPLES.md) for various examples.
+See [samples/](samples/) for various examples.
 
 
 ## Using out-of-tree drivers

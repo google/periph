@@ -9,18 +9,21 @@ Allwinner R8 processor. The following functionality is supported:
 - 8x GPIO pins via pcf8574 I²C I/O extender ("XIO" pins)
 - 43x memory-mapped GPIO pins (the "LCD" and "CSI" pins and a few more)
 
-In terms of headers, the `host/chip` package exports the two U13 and U14 headers.
+In terms of headers, the `host/chip` package exports the two U13 and U14
+headers.
+
 
 ## Tips and tricks
 
-CHIP is described at NextThing's [product page](https://www.getchip.com/pages/chip)
-and in much more detail in the
-[CHIP Hardware](http://docs.getchip.com/chip.html#chip-hardware)
-section of the documentation.
+CHIP is described at NextThing's [product
+page](https://www.getchip.com/pages/chip) and in much more detail in the [CHIP
+Hardware](http://docs.getchip.com/chip.html#chip-hardware) section of the
+documentation.
+
 For in-depth information about the hardware the best reference is in the
 [community wiki](http://www.chip-community.org/index.php/Hardware_Information),
-which also has a section on
-[building kernels and device drivers](http://www.chip-community.org/index.php/Kernel_Hacking).
+which also has a section on [building kernels and device
+drivers](http://www.chip-community.org/index.php/Kernel_Hacking).
 
 The periph testing is done using the headless Debian image provided by NTC
 in the [CHIP flasher](http://flash.getchip.com/).
