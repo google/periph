@@ -24,7 +24,7 @@ func main() {
 }
 ~~~
 
-Visit https://periph.io/doc/samples/ for more samples.
+Visit https://periph.io/doc/apps/samples/ for more samples.
 
 
 ## Authors
