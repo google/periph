@@ -2,7 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// odroidc1smoketest tests basic functionality of odroid c1.
+// Package odroidc1smoketest is leveraged by periph-smoketest to verify that
+// basic ODROID-C1 specific functionality works.
 package odroidc1smoketest
 
 import (

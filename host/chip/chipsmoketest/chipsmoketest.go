@@ -2,7 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// chipsmoketest verifies that basic CHIP specific functionality works.
+// Package chipsmoketest is leveraged by periph-smoketest to verify that basic
+// CHIP specific functionality works.
 package chipsmoketest
 
 import (

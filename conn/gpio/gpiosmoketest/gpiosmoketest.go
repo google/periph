@@ -2,7 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// gpiosmoketest verifies that basic GPIO pin functionality work.
+// Package gpiosmoketest is leveraged by periph-smoketest to verify that basic
+// GPIO pin functionality work.
 package gpiosmoketest
 
 import (

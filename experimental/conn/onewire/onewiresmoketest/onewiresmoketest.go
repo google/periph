@@ -2,8 +2,9 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// onewiresmoketest verifies that a 1-wire bus search returns two devices, that a ds18b20
-// temperature sensor can be read, and that a ds2431 eeprom can be written and read.
+// Package onewiresmoketest is leveraged by periph-smoketest to verify that a
+// 1-wire bus search returns two devices, that a ds18b20 temperature sensor can
+// be read, and that a ds2431 eeprom can be written and read.
 //
 // This assumes the presence of the periph-tester board, which includes these two devices.
 // See https://github.com/tve/periph-tester

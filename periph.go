@@ -7,9 +7,12 @@
 // It contains host and device drivers, and test packages to emulate the
 // hardware.
 //
-// periph acts as a registry of drivers. It is focused on providing high quality
-// host drivers that provide high-speed access to the hardware on the host
-// computer itself.
+// You will find API documentation in godoc, to learn more about the goals and
+// design, visit https://periph.io/
+//
+// Package periph acts as a registry of drivers. It is focused on providing
+// high quality host drivers that provide high-speed access to the hardware on
+// the host computer itself.
 //
 // It is less concerned about implementing all possible device drivers that may
 // be attached to the host's I²C, SPI, or other buses and pio pins.

@@ -2,8 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// spismoketest verifies that an EEPROM device can be accessed on
-// an SPI bus.
+// Package spismoketest is leveraged by periph-smoketest to verify that an
+// EEPROM device can be accessed on an SPI bus.
 //
 // This assumes the presence of the periph-tester board, which includes these two devices.
 // See https://github.com/tve/periph-tester

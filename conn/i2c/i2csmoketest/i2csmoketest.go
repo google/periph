@@ -2,8 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// i2csmoketest verifies that an I²C EEPROM device and a DS2483 device can be accessed on
-// an I²C bus.
+// Package i2csmoketest is leveraged by periph-smoketest to verify that an I²C
+// EEPROM device and a DS2483 device can be accessed on an I²C bus.
 //
 // This assumes the presence of the periph-tester board, which includes these two devices.
 // See https://github.com/tve/periph-tester

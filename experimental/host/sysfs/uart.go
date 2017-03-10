@@ -2,6 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Package sysfs implements experimental sysfs support not yet in mainline.
 package sysfs
 
 import (
