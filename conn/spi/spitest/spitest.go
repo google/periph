@@ -10,6 +10,7 @@ import (
 	"io"
 	"sync"
 
+	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/conntest"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/spi"
@@ -49,6 +50,7 @@ type Record struct {
 	sync.Mutex
 	Conn spi.Conn // Conn can be nil if only writes are being recorded.
 	Ops  []conntest.IO
+	D    conn.Duplex
 }
 
 func (r *Record) String() string {
@@ -84,6 +86,13 @@ func (r *Record) Tx(w, read []byte) error {
 	copy(io.Read, read)
 	r.Ops = append(r.Ops, io)
 	return nil
+}
+
+// Duplex implements spi.Conn.
+func (r *Record) Duplex() conn.Duplex {
+	r.Lock()
+	defer r.Unlock()
+	return r.D
 }
 
 // Speed implements spi.Conn.

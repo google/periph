@@ -11,6 +11,7 @@ import (
 	"io"
 	"sync"
 
+	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio"
 )
 
@@ -31,12 +32,10 @@ const (
 )
 
 // Conn defines the interface a concrete SPI driver must implement.
-//
-// It implements conn.Conn.
 type Conn interface {
+	conn.Conn
 	fmt.Stringer
 	io.Writer
-	Tx(w, r []byte) error
 	// Speed changes the bus speed.
 	Speed(hz int64) error
 	// Configure changes the communication parameters of the bus.
@@ -169,3 +168,5 @@ var (
 	byName   = map[string]Opener{}
 	byNumber = map[int]map[int]Opener{}
 )
+
+var _ conn.Conn = Conn(nil)

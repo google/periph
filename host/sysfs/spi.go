@@ -15,6 +15,7 @@ import (
 	"unsafe"
 
 	"periph.io/x/periph"
+	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/spi"
 )
@@ -113,6 +114,12 @@ func (s *SPI) Tx(w, r []byte) error {
 		bitsPerWord: 8,
 	}
 	return s.ioctl(spiIOCTx|0x40000000, unsafe.Pointer(&p))
+}
+
+// Duplex implements spi.Conn.
+func (s *SPI) Duplex() conn.Duplex {
+	// If half-duplex SPI is ever supported, change this code.
+	return conn.Full
 }
 
 // CLK implements spi.Pins.
