@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
+	"periph.io/x/periph/conn/onewire"
+	"periph.io/x/periph/conn/onewire/onewiretest"
 	"periph.io/x/periph/devices"
-	"periph.io/x/periph/experimental/conn/onewire"
-	"periph.io/x/periph/experimental/conn/onewire/onewiretest"
 	"periph.io/x/periph/host"
 )
 

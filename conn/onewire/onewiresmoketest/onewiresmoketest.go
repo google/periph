@@ -18,9 +18,9 @@ import (
 	"time"
 
 	"periph.io/x/periph/conn/i2c"
-	"periph.io/x/periph/experimental/conn/onewire"
-	"periph.io/x/periph/experimental/devices/ds18b20"
-	"periph.io/x/periph/experimental/devices/ds248x"
+	"periph.io/x/periph/conn/onewire"
+	"periph.io/x/periph/devices/ds18b20"
+	"periph.io/x/periph/devices/ds248x"
 )
 
 // SmokeTest is imported by periph-smoketest.

@@ -17,8 +17,8 @@ import (
 
 	"periph.io/x/periph/conn/gpio/gpiosmoketest"
 	"periph.io/x/periph/conn/i2c/i2csmoketest"
+	"periph.io/x/periph/conn/onewire/onewiresmoketest"
 	"periph.io/x/periph/conn/spi/spismoketest"
-	"periph.io/x/periph/experimental/conn/onewire/onewiresmoketest"
 	"periph.io/x/periph/host"
 	"periph.io/x/periph/host/chip/chipsmoketest"
 	"periph.io/x/periph/host/odroid_c1/odroidc1smoketest"

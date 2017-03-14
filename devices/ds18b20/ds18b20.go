@@ -25,8 +25,8 @@ import (
 	"errors"
 	"time"
 
+	"periph.io/x/periph/conn/onewire"
 	"periph.io/x/periph/devices"
-	"periph.io/x/periph/experimental/conn/onewire"
 )
 
 // New returns an object that communicates over 1-wire to the DS18B20 sensor with the

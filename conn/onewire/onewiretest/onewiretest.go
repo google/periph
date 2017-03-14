@@ -12,7 +12,7 @@ import (
 	"sync"
 
 	"periph.io/x/periph/conn/gpio"
-	"periph.io/x/periph/experimental/conn/onewire"
+	"periph.io/x/periph/conn/onewire"
 )
 
 // IO registers the I/O that happened on either a real or fake 1-wire bus.
