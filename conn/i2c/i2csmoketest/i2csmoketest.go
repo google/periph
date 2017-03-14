@@ -10,6 +10,7 @@
 package i2csmoketest
 
 import (
+	"encoding/binary"
 	"errors"
 	"flag"
 	"fmt"
@@ -19,6 +20,7 @@ import (
 
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/i2c"
+	"periph.io/x/periph/conn/reg"
 )
 
 type SmokeTest struct {
@@ -123,17 +125,16 @@ const (
 //
 // Datasheet: http://www.st.com/content/ccc/resource/technical/document/datasheet/cc/f5/a5/01/6f/4b/47/d2/DM00070057.pdf/files/DM00070057.pdf/jcr:content/translations/en.DM00070057.pdf
 func (s *SmokeTest) eeprom(bus i2c.Bus, wcPin gpio.PinIO) error {
-	d := i2c.Dev{Bus: bus, Addr: 0x50}
+	d := reg.Dev8{Conn: &i2c.Dev{Bus: bus, Addr: 0x50}, Order: binary.LittleEndian}
 
-	// Read byte 10 of the EEPROM and expect to get something.
-	var oneByte [1]byte
-	if err := d.Tx([]byte{0x12}, oneByte[:]); err != nil {
+	// Read byte 0x12 of the EEPROM and expect to get something.
+	if _, err := d.ReadUint8(0x12); err != nil {
 		return fmt.Errorf("eeprom: error on the first read access")
 	}
 
 	// Read page 5 of the EEPROM and expect to get something.
 	var onePage [16]byte
-	if err := d.Tx([]byte{5 * 16}, onePage[:]); err != nil {
+	if err := d.ReadStruct(5*16, onePage[:]); err != nil {
 		return fmt.Errorf("eeprom: error reading page 5")
 	}
 
@@ -159,18 +160,20 @@ func (s *SmokeTest) eeprom(bus i2c.Bus, wcPin gpio.PinIO) error {
 	log.Printf("i2c-smoke writing&reading EEPROM byte %#x", addr)
 	for _, v := range values {
 		// Write byte.
-		if err := d.Tx([]byte{addr, v}, nil); err != nil {
+		if err := d.WriteUint8(addr, v); err != nil {
 			return fmt.Errorf("eeprom: error writing %#x to byte at %#x: %v", v, addr, err)
 		}
-		// Read byte back once the device is ready (takes several ms for the write to
-		// complete).
+		// Read byte back once the device is ready (takes several ms for the write
+		// to complete).
+		var w byte
 		for start := time.Now(); time.Since(start) <= 100*time.Millisecond; {
-			if err := d.Tx([]byte{addr}, oneByte[:]); err == nil {
+			var err error
+			if w, err = d.ReadUint8(addr); err == nil {
 				break
 			}
 		}
-		if oneByte[0] != v {
-			return fmt.Errorf("eeprom: wrote %#v but read back %#v", v, oneByte[0])
+		if w != v {
+			return fmt.Errorf("eeprom: wrote %#v but read back %#v", v, w)
 		}
 	}
 
@@ -186,7 +189,7 @@ func (s *SmokeTest) eeprom(bus i2c.Bus, wcPin gpio.PinIO) error {
 		onePage[i] = val(i)
 	}
 	// Write page.
-	if err := d.Tx(append([]byte{addr}, onePage[:]...), nil); err != nil {
+	if err := d.WriteStruct(addr, onePage[:]); err != nil {
 		return fmt.Errorf("eeprom: error writing to page %#x: %v", addr, err)
 	}
 	// Clear the buffer to prep for reading back.
@@ -195,7 +198,7 @@ func (s *SmokeTest) eeprom(bus i2c.Bus, wcPin gpio.PinIO) error {
 	}
 	// Read page back once the device is ready (takes several ms for the write to complete).
 	for start := time.Now(); time.Since(start) <= 100*time.Millisecond; {
-		if err := d.Tx([]byte{addr}, onePage[:]); err == nil {
+		if err := d.ReadStruct(addr, onePage[:]); err == nil {
 			break
 		}
 	}
@@ -211,7 +214,7 @@ func (s *SmokeTest) eeprom(bus i2c.Bus, wcPin gpio.PinIO) error {
 	// Disable write-control, attempt a write, and expect to get an i2c error.
 	// TODO: create a clearly identifiable error.
 	wcPin.Out(gpio.High)
-	if err := d.Tx([]byte{0x10, 0xA5}, nil); err == nil {
+	if err := d.WriteUint8(0x10, 0xA5); err == nil {
 		return errors.New("eeprom: write with write-control disabled didn't return an error")
 	}
 

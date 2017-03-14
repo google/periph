@@ -20,12 +20,12 @@ func TestDev(t *testing.T) {
 			},
 		},
 	}
-	d := i2c.DevReg8{i2c.Dev{Bus: &p, Addr: 23}, nil}
-	v, err := d.ReadRegUint8(10)
-	if err != nil {
+	d := i2c.Dev{Bus: &p, Addr: 23}
+	v := [1]byte{}
+	if err := d.Tx([]byte{10}, v[:]); err != nil {
 		t.Fatal(err)
 	}
-	if v != 12 {
+	if v[0] != 12 {
 		t.Fail()
 	}
 }
