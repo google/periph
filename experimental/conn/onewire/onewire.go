@@ -222,14 +222,20 @@ type Opener func() (BusCloser, error)
 //
 // Registering the same bus name twice is an error.
 func Register(name string, busNumber int, opener Opener) error {
+	if len(name) == 0 {
+		return errors.New("onewire: no bus name")
+	}
+	if busNumber < 0 {
+		return fmt.Errorf("onewire: cannot register a negative bus number: %d", busNumber)
+	}
+	if opener == nil {
+		return errors.New("onewire: missing opener")
+	}
 	mu.Lock()
 	defer mu.Unlock()
 
 	if _, ok := byName[name]; ok {
 		return fmt.Errorf("onewire: registering the same 1-wire bus %s twice", name)
-	}
-	if busNumber == -1 {
-		return fmt.Errorf("onewire: cannot register a negative bus number: %d", busNumber)
 	}
 	if _, ok := byNumber[busNumber]; ok {
 		return fmt.Errorf("onewire: registering the same 1-wire bus %d twice", busNumber)
@@ -245,6 +251,9 @@ func Register(name string, busNumber int, opener Opener) error {
 // This may be necessary, for example, when a 1-wire bus is exposed via an USB device
 // and the device is unplugged.
 func Unregister(name string, busNumber int) error {
+	if len(name) == 0 {
+		return errors.New("onewire: no bus name")
+	}
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -292,3 +301,6 @@ var (
 
 // Ensure that the appropriate interfaces are implemented.
 var _ conn.Conn = &Dev{}
+var _ NoDevicesError = noDevicesError("")
+var _ ShortedBusError = shortedBusError("")
+var _ BusError = busError("")
