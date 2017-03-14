@@ -16,26 +16,57 @@ func ExampleAll() {
 	}
 }
 
+func TestPullUp(t *testing.T) {
+	if WeakPullup.String() != "Weak" || StrongPullup.String() != "Strong" {
+		t.FailNow()
+	}
+}
+
+func TestNoDevicesError(t *testing.T) {
+	e := noDevicesError("no")
+	if !e.NoDevices() || e.Error() != "no" {
+		t.FailNow()
+	}
+}
+
+func TestShortedBusError(t *testing.T) {
+	e := shortedBusError("no")
+	if !e.IsShorted() || !e.BusError() || e.Error() != "no" {
+		t.FailNow()
+	}
+}
+
+func TestBusError(t *testing.T) {
+	e := busError("no")
+	if !e.BusError() || e.Error() != "no" {
+		t.FailNow()
+	}
+}
+
+func TestDev(t *testing.T) {
+	b := nopBus("hi")
+	d := Dev{Bus: &b, Addr: 12}
+	if s := d.String(); s != "hi(0x000000000000000c)" {
+		t.Fatal(s)
+	}
+	// TODO(maruel): Verify the output.
+	if err := d.Tx([]byte{1}, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.TxPower([]byte{1}, nil); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestNoneRegistered(t *testing.T) {
 	if _, err := New(-1); err == nil {
 		t.Fail()
 	}
 }
 
-func TestAreInOnewireTest(t *testing.T) {
-	// Real tests are in onewiretest due to cyclic dependency.
-}
-
-// nopBus implements Bus.
-type nopBus string
-
-func (b *nopBus) String() string                           { return string(*b) }
-func (b *nopBus) Tx(w, r []byte, power Pullup) error       { return nil }
-func (b *nopBus) Search(alarmOnly bool) ([]Address, error) { return nil, nil }
-func (b *nopBus) Close() error                             { return nil }
-
 // TestRegDereg tests registration and deregistration of buses.
 func TestRegDereg(t *testing.T) {
+	defer reset()
 	opener1 := func() (BusCloser, error) {
 		b := nopBus("bus1")
 		return &b, nil
@@ -43,6 +74,19 @@ func TestRegDereg(t *testing.T) {
 	opener2 := func() (BusCloser, error) {
 		b := nopBus("bus2")
 		return &b, nil
+	}
+
+	if Register("", 1, opener1) == nil {
+		t.FailNow()
+	}
+	if Register("a", -1, opener1) == nil {
+		t.FailNow()
+	}
+	if Register("a", 1, nil) == nil {
+		t.FailNow()
+	}
+	if Unregister("", 1) == nil {
+		t.FailNow()
 	}
 
 	// Register a first bus.
@@ -87,6 +131,17 @@ func TestRegDereg(t *testing.T) {
 		t.Errorf("Expected New(-1) to return bus1, got %v", n.String())
 	}
 
+	// Failures
+	if o, err := New(42); o != nil || err == nil {
+		t.FailNow()
+	}
+	if Unregister("bus1", 42) == nil {
+		t.FailNow()
+	}
+	if Unregister("", 4) == nil {
+		t.FailNow()
+	}
+
 	// Deregister the first bus.
 	if err := Unregister("bus1", 4); err != nil {
 		t.Errorf("Expected unregister of bus1 to succeed, got %s", err)
@@ -110,3 +165,20 @@ func TestRegDereg(t *testing.T) {
 		t.Errorf("Expected All() to return 0 buses, got %d", len(a))
 	}
 }
+
+//
+
+func reset() {
+	mu.Lock()
+	defer mu.Unlock()
+	byName = map[string]Opener{}
+	byNumber = map[int]Opener{}
+}
+
+// nopBus implements Bus.
+type nopBus string
+
+func (b *nopBus) String() string                           { return string(*b) }
+func (b *nopBus) Tx(w, r []byte, power Pullup) error       { return nil }
+func (b *nopBus) Search(alarmOnly bool) ([]Address, error) { return nil, nil }
+func (b *nopBus) Close() error                             { return nil }
