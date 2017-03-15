@@ -95,7 +95,7 @@ type PinIn interface {
 	// Calling In() will try to empty the accumulated edges but it cannot be 100%
 	// reliable due to the OS (linux) and its driver. It is possible that on a
 	// gpio that is as input, doing a quick Out(), In() may return an edge that
-	// occured before the Out() call.
+	// occurred before the Out() call.
 	In(pull Pull, edge Edge) error
 	// Read return the current pin level.
 	//
@@ -106,14 +106,14 @@ type PinIn interface {
 	// called. In this case, call In() again.
 	Read() Level
 	// WaitForEdge() waits for the next edge or immediately return if an edge
-	// occured since the last call.
+	// occurred since the last call.
 	//
 	// Only waits for the kind of edge as specified in a previous In() call.
 	// Behavior is undefined if In() with a value other than None wasn't called
 	// before.
 	//
 	// Returns true if an edge was detected during or before this call. Return
-	// false if the timeout occured or In() was called while waiting, causing the
+	// false if the timeout occurred or In() was called while waiting, causing the
 	// function to exit.
 	//
 	// Multiple edges may or may not accumulate between two calls to
@@ -352,8 +352,8 @@ var (
 	mu sync.Mutex
 	// The first map is preferred pins, the second is for more limited pins,
 	// usually going through OS-provided abstraction layer.
-	byNumber = [2]map[int]PinIO{map[int]PinIO{}, map[int]PinIO{}}
-	byName   = [2]map[string]PinIO{map[string]PinIO{}, map[string]PinIO{}}
+	byNumber = [2]map[int]PinIO{{}, {}}
+	byName   = [2]map[string]PinIO{{}, {}}
 	byAlias  = map[string]*pinAlias{}
 )
 
@@ -361,7 +361,7 @@ func init() {
 	INVALID = invalidPin{}
 }
 
-// invalidPin implements PinIO for compability but fails on all access.
+// invalidPin implements PinIO for compatibility but fails on all access.
 type invalidPin struct {
 }
 

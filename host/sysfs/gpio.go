@@ -49,6 +49,7 @@ func (p *Pin) String() string {
 	return p.name
 }
 
+// Name implements pins.Pin.
 func (p *Pin) Name() string {
 	return p.name
 }

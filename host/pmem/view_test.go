@@ -36,7 +36,7 @@ func TestSlice(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if r[0] != u32[0] {
-		t.Fatalf("%x != %x", r[0] != u32[0])
+		t.Fatalf("%x != %x", r[0], u32[0])
 	}
 }
 

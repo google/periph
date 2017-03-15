@@ -10,7 +10,7 @@
 // The way it works under the hood is that the bcm283x has two registers, one
 // to set a bit and one to clear a bit.
 //
-// So two DMA controllers are used, one writting a "clear bit" stream and one
+// So two DMA controllers are used, one writing a "clear bit" stream and one
 // for the "set bit" stream. This requires two independent 32 bits wide streams
 // per period.
 //

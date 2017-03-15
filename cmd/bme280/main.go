@@ -131,7 +131,8 @@ func mainImpl() error {
 			printPin("SCL", p.SCL())
 			printPin("SDA", p.SDA())
 		}
-		var base i2c.Bus = bus
+		var base i2c.Bus
+		base = bus
 		if *record {
 			recorder.Bus = bus
 			base = &recorder

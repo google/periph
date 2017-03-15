@@ -37,7 +37,7 @@ var INVALID invalidPin
 // errInvalidPin is returned when trying to use INVALID.
 var errInvalidPin = errors.New("invalid pin")
 
-// invalidPin implements PinIO for compability but fails on all access.
+// invalidPin implements PinIO for compatibility but fails on all access.
 type invalidPin struct {
 }
 

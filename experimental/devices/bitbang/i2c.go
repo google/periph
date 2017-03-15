@@ -20,7 +20,7 @@ import (
 	"periph.io/x/periph/host/cpu"
 )
 
-// Use SkipAddr to skip the address from being sent.
+// SkipAddr can be used to skip the address from being sent.
 const SkipAddr uint16 = 0xFFFF
 
 // I2C represents an I²C master implemented as bit-banging on 2 GPIO pins.
@@ -53,7 +53,7 @@ func (i *I2C) Tx(addr uint16, w, r []byte) error {
 	if addr != SkipAddr {
 		if addr > 0xFF {
 			// Page 15, section 3.1.11 10-bit addressing
-			// TOOD(maruel): Implement if desired; prefix 0b11110xx.
+			// TODO(maruel): Implement if desired; prefix 0b11110xx.
 			return errors.New("bitbang-i2c: invalid address")
 		}
 		// Page 13, section 3.1.10 The slave address and R/W bit

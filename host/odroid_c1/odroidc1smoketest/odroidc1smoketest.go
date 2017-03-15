@@ -119,17 +119,21 @@ func testOdroidC1Aliases() error {
 	return nil
 }
 
+// SmokeTest is imported by periph-smoketest.
 type SmokeTest struct {
 }
 
+// Name implements periph-smoketest.SmokeTest.
 func (s *SmokeTest) Name() string {
 	return "odroid-c1"
 }
 
+// Description implements periph-smoketest.SmokeTest.
 func (s *SmokeTest) Description() string {
 	return "Quad core low cost board made by hardkernel.com"
 }
 
+// Run implements periph-smoketest.SmokeTest.
 func (s *SmokeTest) Run(args []string) error {
 	tests := []func() error{
 		testOdroidC1Present, testOdroidC1Headers,

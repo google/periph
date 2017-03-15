@@ -23,7 +23,7 @@ func MaxSpeed() int64 {
 	return 0
 }
 
-// Nanospins spins for a short amount of time doing a busy loop.
+// Nanospin spins for a short amount of time doing a busy loop.
 //
 // This function should be called with durations of 10µs or less.
 func Nanospin(d time.Duration) {

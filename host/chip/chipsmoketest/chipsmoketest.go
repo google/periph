@@ -130,17 +130,21 @@ func testChipAliases() error {
 	return nil
 }
 
+// SmokeTest is imported by periph-smoketest.
 type SmokeTest struct {
 }
 
+// Name implements periph-smoketest.SmokeTest.
 func (s *SmokeTest) Name() string {
 	return "chip"
 }
 
+// Description implements periph-smoketest.SmokeTest.
 func (s *SmokeTest) Description() string {
 	return "Single CPU low cost board available at getchip.com"
 }
 
+// Run implements periph-smoketest.SmokeTest.
 func (s *SmokeTest) Run(args []string) error {
 	tests := []func() error{
 		testChipPresent, testChipHeaders, testChipGpioNumbers, testChipGpioNames, testChipAliases,
@@ -154,7 +158,7 @@ func (s *SmokeTest) Run(args []string) error {
 }
 
 /* The following gpio tests are commented out for now in favor of using gpio-test via a shell
- * script. Once the test startegy settles this can be deleted if it's not used.
+ * script. Once the test strategy settles this can be deleted if it's not used.
 
 // testChipGpioMem tests two connected pins using memory-mapped gpio
 func testChipGpioMem() error {

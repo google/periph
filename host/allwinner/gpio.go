@@ -49,7 +49,7 @@ type Pin struct {
 	edge        *sysfs.Pin // Set once, then never set back to nil.
 	usingEdge   bool       // Set when edge detection is enabled.
 	available   bool       // Set when the pin is available on this CPU architecture.
-	supportEdge bool       // Set when the pin supports interupt based edge detection.
+	supportEdge bool       // Set when the pin supports interrupt based edge detection.
 }
 
 // String returns the name of the pin in the processor and the GPIO pin number.

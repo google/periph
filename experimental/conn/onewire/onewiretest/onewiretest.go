@@ -142,7 +142,7 @@ func (p *Playback) SearchTriplet(direction byte) (onewire.TripletResult, error) 
 		return tr, errors.New("onewiretest: search performs more than 64 triplet operations")
 	}
 	if len(p.inactive) != len(p.Devices) {
-		return tr, errors.New("onewiretest: Devices must be initialized before starting seach")
+		return tr, errors.New("onewiretest: Devices must be initialized before starting search")
 	}
 	// Figure out the devices' response.
 	for i := range p.Devices {

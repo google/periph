@@ -306,7 +306,7 @@ func (d *Dev) writeCommands(b []byte) error {
 // 0xE0        Reset by writing 0xB6 to it
 // 0xE1..0xF0  Calibration data
 // 0xF1        --
-// 0xF2        ctrl_hum; ctrl_meas must be writen to after for change to this register to take effect
+// 0xF2        ctrl_hum; ctrl_meas must be written to after for change to this register to take effect
 // 0xF3        status
 // 0xF4        ctrl_meas
 // 0xF5        config

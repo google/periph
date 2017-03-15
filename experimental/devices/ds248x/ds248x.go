@@ -24,8 +24,10 @@ import (
 type PupOhm uint8
 
 const (
-	R500Ω  = 4 // 500Ω passive pull-up resistor
-	R1000Ω = 6 // 1000Ω passive pull-up resistor
+	// R500Ω passive pull-up resistor.
+	R500Ω = 4
+	// R1000Ω passive pull-up resistor.
+	R1000Ω = 6
 )
 
 // Opts contains options to pass to the constructor.

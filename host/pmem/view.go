@@ -16,6 +16,7 @@ import (
 // Slice can be transparently viewed as []byte, []uint32 or a struct.
 type Slice []byte
 
+// Uint32 returns a view of the byte slice as a []uint32.
 func (s *Slice) Uint32() []uint32 {
 	header := *(*reflect.SliceHeader)(unsafe.Pointer(s))
 	header.Len /= 4
@@ -23,6 +24,7 @@ func (s *Slice) Uint32() []uint32 {
 	return *(*[]uint32)(unsafe.Pointer(&header))
 }
 
+// Bytes implements Mem.
 func (s *Slice) Bytes() []byte {
 	return *s
 }

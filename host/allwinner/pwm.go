@@ -96,7 +96,7 @@ func (p pwmCtl) String() string {
 	out = append(out, pwmPrescale(p&pwm0PrescaleMask).String())
 	p &^= pwm0PrescaleMask
 	if p != 0 {
-		out = append(out, fmt.Sprintf("Unknown(0x%08X)", p))
+		out = append(out, fmt.Sprintf("Unknown(0x%08X)", uint32(p)))
 	}
 	return strings.Join(out, "|")
 }

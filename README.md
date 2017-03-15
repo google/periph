@@ -2,6 +2,10 @@
 
 Documentation is at https://periph.io
 
+[![GoDoc](https://godoc.org/periph.io/x/periph?status.svg)](https://godoc.org/periph.io/x/periph)
+[![Go Report
+Card](https://goreportcard.com/badge/periph.io/x/periph)](https://goreportcard.com/report/periph.io/x/periph)
+
 
 ## Sample
 

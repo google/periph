@@ -37,7 +37,7 @@ func Present() bool {
 // Is set to 0 when detection (currently primitive) failed.
 var Version int
 
-// Pin as connect on the 40 pins extention header.
+// Pin as connect on the 40 pins extension header.
 //
 // Schematics are useful to know what is connected to what:
 // https://www.raspberrypi.org/documentation/hardware/raspberrypi/schematics/README.md

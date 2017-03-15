@@ -21,6 +21,7 @@ import (
 	"periph.io/x/periph/conn/i2c"
 )
 
+// SmokeTest is imported by periph-smoketest.
 type SmokeTest struct {
 }
 

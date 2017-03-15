@@ -19,6 +19,7 @@ import (
 	"periph.io/x/periph/host/sysfs"
 )
 
+// SmokeTest is imported by periph-smoketest.
 type SmokeTest struct {
 	// start is to display the delta in µs.
 	start time.Time
@@ -45,14 +46,17 @@ type SmokeTest struct {
 	edgeWait time.Duration
 }
 
+// Name implements periph-smoketest.SmokeTest.
 func (s *SmokeTest) Name() string {
 	return "gpio"
 }
 
+// Description implements periph-smoketest.SmokeTest.
 func (s *SmokeTest) Description() string {
 	return "Tests basic functionality, edge detection and input pull resistors"
 }
 
+// Run implements periph-smoketest.SmokeTest.
 func (s *SmokeTest) Run(args []string) error {
 	f := flag.NewFlagSet("gpio", flag.ExitOnError)
 	slow := f.Bool("s", false, "slow; insert a second between each step")

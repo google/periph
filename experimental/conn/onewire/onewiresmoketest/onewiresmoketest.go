@@ -23,6 +23,7 @@ import (
 	"periph.io/x/periph/experimental/devices/ds248x"
 )
 
+// SmokeTest is imported by periph-smoketest.
 type SmokeTest struct {
 }
 

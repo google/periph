@@ -222,7 +222,7 @@ func (b *basicPin) Number() int {
 func reset() {
 	mu.Lock()
 	defer mu.Unlock()
-	byNumber = [2]map[int]PinIO{map[int]PinIO{}, map[int]PinIO{}}
-	byName = [2]map[string]PinIO{map[string]PinIO{}, map[string]PinIO{}}
+	byNumber = [2]map[int]PinIO{{}, {}}
+	byName = [2]map[string]PinIO{{}, {}}
 	byAlias = map[string]*pinAlias{}
 }

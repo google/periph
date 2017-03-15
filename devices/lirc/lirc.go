@@ -35,7 +35,7 @@ func New() (*Conn, error) {
 		return nil, err
 	}
 	c := &Conn{w: w, c: make(chan ir.Message), list: map[string][]string{}}
-	// Inconditionally retrieve the list of all known keys at start.
+	// Unconditionally retrieve the list of all known keys at start.
 	if _, err := w.Write([]byte("LIST\n")); err != nil {
 		w.Close()
 		return nil, err
