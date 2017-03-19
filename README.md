@@ -28,7 +28,7 @@ func main() {
 }
 ~~~
 
-Visit https://periph.io/doc/apps/samples/ for more samples.
+Show me [more samples](https://periph.io/samples/)!
 
 
 ## Authors

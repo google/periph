@@ -11,7 +11,7 @@ example if you have to run as root to access certain drivers.
 
 Then run `headers-list` to list all the headers on your board and confirm that
 you get the expected output. If your board is missing, you can [contribute
-it](https://periph.io/doc/drivers/contributing/).
+it](https://periph.io/project/contributing/).
 
 
 ## Devices
@@ -54,5 +54,5 @@ it](https://periph.io/doc/drivers/contributing/).
 
 ## Troubleshooting
 
-Having getting the tools to run? See [doc/users/](https://periph.io/doc/users/)
-for more documentation.
+Having getting the tools to run? See [users/](https://periph.io/users/) for more
+documentation.
