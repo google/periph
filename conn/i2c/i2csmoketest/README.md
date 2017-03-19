@@ -6,7 +6,7 @@ with the periph-tester board.
 Requires a gpio pin to be tied to the EEPROM's write control (active low write
 enable).
 
-Sample output running on an Odroid-C1:
+Example output running on an Odroid-C1:
 
 ```
 # ./periph-smoketest -v i2c-testboard -wc 83

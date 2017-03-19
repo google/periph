@@ -7,7 +7,7 @@ Documentation is at https://periph.io
 Card](https://goreportcard.com/badge/periph.io/x/periph)](https://goreportcard.com/report/periph.io/x/periph)
 
 
-## Sample
+## Example
 
 ~~~go
 package main
@@ -28,7 +28,7 @@ func main() {
 }
 ~~~
 
-Show me [more samples](https://periph.io/samples/)!
+Show me [more examples](https://periph.io/examples/)!
 
 
 ## Authors

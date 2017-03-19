@@ -3,7 +3,7 @@
 Verifies that the library physically work. It requires the user to connect two
 GPIO pins together and provide their pin number at the command line.
 
-Sample output running on a Raspberry Pi:
+Example output running on a Raspberry Pi:
 
 ```
 $ gpio-test 12 6
