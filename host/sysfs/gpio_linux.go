@@ -10,11 +10,11 @@ import (
 )
 
 const (
-	epollET       = 1 << 31
-	epollPRI      = 2
-	epoll_CTL_ADD = 1
-	epoll_CTL_DEL = 2
-	epoll_CTL_MOD = 3
+	epollET     = 1 << 31
+	epollPRI    = 2
+	epollCTLAdd = 1
+	epollCTLDel = 2
+	epollCTLMod = 3
 )
 
 type event struct {
@@ -53,7 +53,7 @@ func (e *event) makeEvent(f *os.File) error {
 	// outside the scope of this interface.
 	e.event[0].Events = epollPRI | epollET
 	e.event[0].Fd = int32(e.fd)
-	return syscall.EpollCtl(e.epollFd, epoll_CTL_ADD, e.fd, &e.event[0])
+	return syscall.EpollCtl(e.epollFd, epollCTLAdd, e.fd, &e.event[0])
 }
 
 func (e *event) wait(timeoutms int) (int, error) {

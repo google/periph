@@ -90,7 +90,7 @@ func (i *I2C) String() string {
 
 // Tx execute a transaction as a single operation unit.
 func (i *I2C) Tx(addr uint16, w, r []byte) error {
-	if addr >= 0x400 || (addr >= 0x80 && i.fn&func10BIT_ADDR == 0) {
+	if addr >= 0x400 || (addr >= 0x80 && i.fn&func10BitAddr == 0) {
 		return nil
 	}
 	if len(w) == 0 && len(r) == 0 {
@@ -196,38 +196,38 @@ const (
 
 // flags
 const (
-	flagTEN          = 0x0010 // this is a ten bit chip address
-	flagRD           = 0x0001 // read data, from slave to master
-	flagSTOP         = 0x8000 // if I2C_FUNC_PROTOCOL_MANGLING
-	flagNOSTART      = 0x4000 // if I2C_FUNC_NOSTART
-	flagREV_DIR_ADDR = 0x2000 // if I2C_FUNC_PROTOCOL_MANGLING
-	flagIGNORE_NAK   = 0x1000 // if I2C_FUNC_PROTOCOL_MANGLING
-	flagNO_RD_ACK    = 0x0800 // if I2C_FUNC_PROTOCOL_MANGLING
-	flagRECV_LEN     = 0x0400 // length will be first received byte
+	flagTEN        = 0x0010 // this is a ten bit chip address
+	flagRD         = 0x0001 // read data, from slave to master
+	flagSTOP       = 0x8000 // if funcProtocolMangling
+	flagNOSTART    = 0x4000 // if I2C_FUNC_NOSTART
+	flagRevDirAddr = 0x2000 // if funcProtocolMangling
+	flagIgnoreNAK  = 0x1000 // if funcProtocolMangling
+	flagNoRDACK    = 0x0800 // if funcProtocolMangling
+	flagRecvLen    = 0x0400 // length will be first received byte
 
 )
 
 type functionality uint64
 
 const (
-	funcI2C                    = 0x00000001
-	func10BIT_ADDR             = 0x00000002
-	funcPROTOCOL_MANGLING      = 0x00000004 // I2C_M_IGNORE_NAK etc.
-	funcSMBUS_PEC              = 0x00000008
-	funcNOSTART                = 0x00000010 // I2C_M_NOSTART
-	funcSMBUS_BLOCK_PROC_CALL  = 0x00008000 // SMBus 2.0
-	funcSMBUS_QUICK            = 0x00010000
-	funcSMBUS_READ_BYTE        = 0x00020000
-	funcSMBUS_WRITE_BYTE       = 0x00040000
-	funcSMBUS_READ_BYTE_DATA   = 0x00080000
-	funcSMBUS_WRITE_BYTE_DATA  = 0x00100000
-	funcSMBUS_READ_WORD_DATA   = 0x00200000
-	funcSMBUS_WRITE_WORD_DATA  = 0x00400000
-	funcSMBUS_PROC_CALL        = 0x00800000
-	funcSMBUS_READ_BLOCK_DATA  = 0x01000000
-	funcSMBUS_WRITE_BLOCK_DATA = 0x02000000
-	funcSMBUS_READ_I2C_BLOCK   = 0x04000000 // I2C-like block xfer
-	funcSMBUS_WRITE_I2C_BLOCK  = 0x08000000 // w/ 1-byte reg. addr.
+	funcI2C                 = 0x00000001
+	func10BitAddr           = 0x00000002
+	funcProtocolMangling    = 0x00000004 // I2C_M_IGNORE_NAK etc.
+	funcSMBusPEC            = 0x00000008
+	funcNOSTART             = 0x00000010 // I2C_M_NOSTART
+	funcSMBusBlockProcCall  = 0x00008000 // SMBus 2.0
+	funcSMBusQuick          = 0x00010000
+	funcSMBusReadByte       = 0x00020000
+	funcSMBusWriteByte      = 0x00040000
+	funcSMBusReadByteData   = 0x00080000
+	funcSMBusWriteByteData  = 0x00100000
+	funcSMBusReadWordData   = 0x00200000
+	funcSMBusWriteWordData  = 0x00400000
+	funcSMBusProcCall       = 0x00800000
+	funcSMBusReadBlockData  = 0x01000000
+	funcSMBusWriteBlockData = 0x02000000
+	funcSMBusReadI2CBlock   = 0x04000000 // I2C-like block xfer
+	funcSMBusWriteI2CBlock  = 0x08000000 // w/ 1-byte reg. addr.
 )
 
 func (f functionality) String() string {
@@ -235,55 +235,55 @@ func (f functionality) String() string {
 	if f&funcI2C != 0 {
 		out = append(out, "I2C")
 	}
-	if f&func10BIT_ADDR != 0 {
+	if f&func10BitAddr != 0 {
 		out = append(out, "10BIT_ADDR")
 	}
-	if f&funcPROTOCOL_MANGLING != 0 {
+	if f&funcProtocolMangling != 0 {
 		out = append(out, "PROTOCOL_MANGLING")
 	}
-	if f&funcSMBUS_PEC != 0 {
+	if f&funcSMBusPEC != 0 {
 		out = append(out, "SMBUS_PEC")
 	}
 	if f&funcNOSTART != 0 {
 		out = append(out, "NOSTART")
 	}
-	if f&funcSMBUS_BLOCK_PROC_CALL != 0 {
+	if f&funcSMBusBlockProcCall != 0 {
 		out = append(out, "SMBUS_BLOCK_PROC_CALL")
 	}
-	if f&funcSMBUS_QUICK != 0 {
+	if f&funcSMBusQuick != 0 {
 		out = append(out, "SMBUS_QUICK")
 	}
-	if f&funcSMBUS_READ_BYTE != 0 {
+	if f&funcSMBusReadByte != 0 {
 		out = append(out, "SMBUS_READ_BYTE")
 	}
-	if f&funcSMBUS_WRITE_BYTE != 0 {
+	if f&funcSMBusWriteByte != 0 {
 		out = append(out, "SMBUS_WRITE_BYTE")
 	}
-	if f&funcSMBUS_READ_BYTE_DATA != 0 {
+	if f&funcSMBusReadByteData != 0 {
 		out = append(out, "SMBUS_READ_BYTE_DATA")
 	}
-	if f&funcSMBUS_WRITE_BYTE_DATA != 0 {
+	if f&funcSMBusWriteByteData != 0 {
 		out = append(out, "SMBUS_WRITE_BYTE_DATA")
 	}
-	if f&funcSMBUS_READ_WORD_DATA != 0 {
+	if f&funcSMBusReadWordData != 0 {
 		out = append(out, "SMBUS_READ_WORD_DATA")
 	}
-	if f&funcSMBUS_WRITE_WORD_DATA != 0 {
+	if f&funcSMBusWriteWordData != 0 {
 		out = append(out, "SMBUS_WRITE_WORD_DATA")
 	}
-	if f&funcSMBUS_PROC_CALL != 0 {
+	if f&funcSMBusProcCall != 0 {
 		out = append(out, "SMBUS_PROC_CALL")
 	}
-	if f&funcSMBUS_READ_BLOCK_DATA != 0 {
+	if f&funcSMBusReadBlockData != 0 {
 		out = append(out, "SMBUS_READ_BLOCK_DATA")
 	}
-	if f&funcSMBUS_WRITE_BLOCK_DATA != 0 {
+	if f&funcSMBusWriteBlockData != 0 {
 		out = append(out, "SMBUS_WRITE_BLOCK_DATA")
 	}
-	if f&funcSMBUS_READ_I2C_BLOCK != 0 {
+	if f&funcSMBusReadI2CBlock != 0 {
 		out = append(out, "SMBUS_READ_I2C_BLOCK")
 	}
-	if f&funcSMBUS_WRITE_I2C_BLOCK != 0 {
+	if f&funcSMBusWriteI2CBlock != 0 {
 		out = append(out, "SMBUS_WRITE_I2C_BLOCK")
 	}
 	return strings.Join(out, "|")
