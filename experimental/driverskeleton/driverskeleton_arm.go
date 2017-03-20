@@ -16,6 +16,6 @@
 // FIXME: Don't forget to remove all the FIXME comments before sending your PR!
 // Otherwise the PR will me immediately refused.
 
-package driver_skeleton
+package driverskeleton
 
 const isArm = true

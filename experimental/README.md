@@ -12,4 +12,4 @@ quality of drivers already here. Please make sure to abide to requests in
 [project/contributing/](https://periph.io/project/contributing/).
 
 To add a new driver, you can optionally start your work off
-[driver_skeleton/](driver_skeleton/) and follow the instructions in the files.
+[driverskeleton/](driverskeleton/) and follow the instructions in the files.

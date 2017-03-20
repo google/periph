@@ -2,7 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-package driver_skeleton
+package driverskeleton
 
 import (
 	"errors"
@@ -30,7 +30,7 @@ func New(i i2c.Bus) (*Dev, error) {
 		return nil, err
 	}
 	if b[0] != 'I' || b[1] != 'N' {
-		return nil, errors.New("driver_skeleton: unexpected reply")
+		return nil, errors.New("driverskeleton: unexpected reply")
 	}
 	return d, nil
 }
@@ -53,7 +53,7 @@ type driver struct {
 
 func (d *driver) String() string {
 	// FIXME: Change this string to be unique. It must match the directory name.
-	return "driver_skeleton"
+	return "driverskeleton"
 }
 
 func (d *driver) Prerequisites() []string {
@@ -67,7 +67,7 @@ func (d *driver) Init() (bool, error) {
 
 	// FIXME: Add implementation.
 
-	return true, errors.New("driver_skeleton: not implemented")
+	return true, errors.New("driverskeleton: not implemented")
 }
 
 func init() {

@@ -4,6 +4,6 @@
 
 // +build !arm,!arm64
 
-package driver_skeleton
+package driverskeleton
 
 const isArm = false

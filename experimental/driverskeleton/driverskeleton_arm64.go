@@ -2,6 +2,6 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-package driver_skeleton
+package driverskeleton
 
 const isArm = true
