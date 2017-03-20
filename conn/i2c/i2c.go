@@ -55,8 +55,7 @@ type Pins interface {
 //
 // It implements conn.Conn.
 //
-// It saves from repeatedly specifying the device address and implements
-// utility functions.
+// It saves from repeatedly specifying the device address.
 type Dev struct {
 	Bus  Bus
 	Addr uint16
@@ -68,7 +67,7 @@ func (d *Dev) String() string {
 
 // Tx does a transaction by adding the device's address to each command.
 //
-// It's a wrapper for Dev.Bus.Tx().
+// It's a wrapper for Bus.Tx().
 func (d *Dev) Tx(w, r []byte) error {
 	return d.Bus.Tx(d.Addr, w, r)
 }
@@ -83,40 +82,7 @@ func (d *Dev) Write(b []byte) (int, error) {
 	return len(b), nil
 }
 
-// ReadReg writes the register number to the I²C bus, then reads data.
 //
-// It's a wrapper for Tx()
-func (d *Dev) ReadReg(reg byte, b []byte) error {
-	return d.Tx([]byte{reg}, b)
-}
-
-// Shortcuts
-
-// ReadRegUint8 reads a 8 bit register.
-func (d *Dev) ReadRegUint8(reg byte) (uint8, error) {
-	var v [1]byte
-	err := d.ReadReg(reg, v[:])
-	return v[0], err
-}
-
-// ReadRegUint16 reads a 16 bit register as big endian.
-func (d *Dev) ReadRegUint16(reg byte) (uint16, error) {
-	var v [2]byte
-	err := d.ReadReg(reg, v[:])
-	return uint16(v[0])<<8 | uint16(v[1]), err
-}
-
-// WriteRegUint8 writes a 8 bit register.
-func (d *Dev) WriteRegUint8(reg byte, v uint8) error {
-	_, err := d.Write([]byte{reg, v})
-	return err
-}
-
-// WriteRegUint16 writes a 16 bit register.
-func (d *Dev) WriteRegUint16(reg byte, v uint16) error {
-	_, err := d.Write([]byte{reg, byte(v >> 8), byte(v)})
-	return err
-}
 
 // All returns all the I²C buses available on this host.
 func All() map[string]Opener {
@@ -148,6 +114,12 @@ type Opener func() (BusCloser, error)
 //
 // Registering the same bus name twice is an error.
 func Register(name string, busNumber int, opener Opener) error {
+	if opener == nil {
+		return errors.New("i2c: nil opener")
+	}
+	if len(name) == 0 {
+		return errors.New("i2c: empty name")
+	}
 	mu.Lock()
 	defer mu.Unlock()
 	if _, ok := byName[name]; ok {
@@ -173,8 +145,7 @@ func Register(name string, busNumber int, opener Opener) error {
 func Unregister(name string, busNumber int) error {
 	mu.Lock()
 	defer mu.Unlock()
-	_, ok := byName[name]
-	if !ok {
+	if _, ok := byName[name]; !ok {
 		return fmt.Errorf("i2c: unknown bus name %q", name)
 	}
 	if _, ok := byNumber[busNumber]; !ok {

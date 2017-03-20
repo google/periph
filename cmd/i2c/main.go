@@ -81,7 +81,7 @@ func mainImpl() error {
 	if *write {
 		_, err = d.Write(buf)
 	} else {
-		if err = d.ReadReg(byte(*reg), buf); err != nil {
+		if err = d.Tx([]byte{byte(*reg)}, buf); err != nil {
 			return err
 		}
 		fmt.Printf("%s\n", hex.EncodeToString(buf))
