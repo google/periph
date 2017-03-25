@@ -88,7 +88,6 @@ func (d *Dev) Duplex() conn.Duplex {
 	return conn.Half
 }
 
-// ReadReg writes the register number to the I²C bus, then reads data.
 //
 
 // All returns all the I²C buses available on this host.
