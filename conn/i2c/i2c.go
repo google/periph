@@ -15,6 +15,7 @@ import (
 	"io"
 	"sync"
 
+	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio"
 )
 
@@ -82,6 +83,12 @@ func (d *Dev) Write(b []byte) (int, error) {
 	return len(b), nil
 }
 
+// Duplex always return conn.Half for I²C.
+func (d *Dev) Duplex() conn.Duplex {
+	return conn.Half
+}
+
+// ReadReg writes the register number to the I²C bus, then reads data.
 //
 
 // All returns all the I²C buses available on this host.
@@ -185,3 +192,5 @@ var (
 	byName   = map[string]Opener{}
 	byNumber = map[int]Opener{}
 )
+
+var _ conn.Conn = &Dev{}

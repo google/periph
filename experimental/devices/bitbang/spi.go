@@ -17,6 +17,7 @@ import (
 	"sync"
 	"time"
 
+	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/spi"
 	"periph.io/x/periph/host/cpu"
@@ -42,6 +43,12 @@ func (s *SPI) String() string {
 // Close implements spi.ConnCloser.
 func (s *SPI) Close() error {
 	return nil
+}
+
+// Duplex implements spi.Conn.
+func (s *SPI) Duplex() conn.Duplex {
+	// Maybe implement bitbanging SPI only in half mode?
+	return conn.Full
 }
 
 // Speed implements spi.Conn.

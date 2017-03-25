@@ -175,6 +175,11 @@ func (d *Dev) Tx(w, r []byte) error {
 	return d.Bus.Tx(ww, r, WeakPullup)
 }
 
+// Duplex always return conn.Half for 1-wire.
+func (d *Dev) Duplex() conn.Duplex {
+	return conn.Half
+}
+
 // TxPower performs a "match ROM" command on the bus to select the device
 // and then transmits and receives the specified bytes. It ends by
 // leaving a strong pull-up on the bus suitable to power devices through

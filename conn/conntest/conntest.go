@@ -19,6 +19,7 @@ import (
 type RecordRaw struct {
 	sync.Mutex
 	W io.Writer
+	D conn.Duplex
 }
 
 func (r *RecordRaw) String() string {
@@ -41,6 +42,12 @@ func (r *RecordRaw) Tx(w, read []byte) error {
 	return err
 }
 
+func (r *RecordRaw) Duplex() conn.Duplex {
+	r.Lock()
+	defer r.Unlock()
+	return r.D
+}
+
 // IO registers the I/O that happened on either a real or fake connection.
 type IO struct {
 	Write []byte
@@ -54,6 +61,7 @@ type Record struct {
 	sync.Mutex
 	Conn conn.Conn // Conn can be nil if only writes are being recorded.
 	Ops  []IO
+	D    conn.Duplex
 }
 
 func (r *Record) String() string {
@@ -91,6 +99,12 @@ func (r *Record) Tx(w, read []byte) error {
 	return nil
 }
 
+func (r *Record) Duplex() conn.Duplex {
+	r.Lock()
+	defer r.Unlock()
+	return r.D
+}
+
 // Playback implements conn.Conn and plays back a recorded I/O flow.
 //
 // While "replay" type of unit tests are of limited value, they still present
@@ -98,6 +112,7 @@ func (r *Record) Tx(w, read []byte) error {
 type Playback struct {
 	sync.Mutex
 	Ops []IO
+	D   conn.Duplex
 }
 
 func (p *Playback) String() string {
@@ -128,6 +143,12 @@ func (p *Playback) Tx(w, r []byte) error {
 	copy(r, p.Ops[0].Read)
 	p.Ops = p.Ops[1:]
 	return nil
+}
+
+func (p *Playback) Duplex() conn.Duplex {
+	p.Lock()
+	defer p.Unlock()
+	return p.D
 }
 
 var _ conn.Conn = &RecordRaw{}

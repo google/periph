@@ -29,6 +29,9 @@ type Dev8 struct {
 
 // ReadUint8 reads a 8 bit register.
 func (d *Dev8) ReadUint8(reg uint8) (uint8, error) {
+	if err := d.check(); err != nil {
+		return 0, err
+	}
 	var v [1]uint8
 	err := d.Conn.Tx([]byte{reg}, v[:])
 	return v[0], err
@@ -36,8 +39,8 @@ func (d *Dev8) ReadUint8(reg uint8) (uint8, error) {
 
 // ReadUint16 reads a 16 bit register.
 func (d *Dev8) ReadUint16(reg uint8) (uint16, error) {
-	if d.Order == nil {
-		return 0, errors.New("reg: don't know if big or little endian")
+	if err := d.check(); err != nil {
+		return 0, err
 	}
 	var v [2]byte
 	err := d.Conn.Tx([]byte{reg}, v[:])
@@ -46,8 +49,8 @@ func (d *Dev8) ReadUint16(reg uint8) (uint16, error) {
 
 // ReadUint32 reads a 32 bit register.
 func (d *Dev8) ReadUint32(reg uint8) (uint32, error) {
-	if d.Order == nil {
-		return 0, errors.New("reg: don't know if big or little endian")
+	if err := d.check(); err != nil {
+		return 0, err
 	}
 	var v [4]byte
 	err := d.Conn.Tx([]byte{reg}, v[:])
@@ -56,8 +59,8 @@ func (d *Dev8) ReadUint32(reg uint8) (uint32, error) {
 
 // ReadUint64 reads a 64 bit register.
 func (d *Dev8) ReadUint64(reg uint8) (uint64, error) {
-	if d.Order == nil {
-		return 0, errors.New("reg: don't know if big or little endian")
+	if err := d.check(); err != nil {
+		return 0, err
 	}
 	var v [8]byte
 	err := d.Conn.Tx([]byte{reg}, v[:])
@@ -70,21 +73,24 @@ func (d *Dev8) ReadUint64(reg uint8) (uint64, error) {
 // It is expected to be called with a slice of integers, slice of structs,
 // pointer to an integer or to a struct.
 func (d *Dev8) ReadStruct(reg uint8, b interface{}) error {
-	if d.Order == nil {
-		return errors.New("reg: don't know if big or little endian")
+	if err := d.check(); err != nil {
+		return err
 	}
 	return readReg(d.Conn, d.Order, []byte{reg}, b)
 }
 
 // WriteUint8 writes a 8 bit register.
 func (d *Dev8) WriteUint8(reg uint8, v uint8) error {
+	if err := d.check(); err != nil {
+		return err
+	}
 	return d.Conn.Tx([]byte{reg, v}, nil)
 }
 
 // WriteUint16 writes a 16 bit register.
 func (d *Dev8) WriteUint16(reg uint8, v uint16) error {
-	if d.Order == nil {
-		return errors.New("reg: don't know if big or little endian")
+	if err := d.check(); err != nil {
+		return err
 	}
 	var a [3]byte
 	a[0] = reg
@@ -94,8 +100,8 @@ func (d *Dev8) WriteUint16(reg uint8, v uint16) error {
 
 // WriteUint32 writes a 32 bit register.
 func (d *Dev8) WriteUint32(reg uint8, v uint32) error {
-	if d.Order == nil {
-		return errors.New("reg: don't know if big or little endian")
+	if err := d.check(); err != nil {
+		return err
 	}
 	var a [5]byte
 	a[0] = reg
@@ -105,8 +111,8 @@ func (d *Dev8) WriteUint32(reg uint8, v uint32) error {
 
 // WriteUint64 writes a 64 bit register.
 func (d *Dev8) WriteUint64(reg uint8, v uint64) error {
-	if d.Order == nil {
-		return errors.New("reg: don't know if big or little endian")
+	if err := d.check(); err != nil {
+		return err
 	}
 	var a [9]byte
 	a[0] = reg
@@ -120,10 +126,23 @@ func (d *Dev8) WriteUint64(reg uint8, v uint64) error {
 // It is expected to be called with a slice of integers, slice of structs,
 // pointer to an integer or to a struct.
 func (d *Dev8) WriteStruct(reg uint8, b interface{}) error {
+	if err := d.check(); err != nil {
+		return err
+	}
+	return writeReg(d.Conn, d.Order, []byte{reg}, b)
+}
+
+func (d *Dev8) check() error {
+	if d.Conn == nil {
+		return errors.New("reg: missing connection")
+	}
+	if d.Conn.Duplex() != conn.Half {
+		return errors.New("reg: connection must be half-duplex")
+	}
 	if d.Order == nil {
 		return errors.New("reg: don't know if big or little endian")
 	}
-	return writeReg(d.Conn, d.Order, []byte{reg}, b)
+	return nil
 }
 
 //
@@ -141,8 +160,8 @@ type Dev16 struct {
 
 // ReadUint8 reads a 8 bit register.
 func (d *Dev16) ReadUint8(reg uint16) (uint8, error) {
-	if d.Order == nil {
-		return 0, errors.New("reg: don't know if big or little endian")
+	if err := d.check(); err != nil {
+		return 0, err
 	}
 	var v [1]byte
 	var r [2]byte
@@ -153,8 +172,8 @@ func (d *Dev16) ReadUint8(reg uint16) (uint8, error) {
 
 // ReadUint16 reads a 16 bit register.
 func (d *Dev16) ReadUint16(reg uint16) (uint16, error) {
-	if d.Order == nil {
-		return 0, errors.New("reg: don't know if big or little endian")
+	if err := d.check(); err != nil {
+		return 0, err
 	}
 	var v [2]byte
 	var r [2]byte
@@ -165,8 +184,8 @@ func (d *Dev16) ReadUint16(reg uint16) (uint16, error) {
 
 // ReadUint32 reads a 32 bit register.
 func (d *Dev16) ReadUint32(reg uint16) (uint32, error) {
-	if d.Order == nil {
-		return 0, errors.New("reg: don't know if big or little endian")
+	if err := d.check(); err != nil {
+		return 0, err
 	}
 	var v [4]byte
 	var r [2]byte
@@ -177,8 +196,8 @@ func (d *Dev16) ReadUint32(reg uint16) (uint32, error) {
 
 // ReadUint64 reads a 64 bit register.
 func (d *Dev16) ReadUint64(reg uint16) (uint64, error) {
-	if d.Order == nil {
-		return 0, errors.New("reg: don't know if big or little endian")
+	if err := d.check(); err != nil {
+		return 0, err
 	}
 	var v [8]byte
 	var r [2]byte
@@ -193,8 +212,8 @@ func (d *Dev16) ReadUint64(reg uint16) (uint64, error) {
 // It is expected to be called with a slice of integers, slice of structs,
 // pointer to an integer or to a struct.
 func (d *Dev16) ReadStruct(reg uint16, b interface{}) error {
-	if d.Order == nil {
-		return errors.New("reg: don't know if big or little endian")
+	if err := d.check(); err != nil {
+		return err
 	}
 	var r [2]byte
 	d.Order.PutUint16(r[:], reg)
@@ -203,8 +222,8 @@ func (d *Dev16) ReadStruct(reg uint16, b interface{}) error {
 
 // WriteUint8 writes a 8 bit register.
 func (d *Dev16) WriteUint8(reg uint16, v uint8) error {
-	if d.Order == nil {
-		return errors.New("reg: don't know if big or little endian")
+	if err := d.check(); err != nil {
+		return err
 	}
 	var r [3]byte
 	d.Order.PutUint16(r[:], reg)
@@ -214,8 +233,8 @@ func (d *Dev16) WriteUint8(reg uint16, v uint8) error {
 
 // WriteUint16 writes a 16 bit register.
 func (d *Dev16) WriteUint16(reg uint16, v uint16) error {
-	if d.Order == nil {
-		return errors.New("reg: don't know if big or little endian")
+	if err := d.check(); err != nil {
+		return err
 	}
 	var r [4]byte
 	d.Order.PutUint16(r[:], reg)
@@ -225,8 +244,8 @@ func (d *Dev16) WriteUint16(reg uint16, v uint16) error {
 
 // WriteUint32 writes a 32 bit register.
 func (d *Dev16) WriteUint32(reg uint16, v uint32) error {
-	if d.Order == nil {
-		return errors.New("reg: don't know if big or little endian")
+	if err := d.check(); err != nil {
+		return err
 	}
 	var r [6]byte
 	d.Order.PutUint16(r[:], reg)
@@ -236,8 +255,8 @@ func (d *Dev16) WriteUint32(reg uint16, v uint32) error {
 
 // WriteUint64 writes a 64 bit register.
 func (d *Dev16) WriteUint64(reg uint16, v uint64) error {
-	if d.Order == nil {
-		return errors.New("reg: don't know if big or little endian")
+	if err := d.check(); err != nil {
+		return err
 	}
 	var r [10]byte
 	d.Order.PutUint16(r[:], reg)
@@ -251,12 +270,25 @@ func (d *Dev16) WriteUint64(reg uint16, v uint64) error {
 // It is expected to be called with a slice of integers, slice of structs,
 // pointer to an integer or to a struct.
 func (d *Dev16) WriteStruct(reg uint16, b interface{}) error {
-	if d.Order == nil {
-		return errors.New("reg: don't know if big or little endian")
+	if err := d.check(); err != nil {
+		return err
 	}
 	var r [2]byte
 	d.Order.PutUint16(r[:], reg)
 	return writeReg(d.Conn, d.Order, r[:], b)
+}
+
+func (d *Dev16) check() error {
+	if d.Conn == nil {
+		return errors.New("reg: missing connection")
+	}
+	if d.Conn.Duplex() != conn.Half {
+		return errors.New("reg: connection must be half-duplex")
+	}
+	if d.Order == nil {
+		return errors.New("reg: don't know if big or little endian")
+	}
+	return nil
 }
 
 //
