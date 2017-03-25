@@ -15,7 +15,7 @@ import (
 
 	"periph.io/x/periph/conn/conntest"
 	"periph.io/x/periph/conn/i2c"
-	"periph.io/x/periph/experimental/conn/onewire"
+	"periph.io/x/periph/conn/onewire"
 )
 
 func ExampleDev8() {

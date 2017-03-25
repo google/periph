@@ -7,7 +7,7 @@ package onewiretest
 import (
 	"testing"
 
-	"periph.io/x/periph/experimental/conn/onewire"
+	"periph.io/x/periph/conn/onewire"
 )
 
 // TestDevTx tests the onewire.Dev implementation using the Playback bus impl.

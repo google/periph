@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"periph.io/x/periph/conn"
-	"periph.io/x/periph/experimental/conn/onewire"
+	"periph.io/x/periph/conn/onewire"
 )
 
 // Dev is a handle to a ds248x device and it implements the onewire.Bus interface.

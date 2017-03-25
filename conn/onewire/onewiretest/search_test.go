@@ -8,7 +8,7 @@ import (
 	"encoding/binary"
 	"testing"
 
-	"periph.io/x/periph/experimental/conn/onewire"
+	"periph.io/x/periph/conn/onewire"
 )
 
 // TestSearch tests the onewire.Search function using the Playback bus preloaded
