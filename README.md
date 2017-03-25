@@ -3,8 +3,9 @@
 Documentation is at https://periph.io
 
 [![GoDoc](https://godoc.org/periph.io/x/periph?status.svg)](https://godoc.org/periph.io/x/periph)
-[![Go Report
-Card](https://goreportcard.com/badge/periph.io/x/periph)](https://goreportcard.com/report/periph.io/x/periph)
+[![Go Report Card](https://goreportcard.com/badge/periph.io/x/periph)](https://goreportcard.com/report/periph.io/x/periph)
+[![Coverage Status](https://codecov.io/gh/google/periph/graph/badge.svg)](https://codecov.io/gh/google/periph)
+[![Build Status](https://travis-ci.org/google/periph.svg)](https://travis-ci.org/google/periph)
 
 
 ## Example
