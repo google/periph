@@ -95,6 +95,12 @@ type Opener func() (ConnCloser, error)
 //
 // Registering the same bus name twice is an error.
 func Register(name string, busNumber, cs int, opener Opener) error {
+	if len(name) == 0 {
+		return errors.New("spi: trying to register an unamed bus")
+	}
+	if opener == nil {
+		return errors.New("spi: trying to register a nil opener")
+	}
 	mu.Lock()
 	defer mu.Unlock()
 	if _, ok := byName[name]; ok {
