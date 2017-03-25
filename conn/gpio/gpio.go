@@ -213,7 +213,7 @@ func ByName(name string) PinIO {
 	if p, ok := byAlias[name]; ok {
 		if p.PinIO == nil {
 			if p.PinIO = getByNumber(p.number); p.PinIO == nil {
-				p = nil
+				return nil
 			}
 		}
 		return p

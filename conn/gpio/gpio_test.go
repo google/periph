@@ -7,6 +7,7 @@ package gpio
 import (
 	"fmt"
 	"log"
+	"sort"
 	"testing"
 	"time"
 )
@@ -105,12 +106,6 @@ func TestInvalid(t *testing.T) {
 
 func TestRegister(t *testing.T) {
 	defer reset()
-	if err := Register(&basicPin{}, false); err == nil {
-		t.Fatal("Expected error")
-	}
-	if err := Register(&basicPin{N: "a", num: -1}, false); err == nil {
-		t.Fatal("Expected error")
-	}
 	if err := Register(&basicPin{N: "a"}, false); err != nil {
 		t.Fatal(err)
 	}
@@ -119,6 +114,9 @@ func TestRegister(t *testing.T) {
 	}
 	if a := Aliases(); len(a) != 0 {
 		t.Fatalf("Expected zero alias, got %v", a)
+	}
+	if ByName("a") == nil {
+		t.Fail()
 	}
 	if err := Register(&basicPin{N: "a"}, true); err != nil {
 		t.Fatal(err)
@@ -135,27 +133,43 @@ func TestRegister(t *testing.T) {
 	if ByNumber(1) != nil {
 		t.Fail()
 	}
+	if ByName("a") == nil {
+		t.Fail()
+	}
 	if ByName("0") == nil {
 		t.Fail()
 	}
 	if ByName("1") != nil {
 		t.Fail()
 	}
+	if ByName("b") != nil {
+		t.Fail()
+	}
+}
+
+func TestRegister_fail(t *testing.T) {
+	defer reset()
+	if err := Register(&basicPin{}, false); err == nil {
+		t.Fatal("Expected error")
+	}
+	if err := Register(&basicPin{N: "a", num: -1}, false); err == nil {
+		t.Fatal("Expected error")
+	}
+	if err := Register(&basicPin{N: "1"}, false); err == nil {
+		t.Fatal("Expected error")
+	}
 }
 
 func TestRegisterAlias(t *testing.T) {
 	defer reset()
-	if err := RegisterAlias("", 1); err == nil {
-		t.Fatal("Expected error")
-	}
-	if err := RegisterAlias("alias0", -1); err == nil {
-		t.Fatal("Expected error")
-	}
 	if err := RegisterAlias("alias0", 0); err != nil {
 		t.Fatal(err)
 	}
 	if err := RegisterAlias("alias0", 0); err == nil {
 		t.Fatal(err)
+	}
+	if p := ByName("alias0"); p != nil {
+		t.Fatalf("unexpected alias0: %v", p)
 	}
 	if a := All(); len(a) != 0 {
 		t.Fatalf("Expected zero pin, got %v", a)
@@ -194,8 +208,25 @@ func TestRegisterAlias(t *testing.T) {
 	}
 }
 
-func TestAreInGPIOTest(t *testing.T) {
-	// Real tests are in gpiotest due to cyclic dependency.
+func TestRegisterAlias_fail(t *testing.T) {
+	defer reset()
+	if err := RegisterAlias("", 1); err == nil {
+		t.Fatal("Expected error")
+	}
+	if err := RegisterAlias("alias0", -1); err == nil {
+		t.Fatal("Expected error")
+	}
+	if err := RegisterAlias("0", 0); err == nil {
+		t.Fatal("Expected error")
+	}
+}
+
+func TestPinList(t *testing.T) {
+	l := pinList{&basicPin{num: 1}, &basicPin{}}
+	sort.Sort(l)
+	if l[0].(*basicPin).num != 0 || l[1].(*basicPin).num != 1 {
+		t.Fatal(l)
+	}
 }
 
 //
