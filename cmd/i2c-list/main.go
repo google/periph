@@ -8,7 +8,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"sort"
 
 	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/pins"
@@ -29,15 +28,9 @@ func mainImpl() error {
 	if _, err := host.Init(); err != nil {
 		return err
 	}
-	all := i2c.All()
-	names := make([]string, 0, len(all))
-	for name := range all {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-	for _, name := range names {
-		fmt.Printf("%s:\n", name)
-		bus, err := all[name]()
+	for _, ref := range i2c.All() {
+		fmt.Printf("%s:\n", ref.Name)
+		bus, err := ref.Open()
 		if err != nil {
 			fmt.Printf("  Failed to open: %v\n", err)
 			continue
@@ -46,7 +39,9 @@ func mainImpl() error {
 			printPin("SCL", p.SCL())
 			printPin("SDA", p.SDA())
 		}
-		bus.Close()
+		if err := bus.Close(); err != nil {
+			return err
+		}
 	}
 	return nil
 }

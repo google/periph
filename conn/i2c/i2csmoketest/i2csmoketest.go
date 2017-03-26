@@ -40,13 +40,13 @@ func (s *SmokeTest) Description() string {
 // Run implements the SmokeTest interface.
 func (s *SmokeTest) Run(args []string) error {
 	f := flag.NewFlagSet("i2c", flag.ExitOnError)
-	busNum := f.Int("bus", -1, "bus number, -1 for lowest numbered bus")
+	busName := f.String("bus", "", "I²C bus to use")
 	wc := f.String("wc", "", "gpio pin for EEPROM write-control pin")
 	seed := f.Int64("seed", 0, "random number seed, default is to use the time")
 	f.Parse(args)
 
 	// Open the bus.
-	i2cBus, err := i2c.New(*busNum)
+	i2cBus, err := i2c.OpenByName(*busName)
 	if err != nil {
 		return fmt.Errorf("i2c-smoke: %s", err)
 	}

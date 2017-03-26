@@ -25,6 +25,8 @@ type IO struct {
 // Record implements i2c.Bus that records everything written to it.
 //
 // This can then be used to feed to Playback to do "replay" based unit tests.
+//
+// Record doesn't implement i2c.BusCloser on purpose.
 type Record struct {
 	sync.Mutex
 	Bus i2c.Bus // Bus can be nil if only writes are being recorded.
@@ -88,7 +90,9 @@ func (r *Record) SDA() gpio.PinIO {
 // an easy way to do basic code coverage.
 type Playback struct {
 	sync.Mutex
-	Ops []IO
+	Ops    []IO
+	SDAPin gpio.PinIO
+	SCLPin gpio.PinIO
 }
 
 func (p *Playback) String() string {
@@ -96,6 +100,8 @@ func (p *Playback) String() string {
 }
 
 // Close implements i2c.BusCloser.
+//
+// Close() verifies that all the expected Ops have been consumed.
 func (p *Playback) Close() error {
 	p.Lock()
 	defer p.Unlock()
@@ -131,6 +137,17 @@ func (p *Playback) Speed(hz int64) error {
 	return nil
 }
 
+// SCL implements i2c.Pins.
+func (p *Playback) SCL() gpio.PinIO {
+	return p.SCLPin
+}
+
+// SDA implements i2c.Pins.
+func (p *Playback) SDA() gpio.PinIO {
+	return p.SDAPin
+}
+
 var _ i2c.Bus = &Record{}
 var _ i2c.Pins = &Record{}
 var _ i2c.Bus = &Playback{}
+var _ i2c.Pins = &Playback{}

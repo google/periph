@@ -238,7 +238,7 @@ func patterns(s *ssd1306.Dev) error {
 }
 
 func mainImpl() error {
-	i2cID := flag.Int("i2c", -1, "specify I²C bus to use")
+	i2cID := flag.String("i2c", "", "I²C bus to use")
 	spiID := flag.Int("spi", -1, "specify SPI bus to use")
 	csID := flag.Int("cs", 0, "specify SPI chip select (CS) to use")
 	speed := flag.Int("speed", 0, "specify SPI speed in Hz to use")
@@ -285,7 +285,7 @@ func mainImpl() error {
 			return err
 		}
 	} else {
-		bus, err := i2c.New(*i2cID)
+		bus, err := i2c.OpenByName(*i2cID)
 		if err != nil {
 			return err
 		}
