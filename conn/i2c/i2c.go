@@ -100,6 +100,8 @@ func (d *Dev) Duplex() conn.Duplex {
 type Opener func() (BusCloser, error)
 
 // Ref references an I²C bus.
+//
+// It is returned by All() to enumerate all registered buses.
 type Ref struct {
 	// Name of the bus.
 	//
@@ -163,8 +165,6 @@ func OpenByNumber(busNumber int) (BusCloser, error) {
 // recommended default value unless an application knows the exact bus to use.
 //
 // Each bus can register multiple aliases, each leading to the same bus handle.
-// The aliases can be retrieved with Aliases(). For example, "/dev/i2c-0",
-// "I2C0" and "0" are likely valid ways to access the same bus on linux.
 func OpenByName(name string) (BusCloser, error) {
 	var r *Ref
 	var err error

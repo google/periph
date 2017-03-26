@@ -7,17 +7,97 @@ package i2c
 import (
 	"bytes"
 	"errors"
+	"flag"
 	"fmt"
+	"log"
 	"sort"
+	"strings"
 	"testing"
 
 	"periph.io/x/periph/conn"
 )
 
 func ExampleAll() {
+	// Enumerate all I²C buses available and the corresponding pins.
 	fmt.Print("I²C buses available:\n")
-	for name := range All() {
-		fmt.Printf("- %s\n", name)
+	for _, ref := range All() {
+		fmt.Printf("- %s\n", ref.Name)
+		if ref.Number != -1 {
+			fmt.Printf("  %d\n", ref.Number)
+		}
+		if len(ref.Aliases) != 0 {
+			fmt.Printf("  %s\n", strings.Join(ref.Aliases, " "))
+		}
+
+		b, err := ref.Open()
+		if err != nil {
+			fmt.Printf("  Failed to open: %v", err)
+		}
+		if p, ok := b.(Pins); ok {
+			fmt.Printf("  SDA: %s", p.SDA())
+			fmt.Printf("  SCL: %s", p.SCL())
+		}
+		if err := b.Close(); err != nil {
+			fmt.Printf("  Failed to close: %v", err)
+		}
+	}
+}
+
+func ExampleOpenByName() {
+	// On linux, the following calls will likely open the same bus.
+	OpenByName("/dev/i2c-1")
+	OpenByName("I2C1")
+	OpenByName("1")
+
+	// How a command line tool may let the user choose an I²C, yet default to the
+	// first bus known.
+	name := flag.String("i2c", "", "I²C bus to use")
+	flag.Parse()
+	b, err := OpenByName(*name)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer b.Close()
+	// Use b...
+	b.Tx(23, []byte("cmd"), nil)
+}
+
+func ExampleOpenByNumber() {
+	// Open bus the bus number 1.
+	OpenByNumber(1)
+	// Open the first bus known.
+	OpenByNumber(-1)
+}
+
+func ExampleDev() {
+	b, err := OpenByName("")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer b.Close()
+
+	// Dev is a valid conn.Conn.
+	d := &Dev{Addr: 23, Bus: b}
+	var _ conn.Conn = d
+
+	// Send a command and expect a 5 bytes reply.
+	reply := [5]byte{}
+	if err := d.Tx([]byte("A command"), reply[:]); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func ExamplePins() {
+	b, err := OpenByName("")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer b.Close()
+
+	// Prints out the gpio pin used.
+	if p, ok := b.(Pins); ok {
+		fmt.Printf("SDA: %s", p.SDA())
+		fmt.Printf("SCL: %s", p.SCL())
 	}
 }
 
