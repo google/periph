@@ -19,6 +19,8 @@ import (
 	"periph.io/x/periph/conn/pins"
 )
 
+// Interfaces
+
 // Level is the level of the pin: Low or High.
 type Level bool
 
@@ -182,7 +184,7 @@ type RealPin interface {
 	Real() PinIO // Real returns the real pin behind an Alias
 }
 
-//
+// Registry
 
 // ByNumber returns a GPIO pin from its number.
 //
@@ -323,12 +325,12 @@ func Register(p PinIO, preferred bool) error {
 //
 // It is possible to register an alias for a pin number that itself has not
 // been registered yet.
-func RegisterAlias(name string, number int) error {
-	if len(name) == 0 {
+func RegisterAlias(alias string, number int) error {
+	if len(alias) == 0 {
 		return errors.New("gpio: can't register an alias with no name")
 	}
-	if _, err := strconv.Atoi(name); err == nil {
-		return fmt.Errorf("gpio: can't register an alias with a name being only a number %q", name)
+	if _, err := strconv.Atoi(alias); err == nil {
+		return fmt.Errorf("gpio: can't register an alias being only a number %q", alias)
 	}
 	if number < 0 {
 		return fmt.Errorf("gpio: can't register an alias to a pin with a negative number %d", number)
@@ -336,10 +338,10 @@ func RegisterAlias(name string, number int) error {
 
 	mu.Lock()
 	defer mu.Unlock()
-	if orig, ok := byAlias[name]; ok {
-		return fmt.Errorf("gpio: can't register alias %q for pin %d: it is already aliased to %q", name, number, orig)
+	if orig := byAlias[alias]; orig != nil {
+		return fmt.Errorf("gpio: can't register alias %q for pin %d: it is already aliased to %q", alias, number, orig)
 	}
-	byAlias[name] = &pinAlias{name: name, number: number}
+	byAlias[alias] = &pinAlias{name: alias, number: number}
 	return nil
 }
 

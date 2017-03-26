@@ -21,7 +21,7 @@ import (
 
 func mainImpl() error {
 	addr := flag.Int("a", -1, "I²C device address to query")
-	busNumber := flag.Int("b", -1, "I²C bus to use")
+	busName := flag.String("b", "", "I²C bus to use")
 	verbose := flag.Bool("v", false, "verbose mode")
 	write := flag.Bool("w", false, "write instead of reading")
 	reg := flag.Int("r", -1, "register to address")
@@ -69,7 +69,7 @@ func mainImpl() error {
 		buf = make([]byte, *l)
 	}
 
-	bus, err := i2c.New(*busNumber)
+	bus, err := i2c.OpenByName(*busName)
 	if err != nil {
 		return err
 	}

@@ -77,7 +77,7 @@ func TestDraw1D(t *testing.T) {
 //
 
 func Example() {
-	bus, err := i2c.New(-1)
+	bus, err := i2c.OpenByName("")
 	if err != nil {
 		log.Fatalf("failed to open I²C: %v", err)
 	}

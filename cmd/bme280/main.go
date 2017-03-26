@@ -48,7 +48,7 @@ func read(e devices.Environmental, loop bool) error {
 }
 
 func mainImpl() error {
-	i2cID := flag.Int("i", -1, "I²C bus to use")
+	i2cID := flag.String("i", "", "I²C bus to use")
 	i2cADDR := flag.Uint("ia", 0, "I²C bus address to use")
 	spiID := flag.Int("s", -1, "SPI bus to use")
 	cs := flag.Int("cs", -1, "SPI chip select (CS) line to use")
@@ -122,7 +122,7 @@ func mainImpl() error {
 			return err
 		}
 	} else {
-		bus, err := i2c.New(*i2cID)
+		bus, err := i2c.OpenByName(*i2cID)
 		if err != nil {
 			return err
 		}

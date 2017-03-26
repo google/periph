@@ -21,7 +21,7 @@ import (
 
 func ExampleDev8() {
 	// Open a connection, using I²C as an example:
-	bus, err := i2c.New(-1)
+	bus, err := i2c.OpenByName("")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -40,7 +40,7 @@ func ExampleDev8() {
 
 func ExampleDev8_ReadStruct() {
 	// Open a connection, using I²C as an example:
-	bus, err := i2c.New(-1)
+	bus, err := i2c.OpenByName("")
 	if err != nil {
 		log.Fatal(err)
 	}

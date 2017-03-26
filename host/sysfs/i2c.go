@@ -331,13 +331,19 @@ func (d *driverI2C) Init() (bool, error) {
 		if err != nil {
 			continue
 		}
-		if err := i2c.Register(fmt.Sprintf("I2C%d", bus), bus, func() (i2c.BusCloser, error) {
-			return NewI2C(bus)
-		}); err != nil {
+		name := fmt.Sprintf("/dev/i2c-%d", bus)
+		aliases := []string{fmt.Sprintf("I2C%d", bus)}
+		if err := i2c.Register(name, aliases, bus, opener(bus).Open); err != nil {
 			return true, err
 		}
 	}
 	return true, nil
+}
+
+type opener int
+
+func (o opener) Open() (i2c.BusCloser, error) {
+	return NewI2C(int(o))
 }
 
 func init() {

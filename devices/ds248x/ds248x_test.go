@@ -32,7 +32,7 @@ func TestInit(t *testing.T) {
 
 func Example() {
 	// Open the I²C bus to which the DS248x is connected.
-	i2cBus, err := i2c.New(-1)
+	i2cBus, err := i2c.OpenByName("")
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -72,7 +72,7 @@ func TestRecordInit(t *testing.T) {
 	}
 	host.Init()
 
-	i2cReal, err := i2c.New(-1)
+	i2cReal, err := i2c.OpenByName("")
 	if err != nil {
 		t.Fatal(err)
 	}

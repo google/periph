@@ -40,12 +40,12 @@ func (s *SmokeTest) Description() string {
 // Run implements the SmokeTest interface.
 func (s *SmokeTest) Run(args []string) error {
 	f := flag.NewFlagSet("onewire", flag.ExitOnError)
-	busNum := f.Int("i2cbus", -1, "bus number for the DS2483 1-wire interface chip, -1 for lowest numbered bus")
+	busName := f.String("i2cbus", "", "I²C bus name for the DS2483 1-wire interface chip")
 	seed := f.Int64("seed", 0, "random number seed, default is to use the time")
 	f.Parse(args)
 
 	// Open the i2c bus where the DS2483 is located.
-	i2cBus, err := i2c.New(*busNum)
+	i2cBus, err := i2c.OpenByName(*busName)
 	if err != nil {
 		return fmt.Errorf("onewire-smoke: cannot open i2c bus: %v", err)
 	}

@@ -8,7 +8,10 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"sort"
 	"testing"
+
+	"periph.io/x/periph/conn"
 )
 
 func ExampleAll() {
@@ -46,6 +49,9 @@ func TestDevTx(t *testing.T) {
 	if b.addr != 12 {
 		t.Fatalf("got %d", b.addr)
 	}
+	if i := d.Duplex(); i != conn.Half {
+		t.Fatal(i)
+	}
 }
 
 func TestDevWrite(t *testing.T) {
@@ -81,78 +87,160 @@ func TestDevWriteErr(t *testing.T) {
 
 //
 
-func TestAll(t *testing.T) {
+func TestOpenByNumber(t *testing.T) {
 	defer reset()
-	byName = map[string]Opener{"foo": nil}
-	actual := All()
-	if len(actual) != 1 {
-		t.Fatalf("%v", actual)
+	if _, err := OpenByNumber(-1); err == nil {
+		t.Fatal("no bus registered")
 	}
-	if _, ok := actual["foo"]; !ok {
-		t.FailNow()
+
+	if err := Register("a", nil, 42, fakeBuser); err != nil {
+		t.Fatal(err)
+	}
+	if v, err := OpenByNumber(-1); err != nil || v == nil {
+		t.Fatal(v, err)
+	}
+	if v, err := OpenByNumber(42); err != nil || v == nil {
+		t.Fatal(v, err)
+	}
+	if v, err := OpenByNumber(1); err == nil || v != nil {
+		t.Fatal(v, err)
 	}
 }
 
-func TestNew(t *testing.T) {
+func TestOpenByName(t *testing.T) {
 	defer reset()
-	if _, err := New(-1); err == nil {
-		t.FailNow()
+	if _, err := OpenByName(""); err == nil {
+		t.Fatal("no bus registered")
 	}
+	if err := Register("a", []string{"x"}, 1, fakeBuser); err != nil {
+		t.Fatal(err)
+	}
+	if o, err := OpenByName(""); o == nil || err != nil {
+		t.Fatal(o, err)
+	}
+	if o, err := OpenByName("1"); o == nil || err != nil {
+		t.Fatal(o, err)
+	}
+	if o, err := OpenByName("x"); o == nil || err != nil {
+		t.Fatal(o, err)
+	}
+	if o, err := OpenByName("y"); o != nil || err == nil {
+		t.Fatal(o, err)
+	}
+}
 
-	byNumber = map[int]Opener{42: fakeBusOpener}
-	if v, err := New(-1); err != nil || v == nil {
-		t.FailNow()
+func TestDefault_NoNumber(t *testing.T) {
+	defer reset()
+	if err := Register("a", nil, -1, fakeBuser); err != nil {
+		t.Fatal(err)
 	}
-	if v, err := New(42); err != nil || v == nil {
-		t.FailNow()
+	if o, err := OpenByName(""); o == nil || err != nil {
+		t.Fatal(o, err)
 	}
-	if v, err := New(1); err == nil || v != nil {
-		t.FailNow()
+}
+
+func TestAll(t *testing.T) {
+	defer reset()
+	if a := All(); len(a) != 0 {
+		t.Fatal(a)
+	}
+	if err := Register("a", nil, 1, fakeBuser); err != nil {
+		t.Fatal(err)
+	}
+	if err := Register("b", nil, 2, fakeBuser); err != nil {
+		t.Fatal(err)
+	}
+	if a := All(); len(a) != 2 {
+		t.Fatal(a)
+	}
+}
+
+func TestRefList(t *testing.T) {
+	l := refList{&Ref{Name: "b"}, &Ref{Name: "a"}}
+	sort.Sort(l)
+	if l[0].Name != "a" || l[1].Name != "b" {
+		t.Fatal(l)
 	}
 }
 
 func TestRegister(t *testing.T) {
 	defer reset()
-	if Unregister("", 42) == nil {
-		t.FailNow()
-	}
-	if Register("a", 42, nil) == nil {
-		t.FailNow()
-	}
-	if Register("", 42, fakeBusOpener) == nil {
-		t.FailNow()
-	}
-	if err := Register("a", 42, fakeBusOpener); err != nil {
+	if err := Register("a", []string{"b"}, 42, fakeBuser); err != nil {
 		t.Fatal(err)
 	}
-	if Register("a", 42, fakeBusOpener) == nil {
-		t.FailNow()
+	if Register("a", nil, -1, fakeBuser) == nil {
+		t.Fatal("same bus name")
 	}
-	if Register("b", 42, fakeBusOpener) == nil {
-		t.FailNow()
+	if Register("b", nil, -1, fakeBuser) == nil {
+		t.Fatal("same bus alias name")
 	}
-	if Unregister("", 42) == nil {
-		t.FailNow()
+	if Register("c", nil, 42, fakeBuser) == nil {
+		t.Fatal("same bus number")
 	}
-	if Unregister("a", 0) == nil {
-		t.FailNow()
+	if Register("c", []string{"a"}, -1, fakeBuser) == nil {
+		t.Fatal("same bus alias")
 	}
-	if err := Unregister("a", 42); err != nil {
+	if Register("c", []string{"b"}, -1, fakeBuser) == nil {
+		t.Fatal("same bus alias")
+	}
+}
+
+func TestRegister_fail(t *testing.T) {
+	defer reset()
+	if Register("a", nil, -1, nil) == nil {
+		t.Fatal("missing Opener")
+	}
+	if Register("a", nil, -2, fakeBuser) == nil {
+		t.Fatal("bad bus number")
+	}
+	if Register("", nil, 42, fakeBuser) == nil {
+		t.Fatal("missing name")
+	}
+	if Register("1", nil, 42, fakeBuser) == nil {
+		t.Fatal("numeric name")
+	}
+	if Register("a", []string{"a"}, 0, fakeBuser) == nil {
+		t.Fatal("\"a\" is already registered")
+	}
+	if Register("a", []string{""}, 0, fakeBuser) == nil {
+		t.Fatal("empty alias")
+	}
+	if Register("a", []string{"1"}, 0, fakeBuser) == nil {
+		t.Fatal("numeric alias")
+	}
+	if a := All(); len(a) != 0 {
+		t.Fatal(a)
+	}
+}
+
+func TestUnregister(t *testing.T) {
+	defer reset()
+	if Unregister("") == nil {
+		t.Fatal("unregister empty")
+	}
+	if Unregister("a") == nil {
+		t.Fatal("unregister non-existing")
+	}
+	if err := Register("a", []string{"b"}, 0, fakeBuser); err != nil {
+		t.Fatal(err)
+	}
+	if err := Unregister("a"); err != nil {
 		t.Fatal(err)
 	}
 }
 
 //
 
-func fakeBusOpener() (BusCloser, error) {
+func fakeBuser() (BusCloser, error) {
 	return &fakeBus{}, nil
 }
 
 func reset() {
 	mu.Lock()
 	defer mu.Unlock()
-	byName = map[string]Opener{}
-	byNumber = map[int]Opener{}
+	byName = map[string]*Ref{}
+	byNumber = map[int]*Ref{}
+	byAlias = map[string]*Ref{}
 }
 
 type fakeBus struct {
