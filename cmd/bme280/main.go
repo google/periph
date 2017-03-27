@@ -48,10 +48,9 @@ func read(e devices.Environmental, loop bool) error {
 }
 
 func mainImpl() error {
-	i2cID := flag.String("i", "", "I²C bus to use")
+	i2cID := flag.String("i2c", "", "I²C bus to use")
 	i2cADDR := flag.Uint("ia", 0, "I²C bus address to use")
-	spiID := flag.Int("s", -1, "SPI bus to use")
-	cs := flag.Int("cs", -1, "SPI chip select (CS) line to use")
+	spiID := flag.String("spi", "", "SPI bus to use")
 	sample1x := flag.Bool("s1", false, "sample at 1x")
 	sample2x := flag.Bool("s2", false, "sample at 2x")
 	sample4x := flag.Bool("s4", false, "sample at 4x")
@@ -105,9 +104,9 @@ func mainImpl() error {
 
 	var dev *bme280.Dev
 	var recorder i2ctest.Record
-	if *spiID != -1 && *cs != -1 {
+	if *spiID != "" {
 		// Spec calls for max 10Mhz. In practice so little data is used.
-		bus, err := spi.New(*spiID, *cs)
+		bus, err := spi.OpenByName(*spiID)
 		if err != nil {
 			return err
 		}

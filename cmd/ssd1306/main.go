@@ -239,8 +239,7 @@ func patterns(s *ssd1306.Dev) error {
 
 func mainImpl() error {
 	i2cID := flag.String("i2c", "", "I²C bus to use")
-	spiID := flag.Int("spi", -1, "specify SPI bus to use")
-	csID := flag.Int("cs", 0, "specify SPI chip select (CS) to use")
+	spiID := flag.String("spi", "", "SPI bus to use")
 	speed := flag.Int("speed", 0, "specify SPI speed in Hz to use")
 	h := flag.Int("h", 64, "display height")
 	imgName := flag.String("i", "ballerine.gif", "image to load; try bunny.gif")
@@ -265,8 +264,8 @@ func mainImpl() error {
 
 	// Open the device on the right bus.
 	var s *ssd1306.Dev
-	if *spiID >= 0 {
-		bus, err := spi.New(*spiID, *csID)
+	if *spiID != "" {
+		bus, err := spi.OpenByName(*spiID)
 		if err != nil {
 			return err
 		}

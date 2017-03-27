@@ -109,7 +109,7 @@ func showImage(display devices.Display, img image.Image, sleep time.Duration, lo
 
 func mainImpl() error {
 	verbose := flag.Bool("v", false, "verbose mode")
-	busNumber := flag.Int("b", -1, "SPI bus to use")
+	spiName := flag.String("spi", "", "SPI bus to use")
 
 	numLights := flag.Int("n", 150, "number of lights on the strip")
 	intensity := flag.Int("l", 127, "light intensity [1-255]")
@@ -139,7 +139,7 @@ func mainImpl() error {
 	}
 
 	// Open the display device.
-	bus, err := spi.New(*busNumber, 0)
+	bus, err := spi.OpenByName(*spiName)
 	if err != nil {
 		return err
 	}

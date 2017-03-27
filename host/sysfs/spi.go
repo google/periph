@@ -259,13 +259,26 @@ func (d *driverSPI) Init() (bool, error) {
 		if err != nil {
 			continue
 		}
-		if err := spi.Register(fmt.Sprintf("SPI%d.%d", bus, cs), bus, cs, func() (spi.ConnCloser, error) {
-			return NewSPI(bus, cs)
-		}); err != nil {
+		name := fmt.Sprintf("/dev/spidev%d.%d", bus, cs)
+		aliases := []string{fmt.Sprintf("SPI%d.%d", bus, cs)}
+		n := bus
+		if cs != 0 {
+			n = -1
+		}
+		if err := spi.Register(name, aliases, n, (&openerSPI{bus, cs}).Open); err != nil {
 			return true, err
 		}
 	}
 	return true, nil
+}
+
+type openerSPI struct {
+	bus int
+	cs  int
+}
+
+func (o *openerSPI) Open() (spi.ConnCloser, error) {
+	return NewSPI(o.bus, o.cs)
 }
 
 func init() {
