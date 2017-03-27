@@ -1,4 +1,4 @@
 # Contributing
 
-Thanks for contributing to the project! Please look at [periph the
-contribution guidelines](https://periph.io/project/contributing/) first.
+Thanks for contributing to the project! Please look at [the periph contribution
+guidelines](https://periph.io/project/contributing/) first.

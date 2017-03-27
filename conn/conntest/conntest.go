@@ -19,18 +19,10 @@ import (
 type RecordRaw struct {
 	sync.Mutex
 	W io.Writer
-	D conn.Duplex
 }
 
 func (r *RecordRaw) String() string {
 	return "recordraw"
-}
-
-// Write implements conn.Conn.
-func (r *RecordRaw) Write(b []byte) (int, error) {
-	r.Lock()
-	defer r.Unlock()
-	return r.W.Write(b)
 }
 
 // Tx implements conn.Conn.
@@ -38,14 +30,12 @@ func (r *RecordRaw) Tx(w, read []byte) error {
 	if len(read) != 0 {
 		return errors.New("conntest: not implemented")
 	}
-	_, err := r.Write(w)
+	_, err := r.W.Write(w)
 	return err
 }
 
 func (r *RecordRaw) Duplex() conn.Duplex {
-	r.Lock()
-	defer r.Unlock()
-	return r.D
+	return conn.Half
 }
 
 // IO registers the I/O that happened on either a real or fake connection.
@@ -61,19 +51,10 @@ type Record struct {
 	sync.Mutex
 	Conn conn.Conn // Conn can be nil if only writes are being recorded.
 	Ops  []IO
-	D    conn.Duplex
 }
 
 func (r *Record) String() string {
 	return "record"
-}
-
-// Write implements conn.Conn.
-func (r *Record) Write(d []byte) (int, error) {
-	if err := r.Tx(d, nil); err != nil {
-		return 0, err
-	}
-	return len(d), nil
 }
 
 // Tx implements conn.Conn.
@@ -100,9 +81,10 @@ func (r *Record) Tx(w, read []byte) error {
 }
 
 func (r *Record) Duplex() conn.Duplex {
-	r.Lock()
-	defer r.Unlock()
-	return r.D
+	if r.Conn != nil {
+		return r.Conn.Duplex()
+	}
+	return conn.DuplexUnknown
 }
 
 // Playback implements conn.Conn and plays back a recorded I/O flow.
@@ -119,12 +101,14 @@ func (p *Playback) String() string {
 	return "playback"
 }
 
-// Write implements conn.Conn.
-func (p *Playback) Write(d []byte) (int, error) {
-	if err := p.Tx(d, nil); err != nil {
-		return 0, err
+// Close verifies that all the expected Ops have been consumed.
+func (p *Playback) Close() error {
+	p.Lock()
+	defer p.Unlock()
+	if len(p.Ops) != 0 {
+		return fmt.Errorf("conntest: expected playback to be empty:\n%#v", p.Ops)
 	}
-	return len(d), nil
+	return nil
 }
 
 // Tx implements conn.Conn.
@@ -150,6 +134,29 @@ func (p *Playback) Duplex() conn.Duplex {
 	defer p.Unlock()
 	return p.D
 }
+
+// Discard implements conn.Conn and discards all writes and reads zeros. It
+// never fails.
+type Discard struct {
+	D conn.Duplex
+}
+
+func (d *Discard) String() string {
+	return "discard"
+}
+
+func (d *Discard) Tx(w, r []byte) error {
+	for i := range r {
+		r[i] = 0
+	}
+	return nil
+}
+
+func (d *Discard) Duplex() conn.Duplex {
+	return d.D
+}
+
+//
 
 var _ conn.Conn = &RecordRaw{}
 var _ conn.Conn = &Record{}

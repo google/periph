@@ -82,19 +82,26 @@ func ExampleDev8_WriteStruct() {
 
 //
 
-func TestDev8_ReadUint_nil(t *testing.T) {
-	d := Dev8{Conn: &conntest.Record{D: conn.Half}, Order: nil}
+func TestDev8_ReadUint_Duplex(t *testing.T) {
+	d := Dev8{Conn: &conntest.Discard{D: conn.Full}, Order: nil}
 	if v, err := d.ReadUint8(34); err == nil || v != 0 {
-		t.Fatalf("%v, %v", v, err)
+		t.Fatal(v, err)
+	}
+}
+
+func TestDev8_ReadUint_Order_nil(t *testing.T) {
+	d := Dev8{Conn: &conntest.Discard{D: conn.Half}, Order: nil}
+	if v, err := d.ReadUint8(34); err == nil || v != 0 {
+		t.Fatal(v, err)
 	}
 	if v, err := d.ReadUint16(34); err == nil || v != 0 {
-		t.Fatalf("%v, %v", v, err)
+		t.Fatal(v, err)
 	}
 	if v, err := d.ReadUint32(34); err == nil || v != 0 {
-		t.Fatalf("%v, %v", v, err)
+		t.Fatal(v, err)
 	}
 	if v, err := d.ReadUint64(34); err == nil || v != 0 {
-		t.Fatalf("%v, %v", v, err)
+		t.Fatal(v, err)
 	}
 }
 
@@ -103,50 +110,50 @@ func TestDev8_ReadUint(t *testing.T) {
 	c := &conntest.Playback{Ops: []conntest.IO{{Write: []byte{34}, Read: r[:1]}}, D: conn.Half}
 	d := Dev8{Conn: c, Order: binary.BigEndian}
 	if v, err := d.ReadUint8(34); err != nil || v != 0x01 {
-		t.Fatalf("%v, %v", v, err)
+		t.Fatal(v, err)
 	}
 	c.Ops = []conntest.IO{{Write: []byte{34}, Read: r[:2]}}
 	if v, err := d.ReadUint16(34); err != nil || v != d.Order.Uint16(r) {
-		t.Fatalf("%v, %v", v, err)
+		t.Fatal(v, err)
 	}
 	c.Ops = []conntest.IO{{Write: []byte{34}, Read: r[:4]}}
 	if v, err := d.ReadUint32(34); err != nil || v != d.Order.Uint32(r) {
-		t.Fatalf("%v, %v", v, err)
+		t.Fatal(v, err)
 	}
 	c.Ops = []conntest.IO{{Write: []byte{34}, Read: r[:8]}}
 	if v, err := d.ReadUint64(34); err != nil || v != d.Order.Uint64(r) {
-		t.Fatalf("%v, %v", v, err)
+		t.Fatal(v, err)
 	}
 }
 
-func TestDev8_ReadStruct_nil(t *testing.T) {
-	d := Dev8{Conn: &conntest.Record{D: conn.Half}, Order: nil}
-	if err := d.ReadStruct(34, &packed{}); err == nil {
-		t.Fatal()
+func TestDev8_ReadStruct_Order_nil(t *testing.T) {
+	d := Dev8{Conn: &conntest.Discard{D: conn.Half}, Order: nil}
+	if d.ReadStruct(34, &packed{}) == nil {
+		t.Fatal("Order is nil")
 	}
 }
 
 func TestDev8_ReadStruct_Precond_Fail(t *testing.T) {
 	d := Dev8{Conn: &conntest.Playback{D: conn.Half}, Order: binary.LittleEndian}
-	if err := d.ReadStruct(34, nil); err == nil {
-		t.Fatal()
+	if d.ReadStruct(34, nil) == nil {
+		t.Fatal("nil")
 	}
-	if err := d.ReadStruct(34, 1); err == nil {
-		t.Fatal()
+	if d.ReadStruct(34, 1) == nil {
+		t.Fatal("int")
 	}
 	x := [2]string{}
-	if err := d.ReadStruct(34, &x); err == nil {
-		t.Fatal()
+	if d.ReadStruct(34, &x) == nil {
+		t.Fatal("pointer to array (not slice)")
 	}
 	y := struct {
 		i *int
 	}{}
-	if err := d.ReadStruct(34, &y); err == nil {
-		t.Fatal()
+	if d.ReadStruct(34, &y) == nil {
+		t.Fatal("struct with int")
 	}
 }
 
-func TestDev8_ReadStruct_Decode(t *testing.T) {
+func TestDev8_ReadStruct_Decode_fail(t *testing.T) {
 	d := Dev8{Conn: &conntest.Playback{Ops: []conntest.IO{{Write: []byte{34}, Read: []byte{}}}, D: conn.Half}, Order: binary.LittleEndian}
 	z := [0]int{}
 	if err := d.ReadStruct(34, &z); err == nil {
@@ -179,13 +186,6 @@ func TestDev8_ReadStruct_struct(t *testing.T) {
 	}
 }
 
-func TestDev8_ReadStruct_fail(t *testing.T) {
-	d := Dev8{Conn: &conntest.RecordRaw{W: writeFail{}, D: conn.Half}, Order: binary.LittleEndian}
-	if d.ReadStruct(34, &packed{}) == nil {
-		t.Fatal()
-	}
-}
-
 func TestDev8_ReadStruct_slice(t *testing.T) {
 	c := &conntest.Playback{Ops: []conntest.IO{{Write: []byte{34}, Read: []byte{1, 2}}}, D: conn.Half}
 	d := Dev8{Conn: c, Order: binary.LittleEndian}
@@ -200,25 +200,21 @@ func TestDev8_ReadStruct_slice(t *testing.T) {
 
 func TestDev8_WriteUint_nil(t *testing.T) {
 	d := Dev8{Conn: nil, Order: binary.BigEndian}
-	if err := d.WriteUint8(34, 1); err == nil {
-		t.Fatalf("%v", err)
+	if d.WriteUint8(34, 1) == nil {
+		t.Fatal("Conn is nil")
 	}
-	d = Dev8{Conn: &conntest.Record{D: conn.Full}, Order: binary.BigEndian}
-	if err := d.WriteUint8(34, 1); err == nil {
-		t.Fatalf("%v", err)
+	d = Dev8{Conn: &conntest.Discard{D: conn.Half}, Order: nil}
+	if d.WriteUint8(34, 1) == nil {
+		t.Fatal("Order is nil")
 	}
-	d = Dev8{Conn: &conntest.Record{D: conn.Half}, Order: nil}
-	if err := d.WriteUint8(34, 1); err == nil {
-		t.Fatalf("%v", err)
+	if d.WriteUint16(34, 1) == nil {
+		t.Fatal("Order is nil")
 	}
-	if err := d.WriteUint16(34, 1); err == nil {
-		t.Fatalf("%v", err)
+	if d.WriteUint32(34, 1) == nil {
+		t.Fatal("Order is nil")
 	}
-	if err := d.WriteUint32(34, 1); err == nil {
-		t.Fatalf("%v", err)
-	}
-	if err := d.WriteUint64(34, 1); err == nil {
-		t.Fatalf("%v", err)
+	if d.WriteUint64(34, 1) == nil {
+		t.Fatal("Order is nil")
 	}
 }
 
@@ -227,24 +223,24 @@ func TestDev8_WriteUint(t *testing.T) {
 	d := Dev8{Conn: c, Order: binary.LittleEndian}
 	c.Ops = []conntest.IO{{Write: []byte{34, 56}}}
 	if err := d.WriteUint8(34, 56); err != nil {
-		t.Fatalf("%v", err)
+		t.Fatal(err)
 	}
 	c.Ops = []conntest.IO{{Write: []byte{34, 0x78, 0x56}}}
 	if err := d.WriteUint16(34, 0x5678); err != nil {
-		t.Fatalf("%v", err)
+		t.Fatal(err)
 	}
 	c.Ops = []conntest.IO{{Write: []byte{34, 0xbc, 0x9a, 0x78, 0x56}}}
 	if err := d.WriteUint32(34, 0x56789abc); err != nil {
-		t.Fatalf("%v", err)
+		t.Fatal(err)
 	}
 	c.Ops = []conntest.IO{{Write: []byte{34, 0x34, 0x12, 0xf0, 0xde, 0xbc, 0x9a, 0x78, 0x56}}}
 	if err := d.WriteUint64(34, 0x56789abcdef01234); err != nil {
-		t.Fatalf("%v", err)
+		t.Fatal(err)
 	}
 }
 
-func TestDev8_WriteStruct_nil(t *testing.T) {
-	d := Dev8{Conn: &conntest.Record{D: conn.Half}, Order: nil}
+func TestDev8_WriteStruct_Order_nil(t *testing.T) {
+	d := Dev8{Conn: &conntest.Discard{D: conn.Half}, Order: nil}
 	if err := d.WriteStruct(34, &packed{}); err == nil {
 		t.Fatal()
 	}
@@ -258,6 +254,7 @@ func TestDev8_WriteStruct_Precond_Fail(t *testing.T) {
 	if err := d.WriteStruct(34, 1); err == nil {
 		t.Fatal()
 	}
+	// TODO(maruel): Pointer to arrays could be supported.
 	x := [2]string{}
 	if err := d.WriteStruct(34, &x); err == nil {
 		t.Fatal()
@@ -297,19 +294,26 @@ func TestDev8_WriteStruct(t *testing.T) {
 
 //
 
-func TestDev16_ReadUint_nil(t *testing.T) {
+func TestDev16_ReadUint_Duplex(t *testing.T) {
+	d := Dev16{Conn: &conntest.Discard{D: conn.Full}, Order: nil}
+	if v, err := d.ReadUint8(34); err == nil || v != 0 {
+		t.Fatal(v, err)
+	}
+}
+
+func TestDev16_ReadUint_Order_nil(t *testing.T) {
 	d := Dev16{Conn: &conntest.Playback{D: conn.Half}, Order: nil}
 	if v, err := d.ReadUint8(0x1234); err == nil || v != 0 {
-		t.Fatalf("%v, %v", v, err)
+		t.Fatal(v, err)
 	}
 	if v, err := d.ReadUint16(0x1234); err == nil || v != 0 {
-		t.Fatalf("%v, %v", v, err)
+		t.Fatal(v, err)
 	}
 	if v, err := d.ReadUint32(0x1234); err == nil || v != 0 {
-		t.Fatalf("%v, %v", v, err)
+		t.Fatal(v, err)
 	}
 	if v, err := d.ReadUint64(0x1234); err == nil || v != 0 {
-		t.Fatalf("%v, %v", v, err)
+		t.Fatal(v, err)
 	}
 }
 
@@ -318,24 +322,24 @@ func TestDev16_ReadUint(t *testing.T) {
 	c := &conntest.Playback{Ops: []conntest.IO{{Write: []byte{0x12, 0x34}, Read: r[:1]}}, D: conn.Half}
 	d := Dev16{Conn: c, Order: binary.BigEndian}
 	if v, err := d.ReadUint8(0x1234); err != nil || v != 0x01 {
-		t.Fatalf("%v, %v", v, err)
+		t.Fatal(v, err)
 	}
 	c.Ops = []conntest.IO{{Write: []byte{0, 34}, Read: r[:2]}}
 	if v, err := d.ReadUint16(34); err != nil || v != d.Order.Uint16(r) {
-		t.Fatalf("%v, %v", v, err)
+		t.Fatal(v, err)
 	}
 	c.Ops = []conntest.IO{{Write: []byte{0, 34}, Read: r[:4]}}
 	if v, err := d.ReadUint32(34); err != nil || v != d.Order.Uint32(r) {
-		t.Fatalf("%v, %v", v, err)
+		t.Fatal(v, err)
 	}
 	c.Ops = []conntest.IO{{Write: []byte{0, 34}, Read: r[:8]}}
 	if v, err := d.ReadUint64(34); err != nil || v != d.Order.Uint64(r) {
-		t.Fatalf("%v, %v", v, err)
+		t.Fatal(v, err)
 	}
 }
 
-func TestDev16_ReadStruct_nil(t *testing.T) {
-	d := Dev16{Conn: &conntest.Record{D: conn.Half}, Order: nil}
+func TestDev16_ReadStruct_Order_nil(t *testing.T) {
+	d := Dev16{Conn: &conntest.Discard{D: conn.Half}, Order: nil}
 	if err := d.ReadStruct(0x1234, &packed{}); err == nil {
 		t.Fatal()
 	}
@@ -349,6 +353,7 @@ func TestDev16_ReadStruct_Precond_Fail(t *testing.T) {
 	if err := d.ReadStruct(0x1234, 1); err == nil {
 		t.Fatal()
 	}
+	// TODO(maruel): Pointer to arrays could be supported.
 	x := [2]string{}
 	if err := d.ReadStruct(0x1234, &x); err == nil {
 		t.Fatal()
@@ -361,6 +366,14 @@ func TestDev16_ReadStruct_Precond_Fail(t *testing.T) {
 	}
 	z := [0]int{}
 	if err := d.ReadStruct(0x1234, &z); err == nil {
+		t.Fatal()
+	}
+}
+
+func TestDev16_ReadStruct_Decode_fail(t *testing.T) {
+	d := Dev16{Conn: &conntest.Playback{Ops: []conntest.IO{{Write: []byte{34}, Read: []byte{}}}, D: conn.Half}, Order: binary.LittleEndian}
+	z := [0]int{}
+	if err := d.ReadStruct(34, &z); err == nil {
 		t.Fatal()
 	}
 }
@@ -391,7 +404,7 @@ func TestDev16_ReadStruct_struct(t *testing.T) {
 }
 
 func TestDev16_ReadStruct_fail(t *testing.T) {
-	d := Dev16{Conn: &conntest.RecordRaw{W: writeFail{}, D: conn.Half}, Order: binary.LittleEndian}
+	d := Dev16{Conn: &conntest.RecordRaw{W: writeFail{}}, Order: binary.LittleEndian}
 	if d.ReadStruct(34, &packed{}) == nil {
 		t.Fatal()
 	}
@@ -411,25 +424,21 @@ func TestDev16_ReadStruct_slice(t *testing.T) {
 
 func TestDev16_WriteUint_nil(t *testing.T) {
 	d := Dev16{Conn: nil, Order: binary.BigEndian}
-	if err := d.WriteUint8(34, 1); err == nil {
-		t.Fatalf("%v", err)
+	if d.WriteUint8(34, 1) == nil {
+		t.Fatal("Conn is nil")
 	}
-	d = Dev16{Conn: &conntest.Record{D: conn.Full}, Order: binary.BigEndian}
-	if err := d.WriteUint8(34, 1); err == nil {
-		t.Fatalf("%v", err)
+	d = Dev16{Conn: &conntest.Discard{D: conn.Half}, Order: nil}
+	if d.WriteUint8(0x1234, 1) == nil {
+		t.Fatal("Order is nil")
 	}
-	d = Dev16{Conn: &conntest.Record{D: conn.Half}, Order: nil}
-	if err := d.WriteUint8(0x1234, 1); err == nil {
-		t.Fatalf("%v", err)
+	if d.WriteUint16(0x1234, 1) == nil {
+		t.Fatal("Order is nil")
 	}
-	if err := d.WriteUint16(0x1234, 1); err == nil {
-		t.Fatalf("%v", err)
+	if d.WriteUint32(0x1234, 1) == nil {
+		t.Fatal("Order is nil")
 	}
-	if err := d.WriteUint32(0x1234, 1); err == nil {
-		t.Fatalf("%v", err)
-	}
-	if err := d.WriteUint64(0x1234, 1); err == nil {
-		t.Fatalf("%v", err)
+	if d.WriteUint64(0x1234, 1) == nil {
+		t.Fatal("Order is nil")
 	}
 }
 
@@ -438,24 +447,24 @@ func TestDev16_WriteUint(t *testing.T) {
 	d := Dev16{Conn: c, Order: binary.LittleEndian}
 	c.Ops = []conntest.IO{{Write: []byte{0x34, 0x12, 56}}}
 	if err := d.WriteUint8(0x1234, 56); err != nil {
-		t.Fatalf("%v", err)
+		t.Fatal(err)
 	}
 	c.Ops = []conntest.IO{{Write: []byte{0x34, 0x12, 0x78, 0x56}}}
 	if err := d.WriteUint16(0x1234, 0x5678); err != nil {
-		t.Fatalf("%v", err)
+		t.Fatal(err)
 	}
 	c.Ops = []conntest.IO{{Write: []byte{0x34, 0x12, 0xbc, 0x9a, 0x78, 0x56}}}
 	if err := d.WriteUint32(0x1234, 0x56789abc); err != nil {
-		t.Fatalf("%v", err)
+		t.Fatal(err)
 	}
 	c.Ops = []conntest.IO{{Write: []byte{0x34, 0x12, 0x34, 0x12, 0xf0, 0xde, 0xbc, 0x9a, 0x78, 0x56}}}
 	if err := d.WriteUint64(0x1234, 0x56789abcdef01234); err != nil {
-		t.Fatalf("%v", err)
+		t.Fatal(err)
 	}
 }
 
-func TestDev16_WriteStruct_nil(t *testing.T) {
-	d := Dev16{Conn: &conntest.Record{D: conn.Half}, Order: nil}
+func TestDev16_WriteStruct_Order_nil(t *testing.T) {
+	d := Dev16{Conn: &conntest.Discard{D: conn.Half}, Order: nil}
 	if err := d.WriteStruct(0x1234, &packed{}); err == nil {
 		t.Fatal()
 	}
