@@ -251,7 +251,7 @@ func (d *Dev) Draw(r image.Rectangle, src image.Image, sp image.Point) {
 	}
 	d.l.init(d.Intensity, d.Temperature)
 	d.l.rasterImg(d.buf[4:4+4*d.numLights], r, src, srcR)
-	_, _ = d.s.Write(d.buf)
+	_ = d.s.Tx(d.buf, nil)
 }
 
 // Write accepts a stream of raw RGB pixels and sends it as APA102 encoded
@@ -262,7 +262,7 @@ func (d *Dev) Write(pixels []byte) (int, error) {
 	}
 	d.l.init(d.Intensity, d.Temperature)
 	d.l.raster(d.buf[4:4+4*d.numLights], pixels)
-	_, err := d.s.Write(d.buf)
+	err := d.s.Tx(d.buf, nil)
 	return len(pixels), err
 }
 

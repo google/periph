@@ -32,10 +32,11 @@ const (
 )
 
 // Conn defines the interface a concrete SPI driver must implement.
+//
+// It is expected to implement fmt.Stringer and optionally io.Writer and
+// io.Reader.
 type Conn interface {
 	conn.Conn
-	fmt.Stringer
-	io.Writer
 	// Speed changes the bus speed.
 	Speed(hz int64) error
 	// Configure changes the communication parameters of the bus.

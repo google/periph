@@ -57,14 +57,6 @@ func (r *Record) String() string {
 	return "record"
 }
 
-// Write implements spi.Conn.
-func (r *Record) Write(d []byte) (int, error) {
-	if err := r.Tx(d, nil); err != nil {
-		return 0, err
-	}
-	return len(d), nil
-}
-
 // Tx implements spi.Conn.
 func (r *Record) Tx(w, read []byte) error {
 	r.Lock()

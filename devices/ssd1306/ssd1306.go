@@ -38,9 +38,9 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"io"
 	"log"
 
+	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/spi"
 	"periph.io/x/periph/devices"
@@ -75,7 +75,7 @@ const (
 
 // Dev is an open handle to the display controler.
 type Dev struct {
-	w io.Writer
+	c conn.Conn
 	W int
 	H int
 }
@@ -110,14 +110,14 @@ func NewI2C(i i2c.Bus, w, h int, rotated bool) (*Dev, error) {
 
 // newDev is the common initialization code that is independent of the bus
 // being used.
-func newDev(dev io.Writer, w, h int, rotated bool) (*Dev, error) {
+func newDev(c conn.Conn, w, h int, rotated bool) (*Dev, error) {
 	if w < 8 || w > 128 || w&7 != 0 {
 		return nil, fmt.Errorf("ssd1306: invalid width %d", w)
 	}
 	if h < 8 || h > 64 || h&7 != 0 {
 		return nil, fmt.Errorf("ssd1306: invalid height %d", h)
 	}
-	d := &Dev{w: dev, W: w, H: h}
+	d := &Dev{c: c, W: w, H: h}
 
 	// Set COM output scan direction; C0 means normal; C8 means reversed
 	comScan := byte(0xC8)
@@ -156,7 +156,7 @@ func newDev(dev io.Writer, w, h int, rotated bool) (*Dev, error) {
 		0xA8, byte(d.H - 1), // Set multiplex ratio (number of lines to display)
 		0xAF, // Display on
 	}
-	if _, err := d.w.Write(init); err != nil {
+	if err := d.c.Tx(init, nil); err != nil {
 		return nil, err
 	}
 
@@ -253,12 +253,12 @@ func (d *Dev) Write(pixels []byte) (int, error) {
 		0x21, 0x00, byte(d.W - 1), // Set start/end column
 		0x22, 0x00, byte(d.H/8 - 1), // Set start/end page
 	}
-	if _, err := d.w.Write(hdr); err != nil {
+	if err := d.c.Tx(hdr, nil); err != nil {
 		return 0, err
 	}
 
 	// Write the data.
-	if _, err := d.w.Write(append([]byte{i2cData}, pixels...)); err != nil {
+	if err := d.c.Tx(append([]byte{i2cData}, pixels...), nil); err != nil {
 		return 0, err
 	}
 
@@ -272,30 +272,26 @@ func (d *Dev) Scroll(o Orientation, rate FrameRate) error {
 	if o == Left || o == Right {
 		// page 28
 		// STOP, <op>, dummy, <start page>, <rate>,  <end page>, <dummy>, <dummy>, <ENABLE>
-		_, err := d.w.Write([]byte{i2cCmd, 0x2E, byte(o), 0x00, 0x00, byte(rate), 0x07, 0x00, 0xFF, 0x2F})
-		return err
+		return d.c.Tx([]byte{i2cCmd, 0x2E, byte(o), 0x00, 0x00, byte(rate), 0x07, 0x00, 0xFF, 0x2F}, nil)
 	}
 	// page 29
 	// STOP, <op>, dummy, <start page>, <rate>,  <end page>, <offset>, <ENABLE>
 	// page 30: 0xA3 permits to set rows for scroll area.
-	_, err := d.w.Write([]byte{i2cCmd, 0x2E, byte(o), 0x00, 0x00, byte(rate), 0x07, 0x01, 0x2F})
-	return err
+	return d.c.Tx([]byte{i2cCmd, 0x2E, byte(o), 0x00, 0x00, byte(rate), 0x07, 0x01, 0x2F}, nil)
 }
 
 // StopScroll stops any scrolling previously set.
 //
 // It will only take effect after redrawing the ram.
 func (d *Dev) StopScroll() error {
-	_, err := d.w.Write([]byte{i2cCmd, 0x2E})
-	return err
+	return d.c.Tx([]byte{i2cCmd, 0x2E}, nil)
 }
 
 // SetContrast changes the screen contrast.
 //
 // Note: values other than 0xff do not seem useful...
 func (d *Dev) SetContrast(level byte) error {
-	_, err := d.w.Write([]byte{i2cCmd, 0x81, level})
-	return err
+	return d.c.Tx([]byte{i2cCmd, 0x81, level}, nil)
 }
 
 // Enable or disable the display.
@@ -304,8 +300,7 @@ func (d *Dev) Enable(on bool) error {
 	if on {
 		b = 0xAF
 	}
-	_, err := d.w.Write([]byte{i2cCmd, b})
-	return err
+	return d.c.Tx([]byte{i2cCmd, b}, nil)
 }
 
 // Invert the display (black on white vs white on black).
@@ -314,8 +309,7 @@ func (d *Dev) Invert(blackOnWhite bool) error {
 	if blackOnWhite {
 		b = 0xA7
 	}
-	_, err := d.w.Write([]byte{i2cCmd, b})
-	return err
+	return d.c.Tx([]byte{i2cCmd, b}, nil)
 }
 
 const (
