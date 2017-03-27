@@ -509,7 +509,7 @@ func TestDrawRGBA(t *testing.T) {
 //
 
 func Example() {
-	bus, err := spi.New(-1, -1)
+	bus, err := spi.OpenByName("")
 	if err != nil {
 		log.Fatalf("failed to open SPI: %v", err)
 	}

@@ -38,14 +38,13 @@ func (s *SmokeTest) Description() string {
 // Run implements the SmokeTest interface.
 func (s *SmokeTest) Run(args []string) error {
 	f := flag.NewFlagSet("spi", flag.ExitOnError)
-	busNum := f.Int("bus", -1, "bus number, -1 for lowest numbered bus")
-	csNum := f.Int("cs", 0, "chip select number")
+	bus := f.String("spi", "", "SPI bus to use")
 	wp := f.String("wp", "", "gpio pin for EEPROM write-protect")
 	seed := f.Int64("seed", 0, "random number seed, default is to use the time")
 	f.Parse(args)
 
 	// Open the bus.
-	spiDev, err := spi.New(*busNum, *csNum)
+	spiDev, err := spi.OpenByName(*bus)
 	if err != nil {
 		return fmt.Errorf("spi-smoke: opening SPI: %v", err)
 	}

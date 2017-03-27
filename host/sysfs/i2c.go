@@ -333,16 +333,16 @@ func (d *driverI2C) Init() (bool, error) {
 		}
 		name := fmt.Sprintf("/dev/i2c-%d", bus)
 		aliases := []string{fmt.Sprintf("I2C%d", bus)}
-		if err := i2c.Register(name, aliases, bus, opener(bus).Open); err != nil {
+		if err := i2c.Register(name, aliases, bus, openerI2C(bus).Open); err != nil {
 			return true, err
 		}
 	}
 	return true, nil
 }
 
-type opener int
+type openerI2C int
 
-func (o opener) Open() (i2c.BusCloser, error) {
+func (o openerI2C) Open() (i2c.BusCloser, error) {
 	return NewI2C(int(o))
 }
 

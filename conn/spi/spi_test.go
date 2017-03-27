@@ -6,121 +6,267 @@ package spi
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"log"
+	"sort"
+	"strings"
 	"testing"
 
 	"periph.io/x/periph/conn"
 )
 
 func ExampleAll() {
+	// Enumerate all SPI buses available and the corresponding pins.
 	fmt.Print("SPI buses available:\n")
-	for name := range All() {
-		fmt.Printf("- %s\n", name)
-	}
-}
+	for _, ref := range All() {
+		fmt.Printf("- %s\n", ref.Name)
+		if ref.Number != -1 {
+			fmt.Printf("  %d\n", ref.Number)
+		}
+		if len(ref.Aliases) != 0 {
+			fmt.Printf("  %s\n", strings.Join(ref.Aliases, " "))
+		}
 
-func Example() {
-	// Find a specific device on all available SPI buses:
-	for _, opener := range All() {
-		bus, err := opener()
+		b, err := ref.Open()
 		if err != nil {
-			log.Fatal(err)
+			fmt.Printf("  Failed to open: %v", err)
 		}
-		w := []byte("command to device")
-		r := make([]byte, 16)
-		if err := bus.Tx(w, r); err != nil {
-			log.Fatal(err)
+		if p, ok := b.(Pins); ok {
+			fmt.Printf("  CLK : %s", p.CLK())
+			fmt.Printf("  MOSI: %s", p.MOSI())
+			fmt.Printf("  MISO: %s", p.MISO())
+			fmt.Printf("  CS  : %s", p.CS())
 		}
-		// Handle 'r'.
-		bus.Close()
+		if err := b.Close(); err != nil {
+			fmt.Printf("  Failed to close: %v", err)
+		}
 	}
 }
 
-func TestInvalid(t *testing.T) {
-	defer reset()
-	if _, err := New(-1, -1); err == nil {
-		t.FailNow()
+func ExampleOpenByName() {
+	// On linux, the following calls will likely open the same bus.
+	OpenByName("/dev/spidev1.0")
+	OpenByName("SPI1.0")
+	OpenByName("1")
+
+	// How a command line tool may let the user choose an I²C, yet default to the
+	// first bus known.
+	name := flag.String("spi", "", "SPI bus to use")
+	flag.Parse()
+	b, err := OpenByName(*name)
+	if err != nil {
+		log.Fatal(err)
 	}
+	defer b.Close()
+	// Use b...
+	b.Tx([]byte("cmd"), nil)
 }
 
-func TestAll(t *testing.T) {
-	defer reset()
-	if len(All()) != 0 {
-		t.FailNow()
-	}
-	if err := Register("a", 0, 0, op); err != nil {
-		t.Fatal(err)
-	}
-	if len(All()) != 1 {
-		t.FailNow()
-	}
-	if b, err := New(0, 0); b == nil || err != nil {
-		t.Fatal(b, err)
-	}
+func ExampleOpenByNumber() {
+	// Open bus the bus number 1.
+	OpenByNumber(1)
+	// Open the first bus known.
+	OpenByNumber(-1)
 }
 
-func TestRegister_fail(t *testing.T) {
-	if err := Register("", 0, 0, op); err == nil {
-		t.FailNow()
+func ExamplePins() {
+	b, err := OpenByName("")
+	if err != nil {
+		log.Fatal(err)
 	}
-	if err := Register("a", 0, 0, nil); err == nil {
-		t.FailNow()
-	}
-}
+	defer b.Close()
 
-func TestUnregister_fail(t *testing.T) {
-	if Unregister("", -1) == nil {
-		t.FailNow()
-	}
-	if err := Register("a", 0, 0, op); err != nil {
-		t.Fatal(err)
-	}
-	if Unregister("a", 1) == nil {
-		t.FailNow()
+	// Prints out the gpio pin used.
+	if p, ok := b.(Pins); ok {
+		fmt.Printf("  CLK : %s", p.CLK())
+		fmt.Printf("  MOSI: %s", p.MOSI())
+		fmt.Printf("  MISO: %s", p.MISO())
+		fmt.Printf("  CS  : %s", p.CS())
 	}
 }
 
 //
 
-type basicSPI struct {
+func TestOpenByNumber(t *testing.T) {
+	defer reset()
+	if _, err := OpenByNumber(-1); err == nil {
+		t.Fatal("no bus registered")
+	}
+
+	if err := Register("a", nil, 42, fakeBuser); err != nil {
+		t.Fatal(err)
+	}
+	if v, err := OpenByNumber(-1); err != nil || v == nil {
+		t.Fatal(v, err)
+	}
+	if v, err := OpenByNumber(42); err != nil || v == nil {
+		t.Fatal(v, err)
+	}
+	if v, err := OpenByNumber(1); err == nil || v != nil {
+		t.Fatal(v, err)
+	}
 }
 
-func (b *basicSPI) String() string {
-	return "basicSPI"
+func TestOpenByName(t *testing.T) {
+	defer reset()
+	if _, err := OpenByName(""); err == nil {
+		t.Fatal("no bus registered")
+	}
+	if err := Register("a", []string{"x"}, 1, fakeBuser); err != nil {
+		t.Fatal(err)
+	}
+	if o, err := OpenByName(""); o == nil || err != nil {
+		t.Fatal(o, err)
+	}
+	if o, err := OpenByName("1"); o == nil || err != nil {
+		t.Fatal(o, err)
+	}
+	if o, err := OpenByName("x"); o == nil || err != nil {
+		t.Fatal(o, err)
+	}
+	if o, err := OpenByName("y"); o != nil || err == nil {
+		t.Fatal(o, err)
+	}
 }
 
-func (b *basicSPI) Close() error {
+func TestDefault_NoNumber(t *testing.T) {
+	defer reset()
+	if err := Register("a", nil, -1, fakeBuser); err != nil {
+		t.Fatal(err)
+	}
+	if o, err := OpenByName(""); o == nil || err != nil {
+		t.Fatal(o, err)
+	}
+}
+
+func TestAll(t *testing.T) {
+	defer reset()
+	if a := All(); len(a) != 0 {
+		t.Fatal(a)
+	}
+	if err := Register("a", nil, 1, fakeBuser); err != nil {
+		t.Fatal(err)
+	}
+	if err := Register("b", nil, 2, fakeBuser); err != nil {
+		t.Fatal(err)
+	}
+	if a := All(); len(a) != 2 {
+		t.Fatal(a)
+	}
+}
+
+func TestRefList(t *testing.T) {
+	l := refList{&Ref{Name: "b"}, &Ref{Name: "a"}}
+	sort.Sort(l)
+	if l[0].Name != "a" || l[1].Name != "b" {
+		t.Fatal(l)
+	}
+}
+
+func TestRegister(t *testing.T) {
+	defer reset()
+	if err := Register("a", []string{"b"}, 42, fakeBuser); err != nil {
+		t.Fatal(err)
+	}
+	if Register("a", nil, -1, fakeBuser) == nil {
+		t.Fatal("same bus name")
+	}
+	if Register("b", nil, -1, fakeBuser) == nil {
+		t.Fatal("same bus alias name")
+	}
+	if Register("c", nil, 42, fakeBuser) == nil {
+		t.Fatal("same bus number")
+	}
+	if Register("c", []string{"a"}, -1, fakeBuser) == nil {
+		t.Fatal("same bus alias")
+	}
+	if Register("c", []string{"b"}, -1, fakeBuser) == nil {
+		t.Fatal("same bus alias")
+	}
+}
+
+func TestRegister_fail(t *testing.T) {
+	defer reset()
+	if Register("a", nil, -1, nil) == nil {
+		t.Fatal("missing Opener")
+	}
+	if Register("a", nil, -2, fakeBuser) == nil {
+		t.Fatal("bad bus number")
+	}
+	if Register("", nil, 42, fakeBuser) == nil {
+		t.Fatal("missing name")
+	}
+	if Register("1", nil, 42, fakeBuser) == nil {
+		t.Fatal("numeric name")
+	}
+	if Register("a", []string{"a"}, 0, fakeBuser) == nil {
+		t.Fatal("\"a\" is already registered")
+	}
+	if Register("a", []string{""}, 0, fakeBuser) == nil {
+		t.Fatal("empty alias")
+	}
+	if Register("a", []string{"1"}, 0, fakeBuser) == nil {
+		t.Fatal("numeric alias")
+	}
+	if a := All(); len(a) != 0 {
+		t.Fatal(a)
+	}
+}
+
+func TestUnregister(t *testing.T) {
+	defer reset()
+	if Unregister("") == nil {
+		t.Fatal("unregister empty")
+	}
+	if Unregister("a") == nil {
+		t.Fatal("unregister non-existing")
+	}
+	if err := Register("a", []string{"b"}, 0, fakeBuser); err != nil {
+		t.Fatal(err)
+	}
+	if err := Unregister("a"); err != nil {
+		t.Fatal(err)
+	}
+}
+
+//
+
+func fakeBuser() (ConnCloser, error) {
+	return &fakeBus{}, nil
+}
+
+type fakeBus struct {
+}
+
+func (f *fakeBus) String() string {
+	return "fake"
+}
+
+func (f *fakeBus) Close() error {
 	return errors.New("not implemented")
 }
 
-func (b *basicSPI) Tx(w, r []byte) error {
+func (f *fakeBus) Tx(w, r []byte) error {
 	return errors.New("not implemented")
 }
 
-func (b *basicSPI) Write(w []byte) (int, error) {
-	return 0, errors.New("not implemented")
-}
-
-func (b *basicSPI) Duplex() conn.Duplex {
+func (f *fakeBus) Duplex() conn.Duplex {
 	return conn.DuplexUnknown
 }
 
-func (b *basicSPI) Speed(hz int64) error {
+func (f *fakeBus) Speed(hz int64) error {
 	return errors.New("not implemented")
 }
 
-func (b *basicSPI) Configure(mode Mode, bits int) error {
+func (f *fakeBus) Configure(mode Mode, bits int) error {
 	return errors.New("not implemented")
-}
-
-func op() (ConnCloser, error) {
-	return &basicSPI{}, nil
 }
 
 func reset() {
 	mu.Lock()
 	defer mu.Unlock()
-	byNumber = map[int]map[int]Opener{}
-	byName = map[string]Opener{}
+	byName = map[string]*Ref{}
+	byNumber = map[int]*Ref{}
+	byAlias = map[string]*Ref{}
 }

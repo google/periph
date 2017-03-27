@@ -7,6 +7,7 @@ package spitest
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"sync"
 
@@ -50,7 +51,6 @@ type Record struct {
 	sync.Mutex
 	Conn spi.Conn // Conn can be nil if only writes are being recorded.
 	Ops  []conntest.IO
-	D    conn.Duplex
 }
 
 func (r *Record) String() string {
@@ -82,9 +82,10 @@ func (r *Record) Tx(w, read []byte) error {
 
 // Duplex implements spi.Conn.
 func (r *Record) Duplex() conn.Duplex {
-	r.Lock()
-	defer r.Unlock()
-	return r.D
+	if r.Conn != nil {
+		return r.Conn.Duplex()
+	}
+	return conn.DuplexUnknown
 }
 
 // Speed implements spi.Conn.
@@ -141,6 +142,22 @@ func (r *Record) CS() gpio.PinOut {
 // an easy way to do basic code coverage.
 type Playback struct {
 	conntest.Playback
+	CLKPin  gpio.PinIO
+	MOSIPin gpio.PinIO
+	MISOPin gpio.PinIO
+	CSPin   gpio.PinIO
+}
+
+// Close implements i2c.BusCloser.
+//
+// Close() verifies that all the expected Ops have been consumed.
+func (p *Playback) Close() error {
+	p.Lock()
+	defer p.Unlock()
+	if len(p.Ops) != 0 {
+		return fmt.Errorf("i2ctest: expected playback to be empty:\n%#v", p.Ops)
+	}
+	return nil
 }
 
 // Speed implements spi.Conn.
@@ -151,6 +168,26 @@ func (p *Playback) Speed(hz int64) error {
 // Configure implements spi.Conn.
 func (p *Playback) Configure(mode spi.Mode, bits int) error {
 	return nil
+}
+
+// CLK implements spi.Pins.
+func (p *Playback) CLK() gpio.PinOut {
+	return p.CLKPin
+}
+
+// MOSI implements spi.Pins.
+func (p *Playback) MOSI() gpio.PinOut {
+	return p.MOSIPin
+}
+
+// MISO implements spi.Pins.
+func (p *Playback) MISO() gpio.PinIn {
+	return p.MISOPin
+}
+
+// CS implements spi.Pins.
+func (p *Playback) CS() gpio.PinOut {
+	return p.CSPin
 }
 
 var _ spi.Conn = &RecordRaw{}
