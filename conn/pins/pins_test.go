@@ -4,10 +4,40 @@
 
 package pins
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
+
+func ExampleBasicPin() {
+	// Declare a basic pin, that is not a GPIO, for registration on an header.
+	b := &BasicPin{N: "Exotic"}
+	fmt.Printf("%s\n", b)
+
+	// Output:
+	// Exotic
+}
+
+//
 
 func TestInvalid(t *testing.T) {
 	if INVALID.String() != "INVALID" {
 		t.Fail()
+	}
+}
+
+func TestBasicPin(t *testing.T) {
+	b := BasicPin{N: "Pin1"}
+	if s := b.String(); s != "Pin1" {
+		t.Fatal(s)
+	}
+	if s := b.Name(); s != "Pin1" {
+		t.Fatal(s)
+	}
+	if n := b.Number(); n != -1 {
+		t.Fatal(-1)
+	}
+	if s := b.Function(); s != "" {
+		t.Fatal(s)
 	}
 }
