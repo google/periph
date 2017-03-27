@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sort"
 	"testing"
 )
 
@@ -37,7 +38,8 @@ func ExampleInit() {
 }
 
 func TestInitSimple(t *testing.T) {
-	initTest([]Driver{
+	defer reset()
+	registerDrivers([]Driver{
 		&driver{
 			name:    "CPU",
 			prereqs: nil,
@@ -46,25 +48,26 @@ func TestInitSimple(t *testing.T) {
 		},
 	})
 	if len(allDrivers) != 1 {
-		t.Fatalf("%v", allDrivers)
+		t.Fatal(allDrivers)
 	}
 	if len(byName) != 1 {
-		t.Fatalf("%v", byName)
+		t.Fatal(byName)
 	}
 	state, err := Init()
 	if err != nil || len(state.Loaded) != 1 {
-		t.Fatalf("%v, %v", state, err)
+		t.Fatal(state, err)
 	}
 
 	// Call a second time, should return the same data.
 	state2, err2 := Init()
 	if err2 != nil || len(state2.Loaded) != len(state.Loaded) || state2.Loaded[0] != state.Loaded[0] {
-		t.Fatalf("%v, %v", state2, err2)
+		t.Fatal(state2, err2)
 	}
 }
 
 func TestInitSkip(t *testing.T) {
-	initTest([]Driver{
+	defer reset()
+	registerDrivers([]Driver{
 		&driver{
 			name:    "CPU",
 			prereqs: nil,
@@ -72,13 +75,18 @@ func TestInitSkip(t *testing.T) {
 			err:     nil,
 		},
 	})
-	if state, err := Init(); err != nil || len(state.Loaded) != 0 {
-		t.Fatalf("%v, %v", state, err)
+	state, err := Init()
+	if err != nil || len(state.Skipped) != 1 {
+		t.Fatal(state, err)
+	}
+	if s := state.Skipped[0].String(); s != "CPU: <nil>" {
+		t.Fatal(s)
 	}
 }
 
 func TestInitErr(t *testing.T) {
-	initTest([]Driver{
+	defer reset()
+	registerDrivers([]Driver{
 		&driver{
 			name:    "CPU",
 			prereqs: nil,
@@ -86,13 +94,18 @@ func TestInitErr(t *testing.T) {
 			err:     errors.New("oops"),
 		},
 	})
-	if state, err := Init(); err != nil || len(state.Loaded) != 0 || len(state.Failed) != 1 {
-		t.Fatalf("%v, %v", state, err)
+	state, err := Init()
+	if err != nil || len(state.Loaded) != 0 || len(state.Failed) != 1 {
+		t.Fatal(state, err)
+	}
+	if s := state.Failed[0].String(); s != "CPU: oops" {
+		t.Fatal(s)
 	}
 }
 
 func TestInitCircular(t *testing.T) {
-	initTest([]Driver{
+	defer reset()
+	registerDrivers([]Driver{
 		&driver{
 			name:    "CPU",
 			prereqs: []string{"Board"},
@@ -106,13 +119,15 @@ func TestInitCircular(t *testing.T) {
 			err:     nil,
 		},
 	})
-	if state, err := Init(); err == nil || len(state.Loaded) != 0 {
-		t.Fatalf("%v, %v", state, err)
+	state, err := Init()
+	if err == nil || len(state.Loaded) != 0 {
+		t.Fatal(state, err)
 	}
 }
 
 func TestInitMissing(t *testing.T) {
-	initTest([]Driver{
+	defer reset()
+	registerDrivers([]Driver{
 		&driver{
 			name:    "CPU",
 			prereqs: []string{"Board"},
@@ -120,13 +135,36 @@ func TestInitMissing(t *testing.T) {
 			err:     nil,
 		},
 	})
-	if state, err := Init(); err == nil || len(state.Loaded) != 0 {
-		t.Fatalf("%v, %v", state, err)
+	state, err := Init()
+	if err == nil || len(state.Loaded) != 0 {
+		t.Fatal(state, err)
+	}
+}
+
+func TestDependencySkipped(t *testing.T) {
+	defer reset()
+	registerDrivers([]Driver{
+		&driver{
+			name:    "CPU",
+			prereqs: nil,
+			ok:      false,
+			err:     errors.New("skipped"),
+		},
+		&driver{
+			name:    "Board",
+			prereqs: []string{"CPU"},
+			ok:      true,
+			err:     nil,
+		},
+	})
+	state, err := Init()
+	if err != nil || len(state.Skipped) != 2 {
+		t.Fatal(state, err)
 	}
 }
 
 func TestRegisterLate(t *testing.T) {
-	reset()
+	defer reset()
 	if _, err := Init(); err != nil {
 		t.Fatal(err)
 	}
@@ -136,13 +174,13 @@ func TestRegisterLate(t *testing.T) {
 		ok:      true,
 		err:     nil,
 	}
-	if err := Register(d); err == nil {
-		t.Fail()
+	if Register(d) == nil {
+		t.Fatal("can't register after Init()")
 	}
 }
 
 func TestRegisterTwice(t *testing.T) {
-	reset()
+	defer reset()
 	d := &driver{
 		name:    "CPU",
 		prereqs: nil,
@@ -150,15 +188,15 @@ func TestRegisterTwice(t *testing.T) {
 		err:     nil,
 	}
 	if err := Register(d); err != nil {
-		t.Fail()
+		t.Fatal(err)
 	}
-	if err := Register(d); err == nil {
-		t.Fail()
+	if Register(d) == nil {
+		t.Fatal("can't register twice")
 	}
 }
 
 func TestMustRegisterPanic(t *testing.T) {
-	reset()
+	defer reset()
 	d := &driver{
 		name:    "CPU",
 		prereqs: nil,
@@ -166,7 +204,7 @@ func TestMustRegisterPanic(t *testing.T) {
 		err:     nil,
 	}
 	if err := Register(d); err != nil {
-		t.Fail()
+		t.Fatal(err)
 	}
 	panicked := false
 	defer func() {
@@ -176,11 +214,12 @@ func TestMustRegisterPanic(t *testing.T) {
 	}()
 	MustRegister(d)
 	if !panicked {
-		t.Fail()
+		t.Fatal("MustRegister() should have panicked on driver registration failure")
 	}
 }
 
 func TestExplodeStagesSimple(t *testing.T) {
+	defer reset()
 	d := []Driver{
 		&driver{
 			name:    "CPU",
@@ -189,17 +228,18 @@ func TestExplodeStagesSimple(t *testing.T) {
 			err:     nil,
 		},
 	}
-	initTest(d)
+	registerDrivers(d)
 	actual, err := explodeStages(d)
 	if len(actual) != 1 || len(actual[0]) != 1 {
-		t.Fatalf("%v", actual)
+		t.Fatal(actual)
 	}
 	if err != nil {
-		t.Fatalf("%v", err)
+		t.Fatal(err)
 	}
 }
 
 func TestExplodeStages1Dep(t *testing.T) {
+	defer reset()
 	// This explodes the stage into two.
 	d := []Driver{
 		&driver{
@@ -215,14 +255,15 @@ func TestExplodeStages1Dep(t *testing.T) {
 			err:     nil,
 		},
 	}
-	initTest(d)
+	registerDrivers(d)
 	actual, err := explodeStages(d)
 	if len(actual) != 2 || len(actual[0]) != 1 || actual[0][0] != d[1] || len(actual[1]) != 1 || actual[1][0] != d[0] || err != nil {
-		t.Fatalf("%v, %v", actual, err)
+		t.Fatal(actual, err)
 	}
 }
 
 func TestExplodeStagesCycle(t *testing.T) {
+	defer reset()
 	d := []Driver{
 		&driver{
 			name:    "A",
@@ -243,17 +284,18 @@ func TestExplodeStagesCycle(t *testing.T) {
 			err:     nil,
 		},
 	}
-	initTest(d)
+	registerDrivers(d)
 	actual, err := explodeStages(d)
 	if len(actual) != 0 {
-		t.Fatalf("%v", actual)
+		t.Fatal(actual)
 	}
 	if err == nil {
-		t.Fail()
+		t.Fatal("cycle should have been detected")
 	}
 }
 
 func TestExplodeStages3Dep(t *testing.T) {
+	defer reset()
 	// This explodes the stage into 3 due to diamond shaped DAG.
 	d := []Driver{
 		&driver{
@@ -281,13 +323,29 @@ func TestExplodeStages3Dep(t *testing.T) {
 			err:     nil,
 		},
 	}
-	initTest(d)
+	registerDrivers(d)
 	actual, err := explodeStages(d)
 	if len(actual) != 3 || len(actual[0]) != 1 || len(actual[1]) != 2 || len(actual[2]) != 1 {
-		t.Fatalf("%v", actual)
+		t.Fatal(actual)
 	}
 	if err != nil {
-		t.Fatalf("%v", err)
+		t.Fatal(err)
+	}
+}
+
+func TestDrivers(t *testing.T) {
+	d := drivers{&driver{name: "b"}, &driver{name: "a"}}
+	sort.Sort(d)
+	if d[0].String() != "a" || d[1].String() != "b" {
+		t.Fatal(d)
+	}
+}
+
+func TestFailures(t *testing.T) {
+	f := failures{DriverFailure{D: &driver{name: "b"}}, DriverFailure{D: &driver{name: "a"}}}
+	sort.Sort(f)
+	if f[0].String() != "a: <nil>" || f[1].String() != "b: <nil>" {
+		t.Fatal(f)
 	}
 }
 
@@ -299,8 +357,7 @@ func reset() {
 	state = nil
 }
 
-func initTest(drivers []Driver) {
-	reset()
+func registerDrivers(drivers []Driver) {
 	for _, d := range drivers {
 		MustRegister(d)
 	}
