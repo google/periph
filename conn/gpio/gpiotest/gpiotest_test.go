@@ -37,10 +37,8 @@ func TestPin(t *testing.T) {
 }
 
 func TestPin_edge(t *testing.T) {
-	p := &Pin{N: "GPIO1", Num: 1, Fn: "I2C1_SDA", EdgesChan: make(chan gpio.Level)}
-	go func() {
-		p.EdgesChan <- gpio.High
-	}()
+	p := &Pin{N: "GPIO1", Num: 1, Fn: "I2C1_SDA", EdgesChan: make(chan gpio.Level, 1)}
+	p.EdgesChan <- gpio.High
 	if !p.WaitForEdge(-1) {
 		t.Fail()
 	}
@@ -50,9 +48,7 @@ func TestPin_edge(t *testing.T) {
 	if p.WaitForEdge(time.Millisecond) {
 		t.Fail()
 	}
-	go func() {
-		p.EdgesChan <- gpio.Low
-	}()
+	p.EdgesChan <- gpio.Low
 	if !p.WaitForEdge(time.Minute) {
 		t.Fail()
 	}

@@ -60,6 +60,7 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	if edge != gpio.NoEdge && p.EdgesChan == nil {
 		return errors.New("gpiotest: please set p.EdgesChan first")
 	}
+	// Flush any buffered edges.
 	for {
 		select {
 		case <-p.EdgesChan:
