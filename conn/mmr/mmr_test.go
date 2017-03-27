@@ -18,6 +18,7 @@ import (
 	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/conn/onewire"
+	"periph.io/x/periph/conn/onewire/onewirereg"
 )
 
 func ExampleDev8() {
@@ -61,7 +62,7 @@ func ExampleDev8_ReadStruct() {
 
 func ExampleDev8_WriteStruct() {
 	// Open a connection, using 1-wire as an example:
-	bus, err := onewire.New(-1)
+	bus, err := onewirereg.Open("")
 	if err != nil {
 		log.Fatal(err)
 	}
