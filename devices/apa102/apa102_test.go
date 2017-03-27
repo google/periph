@@ -6,6 +6,7 @@ package apa102
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"image"
 	"image/color"
@@ -334,6 +335,12 @@ func TestDevEmpty(t *testing.T) {
 	}
 }
 
+func TestConfigureFail(t *testing.T) {
+	if d, err := New(&configFail{}, 150, 255, 6500); d != nil || err == nil {
+		t.Fatal("Configure() call have failed")
+	}
+}
+
 func TestDevLen(t *testing.T) {
 	buf := bytes.Buffer{}
 	d, _ := New(spitest.NewRecordRaw(&buf), 1, 255, 6500)
@@ -445,8 +452,17 @@ func TestDevLong(t *testing.T) {
 	}
 }
 
-// Expected output for 3 test cases. Each test case use a completely different
-// code path so make sure each code path results in the exact same output.
+func TestDevWriteShort(t *testing.T) {
+	buf := bytes.Buffer{}
+	d, _ := New(spitest.NewRecordRaw(&buf), 1, 250, 6500)
+	if n, err := d.Write([]byte{0, 0, 0, 1, 1, 1}); n != 3 || err != nil {
+		t.Fatal(n, err)
+	}
+}
+
+// expectedi250t5000 is the expected output for 3 test cases. Each test case
+// use a completely different code path so make sure each code path results in
+// the exact same output.
 var expectedi250t5000 = []byte{
 	0x00, 0x00, 0x00, 0x00, 0xE1, 0x08, 0x04, 0x00, 0xE1, 0x14, 0x10, 0xC, 0xE1,
 	0x20, 0x1C, 0x18, 0xE1, 0x2C, 0x28, 0x24, 0xE1, 0x38, 0x34, 0x30, 0xE1, 0x41,
@@ -454,6 +470,16 @@ var expectedi250t5000 = []byte{
 	0x56, 0xE1, 0xBD, 0x94, 0x73, 0xE2, 0x95, 0x77, 0x5A, 0xE2, 0xE5, 0xBD, 0x94,
 	0xE4, 0xAA, 0x92, 0x77, 0xE4, 0xF3, 0xD7, 0xB8, 0xFF, 0x2B, 0x28, 0x23, 0xFF,
 	0x3A, 0x36, 0x32, 0xFF, 0xFF,
+}
+
+// expectedi250t6500 is the default color temperature.
+var expectedi250t6500 = []byte{
+	0x00, 0x00, 0x00, 0x00, 0xE1, 0x08, 0x04, 0x00, 0xE1, 0x14, 0x10, 0x0C, 0xE1,
+	0x20, 0x1C, 0x18, 0xE1, 0x2C, 0x28, 0x24, 0xE1, 0x38, 0x34, 0x30, 0xE1, 0x44,
+	0x40, 0x3C, 0xE1, 0x4E, 0x4C, 0x48, 0xE1, 0x52, 0x4F, 0x4E, 0xE1, 0x66, 0x5C,
+	0x56, 0xE1, 0x9A, 0x84, 0x73, 0xE1, 0xFB, 0xD4, 0xB4, 0xE2, 0xCB, 0xAE, 0x94,
+	0xE4, 0xA0, 0x8A, 0x77, 0xE4, 0xF0, 0xD2, 0xB8, 0xFF, 0x2D, 0x28, 0x23, 0xFF,
+	0x3E, 0x38, 0x32, 0xFF, 0xFF,
 }
 
 func TestDevTemperatureWarm(t *testing.T) {
@@ -489,6 +515,20 @@ func TestDrawNRGBA(t *testing.T) {
 	}
 }
 
+func TestDrawNRGBA_wide(t *testing.T) {
+	img := image.NewNRGBA(image.Rect(0, 0, 17, 2))
+	for x := 0; x < 16; x++ {
+		// Test all intensity code paths. Confirm that alpha is ignored.
+		img.SetNRGBA(x, 0, color.NRGBA{uint8((3 * x) << 2), uint8((3*x + 1) << 2), uint8((3*x + 2) << 2), 0})
+	}
+	buf := bytes.Buffer{}
+	d, _ := New(spitest.NewRecordRaw(&buf), 16, 250, 6500)
+	d.Draw(d.Bounds(), img, image.Point{})
+	if !bytes.Equal(expectedi250t6500, buf.Bytes()) {
+		t.Fatalf("%#v != %#v", expectedi250t5000, buf.Bytes())
+	}
+}
+
 func TestDrawRGBA(t *testing.T) {
 	img := image.NewRGBA(image.Rect(0, 0, 16, 1))
 	for i := 0; i < 16; i++ {
@@ -503,6 +543,15 @@ func TestDrawRGBA(t *testing.T) {
 	d.Draw(d.Bounds(), img, image.Point{})
 	if !bytes.Equal(expectedi250t5000, buf.Bytes()) {
 		t.Fatalf("%#v != %#v", expectedi250t5000, buf.Bytes())
+	}
+}
+
+func TestInit(t *testing.T) {
+	// Catch the "maxB == maxG" line.
+	l := lut{}
+	l.init(255, 6000)
+	if equalUint16(l.r[:], l.g[:]) || !equalUint16(l.g[:], l.b[:]) {
+		t.Fatal("test case is for only when maxG == maxB but maxR != maxG")
 	}
 }
 
@@ -624,4 +673,26 @@ func BenchmarkWriteColorfulVariation(b *testing.B) {
 		d.Temperature = uint16((3000 + i) & 0x1FFF)
 		_, _ = d.Write(pixels)
 	}
+}
+
+//
+
+type configFail struct {
+	spitest.Record
+}
+
+func (c *configFail) Configure(mode spi.Mode, bits int) error {
+	return errors.New("injected error")
+}
+
+func equalUint16(a, b []uint16) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }

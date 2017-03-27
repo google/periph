@@ -96,12 +96,11 @@ func (l *lut) init(i uint8, t uint16) {
 //
 // dst is in APA102 SPI 32 bits word format. src is in RGB 24 bits word format.
 // maxR, maxG and maxB are the maximum light intensity to use per channel.
+//
+// src cannot be longer in pixel count than dst.
 func (l *lut) raster(dst []byte, src []byte) {
 	// Whichever is the shortest.
 	length := len(src) / 3
-	if o := len(dst) / 4; o < length {
-		length = o
-	}
 	for i := 0; i < length; i++ {
 		// Converts a color into the 4 bytes needed to control an APA-102 LED.
 		//
@@ -221,7 +220,8 @@ type Dev struct {
 	s           spi.Conn
 	l           lut // Updated at each .Write() call.
 	numLights   int
-	buf         []byte
+	rawBuf      []byte
+	pixels      []byte
 }
 
 // ColorModel implements devices.Display. There's no surprise, it is
@@ -250,8 +250,8 @@ func (d *Dev) Draw(r image.Rectangle, src image.Image, sp image.Point) {
 		srcR.Max.Y = srcR.Min.Y + dY
 	}
 	d.l.init(d.Intensity, d.Temperature)
-	d.l.rasterImg(d.buf[4:4+4*d.numLights], r, src, srcR)
-	_ = d.s.Tx(d.buf, nil)
+	d.l.rasterImg(d.pixels, r, src, srcR)
+	_ = d.s.Tx(d.rawBuf, nil)
 }
 
 // Write accepts a stream of raw RGB pixels and sends it as APA102 encoded
@@ -261,8 +261,13 @@ func (d *Dev) Write(pixels []byte) (int, error) {
 		return 0, errLength
 	}
 	d.l.init(d.Intensity, d.Temperature)
-	d.l.raster(d.buf[4:4+4*d.numLights], pixels)
-	err := d.s.Tx(d.buf, nil)
+	// Trying to write more pixels than defined?
+	if o := len(d.pixels) / 4; o < len(pixels)/3 {
+		pixels = pixels[:o*3]
+	}
+	// Do not touch header and footer.
+	d.l.raster(d.pixels, pixels)
+	err := d.s.Tx(d.rawBuf, nil)
 	return len(pixels), err
 }
 
@@ -294,7 +299,8 @@ func New(s spi.Conn, numLights int, intensity uint8, temperature uint16) (*Dev, 
 		Temperature: temperature,
 		s:           s,
 		numLights:   numLights,
-		buf:         buf,
+		rawBuf:      buf,
+		pixels:      buf[4 : 4+4*numLights],
 	}, nil
 }
 
