@@ -96,7 +96,9 @@ func (d *Dev) Duplex() conn.Duplex {
 
 // Registry
 
-// Open opens an handle to a bus.
+// Opener opens an handle to a bus.
+//
+// It is provided by the actual bus driver.
 type Opener func() (BusCloser, error)
 
 // Ref references an I²C bus.

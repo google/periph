@@ -34,6 +34,7 @@ func (r *RecordRaw) Tx(w, read []byte) error {
 	return err
 }
 
+// Duplex implements conn.Conn.
 func (r *RecordRaw) Duplex() conn.Duplex {
 	return conn.Half
 }
@@ -80,6 +81,7 @@ func (r *Record) Tx(w, read []byte) error {
 	return nil
 }
 
+// Duplex implements conn.Conn.
 func (r *Record) Duplex() conn.Duplex {
 	if r.Conn != nil {
 		return r.Conn.Duplex()
@@ -129,6 +131,7 @@ func (p *Playback) Tx(w, r []byte) error {
 	return nil
 }
 
+// Duplex implements conn.Conn.
 func (p *Playback) Duplex() conn.Duplex {
 	p.Lock()
 	defer p.Unlock()
@@ -145,6 +148,7 @@ func (d *Discard) String() string {
 	return "discard"
 }
 
+// Tx implements conn.Conn.
 func (d *Discard) Tx(w, r []byte) error {
 	for i := range r {
 		r[i] = 0
@@ -152,6 +156,7 @@ func (d *Discard) Tx(w, r []byte) error {
 	return nil
 }
 
+// Duplex implements conn.Conn.
 func (d *Discard) Duplex() conn.Duplex {
 	return d.D
 }

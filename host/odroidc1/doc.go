@@ -2,7 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package odroid_c1 contains header definitions for Hardkernel's ODROID C0, C1,
+// Package odroidc1 contains header definitions for Hardkernel's ODROID C0, C1,
 // and C1+ boards.
 //
 // These boards use an Amlogic S805 processor (called "meson_8b" in the linux

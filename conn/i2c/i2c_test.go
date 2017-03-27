@@ -117,10 +117,10 @@ func TestDevTx(t *testing.T) {
 	r := make([]byte, 3)
 	w := []byte{3, 4, 5}
 	if err := d.Tx(w, r); exErr != err {
-		t.Fatalf("got %s", err)
+		t.Fatal(err)
 	}
 	if !bytes.Equal(b.w, w) {
-		t.Fatal("w")
+		t.Fatal(b.w)
 	}
 	expected := []byte{1, 2, 3}
 	if !bytes.Equal(r, expected) {
@@ -155,13 +155,13 @@ func TestDevWriteErr(t *testing.T) {
 	d := Dev{b, 12}
 	w := []byte{3, 4, 5}
 	if n, err := d.Write(w); err != exErr || n != 0 {
-		t.Fatalf("got %s", err)
+		t.Fatal(err)
 	}
 	if !bytes.Equal(b.w, w) {
-		t.Fatal("w")
+		t.Fatal(b.w)
 	}
 	if b.addr != 12 {
-		t.Fatalf("got %d", b.addr)
+		t.Fatal(b.addr)
 	}
 }
 

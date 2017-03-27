@@ -72,7 +72,9 @@ type Pins interface {
 
 // Registry
 
-// Open opens an handle to a bus.
+// Opener opens an handle to a bus.
+//
+// It is provided by the actual bus driver.
 type Opener func() (ConnCloser, error)
 
 // Ref references an SPI bus.
