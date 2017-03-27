@@ -23,4 +23,4 @@
 // Hardware wiki: http://odroid.com/dokuwiki/doku.php?id=en:c1_hardware
 //
 // Ubuntu drivers: http://odroid.com/dokuwiki/doku.php?id=en:odroid-c1#ubuntu
-package odroid_c1
+package odroidc1

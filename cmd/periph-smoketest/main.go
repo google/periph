@@ -21,7 +21,7 @@ import (
 	"periph.io/x/periph/conn/spi/spismoketest"
 	"periph.io/x/periph/host"
 	"periph.io/x/periph/host/chip/chipsmoketest"
-	"periph.io/x/periph/host/odroid_c1/odroidc1smoketest"
+	"periph.io/x/periph/host/odroidc1/odroidc1smoketest"
 )
 
 // SmokeTest must be implemented by a smoke test. It will be run by this

@@ -12,12 +12,12 @@ import (
 
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/host/headers"
-	"periph.io/x/periph/host/odroid_c1"
+	"periph.io/x/periph/host/odroidc1"
 )
 
-// testOdroidC1Present verifies that odroid_c1 is indeed detected.
+// testOdroidC1Present verifies that odroidc1 is indeed detected.
 func testOdroidC1Present() error {
-	if !odroid_c1.Present() {
+	if !odroidc1.Present() {
 		return fmt.Errorf("did not detect presence of ODROID-C1")
 	}
 	// TODO: add amlogic s805 detection check once that is implemented
