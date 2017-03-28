@@ -265,7 +265,7 @@ func mainImpl() error {
 	// Open the device on the right bus.
 	var s *ssd1306.Dev
 	if *spiID != "" {
-		bus, err := spi.OpenByName(*spiID)
+		bus, err := spi.Open(*spiID)
 		if err != nil {
 			return err
 		}
@@ -284,7 +284,7 @@ func mainImpl() error {
 			return err
 		}
 	} else {
-		bus, err := i2c.OpenByName(*i2cID)
+		bus, err := i2c.Open(*i2cID)
 		if err != nil {
 			return err
 		}

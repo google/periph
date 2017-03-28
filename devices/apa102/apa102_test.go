@@ -558,7 +558,7 @@ func TestInit(t *testing.T) {
 //
 
 func Example() {
-	bus, err := spi.OpenByName("")
+	bus, err := spi.Open("")
 	if err != nil {
 		log.Fatalf("failed to open SPI: %v", err)
 	}

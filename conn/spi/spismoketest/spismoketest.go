@@ -44,7 +44,7 @@ func (s *SmokeTest) Run(args []string) error {
 	f.Parse(args)
 
 	// Open the bus.
-	spiDev, err := spi.OpenByName(*bus)
+	spiDev, err := spi.Open(*bus)
 	if err != nil {
 		return fmt.Errorf("spi-smoke: opening SPI: %v", err)
 	}

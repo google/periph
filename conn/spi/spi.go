@@ -96,11 +96,13 @@ type Ref struct {
 	Open Opener
 }
 
-// OpenByNumber opens an SPI bus by its "bus number" and returns an handle to
-// it.
+// Open opens an SPI bus by its name, an alias or its number and returns an
+// handle to it.
 //
-// Specify busNumber -1 to get the first available bus. This is the recommended
-// default value unless an application knows the exact bus to use.
+// Specify the empty string "" to get the first available bus. This is the
+// recommended default value unless an application knows the exact bus to use.
+//
+// Each bus can register multiple aliases, each leading to the same bus handle.
 //
 // "Bus number" is a generic concept that is highly dependent on the platform
 // and OS. On some platform, the first bus may have the number 0, 1 or as high
@@ -110,40 +112,7 @@ type Ref struct {
 //
 // When the SPI bus is provided by an off board plug and play bus like USB via
 // an FT232H USB device, there can be no associated number.
-func OpenByNumber(busNumber int) (ConnCloser, error) {
-	var r *Ref
-	var err error
-	func() {
-		mu.Lock()
-		defer mu.Unlock()
-		if len(byName) == 0 {
-			err = errors.New("spi: no bus found; did you forget to call Init()?")
-			return
-		}
-		if busNumber == -1 {
-			// Asking for the default bus.
-			r = defaultBus()
-			return
-		}
-		r = byNumber[busNumber]
-	}()
-	if err != nil {
-		return nil, err
-	}
-	if r == nil {
-		return nil, fmt.Errorf("spi: unknown bus %d", busNumber)
-	}
-	return r.Open()
-}
-
-// OpenByName opens an SPI bus by its name or an alias and returns an handle to
-// it.
-//
-// Specify the empty string "" to get the first available bus. This is the
-// recommended default value unless an application knows the exact bus to use.
-//
-// Each bus can register multiple aliases, each leading to the same bus handle.
-func OpenByName(name string) (ConnCloser, error) {
+func Open(name string) (ConnCloser, error) {
 	var r *Ref
 	var err error
 	func() {

@@ -69,7 +69,7 @@ func mainImpl() error {
 		buf = make([]byte, *l)
 	}
 
-	bus, err := i2c.OpenByName(*busName)
+	bus, err := i2c.Open(*busName)
 	if err != nil {
 		return err
 	}

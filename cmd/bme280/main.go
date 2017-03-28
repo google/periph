@@ -106,7 +106,7 @@ func mainImpl() error {
 	var recorder i2ctest.Record
 	if *spiID != "" {
 		// Spec calls for max 10Mhz. In practice so little data is used.
-		bus, err := spi.OpenByName(*spiID)
+		bus, err := spi.Open(*spiID)
 		if err != nil {
 			return err
 		}
@@ -121,7 +121,7 @@ func mainImpl() error {
 			return err
 		}
 	} else {
-		bus, err := i2c.OpenByName(*i2cID)
+		bus, err := i2c.Open(*i2cID)
 		if err != nil {
 			return err
 		}

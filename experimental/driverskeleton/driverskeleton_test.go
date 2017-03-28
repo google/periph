@@ -20,7 +20,7 @@ func Example() {
 	if _, err := host.Init(); err != nil {
 		log.Fatalf("failed to initialize periph: %v", err)
 	}
-	bus, err := i2c.OpenByName("")
+	bus, err := i2c.Open("")
 	if err != nil {
 		log.Fatalf("failed to open I²C: %v", err)
 	}

@@ -120,54 +120,23 @@ type Ref struct {
 	Open Opener
 }
 
-// OpenByNumber opens an I²C bus by its "bus number" and returns an handle to
-// it.
-//
-// Specify busNumber -1 to get the first available bus. This is the recommended
-// default value unless an application knows the exact bus to use.
-//
-// "Bus number" is a generic concept that is highly dependent on the platform
-// and OS. On some platform, the first bus may have the number 0, 1 or as high
-// as 32766. Bus numbers are not necessarily continuous and may not start at 0.
-// It was observed that the bus number as reported by the OS may change across
-// OS revisions.
-//
-// When the I²C bus is provided by an off board plug and play bus like USB via
-// an FT232H USB device, there can be no associated number.
-func OpenByNumber(busNumber int) (BusCloser, error) {
-	var r *Ref
-	var err error
-	func() {
-		mu.Lock()
-		defer mu.Unlock()
-		if len(byName) == 0 {
-			err = errors.New("i2c: no bus found; did you forget to call Init()?")
-			return
-		}
-		if busNumber == -1 {
-			// Asking for the default bus.
-			r = defaultBus()
-			return
-		}
-		r = byNumber[busNumber]
-	}()
-	if err != nil {
-		return nil, err
-	}
-	if r == nil {
-		return nil, fmt.Errorf("i2c: unknown bus %d", busNumber)
-	}
-	return r.Open()
-}
-
-// OpenByName opens an I²C bus by its name or an alias and returns an handle to
-// it.
+// Open opens an I²C bus by its name, an alias or its number and returns an
+// handle to it.
 //
 // Specify the empty string "" to get the first available bus. This is the
 // recommended default value unless an application knows the exact bus to use.
 //
 // Each bus can register multiple aliases, each leading to the same bus handle.
-func OpenByName(name string) (BusCloser, error) {
+//
+// "Bus number" is a generic concept that is highly dependent on the platform
+// and OS. On some platform, the first bus may have the number 0, 1 or higher.
+// Bus numbers are not necessarily continuous and may not start at 0. It was
+// observed that the bus number as reported by the OS may change across OS
+// revisions.
+//
+// When the I²C bus is provided by an off board plug and play bus like USB via
+// an FT232H USB device, there can be no associated number.
+func Open(name string) (BusCloser, error) {
 	var r *Ref
 	var err error
 	func() {

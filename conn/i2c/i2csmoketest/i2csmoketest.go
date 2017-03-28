@@ -46,7 +46,7 @@ func (s *SmokeTest) Run(args []string) error {
 	f.Parse(args)
 
 	// Open the bus.
-	i2cBus, err := i2c.OpenByName(*busName)
+	i2cBus, err := i2c.Open(*busName)
 	if err != nil {
 		return fmt.Errorf("i2c-smoke: %s", err)
 	}

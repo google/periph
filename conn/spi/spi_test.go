@@ -44,17 +44,17 @@ func ExampleAll() {
 	}
 }
 
-func ExampleOpenByName() {
+func ExampleOpen() {
 	// On linux, the following calls will likely open the same bus.
-	OpenByName("/dev/spidev1.0")
-	OpenByName("SPI1.0")
-	OpenByName("1")
+	Open("/dev/spidev1.0")
+	Open("SPI1.0")
+	Open("1")
 
 	// How a command line tool may let the user choose an I²C, yet default to the
 	// first bus known.
 	name := flag.String("spi", "", "SPI bus to use")
 	flag.Parse()
-	b, err := OpenByName(*name)
+	b, err := Open(*name)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -63,15 +63,8 @@ func ExampleOpenByName() {
 	b.Tx([]byte("cmd"), nil)
 }
 
-func ExampleOpenByNumber() {
-	// Open bus the bus number 1.
-	OpenByNumber(1)
-	// Open the first bus known.
-	OpenByNumber(-1)
-}
-
 func ExamplePins() {
-	b, err := OpenByName("")
+	b, err := Open("")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -88,44 +81,24 @@ func ExamplePins() {
 
 //
 
-func TestOpenByNumber(t *testing.T) {
+func TestOpen(t *testing.T) {
 	defer reset()
-	if _, err := OpenByNumber(-1); err == nil {
-		t.Fatal("no bus registered")
-	}
-
-	if err := Register("a", nil, 42, fakeBuser); err != nil {
-		t.Fatal(err)
-	}
-	if v, err := OpenByNumber(-1); err != nil || v == nil {
-		t.Fatal(v, err)
-	}
-	if v, err := OpenByNumber(42); err != nil || v == nil {
-		t.Fatal(v, err)
-	}
-	if v, err := OpenByNumber(1); err == nil || v != nil {
-		t.Fatal(v, err)
-	}
-}
-
-func TestOpenByName(t *testing.T) {
-	defer reset()
-	if _, err := OpenByName(""); err == nil {
+	if _, err := Open(""); err == nil {
 		t.Fatal("no bus registered")
 	}
 	if err := Register("a", []string{"x"}, 1, fakeBuser); err != nil {
 		t.Fatal(err)
 	}
-	if o, err := OpenByName(""); o == nil || err != nil {
+	if o, err := Open(""); o == nil || err != nil {
 		t.Fatal(o, err)
 	}
-	if o, err := OpenByName("1"); o == nil || err != nil {
+	if o, err := Open("1"); o == nil || err != nil {
 		t.Fatal(o, err)
 	}
-	if o, err := OpenByName("x"); o == nil || err != nil {
+	if o, err := Open("x"); o == nil || err != nil {
 		t.Fatal(o, err)
 	}
-	if o, err := OpenByName("y"); o != nil || err == nil {
+	if o, err := Open("y"); o != nil || err == nil {
 		t.Fatal(o, err)
 	}
 }
@@ -135,7 +108,7 @@ func TestDefault_NoNumber(t *testing.T) {
 	if err := Register("a", nil, -1, fakeBuser); err != nil {
 		t.Fatal(err)
 	}
-	if o, err := OpenByName(""); o == nil || err != nil {
+	if o, err := Open(""); o == nil || err != nil {
 		t.Fatal(o, err)
 	}
 }

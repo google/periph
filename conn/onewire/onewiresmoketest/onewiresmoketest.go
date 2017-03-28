@@ -45,7 +45,7 @@ func (s *SmokeTest) Run(args []string) error {
 	f.Parse(args)
 
 	// Open the i2c bus where the DS2483 is located.
-	i2cBus, err := i2c.OpenByName(*busName)
+	i2cBus, err := i2c.Open(*busName)
 	if err != nil {
 		return fmt.Errorf("onewire-smoke: cannot open i2c bus: %v", err)
 	}
