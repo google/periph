@@ -2,13 +2,13 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-package headers
+package pinreg
 
 import (
 	"testing"
 
 	"periph.io/x/periph/conn/gpio/gpiotest"
-	"periph.io/x/periph/conn/pins"
+	"periph.io/x/periph/conn/pin"
 )
 
 func TestAll(t *testing.T) {
@@ -18,10 +18,10 @@ func TestAll(t *testing.T) {
 }
 
 func TestIsConnected(t *testing.T) {
-	if !IsConnected(pins.V3_3) {
+	if !IsConnected(pin.V3_3) {
 		t.Fatal("V3_3 should be connected")
 	}
-	if IsConnected(pins.V5) {
+	if IsConnected(pin.V5) {
 		t.Fatal("V5 should not be connected")
 	}
 	if !IsConnected(gpio2) {
@@ -37,8 +37,8 @@ var (
 )
 
 func init() {
-	if err := Register("P1", [][]pins.Pin{
-		{pins.GROUND, pins.V3_3},
+	if err := Register("P1", [][]pin.Pin{
+		{pin.GROUND, pin.V3_3},
 		{gpio2, gpio3},
 	}); err != nil {
 		panic(err)

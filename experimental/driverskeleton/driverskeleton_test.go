@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"periph.io/x/periph"
-	"periph.io/x/periph/conn/i2c"
+	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/conn/i2c/i2ctest"
 	"periph.io/x/periph/host"
 )
@@ -20,7 +20,7 @@ func Example() {
 	if _, err := host.Init(); err != nil {
 		log.Fatalf("failed to initialize periph: %v", err)
 	}
-	bus, err := i2c.Open("")
+	bus, err := i2creg.Open("")
 	if err != nil {
 		log.Fatalf("failed to open I²C: %v", err)
 	}

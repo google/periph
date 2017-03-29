@@ -14,7 +14,7 @@ import (
 	"golang.org/x/image/font/basicfont"
 	"golang.org/x/image/math/fixed"
 
-	"periph.io/x/periph/conn/i2c"
+	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/conn/i2c/i2ctest"
 	"periph.io/x/periph/devices/ssd1306/image1bit"
 )
@@ -77,7 +77,7 @@ func TestDraw1D(t *testing.T) {
 //
 
 func Example() {
-	bus, err := i2c.Open("")
+	bus, err := i2creg.Open("")
 	if err != nil {
 		log.Fatalf("failed to open I²C: %v", err)
 	}

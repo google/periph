@@ -17,7 +17,7 @@ import (
 	"math/rand"
 	"time"
 
-	"periph.io/x/periph/conn/i2c"
+	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/conn/onewire"
 	"periph.io/x/periph/devices/ds18b20"
 	"periph.io/x/periph/devices/ds248x"
@@ -45,7 +45,7 @@ func (s *SmokeTest) Run(args []string) error {
 	f.Parse(args)
 
 	// Open the i2c bus where the DS2483 is located.
-	i2cBus, err := i2c.Open(*busName)
+	i2cBus, err := i2creg.Open(*busName)
 	if err != nil {
 		return fmt.Errorf("onewire-smoke: cannot open i2c bus: %v", err)
 	}

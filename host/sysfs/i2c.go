@@ -17,7 +17,9 @@ import (
 
 	"periph.io/x/periph"
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/i2c"
+	"periph.io/x/periph/conn/i2c/i2creg"
 )
 
 // I2C is an open I²C bus via sysfs.
@@ -171,10 +173,10 @@ func (i *I2C) ioctl(op uint, arg uintptr) error {
 func (i *I2C) initPins() {
 	i.mu.Lock()
 	if i.scl == nil {
-		if i.scl = gpio.ByName(fmt.Sprintf("I2C%d_SCL", i.busNumber)); i.scl == nil {
+		if i.scl = gpioreg.ByName(fmt.Sprintf("I2C%d_SCL", i.busNumber)); i.scl == nil {
 			i.scl = gpio.INVALID
 		}
-		if i.sda = gpio.ByName(fmt.Sprintf("I2C%d_SDA", i.busNumber)); i.sda == nil {
+		if i.sda = gpioreg.ByName(fmt.Sprintf("I2C%d_SDA", i.busNumber)); i.sda == nil {
 			i.sda = gpio.INVALID
 		}
 	}
@@ -333,7 +335,7 @@ func (d *driverI2C) Init() (bool, error) {
 		}
 		name := fmt.Sprintf("/dev/i2c-%d", bus)
 		aliases := []string{fmt.Sprintf("I2C%d", bus)}
-		if err := i2c.Register(name, aliases, bus, openerI2C(bus).Open); err != nil {
+		if err := i2creg.Register(name, aliases, bus, openerI2C(bus).Open); err != nil {
 			return true, err
 		}
 	}

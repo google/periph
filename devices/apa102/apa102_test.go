@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	"periph.io/x/periph/conn/spi"
+	"periph.io/x/periph/conn/spi/spireg"
 	"periph.io/x/periph/conn/spi/spitest"
 )
 
@@ -558,7 +559,7 @@ func TestInit(t *testing.T) {
 //
 
 func Example() {
-	bus, err := spi.Open("")
+	bus, err := spireg.Open("")
 	if err != nil {
 		log.Fatalf("failed to open SPI: %v", err)
 	}

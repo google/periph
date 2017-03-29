@@ -19,8 +19,10 @@ import (
 	"time"
 
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/i2c"
-	"periph.io/x/periph/conn/reg"
+	"periph.io/x/periph/conn/i2c/i2creg"
+	"periph.io/x/periph/conn/mmr"
 )
 
 // SmokeTest is imported by periph-smoketest.
@@ -46,7 +48,7 @@ func (s *SmokeTest) Run(args []string) error {
 	f.Parse(args)
 
 	// Open the bus.
-	i2cBus, err := i2c.Open(*busName)
+	i2cBus, err := i2creg.Open(*busName)
 	if err != nil {
 		return fmt.Errorf("i2c-smoke: %s", err)
 	}
@@ -55,7 +57,7 @@ func (s *SmokeTest) Run(args []string) error {
 	// Open the WC pin.
 	var wcPin gpio.PinIO
 	if *wc != "" {
-		if wcPin = gpio.ByName(*wc); wcPin == nil {
+		if wcPin = gpioreg.ByName(*wc); wcPin == nil {
 			return fmt.Errorf("i2c-smoke: cannot open gpio pin %s for EEPROM write control", *wc)
 		}
 	}
@@ -126,7 +128,7 @@ const (
 //
 // Datasheet: http://www.st.com/content/ccc/resource/technical/document/datasheet/cc/f5/a5/01/6f/4b/47/d2/DM00070057.pdf/files/DM00070057.pdf/jcr:content/translations/en.DM00070057.pdf
 func (s *SmokeTest) eeprom(bus i2c.Bus, wcPin gpio.PinIO) error {
-	d := reg.Dev8{Conn: &i2c.Dev{Bus: bus, Addr: 0x50}, Order: binary.LittleEndian}
+	d := mmr.Dev8{Conn: &i2c.Dev{Bus: bus, Addr: 0x50}, Order: binary.LittleEndian}
 
 	// Read byte 0x12 of the EEPROM and expect to get something.
 	if _, err := d.ReadUint8(0x12); err != nil {

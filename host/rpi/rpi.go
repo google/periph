@@ -14,10 +14,10 @@ import (
 
 	"periph.io/x/periph"
 	"periph.io/x/periph/conn/gpio"
-	"periph.io/x/periph/conn/pins"
+	"periph.io/x/periph/conn/pin"
+	"periph.io/x/periph/conn/pin/pinreg"
 	"periph.io/x/periph/host/bcm283x"
 	"periph.io/x/periph/host/distro"
-	"periph.io/x/periph/host/headers"
 )
 
 // Present returns true if running on a Raspberry Pi board.
@@ -47,58 +47,58 @@ var Version int
 //
 // P1 is also known as J8.
 var (
-	P1_1  = pins.V3_3      // max 30mA
-	P1_2  = pins.V5        // (filtered)
+	P1_1  = pin.V3_3       // max 30mA
+	P1_2  = pin.V5         // (filtered)
 	P1_3  = bcm283x.GPIO2  // High, I2C1_SDA
-	P1_4  = pins.V5        //
+	P1_4  = pin.V5         //
 	P1_5  = bcm283x.GPIO3  // High, I2C1_SCL
-	P1_6  = pins.GROUND    //
+	P1_6  = pin.GROUND     //
 	P1_7  = bcm283x.GPIO4  // High, GPCLK0
 	P1_8  = bcm283x.GPIO14 // Low,  UART0_TXD, UART1_TXD
-	P1_9  = pins.GROUND    //
+	P1_9  = pin.GROUND     //
 	P1_10 = bcm283x.GPIO15 // Low,  UART0_RXD, UART1_RXD
 	P1_11 = bcm283x.GPIO17 // Low,  UART0_RTS, SPI1_CE1, UART1_RTS
 	P1_12 = bcm283x.GPIO18 // Low,  PCM_CLK, SPI1_CE0, PWM0_OUT
 	P1_13 = bcm283x.GPIO27 // Low,
-	P1_14 = pins.GROUND    //
+	P1_14 = pin.GROUND     //
 	P1_15 = bcm283x.GPIO22 // Low,
 	P1_16 = bcm283x.GPIO23 // Low,
-	P1_17 = pins.V3_3      //
+	P1_17 = pin.V3_3       //
 	P1_18 = bcm283x.GPIO24 // Low,
 	P1_19 = bcm283x.GPIO10 // Low, SPI0_MOSI
-	P1_20 = pins.GROUND    //
+	P1_20 = pin.GROUND     //
 	P1_21 = bcm283x.GPIO9  // Low, SPI0_MISO
 	P1_22 = bcm283x.GPIO25 // Low,
 	P1_23 = bcm283x.GPIO11 // Low, SPI0_CLK
 	P1_24 = bcm283x.GPIO8  // High, SPI0_CE0
-	P1_25 = pins.GROUND    //
+	P1_25 = pin.GROUND     //
 	P1_26 = bcm283x.GPIO7  // High, SPI0_CE1
 
 	// Raspberry Pi 2 and later:
 	P1_27 gpio.PinIO = bcm283x.GPIO0  // High, I2C0_SDA used to probe for HAT EEPROM, see https://github.com/raspberrypi/hats
 	P1_28 gpio.PinIO = bcm283x.GPIO1  // High, I2C0_SCL
 	P1_29 gpio.PinIO = bcm283x.GPIO5  // High, GPCLK1
-	P1_30 pins.Pin   = pins.GROUND    //
+	P1_30 pin.Pin    = pin.GROUND     //
 	P1_31 gpio.PinIO = bcm283x.GPIO6  // High, GPCLK2
 	P1_32 gpio.PinIO = bcm283x.GPIO12 // Low,  PWM0_OUT
 	P1_33 gpio.PinIO = bcm283x.GPIO13 // Low,  PWM1_OUT
-	P1_34 pins.Pin   = pins.GROUND    //
+	P1_34 pin.Pin    = pin.GROUND     //
 	P1_35 gpio.PinIO = bcm283x.GPIO19 // Low,  PCM_FS, SPI1_MISO, PWM1_OUT
 	P1_36 gpio.PinIO = bcm283x.GPIO16 // Low,  UART0_CTS, SPI1_CE2, UART1_CTS
 	P1_37 gpio.PinIO = bcm283x.GPIO26 //
 	P1_38 gpio.PinIO = bcm283x.GPIO20 // Low,  PCM_DIN, SPI1_MOSI, GPCLK0
-	P1_39 pins.Pin   = pins.GROUND    //
+	P1_39 pin.Pin    = pin.GROUND     //
 	P1_40 gpio.PinIO = bcm283x.GPIO21 // Low,  PCM_DOUT, SPI1_CLK, GPCLK1
 
 	// Raspberry Pi 1 header:
-	P5_1 pins.Pin   = pins.V5
-	P5_2 pins.Pin   = pins.V3_3
+	P5_1 pin.Pin    = pin.V5
+	P5_2 pin.Pin    = pin.V3_3
 	P5_3 gpio.PinIO = bcm283x.GPIO28 // Float, I2C0_SDA, PCM_CLK
 	P5_4 gpio.PinIO = bcm283x.GPIO29 // Float, I2C0_SCL, PCM_FS
 	P5_5 gpio.PinIO = bcm283x.GPIO30 // Low,   PCM_DIN, UART0_CTS, UART1_CTS
 	P5_6 gpio.PinIO = bcm283x.GPIO31 // Low,   PCM_DOUT, UART0_RTS, UART1_RTS
-	P5_7 pins.Pin   = pins.GROUND
-	P5_8 pins.Pin   = pins.GROUND
+	P5_7 pin.Pin    = pin.GROUND
+	P5_8 pin.Pin    = pin.GROUND
 
 	AUDIO_LEFT          = bcm283x.GPIO41 // Low,   PWM1_OUT, SPI2_MOSI, UART1_RXD
 	AUDIO_RIGHT         = bcm283x.GPIO40 // Low,   PWM0_OUT, SPI2_MISO, UART1_TXD
@@ -146,7 +146,7 @@ func (d *driver) Init() (bool, error) {
 	}
 
 	if Version == 1 {
-		if err := headers.Register("P1", [][]pins.Pin{
+		if err := pinreg.Register("P1", [][]pin.Pin{
 			{P1_1, P1_2},
 			{P1_3, P1_4},
 			{P1_5, P1_6},
@@ -163,7 +163,7 @@ func (d *driver) Init() (bool, error) {
 		}); err != nil {
 			return true, err
 		}
-		if err := headers.Register("P5", [][]pins.Pin{
+		if err := pinreg.Register("P5", [][]pin.Pin{
 			{P5_1, P5_2},
 			{P5_3, P5_4},
 			{P5_5, P5_6},
@@ -178,19 +178,19 @@ func (d *driver) Init() (bool, error) {
 		P1_27 = gpio.INVALID
 		P1_28 = gpio.INVALID
 		P1_29 = gpio.INVALID
-		P1_30 = pins.INVALID
+		P1_30 = pin.INVALID
 		P1_31 = gpio.INVALID
 		P1_32 = gpio.INVALID
 		P1_33 = gpio.INVALID
-		P1_34 = pins.INVALID
+		P1_34 = pin.INVALID
 		P1_35 = gpio.INVALID
 		P1_36 = gpio.INVALID
 		P1_37 = gpio.INVALID
 		P1_38 = gpio.INVALID
-		P1_39 = pins.INVALID
+		P1_39 = pin.INVALID
 		P1_40 = gpio.INVALID
 	} else {
-		if err := headers.Register("P1", [][]pins.Pin{
+		if err := pinreg.Register("P1", [][]pin.Pin{
 			{P1_1, P1_2},
 			{P1_3, P1_4},
 			{P1_5, P1_6},
@@ -214,25 +214,25 @@ func (d *driver) Init() (bool, error) {
 		}); err != nil {
 			return true, err
 		}
-		P5_1 = pins.INVALID
-		P5_2 = pins.INVALID
+		P5_1 = pin.INVALID
+		P5_2 = pin.INVALID
 		P5_3 = gpio.INVALID
 		P5_4 = gpio.INVALID
 		P5_5 = gpio.INVALID
 		P5_6 = gpio.INVALID
-		P5_7 = pins.INVALID
-		P5_8 = pins.INVALID
+		P5_7 = pin.INVALID
+		P5_8 = pin.INVALID
 	}
 	if Version < 3 {
 		AUDIO_LEFT = bcm283x.GPIO45
 	}
-	if err := headers.Register("AUDIO", [][]pins.Pin{
+	if err := pinreg.Register("AUDIO", [][]pin.Pin{
 		{AUDIO_LEFT},
 		{AUDIO_RIGHT},
 	}); err != nil {
 		return true, err
 	}
-	if err := headers.Register("HDMI", [][]pins.Pin{{HDMI_HOTPLUG_DETECT}}); err != nil {
+	if err := pinreg.Register("HDMI", [][]pin.Pin{{HDMI_HOTPLUG_DETECT}}); err != nil {
 		return true, err
 	}
 	return true, nil

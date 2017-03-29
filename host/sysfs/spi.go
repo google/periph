@@ -17,7 +17,9 @@ import (
 	"periph.io/x/periph"
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/spi"
+	"periph.io/x/periph/conn/spi/spireg"
 )
 
 // NewSPI opens a SPI bus via its devfs interface as described at
@@ -204,16 +206,16 @@ func (s *SPI) ioctl(op uint, arg unsafe.Pointer) error {
 
 func (s *SPI) initPins() {
 	if s.clk == nil {
-		if s.clk = gpio.ByName(fmt.Sprintf("SPI%d_CLK", s.busNumber)); s.clk == nil {
+		if s.clk = gpioreg.ByName(fmt.Sprintf("SPI%d_CLK", s.busNumber)); s.clk == nil {
 			s.clk = gpio.INVALID
 		}
-		if s.miso = gpio.ByName(fmt.Sprintf("SPI%d_MISO", s.busNumber)); s.miso == nil {
+		if s.miso = gpioreg.ByName(fmt.Sprintf("SPI%d_MISO", s.busNumber)); s.miso == nil {
 			s.miso = gpio.INVALID
 		}
-		if s.mosi = gpio.ByName(fmt.Sprintf("SPI%d_MOSI", s.busNumber)); s.mosi == nil {
+		if s.mosi = gpioreg.ByName(fmt.Sprintf("SPI%d_MOSI", s.busNumber)); s.mosi == nil {
 			s.mosi = gpio.INVALID
 		}
-		if s.cs = gpio.ByName(fmt.Sprintf("SPI%d_CS%d", s.busNumber, s.chipSelect)); s.cs == nil {
+		if s.cs = gpioreg.ByName(fmt.Sprintf("SPI%d_CS%d", s.busNumber, s.chipSelect)); s.cs == nil {
 			s.cs = gpio.INVALID
 		}
 	}
@@ -265,7 +267,7 @@ func (d *driverSPI) Init() (bool, error) {
 		if cs != 0 {
 			n = -1
 		}
-		if err := spi.Register(name, aliases, n, (&openerSPI{bus, cs}).Open); err != nil {
+		if err := spireg.Register(name, aliases, n, (&openerSPI{bus, cs}).Open); err != nil {
 			return true, err
 		}
 	}

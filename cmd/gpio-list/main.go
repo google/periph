@@ -14,13 +14,14 @@ import (
 	"sort"
 
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/gpio/gpioreg"
+	"periph.io/x/periph/conn/pin/pinreg"
 	"periph.io/x/periph/host"
-	"periph.io/x/periph/host/headers"
 )
 
 func printAliases(invalid bool) {
 	max := 0
-	aliases := gpio.Aliases()
+	aliases := gpioreg.Aliases()
 	names := make([]string, 0, len(aliases))
 	m := make(map[string]gpio.PinIO, len(aliases))
 	for _, p := range aliases {
@@ -46,9 +47,9 @@ func printAliases(invalid bool) {
 func printGPIO(invalid bool) {
 	maxName := 0
 	maxFn := 0
-	all := gpio.All()
+	all := gpioreg.All()
 	for _, p := range all {
-		if invalid || headers.IsConnected(p) {
+		if invalid || pinreg.IsConnected(p) {
 			if l := len(p.String()); l > maxName {
 				maxName = l
 			}
@@ -58,7 +59,7 @@ func printGPIO(invalid bool) {
 		}
 	}
 	for _, p := range all {
-		if headers.IsConnected(p) {
+		if pinreg.IsConnected(p) {
 			fmt.Printf("%-*s: %s\n", maxName, p, p.Function())
 		} else if invalid {
 			fmt.Printf("%-*s: %-*s (not connected)\n", maxName, p, maxFn, p.Function())

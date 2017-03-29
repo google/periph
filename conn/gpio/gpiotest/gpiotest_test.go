@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/gpio/gpioreg"
 )
 
 func TestPin(t *testing.T) {
@@ -68,25 +69,25 @@ func TestPin_fail(t *testing.T) {
 }
 
 func TestAll(t *testing.T) {
-	if 2 != len(gpio.All()) {
+	if 2 != len(gpioreg.All()) {
 		t.Fail()
 	}
 }
 
 func TestByNumber(t *testing.T) {
-	if gpio.ByNumber(1) != nil {
+	if gpioreg.ByNumber(1) != nil {
 		t.Fatal("1 exist")
 	}
-	if gpio.ByNumber(2) != gpio2 {
+	if gpioreg.ByNumber(2) != gpio2 {
 		t.Fatal("2 missing")
 	}
 }
 
 func TestByName(t *testing.T) {
-	if gpio.ByName("GPIO0") != nil {
+	if gpioreg.ByName("GPIO0") != nil {
 		t.Fatal("GPIO0 doesn't exist")
 	}
-	if gpio.ByName("GPIO2") != gpio2 {
+	if gpioreg.ByName("GPIO2") != gpio2 {
 		t.Fatal("GPIO2 should have been found")
 	}
 }
@@ -100,15 +101,15 @@ var (
 )
 
 func init() {
-	if err := gpio.Register(gpio2, true); err != nil {
+	if err := gpioreg.Register(gpio2, true); err != nil {
 		panic(err)
 	}
-	if err := gpio.Register(gpio2a, false); err != nil {
+	if err := gpioreg.Register(gpio2a, false); err != nil {
 		panic(err)
 	}
-	if err := gpio.Register(gpio3, false); err != nil {
+	if err := gpioreg.Register(gpio3, false); err != nil {
 		panic(err)
 	}
-	gpio.RegisterAlias(gpio2.Function(), gpio2.Number())
-	gpio.RegisterAlias(gpio3.Function(), gpio3.Number())
+	gpioreg.RegisterAlias(gpio2.Function(), gpio2.Number())
+	gpioreg.RegisterAlias(gpio3.Function(), gpio3.Number())
 }

@@ -18,7 +18,9 @@ import (
 	"time"
 
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/spi"
+	"periph.io/x/periph/conn/spi/spireg"
 )
 
 // SmokeTest is imported by periph-smoketest.
@@ -44,7 +46,7 @@ func (s *SmokeTest) Run(args []string) error {
 	f.Parse(args)
 
 	// Open the bus.
-	spiDev, err := spi.Open(*bus)
+	spiDev, err := spireg.Open(*bus)
 	if err != nil {
 		return fmt.Errorf("spi-smoke: opening SPI: %v", err)
 	}
@@ -61,7 +63,7 @@ func (s *SmokeTest) Run(args []string) error {
 	// Open the WC pin.
 	var wpPin gpio.PinIO
 	if *wp != "" {
-		if wpPin = gpio.ByName(*wp); wpPin == nil {
+		if wpPin = gpioreg.ByName(*wp); wpPin == nil {
 			return fmt.Errorf("spi-smoke: cannot open gpio pin %s for EEPROM write protect", *wp)
 		}
 	}

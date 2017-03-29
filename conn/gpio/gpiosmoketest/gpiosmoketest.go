@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/host/allwinner"
 	"periph.io/x/periph/host/bcm283x"
 	"periph.io/x/periph/host/sysfs"
@@ -460,7 +461,7 @@ func getPin(s string, useSysfs bool) (gpio.PinIO, error) {
 		}
 		return p, nil
 	}
-	p := gpio.ByName(s)
+	p := gpioreg.ByName(s)
 	if p == nil {
 		return nil, errors.New("invalid pin number")
 	}

@@ -10,13 +10,14 @@ import (
 	"os"
 
 	"periph.io/x/periph/conn/i2c"
-	"periph.io/x/periph/conn/pins"
+	"periph.io/x/periph/conn/i2c/i2creg"
+	"periph.io/x/periph/conn/pin"
+	"periph.io/x/periph/conn/pin/pinreg"
 	"periph.io/x/periph/host"
-	"periph.io/x/periph/host/headers"
 )
 
-func printPin(fn string, p pins.Pin) {
-	name, pos := headers.Position(p)
+func printPin(fn string, p pin.Pin) {
+	name, pos := pinreg.Position(p)
 	if name != "" {
 		fmt.Printf("  %-3s: %-10s found on header %s, #%d\n", fn, p, name, pos)
 	} else {
@@ -28,7 +29,7 @@ func mainImpl() error {
 	if _, err := host.Init(); err != nil {
 		return err
 	}
-	for _, ref := range i2c.All() {
+	for _, ref := range i2creg.All() {
 		fmt.Printf("%s:\n", ref.Name)
 		bus, err := ref.Open()
 		if err != nil {

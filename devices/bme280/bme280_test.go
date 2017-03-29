@@ -9,7 +9,7 @@ import (
 	"log"
 	"testing"
 
-	"periph.io/x/periph/conn/i2c"
+	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/conn/i2c/i2ctest"
 	"periph.io/x/periph/devices"
 )
@@ -140,7 +140,7 @@ func TestCalibrationInt(t *testing.T) {
 //
 
 func Example() {
-	bus, err := i2c.Open("")
+	bus, err := i2creg.Open("")
 	if err != nil {
 		log.Fatalf("failed to open I²C: %v", err)
 	}

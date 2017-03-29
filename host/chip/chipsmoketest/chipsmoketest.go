@@ -11,9 +11,10 @@ import (
 	"sort"
 
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/gpio/gpioreg"
+	"periph.io/x/periph/conn/pin/pinreg"
 	"periph.io/x/periph/host/allwinner"
 	"periph.io/x/periph/host/chip"
-	"periph.io/x/periph/host/headers"
 )
 
 // testChipPresent verifies that CHIP and Allwinner are indeed detected.
@@ -30,7 +31,7 @@ func testChipPresent() error {
 // testChipHeaders verifies that the appropriate headers with the right pin count show
 // up and point checks that a couple of pins are correct.
 func testChipHeaders() error {
-	h := headers.All()
+	h := pinreg.All()
 	if len(h) != 2 {
 		return fmt.Errorf("expected to find 2 headers, not %d", len(h))
 	}
@@ -76,7 +77,7 @@ func testChipHeaders() error {
 func testChipGpioNumbers() error {
 	must := map[int]string{34: "PB2", 108: "PD12", 139: "PE11", 1022: "GPIO1022"}
 	for number, name := range must {
-		pin := gpio.ByNumber(number)
+		pin := gpioreg.ByNumber(number)
 		if pin == nil {
 			return fmt.Errorf("could not get gpio pin %d (should be %s)", number, name)
 		}
@@ -91,7 +92,7 @@ func testChipGpioNumbers() error {
 // testChipGpioNames tests that the gpio pins get the right names.
 func testChipGpioNames() error {
 	all := []string{}
-	for _, p := range gpio.All() {
+	for _, p := range gpioreg.All() {
 		all = append(all, p.Name())
 	}
 	sort.Strings(all)
@@ -114,7 +115,7 @@ func testChipAliases() error {
 		"AP-EINT3": "PB3",
 	}
 	for a, r := range tests {
-		p := gpio.ByName(a)
+		p := gpioreg.ByName(a)
 		if p == nil {
 			return fmt.Errorf("failed to open %s", a)
 		}
@@ -222,7 +223,7 @@ func testChipGpioXIO() error {
 
 // pinByName gets a gpio pin by name and calls Fatal if it fails
 func pinByName(name string) (gpio.PinIO, error) {
-	p := gpio.ByName(name)
+	p := gpioreg.ByName(name)
 	if p == nil {
 		return nil, fmt.Errorf("Failed to open %s", name)
 	}

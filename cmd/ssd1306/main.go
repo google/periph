@@ -25,7 +25,9 @@ import (
 	"golang.org/x/image/math/fixed"
 
 	"periph.io/x/periph/conn/i2c"
+	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/conn/spi"
+	"periph.io/x/periph/conn/spi/spireg"
 	"periph.io/x/periph/devices/ssd1306"
 	"periph.io/x/periph/devices/ssd1306/image1bit"
 	"periph.io/x/periph/host"
@@ -265,7 +267,7 @@ func mainImpl() error {
 	// Open the device on the right bus.
 	var s *ssd1306.Dev
 	if *spiID != "" {
-		bus, err := spi.Open(*spiID)
+		bus, err := spireg.Open(*spiID)
 		if err != nil {
 			return err
 		}
@@ -284,7 +286,7 @@ func mainImpl() error {
 			return err
 		}
 	} else {
-		bus, err := i2c.Open(*i2cID)
+		bus, err := i2creg.Open(*i2cID)
 		if err != nil {
 			return err
 		}

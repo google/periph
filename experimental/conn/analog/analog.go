@@ -8,12 +8,12 @@ package analog
 import (
 	"errors"
 
-	"periph.io/x/periph/conn/pins"
+	"periph.io/x/periph/conn/pin"
 )
 
 // ADC is an analog-to-digital-conversion input.
 type ADC interface {
-	pins.Pin
+	pin.Pin
 	// Range returns the maximum supported range [min, max] of the values.
 	Range() (int32, int32)
 	// Read returns the current pin level.
@@ -22,7 +22,7 @@ type ADC interface {
 
 // DAC is an digital-to-analog-conversion output.
 type DAC interface {
-	pins.Pin
+	pin.Pin
 	// Range returns the maximum supported range [min, max] of the values.
 	Range() (int32, int32)
 	// Out sets an analog output value.

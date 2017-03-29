@@ -16,6 +16,7 @@ import (
 	"strconv"
 
 	"periph.io/x/periph/conn/i2c"
+	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/host"
 )
 
@@ -69,7 +70,7 @@ func mainImpl() error {
 		buf = make([]byte, *l)
 	}
 
-	bus, err := i2c.Open(*busName)
+	bus, err := i2creg.Open(*busName)
 	if err != nil {
 		return err
 	}
