@@ -109,7 +109,7 @@ type driver struct {
 }
 
 func (d *driver) String() string {
-	return "odroid_c1"
+	return "odroid-c1"
 }
 
 func (d *driver) Prerequisites() []string {

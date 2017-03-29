@@ -16,7 +16,7 @@ Example output running on an Odroid-C1:
 20:29:14.242149 - sysfs-i2c
 20:29:14.242264 - sysfs-gpio
 20:29:14.242362 - sysfs-spi
-20:29:14.242434 - odroid_c1
+20:29:14.242434 - odroid-c1
 20:29:14.242511 Drivers skipped:
 20:29:14.242591 - bcm283x-gpio: bcm283x CPU not detected
 20:29:14.242685 - allwinner-gpio: Allwinner CPU not detected

@@ -19,7 +19,7 @@ chip4 ~> sudo ./periph-smoketest -v onewire-testboard -i2cbus 1
 05:47:18.565470 Drivers skipped:
 05:47:18.566169 - allwinner-gpio-pl: A64 CPU not detected
 05:47:18.566265 - bcm283x-gpio: bcm283x CPU not detected
-05:47:18.566336 - odroid_c1: Hardkernel ODROID-C0/C1/C1+ board not detected
+05:47:18.566336 - odroid-c1: Hardkernel ODROID-C0/C1/C1+ board not detected
 05:47:18.566403 - pine64: dependency not loaded: "allwinner-gpio-pl"
 05:47:18.566466 - rpi: dependency not loaded: "bcm283x-gpio"
 05:47:18.569578 onewire-smoke: random number seed 1481694438569396253

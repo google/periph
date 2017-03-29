@@ -9,7 +9,7 @@ import (
 	_ "periph.io/x/periph/host/allwinner"
 	_ "periph.io/x/periph/host/bcm283x"
 	_ "periph.io/x/periph/host/chip"
-	_ "periph.io/x/periph/host/odroid_c1"
+	_ "periph.io/x/periph/host/odroidc1"
 	// While this board is ARM64, it may run ARM 32 bits binaries so load it on
 	// 32 bits builds too.
 	_ "periph.io/x/periph/host/pine64"
