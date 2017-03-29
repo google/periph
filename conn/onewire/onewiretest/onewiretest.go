@@ -84,6 +84,7 @@ type Playback struct {
 	sync.Mutex
 	Ops       []IO              // recorded operations
 	Devices   []onewire.Address // devices that respond to a search operation
+	QPin      gpio.PinIO        //
 	inactive  []bool            // Devices that are no longer active in the search
 	searchBit uint              // which bit is being searched next
 }
@@ -107,7 +108,6 @@ func (p *Playback) Tx(w, r []byte, pull onewire.Pullup) error {
 	p.Lock()
 	defer p.Unlock()
 	if len(p.Ops) == 0 {
-		// log.Fatal() ?
 		return errors.New("onewiretest: unexpected Tx()")
 	}
 	if !bytes.Equal(p.Ops[0].Write, w) {
@@ -128,6 +128,13 @@ func (p *Playback) Tx(w, r []byte, pull onewire.Pullup) error {
 	copy(r, p.Ops[0].Read)
 	p.Ops = p.Ops[1:]
 	return nil
+}
+
+// Q implements onewire.Pins.
+func (p *Playback) Q() gpio.PinIO {
+	p.Lock()
+	defer p.Unlock()
+	return p.QPin
 }
 
 // Search implements onewire.Bus using the Search function (which calls SearchTriplet).

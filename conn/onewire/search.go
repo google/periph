@@ -7,8 +7,8 @@ package onewire
 import "fmt"
 
 // BusSearcher provides the basic bus transaction necessary to search a 1-wire
-// bus for devices. Buses that implement this interface can be searched with the
-// Search function.
+// bus for devices. Buses that implement this interface can be searched with
+// the Search function.
 type BusSearcher interface {
 	Bus
 	// SearchTriplet performs a single bit search triplet command on the bus,
@@ -23,9 +23,9 @@ type TripletResult struct {
 	Taken   uint8 // direction taken: 0 or 1
 }
 
-// Search performs a "search" cycle on the 1-wire bus and returns
-// the addresses of all devices on the bus if alarmOnly is false and of all
-// devices in alarm state if alarmOnly is true.
+// Search performs a "search" cycle on the 1-wire bus and returns the addresses
+// of all devices on the bus if alarmOnly is false and of all devices in alarm
+// state if alarmOnly is true.
 //
 // If an error occurs during the search the already-discovered devices are
 // returned with the error.
@@ -33,8 +33,8 @@ type TripletResult struct {
 // For a description of the search algorithm, see Maxim's AppNote 187
 // https://www.maximintegrated.com/en/app-notes/index.mvp/id/187
 //
-// This function is defined here so the implementation of buses that support the
-// BusSearcher interface can call it. Applications should call Bus.Search.
+// This function is defined here so the implementation of buses that support
+// the BusSearcher interface can call it. Applications should call Bus.Search.
 func Search(bus BusSearcher, alarmOnly bool) ([]Address, error) {
 	var devices []Address // devices we're finding
 	lastDiscrepancy := -1 // how far we need to repeat the same ID in the next iteration
@@ -100,9 +100,8 @@ func Search(bus BusSearcher, alarmOnly bool) ([]Address, error) {
 
 		// Verify the CRC and record device if we got it right.
 		if !CheckCRC(idBytes[:]) {
-			// CRC error: return partial result.  This is a transient error.
-			e := fmt.Sprintf("onewire: CRC error during search, addr=%+v", idBytes)
-			return devices, busError(e)
+			// CRC error: return partial result. This is a transient error.
+			return devices, busError(fmt.Sprintf("onewire: CRC error during search, addr=%+v", idBytes))
 		}
 		devices = append(devices, Address(device))
 		lastDevice = device

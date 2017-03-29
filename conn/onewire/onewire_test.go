@@ -5,16 +5,43 @@
 package onewire
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
+	"log"
 	"testing"
+
+	"periph.io/x/periph/conn"
 )
 
-func ExampleAll() {
-	fmt.Print("1-wire buses available:\n")
-	for name := range All() {
-		fmt.Printf("- %s\n", name)
+func ExampleDev() {
+	//b, err := onewirereg.Open("")
+	//defer b.Close()
+	var b Bus
+
+	// Dev is a valid conn.Conn.
+	d := &Dev{Addr: 23, Bus: b}
+	var _ conn.Conn = d
+
+	// Send a command and expect a 5 bytes reply.
+	reply := [5]byte{}
+	if err := d.Tx([]byte("A command"), reply[:]); err != nil {
+		log.Fatal(err)
 	}
 }
+
+func ExamplePins() {
+	//b, err := onewirereg.Open("")
+	//defer b.Close()
+	var b Bus
+
+	// Prints out the gpio pin used.
+	if p, ok := b.(Pins); ok {
+		fmt.Printf("Q: %s", p.Q())
+	}
+}
+
+//
 
 func TestPullUp(t *testing.T) {
 	if WeakPullup.String() != "Weak" || StrongPullup.String() != "Strong" {
@@ -43,7 +70,36 @@ func TestBusError(t *testing.T) {
 	}
 }
 
-func TestDev(t *testing.T) {
+func TestDevString(t *testing.T) {
+	d := Dev{&fakeBus{}, 12}
+	if s := d.String(); s != "fake(0x000000000000000c)" {
+		t.Fatalf("got %s", s)
+	}
+}
+
+func TestDevTx(t *testing.T) {
+	exErr := errors.New("yes")
+	b := &fakeBus{err: exErr, r: []byte{1, 2, 3}}
+	d := Dev{b, 12}
+	r := make([]byte, 3)
+	w := []byte{3, 4, 5}
+	if err := d.Tx(w, r); exErr != err {
+		t.Fatalf("got %s", err)
+	}
+	expected := []byte{85, 12, 0, 0, 0, 0, 0, 0, 0, 3, 4, 5}
+	if !bytes.Equal(b.w, expected) {
+		t.Fatal(b.w)
+	}
+	expected = []byte{1, 2, 3}
+	if !bytes.Equal(r, expected) {
+		t.Fatalf("r: %v != %v", b.r, expected)
+	}
+	if i := d.Duplex(); i != conn.Half {
+		t.Fatal(i)
+	}
+}
+
+func TestDevTxPower(t *testing.T) {
 	b := nopBus("hi")
 	d := Dev{Bus: &b, Addr: 12}
 	if s := d.String(); s != "hi(0x000000000000000c)" {
@@ -56,123 +112,37 @@ func TestDev(t *testing.T) {
 	if err := d.TxPower([]byte{1}, nil); err != nil {
 		t.Fatal(err)
 	}
-}
-
-func TestNoneRegistered(t *testing.T) {
-	if _, err := New(-1); err == nil {
-		t.Fail()
-	}
-}
-
-// TestRegDereg tests registration and deregistration of buses.
-func TestRegDereg(t *testing.T) {
-	defer reset()
-	opener1 := func() (BusCloser, error) {
-		b := nopBus("bus1")
-		return &b, nil
-	}
-	opener2 := func() (BusCloser, error) {
-		b := nopBus("bus2")
-		return &b, nil
-	}
-
-	if Register("", 1, opener1) == nil {
-		t.FailNow()
-	}
-	if Register("a", -1, opener1) == nil {
-		t.FailNow()
-	}
-	if Register("a", 1, nil) == nil {
-		t.FailNow()
-	}
-	if Unregister("", 1) == nil {
-		t.FailNow()
-	}
-
-	// Register a first bus.
-	if err := Register("bus1", 4, opener1); err != nil {
-		t.Errorf("Failed to register the first bus: %s", err)
-	}
-
-	// Try to register a clashing bus.
-	if err := Register("bus1", 5, opener2); err == nil {
-		t.Errorf("Expected re-registration with the same name to fail")
-	}
-	if err := Register("bus2", 4, opener2); err == nil {
-		t.Errorf("Expected re-registration with the same number to fail")
-	}
-
-	// Register a second bus.
-	if err := Register("bus2", 15, opener2); err != nil {
-		t.Errorf("Failed to register the second bus: %s", err)
-	}
-
-	// Ensure queries work.
-	a := All()
-	if len(a) != 2 {
-		t.Errorf("Expected All() to return 2 buses, got %d", len(a))
-	}
-	if b, _ := a["bus1"](); b.String() != "bus1" {
-		t.Errorf("Expected All() to return bus1, got %v", b.String())
-	}
-	if b, _ := a["bus2"](); b.String() != "bus2" {
-		t.Errorf("Expected All() to return bus2, got %v", b.String())
-	}
-
-	// Quick test of New.
-	n, err := New(4)
-	if err != nil {
-		t.Errorf("Expected New(4) to succeed, got %s", err)
-	}
-	if n.String() != "bus1" {
-		t.Errorf("Expected New(4) to return bus1, got %v", n.String())
-	}
-	if n, _ := New(-1); n.String() != "bus1" {
-		t.Errorf("Expected New(-1) to return bus1, got %v", n.String())
-	}
-
-	// Failures
-	if o, err := New(42); o != nil || err == nil {
-		t.FailNow()
-	}
-	if Unregister("bus1", 42) == nil {
-		t.FailNow()
-	}
-	if Unregister("", 4) == nil {
-		t.FailNow()
-	}
-
-	// Deregister the first bus.
-	if err := Unregister("bus1", 4); err != nil {
-		t.Errorf("Expected unregister of bus1 to succeed, got %s", err)
-	}
-	a = All()
-	if len(a) != 1 {
-		t.Errorf("Expected All() to return 1 buses, got %d", len(a))
-	}
-
-	// Verify that first got reassigned.
-	if n, _ := New(-1); n.String() != "bus2" {
-		t.Errorf("Expected New(-1) to return bus2, got %v", n.String())
-	}
-
-	// Deregister the second bus.
-	if err := Unregister("bus2", 15); err != nil {
-		t.Errorf("Expected unregister of bus2 to succeed, got %s", err)
-	}
-	a = All()
-	if len(a) != 0 {
-		t.Errorf("Expected All() to return 0 buses, got %d", len(a))
+	if v := d.Duplex(); v != conn.Half {
+		t.Fatal(v)
 	}
 }
 
 //
 
-func reset() {
-	mu.Lock()
-	defer mu.Unlock()
-	byName = map[string]Opener{}
-	byNumber = map[int]Opener{}
+type fakeBus struct {
+	power Pullup
+	err   error
+	w, r  []byte
+}
+
+func (f *fakeBus) Close() error {
+	return nil
+}
+
+func (f *fakeBus) String() string {
+	return "fake"
+}
+
+func (f *fakeBus) Tx(w, r []byte, power Pullup) error {
+	f.power = power
+	f.w = append(f.w, w...)
+	copy(r, f.r)
+	f.r = f.r[len(r):]
+	return f.err
+}
+
+func (f *fakeBus) Search(alarmOnly bool) ([]Address, error) {
+	return nil, errors.New("not implemented")
 }
 
 // nopBus implements Bus.

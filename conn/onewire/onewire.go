@@ -17,10 +17,8 @@ package onewire
 
 import (
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"io"
-	"sync"
 
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio"
@@ -32,8 +30,6 @@ import (
 // specified for each transaction. Use onewire.Dev as an adapter to get a
 // conn.Conn compatible object.
 type Bus interface {
-	fmt.Stringer
-
 	// Tx performs a bus transaction, sending and receiving bytes, and
 	// ending by pulling the bus high either weakly or strongly depending
 	// on the value of power. A strong pull-up is typically required to
@@ -95,8 +91,6 @@ type Pins interface {
 	Q() gpio.PinIO
 }
 
-//===== Errors
-
 // NoDevicesError is an interface that should be implemented by errors that
 // indicate that no devices responded with a presence pulse after a reset.
 type NoDevicesError interface {
@@ -142,8 +136,6 @@ type busError string
 func (e busError) Error() string  { return string(e) }
 func (e busError) BusError() bool { return true }
 
-//===== A device on a 1-wire bus
-
 // Dev is a device on a 1-wire bus.
 //
 // It implements conn.Conn.
@@ -152,7 +144,7 @@ func (e busError) BusError() bool { return true }
 // implements utility functions.
 type Dev struct {
 	Bus  Bus     // the bus to which the device is connected
-	Addr Address // the address of the device on the bus
+	Addr Address // address of the device on the bus
 }
 
 // String prints the bus name followed by the device address in parenthesis.
@@ -195,114 +187,6 @@ func (d *Dev) TxPower(w, r []byte) error {
 	ww = append(ww, w...)
 	return d.Bus.Tx(ww, r, StrongPullup)
 }
-
-//===== Bus registry
-
-// All returns all the 1-wire buses available on this host.
-func All() map[string]Opener {
-	mu.Lock()
-	defer mu.Unlock()
-	out := make(map[string]Opener, len(byName))
-	for k, v := range byName {
-		out[k] = v
-	}
-	return out
-}
-
-// New returns an open handle to a 1-wire bus.
-//
-// Specify busNumber -1 to get the first available bus. This is the recommended value.
-func New(busNumber int) (BusCloser, error) {
-	opener, err := find(busNumber)
-	if err != nil {
-		return nil, err
-	}
-	return opener()
-}
-
-// Opener opens a 1-wire bus.
-type Opener func() (BusCloser, error)
-
-// Register registers a 1-wire bus.
-//
-// Registering the same bus name twice is an error.
-func Register(name string, busNumber int, opener Opener) error {
-	if len(name) == 0 {
-		return errors.New("onewire: no bus name")
-	}
-	if busNumber < 0 {
-		return fmt.Errorf("onewire: cannot register a negative bus number: %d", busNumber)
-	}
-	if opener == nil {
-		return errors.New("onewire: missing opener")
-	}
-	mu.Lock()
-	defer mu.Unlock()
-
-	if _, ok := byName[name]; ok {
-		return fmt.Errorf("onewire: registering the same 1-wire bus %s twice", name)
-	}
-	if _, ok := byNumber[busNumber]; ok {
-		return fmt.Errorf("onewire: registering the same 1-wire bus %d twice", busNumber)
-	}
-
-	byName[name] = opener
-	byNumber[busNumber] = opener
-	return nil
-}
-
-// Unregister removes a previously registered 1-wire bus.
-//
-// This may be necessary, for example, when a 1-wire bus is exposed via an USB device
-// and the device is unplugged.
-func Unregister(name string, busNumber int) error {
-	if len(name) == 0 {
-		return errors.New("onewire: no bus name")
-	}
-	mu.Lock()
-	defer mu.Unlock()
-
-	if _, ok := byName[name]; !ok {
-		return fmt.Errorf("onewire: can't unregister %q, wasn't registered", name)
-	}
-	if _, ok := byNumber[busNumber]; !ok {
-		return fmt.Errorf("onewire: can't unregister %d, wasn't registered", busNumber)
-	}
-
-	delete(byName, name)
-	delete(byNumber, busNumber)
-	return nil
-}
-
-//
-
-// find interates through registered buses and returns the one with the desired number.
-func find(busNumber int) (Opener, error) {
-	mu.Lock()
-	defer mu.Unlock()
-	if len(byNumber) == 0 {
-		return nil, errors.New("onewire: no bus found; did you forget to call Init()?")
-	}
-	if busNumber == -1 {
-		busNumber = int((^uint(0)) >> 1)
-		for n := range byNumber {
-			if busNumber > n {
-				busNumber = n
-			}
-		}
-	}
-	bus, ok := byNumber[busNumber]
-	if !ok {
-		return nil, fmt.Errorf("onewire: no bus %d", busNumber)
-	}
-	return bus, nil
-}
-
-var (
-	mu       sync.Mutex
-	byName   = map[string]Opener{}
-	byNumber = map[int]Opener{}
-)
 
 // Ensure that the appropriate interfaces are implemented.
 var _ conn.Conn = &Dev{}
