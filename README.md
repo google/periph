@@ -1,5 +1,7 @@
 # periph - Peripherals I/O in Go
 
+[![mascot](https://raw.githubusercontent.com/periph/website/master/site/static/img/periph-mascot-280.png)](https://periph.io/)
+
 Documentation is at https://periph.io
 
 [![GoDoc](https://godoc.org/periph.io/x/periph?status.svg)](https://godoc.org/periph.io/x/periph)
