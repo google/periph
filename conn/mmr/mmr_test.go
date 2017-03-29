@@ -2,7 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-package reg
+package mmr
 
 import (
 	"bytes"
@@ -16,12 +16,13 @@ import (
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/conntest"
 	"periph.io/x/periph/conn/i2c"
+	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/conn/onewire"
 )
 
 func ExampleDev8() {
 	// Open a connection, using I²C as an example:
-	bus, err := i2c.Open("")
+	bus, err := i2creg.Open("")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -40,7 +41,7 @@ func ExampleDev8() {
 
 func ExampleDev8_ReadStruct() {
 	// Open a connection, using I²C as an example:
-	bus, err := i2c.Open("")
+	bus, err := i2creg.Open("")
 	if err != nil {
 		log.Fatal(err)
 	}

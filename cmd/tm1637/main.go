@@ -14,7 +14,7 @@ import (
 	"os"
 	"strconv"
 
-	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/devices/tm1637"
 	"periph.io/x/periph/host"
 )
@@ -107,11 +107,11 @@ func mainImpl() error {
 		return err
 	}
 
-	pClk := gpio.ByName(*clk)
+	pClk := gpioreg.ByName(*clk)
 	if pClk == nil {
 		return errors.New("specify a valid pin for clock")
 	}
-	pData := gpio.ByName(*data)
+	pData := gpioreg.ByName(*data)
 	if pData == nil {
 		return errors.New("specify a valid pin for data")
 	}

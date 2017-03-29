@@ -2,12 +2,12 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package pins declare well known pins.
+// Package pin declare well known pins.
 //
-// Pins is about physical pins, not about their logical function.
+// pin is about physical pins, not about their logical function.
 //
 // While not a protocol strictly speaking, these are "well known constants".
-package pins
+package pin
 
 import "fmt"
 

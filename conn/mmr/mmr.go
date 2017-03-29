@@ -2,9 +2,13 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package reg defines helpers to interract with devices exposing memory mapped
-// registers.
-package reg
+// Package mmr defines helpers to interact with devices exposing Memory
+// Mapped Registers protocol.
+//
+// The protocol is defined two supported commands:
+//  - Write Address, Read Value
+//  - Write Address, Write Value
+package mmr
 
 import (
 	"bytes"

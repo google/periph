@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"periph.io/x/periph/conn/spi"
+	"periph.io/x/periph/conn/spi/spireg"
 	"periph.io/x/periph/devices"
 	"periph.io/x/periph/devices/apa102"
 	"periph.io/x/periph/host"
@@ -139,7 +140,7 @@ func mainImpl() error {
 	}
 
 	// Open the display device.
-	bus, err := spi.Open(*spiName)
+	bus, err := spireg.Open(*spiName)
 	if err != nil {
 		return err
 	}

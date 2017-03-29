@@ -8,7 +8,7 @@ import (
 	"log"
 	"testing"
 
-	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/gpio/gpiotest"
 	"periph.io/x/periph/host"
 )
@@ -30,7 +30,7 @@ func Example() {
 	if _, err := host.Init(); err != nil {
 		log.Fatalf("failed to initialize periph: %v", err)
 	}
-	dev, err := New(gpio.ByNumber(6), gpio.ByNumber(12))
+	dev, err := New(gpioreg.ByNumber(6), gpioreg.ByNumber(12))
 	if err != nil {
 		log.Fatalf("failed to initialize tm1637: %v", err)
 	}

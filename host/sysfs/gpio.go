@@ -17,6 +17,7 @@ import (
 
 	"periph.io/x/periph"
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/gpio/gpioreg"
 )
 
 // Pins is all the pins exported by GPIO sysfs.
@@ -417,7 +418,7 @@ func (d *driverGPIO) parseGPIOChip(path string) error {
 			root:   fmt.Sprintf("/sys/class/gpio/gpio%d/", i),
 		}
 		Pins[i] = p
-		if err := gpio.Register(p, false); err != nil {
+		if err := gpioreg.Register(p, false); err != nil {
 			return err
 		}
 		// We cannot use gpio.MapFunction() since there is no API to determine this.

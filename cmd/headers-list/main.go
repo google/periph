@@ -16,9 +16,9 @@ import (
 	"sort"
 
 	"periph.io/x/periph"
-	"periph.io/x/periph/conn/pins"
+	"periph.io/x/periph/conn/pin"
+	"periph.io/x/periph/conn/pin/pinreg"
 	"periph.io/x/periph/host"
-	"periph.io/x/periph/host/headers"
 )
 
 func printFailures(state *periph.State) {
@@ -33,7 +33,7 @@ func printFailures(state *periph.State) {
 	}
 }
 
-func printHardware(invalid bool, all map[string][][]pins.Pin) {
+func printHardware(invalid bool, all map[string][][]pin.Pin) {
 	names := make([]string, 0, len(all))
 	for name := range all {
 		names = append(names, name)
@@ -101,7 +101,7 @@ func mainImpl() error {
 	if err != nil {
 		return err
 	}
-	all := headers.All()
+	all := pinreg.All()
 	if len(all) == 0 && len(state.Failed) != 0 {
 		fmt.Fprintf(os.Stderr, "Got the following driver failures:\n")
 		printFailures(state)
@@ -115,7 +115,7 @@ func mainImpl() error {
 			if !ok {
 				return fmt.Errorf("header %q is not registered", name)
 			}
-			printHardware(*invalid, map[string][][]pins.Pin{name: hdr})
+			printHardware(*invalid, map[string][][]pin.Pin{name: hdr})
 		}
 	}
 	return nil

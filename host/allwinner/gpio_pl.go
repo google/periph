@@ -16,6 +16,7 @@ import (
 
 	"periph.io/x/periph"
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/host/pmem"
 	"periph.io/x/periph/host/sysfs"
 )
@@ -351,7 +352,7 @@ func (d *driverGPIOPL) Init() (bool, error) {
 
 	for i := range cpuPinsPL {
 		p := &cpuPinsPL[i]
-		if err := gpio.Register(p, true); err != nil {
+		if err := gpioreg.Register(p, true); err != nil {
 			return true, err
 		}
 		// TODO(maruel): There's a problem where multiple pins may be set to the
@@ -359,9 +360,9 @@ func (d *driverGPIOPL) Init() (bool, error) {
 		if f := p.Function(); f[0] != '<' && f[:2] != "In" && f[:3] != "Out" {
 			// TODO(maruel): Stop ignoring errors by not registering the same
 			// function multiple times.
-			gpio.RegisterAlias(f, p.Number())
+			gpioreg.RegisterAlias(f, p.Number())
 			/*
-				if err := gpio.RegisterAlias(f, p.Number()); err != nil {
+				if err := gpioreg.RegisterAlias(f, p.Number()); err != nil {
 					return true, err
 				}
 			*/

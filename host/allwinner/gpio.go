@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/host/sysfs"
 )
 
@@ -535,7 +536,7 @@ func init() {
 func initPins() error {
 	for i := range cpupins {
 		// Register the pin with gpio.
-		if err := gpio.Register(cpupins[i], true); err != nil {
+		if err := gpioreg.Register(cpupins[i], true); err != nil {
 			return err
 		}
 		// Iterate through alternate functions and register function->pin mapping.
@@ -545,9 +546,9 @@ func initPins() error {
 			if f != "" && f[0] != '<' && f[:2] != "In" && f[:3] != "Out" {
 				// TODO(maruel): Stop ignoring errors by not registering the same
 				// function multiple times.
-				gpio.RegisterAlias(f, cpupins[i].Number())
+				gpioreg.RegisterAlias(f, cpupins[i].Number())
 				/*
-					if err := gpio.RegisterAlias(f, cpupins[i].Number()); err != nil {
+					if err := gpioreg.RegisterAlias(f, cpupins[i].Number()); err != nil {
 						return true, err
 					}
 				*/

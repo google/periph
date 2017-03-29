@@ -11,7 +11,8 @@ import (
 	"sort"
 
 	"periph.io/x/periph/conn/gpio"
-	"periph.io/x/periph/host/headers"
+	"periph.io/x/periph/conn/gpio/gpioreg"
+	"periph.io/x/periph/conn/pin/pinreg"
 	"periph.io/x/periph/host/odroidc1"
 )
 
@@ -24,10 +25,10 @@ func testOdroidC1Present() error {
 	return nil
 }
 
-// testOdroidC1Headers verifies that the appropriate headers with the right pin count show
-// up and point checks that a couple of pins are correct.
+// testOdroidC1Headers verifies that the appropriate headers with the right pin
+// count show up and point checks that a couple of pins are correct.
 func testOdroidC1Headers() error {
-	h := headers.All()
+	h := pinreg.All()
 	if len(h) != 1 {
 		return fmt.Errorf("expected to find 1 header, not %d", len(h))
 	}
@@ -46,9 +47,9 @@ func testOdroidC1Headers() error {
 	if j2_3.Name() != "GPIO74" {
 		return fmt.Errorf("expected J2_3 to be GPIO74, not %s", j2_3.Name())
 	}
-	p := gpio.ByName("GPIO74")
+	p := gpioreg.ByName("GPIO74")
 	if p == nil || p.Name() != j2_3.Name() { // p is gpio.PinIO while j2_3 is pins.Pin
-		return fmt.Errorf(`expected gpio.ByName("GPIO74") to equal h["J2"][1][0], instead `+
+		return fmt.Errorf(`expected gpioreg.ByName("GPIO74") to equal h["J2"][1][0], instead `+
 			"got %s and %s", p, j2_3)
 	}
 
@@ -60,7 +61,7 @@ func testOdroidC1GpioNumbers() error {
 	must := map[int]string{74: "I2CA_SDA", 75: "I2CA_SCL", 76: "I2CB_SDA", 77: "I2C_SCL",
 		107: "SPI0_MOSI", 106: "SPI0_MISO", 105: "SPI0_SCLK", 117: "SPI0_CS0"}
 	for number, name := range must {
-		pin := gpio.ByNumber(number)
+		pin := gpioreg.ByNumber(number)
 		if pin == nil {
 			return fmt.Errorf("could not get gpio pin %d (should be %s)", number, name)
 		}
@@ -75,7 +76,7 @@ func testOdroidC1GpioNumbers() error {
 // testOdroidC1GpioNames tests that the gpio pins get the right names.
 func testOdroidC1GpioNames() error {
 	all := []string{}
-	for _, p := range gpio.All() {
+	for _, p := range gpioreg.All() {
 		all = append(all, p.Name())
 	}
 	sort.Strings(all)
@@ -103,7 +104,7 @@ func testOdroidC1Aliases() error {
 		"SPI0_CS0":  "GPIO117", // Amlogic S805: "GPIO117": "X20",
 	}
 	for a, r := range tests {
-		p := gpio.ByName(a)
+		p := gpioreg.ByName(a)
 		if p == nil {
 			return fmt.Errorf("failed to open %s", a)
 		}

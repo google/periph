@@ -14,6 +14,7 @@ import (
 	"os"
 
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/host"
 )
 
@@ -57,7 +58,7 @@ func mainImpl() error {
 		return err
 	}
 
-	p := gpio.ByName(flag.Args()[0])
+	p := gpioreg.ByName(flag.Args()[0])
 	if p == nil {
 		return errors.New("specify a valid GPIO pin number")
 	}

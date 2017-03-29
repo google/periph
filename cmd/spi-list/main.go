@@ -9,14 +9,15 @@ import (
 	"fmt"
 	"os"
 
-	"periph.io/x/periph/conn/pins"
+	"periph.io/x/periph/conn/pin"
+	"periph.io/x/periph/conn/pin/pinreg"
 	"periph.io/x/periph/conn/spi"
+	"periph.io/x/periph/conn/spi/spireg"
 	"periph.io/x/periph/host"
-	"periph.io/x/periph/host/headers"
 )
 
-func printPin(fn string, p pins.Pin) {
-	name, pos := headers.Position(p)
+func printPin(fn string, p pin.Pin) {
+	name, pos := pinreg.Position(p)
 	if name != "" {
 		fmt.Printf("  %-4s: %-10s found on header %s, #%d\n", fn, p, name, pos)
 	} else {
@@ -28,18 +29,18 @@ func mainImpl() error {
 	if _, err := host.Init(); err != nil {
 		return err
 	}
-	for _, ref := range spi.All() {
+	for _, ref := range spireg.All() {
 		fmt.Printf("%s:\n", ref)
 		bus, err := ref.Open()
 		if err != nil {
 			fmt.Printf("  Failed to open: %v\n", err)
 			continue
 		}
-		if pins, ok := bus.(spi.Pins); ok {
-			printPin("CLK", pins.CLK())
-			printPin("MOSI", pins.MOSI())
-			printPin("MISO", pins.MISO())
-			printPin("CS", pins.CS())
+		if p, ok := bus.(spi.Pins); ok {
+			printPin("CLK", p.CLK())
+			printPin("MOSI", p.MOSI())
+			printPin("MISO", p.MISO())
+			printPin("CS", p.CS())
 		}
 		if err := bus.Close(); err != nil {
 			return err

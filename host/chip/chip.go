@@ -14,16 +14,17 @@ import (
 
 	"periph.io/x/periph"
 	"periph.io/x/periph/conn/gpio"
-	"periph.io/x/periph/conn/pins"
+	"periph.io/x/periph/conn/gpio/gpioreg"
+	"periph.io/x/periph/conn/pin"
+	"periph.io/x/periph/conn/pin/pinreg"
 	"periph.io/x/periph/host/allwinner"
 	"periph.io/x/periph/host/distro"
-	"periph.io/x/periph/host/headers"
 )
 
 // C.H.I.P. hardware pins.
 var (
-	TEMP_SENSOR = &pins.BasicPin{N: "TEMP_SENSOR"}
-	PWR_SWITCH  = &pins.BasicPin{N: "PWR_SWITCH"}
+	TEMP_SENSOR = &pin.BasicPin{N: "TEMP_SENSOR"}
+	PWR_SWITCH  = &pin.BasicPin{N: "PWR_SWITCH"}
 	// XIO "gpio" pins attached to the pcf8574 I²C port extender.
 	XIO0, XIO1, XIO2, XIO3, XIO4, XIO5, XIO6, XIO7 gpio.PinIO
 )
@@ -33,18 +34,18 @@ var (
 // The alternate pin functionality is described at pages 322-323 of
 // https://github.com/NextThingCo/CHIP-Hardware/raw/master/CHIP%5Bv1_0%5D/CHIPv1_0-BOM-Datasheets/Allwinner%20R8%20User%20Manual%20V1.1.pdf
 var (
-	U13_1  = pins.GROUND    //
-	U13_2  = pins.DC_IN     //
-	U13_3  = pins.V5        // (filtered)
-	U13_4  = pins.GROUND    //
-	U13_5  = pins.V3_3      //
+	U13_1  = pin.GROUND     //
+	U13_2  = pin.DC_IN      //
+	U13_3  = pin.V5         // (filtered)
+	U13_4  = pin.GROUND     //
+	U13_5  = pin.V3_3       //
 	U13_6  = TEMP_SENSOR    // Analog temp sensor input
-	U13_7  = pins.V1_8      //
-	U13_8  = pins.BAT_PLUS  // External LiPo battery
+	U13_7  = pin.V1_8       //
+	U13_8  = pin.BAT_PLUS   // External LiPo battery
 	U13_9  = allwinner.PB16 // I2C1_SDA
 	U13_10 = PWR_SWITCH     // Power button
 	U13_11 = allwinner.PB15 // I2C1_SCL
-	U13_12 = pins.GROUND    //
+	U13_12 = pin.GROUND     //
 	U13_13 = allwinner.X1   // Touch screen X1
 	U13_14 = allwinner.X2   // Touch screen X2
 	U13_15 = allwinner.Y1   // Touch screen Y1
@@ -71,21 +72,21 @@ var (
 	U13_36 = allwinner.PD23 // LCD-D23
 	U13_37 = allwinner.PD26 // LCD-VSYNC
 	U13_38 = allwinner.PD27 // LCD-HSYNC
-	U13_39 = pins.GROUND    //
+	U13_39 = pin.GROUND     //
 	U13_40 = allwinner.PD25 // LCD-DE: RGB666 data
 )
 
 // The U14 header is right next to the power LED.
 var (
-	U14_1  = pins.GROUND        //
-	U14_2  = pins.V5            // (filtered)
+	U14_1  = pin.GROUND         //
+	U14_2  = pin.V5             // (filtered)
 	U14_3  = allwinner.PG3      // UART1_TX; EINT3
 	U14_4  = allwinner.HP_LEFT  // Headphone left output
 	U14_5  = allwinner.PG4      // UART1_RX; EINT4
 	U14_6  = allwinner.HP_COM   // Headphone amp out
 	U14_7  = allwinner.FEL      // Boot mode selection
 	U14_8  = allwinner.HP_RIGHT // Headphone right output
-	U14_9  = pins.V3_3          //
+	U14_9  = pin.V3_3           //
 	U14_10 = allwinner.MIC_GND  // Microphone ground
 	U14_11 = allwinner.KEY_ADC  // LRADC Low res analog to digital
 	U14_12 = allwinner.MIC_IN   // Microphone input
@@ -97,8 +98,8 @@ var (
 	U14_18 = XIO5               // gpio via I²C controller
 	U14_19 = XIO6               // gpio via I²C controller
 	U14_20 = XIO7               // gpio via I²C controller
-	U14_21 = pins.GROUND        //
-	U14_22 = pins.GROUND        //
+	U14_21 = pin.GROUND         //
+	U14_22 = pin.GROUND         //
 	U14_23 = allwinner.PG1      // GPS_CLK; AP-EINT1
 	U14_24 = allwinner.PB3      // IR_TX; AP-EINT3 (EINT17)
 	U14_25 = allwinner.PB18     // I2C2_SDA
@@ -115,8 +116,8 @@ var (
 	U14_36 = allwinner.PE9      // CSID5
 	U14_37 = allwinner.PE10     // CSID6; UART1_RX
 	U14_38 = allwinner.PE11     // CSID7; UART1_TX
-	U14_39 = pins.GROUND        //
-	U14_40 = pins.GROUND        //
+	U14_39 = pin.GROUND         //
+	U14_40 = pin.GROUND         //
 )
 
 // Present returns true if running on a NextThing Co's C.H.I.P. board.
@@ -136,9 +137,9 @@ func Present() bool {
 
 //
 
-// aliases is a list of aliases for the various gpio pins, this allows users to refer to pins
-// using the documented and labeled names instead of some GPIOnnn name. The map key is the
-// alias and the value is the real pin name.
+// aliases is a list of aliases for the various gpio pins, this allows users to
+// refer to pins using the documented and labeled names instead of some GPIOnnn
+// name. The map key is the alias and the value is the real pin name.
 var aliases = map[string]string{
 	"AP-EINT1":  "PG1",
 	"AP-EINT3":  "PB3",
@@ -260,23 +261,23 @@ func (d *driver) Init() (bool, error) {
 	// At this point the sysfs driver has initialized and discovered its pins,
 	// we can now hook-up the appropriate CHIP pins to sysfs gpio pins.
 	for alias, real := range aliases {
-		r := gpio.ByName(real)
+		r := gpioreg.ByName(real)
 		if r == nil {
 			return true, fmt.Errorf("cannot create alias for %s: it doesn't exist", real)
 		}
-		if err := gpio.RegisterAlias(alias, r.Number()); err != nil {
+		if err := gpioreg.RegisterAlias(alias, r.Number()); err != nil {
 			return true, err
 		}
 	}
 	// These must be explicitly initialized.
-	XIO0 = gpio.ByName("XIO-P0")
-	XIO1 = gpio.ByName("XIO-P1")
-	XIO2 = gpio.ByName("XIO-P2")
-	XIO3 = gpio.ByName("XIO-P3")
-	XIO4 = gpio.ByName("XIO-P4")
-	XIO5 = gpio.ByName("XIO-P5")
-	XIO6 = gpio.ByName("XIO-P6")
-	XIO7 = gpio.ByName("XIO-P7")
+	XIO0 = gpioreg.ByName("XIO-P0")
+	XIO1 = gpioreg.ByName("XIO-P1")
+	XIO2 = gpioreg.ByName("XIO-P2")
+	XIO3 = gpioreg.ByName("XIO-P3")
+	XIO4 = gpioreg.ByName("XIO-P4")
+	XIO5 = gpioreg.ByName("XIO-P5")
+	XIO6 = gpioreg.ByName("XIO-P6")
+	XIO7 = gpioreg.ByName("XIO-P7")
 	U14_13 = XIO0
 	U14_14 = XIO1
 	U14_15 = XIO2
@@ -287,37 +288,37 @@ func (d *driver) Init() (bool, error) {
 	U14_20 = XIO7
 
 	// U13 is one of the 20x2 connectors.
-	U13 := [][]pins.Pin{
+	U13 := [][]pin.Pin{
 		{U13_1, U13_2},
 		{U13_3, U13_4},
 		{U13_5, U13_6},
 		{U13_7, U13_8},
-		{gpio.ByName("TWI1-SDA"), U13_10},
-		{gpio.ByName("TWI1-SCK"), U13_12},
+		{gpioreg.ByName("TWI1-SDA"), U13_10},
+		{gpioreg.ByName("TWI1-SCK"), U13_12},
 		{U13_13, U13_14},
 		{U13_15, U13_16},
-		{gpio.ByName("LCD-D2"), gpio.ByName("PWM0")},
-		{gpio.ByName("LCD-D4"), gpio.ByName("LCD-D3")},
-		{gpio.ByName("LCD-D6"), gpio.ByName("LCD-D5")},
-		{gpio.ByName("LCD-D10"), gpio.ByName("LCD-D7")},
-		{gpio.ByName("LCD-D12"), gpio.ByName("LCD-D11")},
-		{gpio.ByName("LCD-D14"), gpio.ByName("LCD-D13")},
-		{gpio.ByName("LCD-D18"), gpio.ByName("LCD-D15")},
-		{gpio.ByName("LCD-D20"), gpio.ByName("LCD-D19")},
-		{gpio.ByName("LCD-D22"), gpio.ByName("LCD-D21")},
-		{gpio.ByName("LCD-CLK"), gpio.ByName("LCD-D23")},
-		{gpio.ByName("LCD-VSYNC"), gpio.ByName("LCD-HSYNC")},
-		{U13_39, gpio.ByName("LCD-DE")},
+		{gpioreg.ByName("LCD-D2"), gpioreg.ByName("PWM0")},
+		{gpioreg.ByName("LCD-D4"), gpioreg.ByName("LCD-D3")},
+		{gpioreg.ByName("LCD-D6"), gpioreg.ByName("LCD-D5")},
+		{gpioreg.ByName("LCD-D10"), gpioreg.ByName("LCD-D7")},
+		{gpioreg.ByName("LCD-D12"), gpioreg.ByName("LCD-D11")},
+		{gpioreg.ByName("LCD-D14"), gpioreg.ByName("LCD-D13")},
+		{gpioreg.ByName("LCD-D18"), gpioreg.ByName("LCD-D15")},
+		{gpioreg.ByName("LCD-D20"), gpioreg.ByName("LCD-D19")},
+		{gpioreg.ByName("LCD-D22"), gpioreg.ByName("LCD-D21")},
+		{gpioreg.ByName("LCD-CLK"), gpioreg.ByName("LCD-D23")},
+		{gpioreg.ByName("LCD-VSYNC"), gpioreg.ByName("LCD-HSYNC")},
+		{U13_39, gpioreg.ByName("LCD-DE")},
 	}
-	if err := headers.Register("U13", U13); err != nil {
+	if err := pinreg.Register("U13", U13); err != nil {
 		return true, err
 	}
 
 	// U14 is one of the 20x2 connectors.
-	U14 := [][]pins.Pin{
+	U14 := [][]pin.Pin{
 		{U14_1, U14_2},
-		{gpio.ByName("UART1-TX"), U14_4},
-		{gpio.ByName("UART1-RX"), U14_6},
+		{gpioreg.ByName("UART1-TX"), U14_4},
+		{gpioreg.ByName("UART1-RX"), U14_6},
 		{U14_7, U14_8},
 		{U14_9, U14_10},
 		{U14_11, U14_12}, // TODO(maruel): switch to LRADC once analog support is added
@@ -326,17 +327,17 @@ func (d *driver) Init() (bool, error) {
 		{U14_17, U14_18},
 		{U14_19, U14_20},
 		{U14_21, U14_22},
-		{gpio.ByName("AP-EINT1"), gpio.ByName("AP-EINT3")},
-		{gpio.ByName("TWI2-SDA"), gpio.ByName("TWI2-SCK")},
-		{gpio.ByName("CSIPCK"), gpio.ByName("CSICK")},
-		{gpio.ByName("CSIHSYNC"), gpio.ByName("CSIVSYNC")},
-		{gpio.ByName("CSID0"), gpio.ByName("CSID1")},
-		{gpio.ByName("CSID2"), gpio.ByName("CSID3")},
-		{gpio.ByName("CSID4"), gpio.ByName("CSID5")},
-		{gpio.ByName("CSID6"), gpio.ByName("CSID7")},
+		{gpioreg.ByName("AP-EINT1"), gpioreg.ByName("AP-EINT3")},
+		{gpioreg.ByName("TWI2-SDA"), gpioreg.ByName("TWI2-SCK")},
+		{gpioreg.ByName("CSIPCK"), gpioreg.ByName("CSICK")},
+		{gpioreg.ByName("CSIHSYNC"), gpioreg.ByName("CSIVSYNC")},
+		{gpioreg.ByName("CSID0"), gpioreg.ByName("CSID1")},
+		{gpioreg.ByName("CSID2"), gpioreg.ByName("CSID3")},
+		{gpioreg.ByName("CSID4"), gpioreg.ByName("CSID5")},
+		{gpioreg.ByName("CSID6"), gpioreg.ByName("CSID7")},
 		{U14_39, U14_40},
 	}
-	if err := headers.Register("U14", U14); err != nil {
+	if err := pinreg.Register("U14", U14); err != nil {
 		return true, err
 	}
 

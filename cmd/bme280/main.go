@@ -14,17 +14,19 @@ import (
 	"time"
 
 	"periph.io/x/periph/conn/i2c"
+	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/conn/i2c/i2ctest"
-	"periph.io/x/periph/conn/pins"
+	"periph.io/x/periph/conn/pin"
+	"periph.io/x/periph/conn/pin/pinreg"
 	"periph.io/x/periph/conn/spi"
+	"periph.io/x/periph/conn/spi/spireg"
 	"periph.io/x/periph/devices"
 	"periph.io/x/periph/devices/bme280"
 	"periph.io/x/periph/host"
-	"periph.io/x/periph/host/headers"
 )
 
-func printPin(fn string, p pins.Pin) {
-	name, pos := headers.Position(p)
+func printPin(fn string, p pin.Pin) {
+	name, pos := pinreg.Position(p)
 	if name != "" {
 		log.Printf("  %-4s: %-10s found on header %s, #%d\n", fn, p, name, pos)
 	} else {
@@ -106,7 +108,7 @@ func mainImpl() error {
 	var recorder i2ctest.Record
 	if *spiID != "" {
 		// Spec calls for max 10Mhz. In practice so little data is used.
-		bus, err := spi.Open(*spiID)
+		bus, err := spireg.Open(*spiID)
 		if err != nil {
 			return err
 		}
@@ -121,7 +123,7 @@ func mainImpl() error {
 			return err
 		}
 	} else {
-		bus, err := i2c.Open(*i2cID)
+		bus, err := i2creg.Open(*i2cID)
 		if err != nil {
 			return err
 		}

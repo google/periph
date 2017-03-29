@@ -17,6 +17,7 @@ import (
 
 	"periph.io/x/periph"
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/host/distro"
 	"periph.io/x/periph/host/pmem"
 	"periph.io/x/periph/host/sysfs"
@@ -641,7 +642,7 @@ func (d *driverGPIO) Init() (bool, error) {
 
 	functions := map[string]struct{}{}
 	for i := range cpuPins {
-		if err := gpio.Register(&cpuPins[i], true); err != nil {
+		if err := gpioreg.Register(&cpuPins[i], true); err != nil {
 			return true, err
 		}
 		// A pin set in alternate function but not described in `mapping` will
@@ -654,7 +655,7 @@ func (d *driverGPIO) Init() (bool, error) {
 			// functionality is changed.
 			if _, ok := functions[f]; !ok {
 				functions[f] = struct{}{}
-				if err := gpio.RegisterAlias(f, i); err != nil {
+				if err := gpioreg.RegisterAlias(f, i); err != nil {
 					return true, err
 				}
 			}

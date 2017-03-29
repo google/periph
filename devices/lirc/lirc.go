@@ -14,7 +14,7 @@ import (
 	"strings"
 	"sync"
 
-	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/ir"
 )
 
@@ -220,12 +220,12 @@ func (d *driver) Init() (bool, error) {
 		return false, nil
 	}
 	if in != -1 {
-		if err := gpio.RegisterAlias("IR_IN", in); err != nil {
+		if err := gpioreg.RegisterAlias("IR_IN", in); err != nil {
 			return true, err
 		}
 	}
 	if out != -1 {
-		if err := gpio.RegisterAlias("IR_OUT", out); err != nil {
+		if err := gpioreg.RegisterAlias("IR_OUT", out); err != nil {
 			return true, err
 		}
 	}
