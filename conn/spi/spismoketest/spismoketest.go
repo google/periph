@@ -53,11 +53,8 @@ func (s *SmokeTest) Run(args []string) error {
 	defer spiDev.Close()
 
 	// Set SPI parameters.
-	if err := spiDev.Configure(spi.Mode0, 8); err != nil {
+	if err := spiDev.DevParams(4000000, spi.Mode0, 8); err != nil {
 		return fmt.Errorf("spi-smoke: cannot set mode, %v", err)
-	}
-	if err := spiDev.Speed(4 * 1000 * 1000); err != nil {
-		return fmt.Errorf("spi-smoke: cannot set speed, %v", err)
 	}
 
 	// Open the WC pin.

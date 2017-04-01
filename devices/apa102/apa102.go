@@ -283,7 +283,7 @@ func (d *Dev) Write(pixels []byte) (int, error) {
 // https://en.wikipedia.org/wiki/Flicker_fusion_threshold is a recommended
 // reading.
 func New(s spi.Conn, numLights int, intensity uint8, temperature uint16) (*Dev, error) {
-	if err := s.Configure(spi.Mode3, 8); err != nil {
+	if err := s.DevParams(20000000, spi.Mode3, 8); err != nil {
 		return nil, err
 	}
 	// End frames are needed to be able to push enough SPI clock signals due to

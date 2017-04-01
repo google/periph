@@ -12,6 +12,7 @@ import (
 	"periph.io/x/periph/conn/conntest"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpiotest"
+	"periph.io/x/periph/conn/spi"
 )
 
 func TestRecordRaw(t *testing.T) {
@@ -20,7 +21,7 @@ func TestRecordRaw(t *testing.T) {
 	if err := r.Speed(-100); err != nil {
 		t.Fatal(err)
 	}
-	if err := r.Configure(0, 0); err != nil {
+	if err := r.DevParams(0, spi.Mode0, 0); err != nil {
 		t.Fatal(err)
 	}
 	if err := r.Close(); err != nil {
@@ -36,7 +37,7 @@ func TestRecord_empty(t *testing.T) {
 	if err := r.Speed(-100); err != nil {
 		t.Fatal(err)
 	}
-	if err := r.Configure(0, 0); err != nil {
+	if err := r.DevParams(0, spi.Mode0, 0); err != nil {
 		t.Fatal(err)
 	}
 	if r.Tx(nil, []byte{'a'}) == nil {
@@ -89,7 +90,7 @@ func TestPlayback(t *testing.T) {
 	if err := p.Speed(-100); err != nil {
 		t.Fatal(err)
 	}
-	if err := p.Configure(0, 0); err != nil {
+	if err := p.DevParams(0, spi.Mode0, 0); err != nil {
 		t.Fatal(err)
 	}
 	if err := p.Close(); err != nil {
@@ -153,7 +154,7 @@ func TestRecord_Playback(t *testing.T) {
 	if err := r.Speed(-100); err != nil {
 		t.Fatal(err)
 	}
-	if err := r.Configure(0, 0); err != nil {
+	if err := r.DevParams(0, spi.Mode0, 0); err != nil {
 		t.Fatal(err)
 	}
 	if n := r.CLK().Name(); n != "CLK" {

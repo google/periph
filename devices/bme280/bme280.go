@@ -6,7 +6,7 @@
 //
 // Datasheet
 //
-// https://cdn-shop.adafruit.com/datasheets/BST-BME280_DS001-10.pdf
+// https://ae-bst.resource.bosch.com/media/_tech/media/datasheets/BST-BME280_DS001-11.pdf
 package bme280
 
 import (
@@ -172,7 +172,7 @@ func NewI2C(b i2c.Bus, opts *Opts) (*Dev, error) {
 // device in the mail.
 func NewSPI(s spi.Conn, opts *Opts) (*Dev, error) {
 	// It works both in Mode0 and Mode3.
-	if err := s.Configure(spi.Mode3, 8); err != nil {
+	if err := s.DevParams(10000000, spi.Mode3, 8); err != nil {
 		return nil, err
 	}
 	d := &Dev{d: s, isSPI: true}
