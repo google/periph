@@ -11,6 +11,7 @@ package bme280
 
 import (
 	"errors"
+	"fmt"
 
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/i2c"
@@ -232,7 +233,7 @@ func (d *Dev) makeDev(opts *Opts) error {
 		return err
 	}
 	if chipID[0] != 0x60 {
-		return errors.New("bme280: unexpected chip id; is this a BME280?")
+		return fmt.Errorf("bme280: unexpected chip id %x; is this a BME280?", chipID[0])
 	}
 	// Read calibration data t1~3, p1~9, 8bits padding, h1.
 	var tph [0xA2 - 0x88]byte
@@ -273,13 +274,16 @@ func (d *Dev) makeDev(opts *Opts) error {
 func (d *Dev) readReg(reg uint8, b []byte) error {
 	// Page 32-33
 	if d.isSPI {
+		// MSB is 0 for write and 1 for read.
 		read := make([]byte, len(b)+1)
 		write := make([]byte, len(read))
+		// Rest of the write buffer is ignored.
 		write[0] = reg
 		if err := d.d.Tx(write, read); err != nil {
 			return err
 		}
-		copy(b, read[:1])
+		copy(b, read[1:])
+		return nil
 	}
 	return d.d.Tx([]byte{reg}, b)
 }
@@ -375,19 +379,6 @@ func (c *calibration) compensatePressureInt64(raw, tFine int32) uint32 {
 // raw has 16 bits of resolution.
 func (c *calibration) compensateHumidityInt(raw, tFine int32) uint32 {
 	x := tFine - 76800
-	/*
-		Yes, someone wrote the following in the datasheet unironically:
-		v_x1_u32r = (((((adc_H << 14) – (((BME280_S32_t)dig_H4) << 20) –
-		(((BME280_S32_t)dig_H5) * v_x1_u32r)) + ((BME280_S32_t)16384)) >> 15) *
-		(((((((v_x1_u32r * ((BME280_S32_t)dig_H6)) >> 10) * (((v_x1_u32r *
-		((BME280_S32_t)dig_H3)) >> 11) + ((BME280_S32_t)32768))) >> 10) +
-		((BME280_S32_t)2097152)) * ((BME280_S32_t)dig_H2) + 8192) >> 14));
-
-		v_x1_u32r = (v_x1_u32r – (((((v_x1_u32r >> 15) * (v_x1_u32r >> 15)) >> 7) * ((BME280_S32_t)dig_H1)) >> 4));
-		v_x1_u32r = (v_x1_u32r < 0 ? 0 : v_x1_u32r);
-		v_x1_u32r = (v_x1_u32r > 419430400 ? 419430400 : v_x1_u32r);
-	*/
-	// Here's a more "readable" version:
 	x1 := raw<<14 - int32(c.h4)<<20 - int32(c.h5)*x
 	x2 := (x1 + 16384) >> 15
 	x3 := (x * int32(c.h6)) >> 10
@@ -395,7 +386,6 @@ func (c *calibration) compensateHumidityInt(raw, tFine int32) uint32 {
 	x5 := (x3 * (x4 + 32768)) >> 10
 	x6 := ((x5+2097152)*int32(c.h2) + 8192) >> 14
 	x = x2 * x6
-
 	x = x - ((((x>>15)*(x>>15))>>7)*int32(c.h1))>>4
 	if x < 0 {
 		return 0

@@ -15,7 +15,6 @@ import (
 
 	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/i2c/i2creg"
-	"periph.io/x/periph/conn/i2c/i2ctest"
 	"periph.io/x/periph/conn/pin"
 	"periph.io/x/periph/conn/pin/pinreg"
 	"periph.io/x/periph/conn/spi"
@@ -64,7 +63,6 @@ func mainImpl() error {
 	filter16x := flag.Bool("f16", false, "filter IIR at 16x")
 	loop := flag.Bool("l", false, "loop every 100ms")
 	verbose := flag.Bool("v", false, "verbose mode")
-	record := flag.Bool("r", false, "record operation (for playback unit testing, only works with I²C)")
 	flag.Parse()
 	if !*verbose {
 		log.SetOutput(ioutil.Discard)
@@ -105,9 +103,7 @@ func mainImpl() error {
 	}
 
 	var dev *bme280.Dev
-	var recorder i2ctest.Record
 	if *spiID != "" {
-		// Spec calls for max 10Mhz. In practice so little data is used.
 		bus, err := spireg.Open(*spiID)
 		if err != nil {
 			return err
@@ -118,6 +114,10 @@ func mainImpl() error {
 			printPin("MOSI", p.MOSI())
 			printPin("MISO", p.MISO())
 			printPin("CS", p.CS())
+		}
+		// Slow down bus speed in case wires are too long.
+		if err := bus.Speed(100000); err != nil {
+			return err
 		}
 		if dev, err = bme280.NewSPI(bus, &opts); err != nil {
 			return err
@@ -132,25 +132,17 @@ func mainImpl() error {
 			printPin("SCL", p.SCL())
 			printPin("SDA", p.SDA())
 		}
-		var base i2c.Bus
-		base = bus
-		if *record {
-			recorder.Bus = bus
-			base = &recorder
-		}
-		if dev, err = bme280.NewI2C(base, &opts); err != nil {
+		if dev, err = bme280.NewI2C(bus, &opts); err != nil {
 			return err
 		}
 	}
 
-	defer dev.Stop()
 	err := read(dev, *loop)
-	if *record {
-		for _, op := range recorder.Ops {
-			fmt.Printf("%# v\n", op)
-		}
+	err2 := dev.Stop()
+	if err != nil {
+		return err
 	}
-	return err
+	return err2
 }
 
 func main() {

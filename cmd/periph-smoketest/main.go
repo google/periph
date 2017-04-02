@@ -19,6 +19,7 @@ import (
 	"periph.io/x/periph/conn/i2c/i2csmoketest"
 	"periph.io/x/periph/conn/onewire/onewiresmoketest"
 	"periph.io/x/periph/conn/spi/spismoketest"
+	"periph.io/x/periph/devices/bme280/bme280smoketest"
 	"periph.io/x/periph/host"
 	"periph.io/x/periph/host/chip/chipsmoketest"
 	"periph.io/x/periph/host/odroidc1/odroidc1smoketest"
@@ -40,6 +41,7 @@ type SmokeTest interface {
 
 // tests is the list of registered smoke tests.
 var tests = []SmokeTest{
+	&bme280smoketest.SmokeTest{},
 	&chipsmoketest.SmokeTest{},
 	&gpiosmoketest.SmokeTest{},
 	&i2csmoketest.SmokeTest{},
