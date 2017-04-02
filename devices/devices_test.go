@@ -16,6 +16,16 @@ func TestMilli(t *testing.T) {
 	}
 }
 
+func TestMilli_neg(t *testing.T) {
+	o := Milli(-10010)
+	if s := o.String(); s != "-10.010" {
+		t.Fatalf("%#v", s)
+	}
+	if f := o.Float64(); f > -10.009 || f < -10.011 {
+		t.Fatalf("%f", f)
+	}
+}
+
 func TestCelsius(t *testing.T) {
 	o := Celsius(10010)
 	if s := o.String(); s != "10.010°C" {

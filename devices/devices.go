@@ -48,7 +48,11 @@ func (m Milli) Float64() float64 {
 
 // String returns the value formatted as a string.
 func (m Milli) String() string {
-	return fmt.Sprintf("%d.%03d", m/1000, m%1000)
+	d := m % 1000
+	if d < 0 {
+		d = -d
+	}
+	return fmt.Sprintf("%d.%03d", m/1000, d)
 }
 
 // Celsius is a temperature at a precision of 0.001°C.
