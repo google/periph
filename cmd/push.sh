@@ -24,7 +24,7 @@ for i; do
   time GOOS=linux GOARCH=arm go build .
   echo ""
   echo -n "- Copying:  "
-  time rsync -v "$NAME" "$HOST:bin/${NAME}"
+  time rsync -v "$NAME" "$HOST:${NAME}"
   echo ""
   rm "$NAME"
   cd ..
