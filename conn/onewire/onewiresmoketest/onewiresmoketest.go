@@ -47,14 +47,14 @@ func (s *SmokeTest) Run(args []string) error {
 	// Open the i2c bus where the DS2483 is located.
 	i2cBus, err := i2creg.Open(*busName)
 	if err != nil {
-		return fmt.Errorf("onewire-smoke: cannot open i2c bus: %v", err)
+		return fmt.Errorf("cannot open I²C bus %s: %v", *busName, err)
 	}
 	defer i2cBus.Close()
 
 	// Open the ds2483 one-wire interface chip.
 	onewireBus, err := ds248x.New(i2cBus, nil)
 	if err != nil {
-		return fmt.Errorf("onewire-smoke: cannot open DS248x: %v", err)
+		return fmt.Errorf("cannot open DS248x: %v", err)
 	}
 	defer onewireBus.Close()
 
@@ -63,18 +63,18 @@ func (s *SmokeTest) Run(args []string) error {
 		*seed = time.Now().UnixNano()
 	}
 	rand.Seed(*seed)
-	log.Printf("onewire-smoke: random number seed %d", *seed)
+	log.Printf("%s: random number seed %d", s, *seed)
 
 	// Run the tests.
 	addrs, err := s.search(onewireBus)
 	if err != nil {
-		return fmt.Errorf("onewire-smoke: %s", err)
+		return err
 	}
 	if err := s.ds18b20(onewireBus, addrs[0]); err != nil {
-		return fmt.Errorf("onewire-smoke: %s", err)
+		return err
 	}
 	if err := s.eeprom(onewireBus, addrs[1]); err != nil {
-		return fmt.Errorf("onewire-smoke: %s", err)
+		return err
 	}
 
 	return nil
@@ -98,7 +98,7 @@ func (s *SmokeTest) search(bus onewire.Bus) ([]onewire.Address, error) {
 		addrs[0], addrs[1] = addrs[1], addrs[0]
 	}
 	if addrs[0]&0xff == 0x28 && addrs[1]&0xff == 0x2D {
-		log.Printf("onewire-smoke: found 2 devices %#x %#x", addrs[0], addrs[1])
+		log.Printf("%s: found 2 devices %#x %#x", s, addrs[0], addrs[1])
 		return addrs, nil
 	}
 	return nil, fmt.Errorf("search expected device families 0x28 and 0x2D, found: %#x %#x", addrs[0], addrs[1])
@@ -120,7 +120,7 @@ func (s *SmokeTest) ds18b20(bus onewire.Bus, addr onewire.Address) error {
 		return fmt.Errorf("ds18b20: expected temperature in the 0°C..50°C range, got %.2f°C", t.Float64())
 	}
 
-	log.Printf("onewire-smoke: temperature is %.2f°C", t.Float64())
+	log.Printf("%s: temperature is %.2f°C", s, t.Float64())
 	return nil
 }
 
@@ -158,6 +158,6 @@ func (s *SmokeTest) eeprom(bus onewire.Bus, addr onewire.Address) error {
 				i, data[i], buf[i+3])
 		}
 	}
-	log.Printf("onewire-smoke: eeprom test successful")
+	log.Printf("%s: eeprom test successful", s)
 	return nil
 }

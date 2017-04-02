@@ -1,4 +1,4 @@
-# 1-wire smoke test
+# 'onewire-testboard' smoke test
 
 Verifies that a 1-wire bus with two devices can be searched and that a DS18b20
 temperature sensor as well as a ds2431 eeprom can be accessed. Typically used

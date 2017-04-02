@@ -1,4 +1,4 @@
-# gpio-test
+# 'gpio' smoke test
 
 Verifies that the library physically work. It requires the user to connect two
 GPIO pins together and provide their pin number at the command line.

@@ -50,7 +50,7 @@ func (s *SmokeTest) Run(args []string) error {
 	// Open the bus.
 	i2cBus, err := i2creg.Open(*busName)
 	if err != nil {
-		return fmt.Errorf("i2c-smoke: %s", err)
+		return fmt.Errorf("error opening %s: %v", *busName, err)
 	}
 	defer i2cBus.Close()
 
@@ -58,7 +58,7 @@ func (s *SmokeTest) Run(args []string) error {
 	var wcPin gpio.PinIO
 	if *wc != "" {
 		if wcPin = gpioreg.ByName(*wc); wcPin == nil {
-			return fmt.Errorf("i2c-smoke: cannot open gpio pin %s for EEPROM write control", *wc)
+			return fmt.Errorf("cannot open gpio pin %s for EEPROM write control", *wc)
 		}
 	}
 
@@ -67,14 +67,14 @@ func (s *SmokeTest) Run(args []string) error {
 		*seed = time.Now().UnixNano()
 	}
 	rand.Seed(*seed)
-	log.Printf("i2c-smoke: random number seed %d", *seed)
+	log.Printf("%s: random number seed %d", s, *seed)
 
 	// Run the tests.
 	if err := s.ds248x(i2cBus); err != nil {
-		return fmt.Errorf("i2c-smoke: %s", err)
+		return err
 	}
 	if err := s.eeprom(i2cBus, wcPin); err != nil {
-		return fmt.Errorf("i2c-smoke: %s", err)
+		return err
 	}
 
 	return nil
@@ -143,7 +143,7 @@ func (s *SmokeTest) eeprom(bus i2c.Bus, wcPin gpio.PinIO) error {
 
 	// Stop here if we don't have write-control for the chip.
 	if wcPin == nil {
-		log.Println("i2c-smoke: no WC pin specified, skipping eeprom write tests")
+		log.Printf("%s: no WC pin specified, skipping eeprom write tests", s)
 		return nil
 	}
 
@@ -160,7 +160,7 @@ func (s *SmokeTest) eeprom(bus i2c.Bus, wcPin gpio.PinIO) error {
 	// of times. Using a random byte for "wear leveling"...
 	addr := byte(rand.Intn(256))
 	values := []byte{0x55, 0xAA, 0xF0, 0x0F, 0x13}
-	log.Printf("i2c-smoke writing&reading EEPROM byte %#x", addr)
+	log.Printf("%s: writing&reading EEPROM byte %#x", s, addr)
 	for _, v := range values {
 		// Write byte.
 		if err := d.WriteUint8(addr, v); err != nil {
@@ -185,7 +185,7 @@ func (s *SmokeTest) eeprom(bus i2c.Bus, wcPin gpio.PinIO) error {
 	// so it actually changes from one test run to the next.
 	addr = byte(rand.Intn(256)) & 0xf0 // round to page boundary
 	r := byte(rand.Intn(256))          // randomizer for value written
-	log.Printf("i2c-smoke writing&reading EEPROM page %#x", addr)
+	log.Printf("%s: writing&reading EEPROM page %#x", s, addr)
 	// val calculates the value for byte i.
 	val := func(i int) byte { return byte((i<<4)|(16-i)) ^ r }
 	for i := 0; i < 16; i++ {

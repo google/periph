@@ -1,4 +1,4 @@
-# i2c-test
+# 'i2c-testboard' smoke test
 
 Verifies that a DS2483 and an EEPROM can be accessed on the bus. Typically used
 with the periph-tester board.

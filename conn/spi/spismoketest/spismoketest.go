@@ -40,28 +40,28 @@ func (s *SmokeTest) Description() string {
 // Run implements the SmokeTest interface.
 func (s *SmokeTest) Run(args []string) error {
 	f := flag.NewFlagSet("spi", flag.ExitOnError)
-	bus := f.String("spi", "", "SPI bus to use")
+	busName := f.String("spi", "", "SPI bus to use")
 	wp := f.String("wp", "", "gpio pin for EEPROM write-protect")
 	seed := f.Int64("seed", 0, "random number seed, default is to use the time")
 	f.Parse(args)
 
 	// Open the bus.
-	spiDev, err := spireg.Open(*bus)
+	spiDev, err := spireg.Open(*busName)
 	if err != nil {
-		return fmt.Errorf("spi-smoke: opening SPI: %v", err)
+		return fmt.Errorf("error opening %s: %v", *busName, err)
 	}
 	defer spiDev.Close()
 
 	// Set SPI parameters.
 	if err := spiDev.DevParams(4000000, spi.Mode0, 8); err != nil {
-		return fmt.Errorf("spi-smoke: cannot set mode, %v", err)
+		return fmt.Errorf("error setting bus parameters: %v", err)
 	}
 
 	// Open the WC pin.
 	var wpPin gpio.PinIO
 	if *wp != "" {
 		if wpPin = gpioreg.ByName(*wp); wpPin == nil {
-			return fmt.Errorf("spi-smoke: cannot open gpio pin %s for EEPROM write protect", *wp)
+			return fmt.Errorf("cannot open gpio pin %s for EEPROM write protect", *wp)
 		}
 	}
 
@@ -70,11 +70,11 @@ func (s *SmokeTest) Run(args []string) error {
 		*seed = time.Now().UnixNano()
 	}
 	rand.Seed(*seed)
-	log.Printf("spi-smoke: random number seed %d", *seed)
+	log.Printf("%s: random number seed %d", s, *seed)
 
 	// Run the tests.
 	if err := s.eeprom(spiDev, wpPin); err != nil {
-		return fmt.Errorf("spi-smoke: %v", err)
+		return err
 	}
 
 	return nil
@@ -97,7 +97,7 @@ func (s *SmokeTest) Run(args []string) error {
 func (s *SmokeTest) eeprom(d spi.Conn, wpPin gpio.PinIO) error {
 	// Can't do anything if we don't have write-protect for the chip.
 	if wpPin == nil {
-		log.Println("spi-smoke: no WP pin specified, skipping eeprom tests")
+		log.Printf("%s: no WP pin specified, skipping eeprom tests", s)
 		return nil
 	}
 
@@ -146,7 +146,7 @@ func (s *SmokeTest) eeprom(d spi.Conn, wpPin gpio.PinIO) error {
 	// of times. Using a random byte for "wear leveling"...
 	addr := [2]byte{0, byte(rand.Intn(256))} // 16-bit big-endian address
 	values := []byte{0x55, 0xAA, 0xF0, 0x0F, 0x13}
-	log.Printf("spi-smoke writing&reading EEPROM byte %#x", addr[1])
+	log.Printf("%s: writing&reading EEPROM byte %#x", s, addr[1])
 	for _, v := range values {
 		// Write byte.
 		d.Tx([]byte{cmdWriteEnable}, rBuf[:1])
@@ -166,7 +166,7 @@ func (s *SmokeTest) eeprom(d spi.Conn, wpPin gpio.PinIO) error {
 	// so it actually changes from one test run to the next.
 	addr[1] = byte(rand.Intn(256)) & 0xe0 // round to page boundary
 	r := byte(rand.Intn(256))             // randomizer for value written
-	log.Printf("spi-smoke writing&reading EEPROM page %#x", addr)
+	log.Printf("%s: writing&reading EEPROM page %#x", s, addr)
 	// val calculates the value for byte i.
 	val := func(i int) byte { return byte((i<<4)|(16-(i>>1))) ^ r }
 	var onePage [32]byte

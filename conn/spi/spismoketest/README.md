@@ -1,4 +1,4 @@
-# spi-test
+# 'spi-testboard' smoke test
 
 Verifies that a EEPROM can be accessed on the bus. Typically used with
 the periph-tester board.
