@@ -15,7 +15,7 @@ import (
 	"periph.io/x/periph/conn/onewire"
 )
 
-// Open opens an handle to a bus.
+// Opener opens an handle to a bus.
 type Opener func() (onewire.BusCloser, error)
 
 // Ref references an 1-wire bus.

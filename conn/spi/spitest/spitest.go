@@ -193,6 +193,7 @@ func (p *Playback) CS() gpio.PinOut {
 	return p.CSPin
 }
 
+// Log logs all operations done on an spi.ConnCloser.
 type Log struct {
 	Conn spi.ConnCloser
 }
