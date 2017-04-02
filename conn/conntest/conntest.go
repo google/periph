@@ -95,8 +95,9 @@ func (r *Record) Duplex() conn.Duplex {
 // an easy way to do basic code coverage.
 type Playback struct {
 	sync.Mutex
-	Ops []IO
-	D   conn.Duplex
+	Ops   []IO
+	D     conn.Duplex
+	Count int
 }
 
 func (p *Playback) String() string {
@@ -107,8 +108,8 @@ func (p *Playback) String() string {
 func (p *Playback) Close() error {
 	p.Lock()
 	defer p.Unlock()
-	if len(p.Ops) != 0 {
-		return fmt.Errorf("conntest: expected playback to be empty:\n%#v", p.Ops)
+	if len(p.Ops) != p.Count {
+		return fmt.Errorf("conntest: expected playback to be empty: I/O count %d; expected %d", p.Count, len(p.Ops))
 	}
 	return nil
 }
@@ -117,17 +118,17 @@ func (p *Playback) Close() error {
 func (p *Playback) Tx(w, r []byte) error {
 	p.Lock()
 	defer p.Unlock()
-	if len(p.Ops) == 0 {
-		return errors.New("conntest: unexpected Tx()")
+	if len(p.Ops) <= p.Count {
+		return fmt.Errorf("conntest: unexpected Tx() (count #%d)", p.Count)
 	}
-	if !bytes.Equal(p.Ops[0].Write, w) {
-		return fmt.Errorf("conntest: unexpected write %#v != %#v", w, p.Ops[0].Write)
+	if !bytes.Equal(p.Ops[p.Count].Write, w) {
+		return fmt.Errorf("conntest: unexpected write (count #%d) %#v != %#v", p.Count, w, p.Ops[p.Count].Write)
 	}
-	if len(p.Ops[0].Read) != len(r) {
-		return fmt.Errorf("conntest: unexpected read buffer length %d != %d", len(r), len(p.Ops[0].Read))
+	if len(p.Ops[p.Count].Read) != len(r) {
+		return fmt.Errorf("conntest: unexpected read buffer length (count #%d) %d != %d", p.Count, len(r), len(p.Ops[p.Count].Read))
 	}
-	copy(r, p.Ops[0].Read)
-	p.Ops = p.Ops[1:]
+	copy(r, p.Ops[p.Count].Read)
+	p.Count++
 	return nil
 }
 

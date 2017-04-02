@@ -7,8 +7,8 @@ package spitest
 
 import (
 	"errors"
-	"fmt"
 	"io"
+	"log"
 	"sync"
 
 	"periph.io/x/periph/conn"
@@ -88,6 +88,14 @@ func (r *Record) Duplex() conn.Duplex {
 	return conn.DuplexUnknown
 }
 
+// Close implements spi.ConnCloser.
+func (r *Record) Close() error {
+	if r.Conn != nil {
+		return r.Conn.Close()
+	}
+	return nil
+}
+
 // Speed implements spi.ConnCloser.
 func (r *Record) Speed(maxHz int64) error {
 	if r.Conn != nil {
@@ -96,7 +104,7 @@ func (r *Record) Speed(maxHz int64) error {
 	return nil
 }
 
-// DevParams implements spi.Conn.
+// DevParams implements spi.ConnCloser.
 func (r *Record) DevParams(maxHz int64, mode spi.Mode, bits int) error {
 	if r.Conn != nil {
 		return r.Conn.DevParams(maxHz, mode, bits)
@@ -152,20 +160,15 @@ type Playback struct {
 //
 // Close() verifies that all the expected Ops have been consumed.
 func (p *Playback) Close() error {
-	p.Lock()
-	defer p.Unlock()
-	if len(p.Ops) != 0 {
-		return fmt.Errorf("i2ctest: expected playback to be empty:\n%#v", p.Ops)
-	}
-	return nil
+	return p.Playback.Close()
 }
 
-// Speed implements spi.Conn.
+// Speed implements spi.ConnCloser.
 func (p *Playback) Speed(maxHz int64) error {
 	return nil
 }
 
-// DevParams implements spi.Conn.
+// DevParams implements spi.ConnCloser.
 func (p *Playback) DevParams(maxHz int64, mode spi.Mode, bits int) error {
 	return nil
 }
@@ -189,6 +192,45 @@ func (p *Playback) MISO() gpio.PinIn {
 func (p *Playback) CS() gpio.PinOut {
 	return p.CSPin
 }
+
+type Log struct {
+	Conn spi.ConnCloser
+}
+
+// Close implements spi.ConnCloser.
+func (l *Log) Close() error {
+	err := l.Conn.Close()
+	log.Printf("%s.Close() = %v", l.Conn, err)
+	return err
+}
+
+// Speed implements spi.ConnCloser.
+func (l *Log) Speed(maxHz int64) error {
+	err := l.Conn.Speed(maxHz)
+	log.Printf("%s.Speed(%d) = %v", l.Conn, maxHz, err)
+	return err
+}
+
+// DevParams implements spi.ConnCloser.
+func (l *Log) DevParams(maxHz int64, mode spi.Mode, bits int) error {
+	err := l.Conn.DevParams(maxHz, mode, bits)
+	log.Printf("%s.DevParams(%d, %d, %d) = %v", l.Conn, maxHz, mode, bits, err)
+	return err
+}
+
+// Tx implements spi.Conn.
+func (l *Log) Tx(w, r []byte) error {
+	err := l.Conn.Tx(w, r)
+	log.Printf("%s.Tx(%#v, %#v) = %v", l.Conn, w, r, err)
+	return err
+}
+
+// Duplex implements spi.Conn.
+func (l *Log) Duplex() conn.Duplex {
+	return l.Conn.Duplex()
+}
+
+//
 
 var _ spi.Conn = &RecordRaw{}
 var _ spi.Conn = &Record{}

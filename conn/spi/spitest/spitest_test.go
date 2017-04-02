@@ -58,6 +58,9 @@ func TestRecord_empty(t *testing.T) {
 	if d := r.Duplex(); d != conn.DuplexUnknown {
 		t.Fatal(d)
 	}
+	if err := r.Close(); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestRecord_empty_tx(t *testing.T) {
@@ -98,7 +101,7 @@ func TestPlayback(t *testing.T) {
 	}
 }
 
-func TestPlayback_tx(t *testing.T) {
+func TestPlayback_tx_err(t *testing.T) {
 	p := Playback{
 		Playback: conntest.Playback{
 			Ops: []conntest.IO{
@@ -115,18 +118,35 @@ func TestPlayback_tx(t *testing.T) {
 	if p.Close() == nil {
 		t.Fatal("Ops is not empty")
 	}
-	v := [1]byte{}
 	if p.Tx([]byte{10}, make([]byte, 2)) == nil {
 		t.Fatal("invalid read size")
 	}
+}
+
+func TestPlayback_tx_empty(t *testing.T) {
+	p := Playback{}
+	if err := p.Tx([]byte{0}, []byte{0}); err == nil {
+		t.Fatal("Playback.Ops is empty")
+	}
+}
+
+func TestPlayback_tx(t *testing.T) {
+	p := Playback{
+		Playback: conntest.Playback{
+			Ops: []conntest.IO{
+				{
+					Write: []byte{10},
+					Read:  []byte{12},
+				},
+			},
+		},
+	}
+	v := [1]byte{}
 	if err := p.Tx([]byte{10}, v[:]); err != nil {
 		t.Fatal(err)
 	}
 	if v[0] != 12 {
 		t.Fatalf("expected 12, got %v", v)
-	}
-	if err := p.Tx([]byte{10}, v[:]); err == nil {
-		t.Fatal("Playback.Ops is empty")
 	}
 	if err := p.Close(); err != nil {
 		t.Fatal(err)
@@ -182,5 +202,51 @@ func TestRecord_Playback(t *testing.T) {
 	}
 	if r.Tx([]byte{10}, v[:]) == nil {
 		t.Fatal("Playback.Ops is empty")
+	}
+	if err := r.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestLog_Playback(t *testing.T) {
+	r := Log{
+		Conn: &Playback{
+			Playback: conntest.Playback{
+				Ops: []conntest.IO{
+					{
+						Write: []byte{10},
+						Read:  []byte{12},
+					},
+				},
+				D: conn.Full,
+			},
+			CLKPin:  &gpiotest.Pin{N: "CLK"},
+			MOSIPin: &gpiotest.Pin{N: "MOSI"},
+			MISOPin: &gpiotest.Pin{N: "MISO"},
+			CSPin:   &gpiotest.Pin{N: "CS"},
+		},
+	}
+	if err := r.Speed(-100); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.DevParams(0, spi.Mode0, 0); err != nil {
+		t.Fatal(err)
+	}
+	if d := r.Duplex(); d != conn.Full {
+		t.Fatal(d)
+	}
+
+	v := [1]byte{}
+	if err := r.Tx([]byte{10}, v[:]); err != nil {
+		t.Fatal(err)
+	}
+	if v[0] != 12 {
+		t.Fatalf("expected 12, got %v", v)
+	}
+	if r.Tx([]byte{10}, v[:]) == nil {
+		t.Fatal("Playback.Ops is empty")
+	}
+	if err := r.Close(); err != nil {
+		t.Fatal(err)
 	}
 }
