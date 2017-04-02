@@ -74,7 +74,7 @@ func TestIsConnected(t *testing.T) {
 
 func reset() {
 	mu.Lock()
-	mu.Unlock()
+	defer mu.Unlock()
 	allHeaders = map[string][][]pin.Pin{}
 	byPin = map[string]position{}
 }
