@@ -35,12 +35,12 @@ func (r *RecordRaw) Close() error {
 }
 
 // Speed is a no-op.
-func (r *RecordRaw) Speed(hz int64) error {
+func (r *RecordRaw) Speed(maxHz int64) error {
 	return nil
 }
 
-// Configure is a no-op.
-func (r *RecordRaw) Configure(mode spi.Mode, bits int) error {
+// DevParams is a no-op.
+func (r *RecordRaw) DevParams(maxHz int64, mode spi.Mode, bits int) error {
 	return nil
 }
 
@@ -49,7 +49,7 @@ func (r *RecordRaw) Configure(mode spi.Mode, bits int) error {
 // This can then be used to feed to Playback to do "replay" based unit tests.
 type Record struct {
 	sync.Mutex
-	Conn spi.Conn // Conn can be nil if only writes are being recorded.
+	Conn spi.ConnCloser // Conn can be nil if only writes are being recorded.
 	Ops  []conntest.IO
 }
 
@@ -88,18 +88,18 @@ func (r *Record) Duplex() conn.Duplex {
 	return conn.DuplexUnknown
 }
 
-// Speed implements spi.Conn.
-func (r *Record) Speed(hz int64) error {
+// Speed implements spi.ConnCloser.
+func (r *Record) Speed(maxHz int64) error {
 	if r.Conn != nil {
-		return r.Conn.Speed(hz)
+		return r.Conn.Speed(maxHz)
 	}
 	return nil
 }
 
-// Configure implements spi.Conn.
-func (r *Record) Configure(mode spi.Mode, bits int) error {
+// DevParams implements spi.Conn.
+func (r *Record) DevParams(maxHz int64, mode spi.Mode, bits int) error {
 	if r.Conn != nil {
-		return r.Conn.Configure(mode, bits)
+		return r.Conn.DevParams(maxHz, mode, bits)
 	}
 	return nil
 }
@@ -161,12 +161,12 @@ func (p *Playback) Close() error {
 }
 
 // Speed implements spi.Conn.
-func (p *Playback) Speed(hz int64) error {
+func (p *Playback) Speed(maxHz int64) error {
 	return nil
 }
 
-// Configure implements spi.Conn.
-func (p *Playback) Configure(mode spi.Mode, bits int) error {
+// DevParams implements spi.Conn.
+func (p *Playback) DevParams(maxHz int64, mode spi.Mode, bits int) error {
 	return nil
 }
 

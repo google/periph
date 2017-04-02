@@ -7,11 +7,13 @@ package sysfs
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"unsafe"
 
 	"periph.io/x/periph"
@@ -26,10 +28,10 @@ import (
 // https://www.kernel.org/doc/Documentation/spi/spidev and
 // https://www.kernel.org/doc/Documentation/spi/spi-summary
 //
+// The resulting object is safe for concurrent use.
+//
 // busNumber is the bus number as exported by deffs. For example if the path is
 // /dev/spidev0.1, busNumber should be 0 and chipSelect should be 1.
-//
-// Default configuration is Mode3 and 8 bits.
 func NewSPI(busNumber, chipSelect int) (*SPI, error) {
 	if isLinux {
 		return newSPI(busNumber, chipSelect)
@@ -39,13 +41,19 @@ func NewSPI(busNumber, chipSelect int) (*SPI, error) {
 
 // SPI is an open SPI bus.
 type SPI struct {
+	// Immutable
 	f          *os.File
 	busNumber  int
 	chipSelect int
-	clk        gpio.PinOut
-	mosi       gpio.PinOut
-	miso       gpio.PinIn
-	cs         gpio.PinOut
+
+	sync.Mutex
+	initialized bool
+	maxHzBus    int64
+	maxHzDev    int64
+	clk         gpio.PinOut
+	mosi        gpio.PinOut
+	miso        gpio.PinIn
+	cs          gpio.PinOut
 }
 
 func newSPI(busNumber, chipSelect int) (*SPI, error) {
@@ -60,17 +68,14 @@ func newSPI(busNumber, chipSelect int) (*SPI, error) {
 	if err != nil {
 		return nil, err
 	}
-	s := &SPI{f: f, busNumber: busNumber, chipSelect: chipSelect}
-	if err := s.Configure(spi.Mode3, 8); err != nil {
-		s.Close()
-		return nil, err
-	}
-	return s, nil
+	return &SPI{f: f, busNumber: busNumber, chipSelect: chipSelect}, nil
 }
 
 // Close closes the handle to the SPI driver. It is not a requirement to close
 // before process termination.
 func (s *SPI) Close() error {
+	s.Lock()
+	defer s.Unlock()
 	err := s.f.Close()
 	s.f = nil
 	return err
@@ -80,18 +85,39 @@ func (s *SPI) String() string {
 	return fmt.Sprintf("SPI%d.%d", s.busNumber, s.chipSelect)
 }
 
-// Speed implements spi.Conn.
-func (s *SPI) Speed(hz int64) error {
-	if hz < 1000 {
-		return fmt.Errorf("sysfs-spi: invalid speed %d", hz)
+// Speed implements spi.ConnCloser.
+func (s *SPI) Speed(maxHz int64) error {
+	if maxHz < 1 {
+		return fmt.Errorf("sysfs-spi: invalid speed %d", maxHz)
 	}
-	return s.setFlag(spiIOCMaxSpeedHz, uint64(hz))
+	s.Lock()
+	defer s.Unlock()
+	s.maxHzBus = maxHz
+	if s.maxHzDev == 0 || s.maxHzBus < s.maxHzDev {
+		return s.setFlag(spiIOCMaxSpeedHz, uint64(maxHz))
+	}
+	return nil
 }
 
-// Configure implements spi.Conn.
-func (s *SPI) Configure(mode spi.Mode, bits int) error {
+// DevParams implements spi.Conn.
+//
+// It must be called before any I/O.
+func (s *SPI) DevParams(maxHz int64, mode spi.Mode, bits int) error {
 	if bits < 1 || bits > 256 {
 		return fmt.Errorf("sysfs-spi: invalid bits %d", bits)
+	}
+	if maxHz < 0 {
+		return fmt.Errorf("sysfs-spi: invalid speed %d", maxHz)
+	}
+	s.Lock()
+	defer s.Unlock()
+	if s.initialized {
+		return errors.New("sysfs-spi: DevParams() can only be called exactly once")
+	}
+	s.initialized = true
+	s.maxHzDev = maxHz
+	if s.maxHzDev != 0 && (s.maxHzBus == 0 || s.maxHzDev < s.maxHzBus) {
+		return s.setFlag(spiIOCMaxSpeedHz, uint64(maxHz))
 	}
 	if err := s.setFlag(spiIOCMode, uint64(mode)); err != nil {
 		return err
@@ -99,21 +125,50 @@ func (s *SPI) Configure(mode spi.Mode, bits int) error {
 	return s.setFlag(spiIOCBitsPerWord, uint64(bits))
 }
 
-// Write implements spi.Conn.
+// Read implements io.Reader.
+func (s *SPI) Read(b []byte) (int, error) {
+	s.Lock()
+	defer s.Unlock()
+	if !s.initialized {
+		return 0, errors.New("sysfs-spi: DevParams wasn't called")
+	}
+	return s.f.Read(b)
+}
+
+// Write implements io.Writer.
 func (s *SPI) Write(b []byte) (int, error) {
+	s.Lock()
+	defer s.Unlock()
+	if !s.initialized {
+		return 0, errors.New("sysfs-spi: DevParams wasn't called")
+	}
 	return s.f.Write(b)
 }
 
 // Tx sends and receives data simultaneously.
 func (s *SPI) Tx(w, r []byte) error {
-	if len(w) == 0 || len(w) != len(r) {
+	if len(w) == 0 {
+		if len(r) == 0 {
+			return errors.New("Tx with empty buffers")
+		}
+		_, err := s.Read(r)
+		return err
+	} else if len(r) == 0 {
+		_, err := s.Write(w)
+		return err
+	} else if len(w) != len(r) {
 		return errors.New("Tx with zero or non-equal length w&r slices")
 	}
 	p := spiIOCTransfer{
 		tx:          uint64(uintptr(unsafe.Pointer(&w[0]))),
 		rx:          uint64(uintptr(unsafe.Pointer(&r[0]))),
 		length:      uint32(len(w)),
-		bitsPerWord: 8,
+		bitsPerWord: 8, // s.bitsPerWord?
+	}
+	s.Lock()
+	defer s.Unlock()
+	if !s.initialized {
+		return errors.New("sysfs-spi: DevParams wasn't called")
 	}
 	return s.ioctl(spiIOCTx|0x40000000, unsafe.Pointer(&p))
 }
@@ -205,19 +260,34 @@ func (s *SPI) ioctl(op uint, arg unsafe.Pointer) error {
 }
 
 func (s *SPI) initPins() {
-	if s.clk == nil {
-		if s.clk = gpioreg.ByName(fmt.Sprintf("SPI%d_CLK", s.busNumber)); s.clk == nil {
-			s.clk = gpio.INVALID
+	s.Lock()
+	isInitialized := s.clk != nil
+	s.Unlock()
+
+	if !isInitialized {
+		clk := gpioreg.ByName(fmt.Sprintf("SPI%d_CLK", s.busNumber))
+		if clk == nil {
+			clk = gpio.INVALID
 		}
-		if s.miso = gpioreg.ByName(fmt.Sprintf("SPI%d_MISO", s.busNumber)); s.miso == nil {
-			s.miso = gpio.INVALID
+		miso := gpioreg.ByName(fmt.Sprintf("SPI%d_MISO", s.busNumber))
+		if miso == nil {
+			miso = gpio.INVALID
 		}
-		if s.mosi = gpioreg.ByName(fmt.Sprintf("SPI%d_MOSI", s.busNumber)); s.mosi == nil {
-			s.mosi = gpio.INVALID
+		mosi := gpioreg.ByName(fmt.Sprintf("SPI%d_MOSI", s.busNumber))
+		if mosi == nil {
+			mosi = gpio.INVALID
 		}
-		if s.cs = gpioreg.ByName(fmt.Sprintf("SPI%d_CS%d", s.busNumber, s.chipSelect)); s.cs == nil {
-			s.cs = gpio.INVALID
+		cs := gpioreg.ByName(fmt.Sprintf("SPI%d_CS%d", s.busNumber, s.chipSelect))
+		if cs == nil {
+			cs = gpio.INVALID
 		}
+
+		s.Lock()
+		s.clk = clk
+		s.miso = miso
+		s.mosi = mosi
+		s.cs = cs
+		s.Unlock()
 	}
 }
 
@@ -290,3 +360,5 @@ func init() {
 }
 
 var _ spi.Conn = &SPI{}
+var _ io.Reader = &SPI{}
+var _ io.Writer = &SPI{}

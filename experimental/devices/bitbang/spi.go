@@ -31,6 +31,8 @@ type SPI struct {
 	csn gpio.PinOut // CS
 
 	mu        sync.Mutex
+	maxHzBus  int64
+	maxHzDev  int64
 	mode      spi.Mode
 	bits      int
 	halfCycle time.Duration
@@ -51,20 +53,33 @@ func (s *SPI) Duplex() conn.Duplex {
 	return conn.Full
 }
 
-// Speed implements spi.Conn.
-func (s *SPI) Speed(hz int64) error {
+// Speed implements spi.ConnCloser.
+func (s *SPI) Speed(maxHz int64) error {
+	if maxHz <= 0 {
+		return errors.New("bitbang-spi: invalid maxHz")
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.halfCycle = time.Second / time.Duration(hz) / time.Duration(2)
+	s.maxHzBus = maxHz
+	if s.maxHzDev == 0 || s.maxHzBus < s.maxHzDev {
+		s.halfCycle = time.Second / time.Duration(maxHz) / time.Duration(2)
+	}
 	return nil
 }
 
-// Configure implements spi.Conn.
-func (s *SPI) Configure(mode spi.Mode, bits int) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+// DevParams implements spi.Conn.
+func (s *SPI) DevParams(maxHz int64, mode spi.Mode, bits int) error {
+	if maxHz < 0 {
+		return errors.New("bitbang-spi: invalid maxHz")
+	}
 	if mode != spi.Mode3 {
 		return errors.New("bitbang-spi: not implemented")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.maxHzDev = maxHz
+	if s.maxHzDev != 0 && (s.maxHzBus == 0 || s.maxHzDev < s.maxHzBus) {
+		s.halfCycle = time.Second / time.Duration(maxHz) / time.Duration(2)
 	}
 	s.mode = mode
 	s.bits = bits

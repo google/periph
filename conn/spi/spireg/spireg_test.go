@@ -213,11 +213,11 @@ func (f *fakeBus) Duplex() conn.Duplex {
 	return conn.DuplexUnknown
 }
 
-func (f *fakeBus) Speed(hz int64) error {
+func (f *fakeBus) Speed(maxHz int64) error {
 	return errors.New("not implemented")
 }
 
-func (f *fakeBus) Configure(mode spi.Mode, bits int) error {
+func (f *fakeBus) DevParams(maxHz int64, mode spi.Mode, bits int) error {
 	return errors.New("not implemented")
 }
 
