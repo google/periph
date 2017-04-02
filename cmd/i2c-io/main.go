@@ -2,11 +2,10 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// i2c communicates to an I²C device.
+// i2c-io communicates to an I²C device.
 package main
 
 import (
-	"encoding/hex"
 	"errors"
 	"flag"
 	"fmt"
@@ -24,6 +23,7 @@ func mainImpl() error {
 	addr := flag.Int("a", -1, "I²C device address to query")
 	busName := flag.String("b", "", "I²C bus to use")
 	verbose := flag.Bool("v", false, "verbose mode")
+	// TODO(maruel): This is not generic enough.
 	write := flag.Bool("w", false, "write instead of reading")
 	reg := flag.Int("r", -1, "register to address")
 	l := flag.Int("l", 1, "length of data to read; ignored if -w is specified")
@@ -54,12 +54,9 @@ func mainImpl() error {
 		}
 		buf = make([]byte, 0, flag.NArg())
 		for _, a := range flag.Args() {
-			b, err := strconv.Atoi(a)
+			b, err := strconv.ParseUint(a, 0, 8)
 			if err != nil {
 				return err
-			}
-			if b < 0 || b > 255 {
-				return errors.New("invalid byte")
 			}
 			buf = append(buf, byte(b))
 		}
@@ -75,8 +72,11 @@ func mainImpl() error {
 		return err
 	}
 	defer bus.Close()
-	if p, ok := bus.(i2c.Pins); ok {
-		log.Printf("Using pins SCL: %s  SDA: %s", p.SCL(), p.SDA())
+
+	if *verbose {
+		if p, ok := bus.(i2c.Pins); ok {
+			log.Printf("Using pins SCL: %s  SDA: %s", p.SCL(), p.SDA())
+		}
 	}
 	d := i2c.Dev{Bus: bus, Addr: uint16(*addr)}
 	if *write {
@@ -85,14 +85,24 @@ func mainImpl() error {
 		if err = d.Tx([]byte{byte(*reg)}, buf); err != nil {
 			return err
 		}
-		fmt.Printf("%s\n", hex.EncodeToString(buf))
+		for i, b := range buf {
+			if i != 0 {
+				if _, err = fmt.Print(", "); err != nil {
+					break
+				}
+			}
+			if _, err = fmt.Printf("0x%02X", b); err != nil {
+				break
+			}
+		}
+		_, err = fmt.Print("\n")
 	}
 	return err
 }
 
 func main() {
 	if err := mainImpl(); err != nil {
-		fmt.Fprintf(os.Stderr, "i2c: %s.\n", err)
+		fmt.Fprintf(os.Stderr, "i2c-io: %s.\n", err)
 		os.Exit(1)
 	}
 }
