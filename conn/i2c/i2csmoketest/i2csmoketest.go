@@ -29,6 +29,10 @@ import (
 type SmokeTest struct {
 }
 
+func (s *SmokeTest) String() string {
+	return s.Name()
+}
+
 // Name implements the SmokeTest interface.
 func (s *SmokeTest) Name() string {
 	return "i2c-testboard"

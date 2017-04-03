@@ -124,6 +124,10 @@ func testOdroidC1Aliases() error {
 type SmokeTest struct {
 }
 
+func (s *SmokeTest) String() string {
+	return s.Name()
+}
+
 // Name implements periph-smoketest.SmokeTest.
 func (s *SmokeTest) Name() string {
 	return "odroid-c1"
