@@ -59,10 +59,7 @@ func TestDraw1D(t *testing.T) {
 	}
 	bounds := dev.Bounds()
 	gray := makeGrayCheckboard(bounds)
-	img, err := image1bit.New(bounds)
-	if err != nil {
-		t.Fatal(err)
-	}
+	img := image1bit.NewVerticalLSB(bounds)
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			img.Set(x, y, gray.At(x, y))
@@ -89,10 +86,7 @@ func Example() {
 
 	// Draw on it.
 	f := basicfont.Face7x13
-	img, err := image1bit.New(dev.Bounds())
-	if err != nil {
-		log.Fatal(err)
-	}
+	img := image1bit.NewVerticalLSB(dev.Bounds())
 	drawer := font.Drawer{
 		Dst:  img,
 		Src:  &image.Uniform{image1bit.On},

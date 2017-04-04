@@ -88,13 +88,13 @@ func loadImg(name string) (image.Image, *gif.GIF, error) {
 //
 // If you need something better, please use one of the various high quality
 // (slower!) Go packages available on github.
-func resize(src image.Image, width, height int) *image.NRGBA {
+func resize(src image.Image, size image.Point) *image.NRGBA {
 	srcMax := src.Bounds().Max
-	dst := image.NewNRGBA(image.Rect(0, 0, width, height))
-	for y := 0; y < height; y++ {
-		sY := (y*srcMax.Y + height/2) / height
-		for x := 0; x < width; x++ {
-			dst.Set(x, y, src.At((x*srcMax.X+width/2)/width, sY))
+	dst := image.NewNRGBA(image.Rectangle{Max: size})
+	for y := 0; y < size.Y; y++ {
+		sY := (y*srcMax.Y + size.Y/2) / size.Y
+		for x := 0; x < size.X; x++ {
+			dst.Set(x, y, src.At((x*srcMax.X+size.X/2)/size.X, sY))
 		}
 	}
 	return dst
@@ -152,16 +152,14 @@ func drawText(img draw.Image, text string) {
 
 // convert resizes and converts to black and white an image while keeping
 // aspect ratio, put it in a centered image of the same size as the display.
-func convert(s *ssd1306.Dev, src image.Image) (*image1bit.Image, error) {
-	src = resize(src, s.W, s.H)
-	img, err := image1bit.New(image.Rect(0, 0, s.W, s.H))
-	if err != nil {
-		return nil, err
-	}
+func convert(s *ssd1306.Dev, src image.Image) *image1bit.VerticalLSB {
+	screenBounds := s.Bounds()
+	src = resize(src, screenBounds.Size())
+	img := image1bit.NewVerticalLSB(screenBounds)
 	r := src.Bounds()
 	r = r.Add(image.Point{(s.W - r.Max.X) / 2, (s.H - r.Max.Y) / 2})
 	draw.Draw(img, r, src, image.Point{}, draw.Src)
-	return img, nil
+	return img
 }
 
 // patterns runs a number of test patterns to verify that the basics are working.
@@ -317,13 +315,10 @@ func mainImpl() error {
 	// TODO: this probably shouldn't loop forever...
 	if g != nil {
 		// Resize all the images up front to save on CPU processing.
-		imgs := make([]*image1bit.Image, len(g.Image))
+		imgs := make([]*image1bit.VerticalLSB, len(g.Image))
 		for i := range g.Image {
-			imgs[i], err = convert(s, g.Image[i])
+			imgs[i] = convert(s, g.Image[i])
 			drawText(imgs[i], *text)
-			if err != nil {
-				return err
-			}
 		}
 		for i := 0; g.LoopCount <= 0 || i < g.LoopCount*len(g.Image); i++ {
 			index := i % len(g.Image)
@@ -337,16 +332,10 @@ func mainImpl() error {
 
 	if src == nil {
 		// Create a blank image.
-		src, err = image1bit.New(image.Rect(0, 0, s.W, s.H))
-		if err != nil {
-			return err
-		}
+		src = image1bit.NewVerticalLSB(s.Bounds())
 	}
 
-	img, err := convert(s, src)
-	if err != nil {
-		return err
-	}
+	img := convert(s, src)
 	drawText(img, *text)
 	s.Draw(img.Bounds(), img, image.Point{})
 	if *demoMode {

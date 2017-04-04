@@ -198,10 +198,10 @@ func (d *Dev) Draw(r image.Rectangle, src image.Image, sp image.Point) {
 	deltaY := r.Min.Y - srcR.Min.Y
 
 	var pixels []byte
-	if img, ok := src.(*image1bit.Image); ok {
+	if img, ok := src.(*image1bit.VerticalLSB); ok {
 		if srcR.Min.X == 0 && srcR.Dx() == d.W && srcR.Min.Y == 0 && srcR.Dy() == d.H {
 			// Fast path.
-			pixels = img.Buf
+			pixels = img.Pix
 		}
 	}
 	if pixels == nil {
