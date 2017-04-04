@@ -20,6 +20,7 @@ import (
 	"periph.io/x/periph/conn/onewire/onewiresmoketest"
 	"periph.io/x/periph/conn/spi/spismoketest"
 	"periph.io/x/periph/devices/bme280/bme280smoketest"
+	"periph.io/x/periph/devices/ssd1306/ssd1306smoketest"
 	"periph.io/x/periph/host"
 	"periph.io/x/periph/host/chip/chipsmoketest"
 	"periph.io/x/periph/host/odroidc1/odroidc1smoketest"
@@ -48,6 +49,7 @@ var tests = []SmokeTest{
 	&odroidc1smoketest.SmokeTest{},
 	&onewiresmoketest.SmokeTest{},
 	&spismoketest.SmokeTest{},
+	&ssd1306smoketest.SmokeTest{},
 }
 
 func usage() {

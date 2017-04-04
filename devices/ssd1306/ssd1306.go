@@ -2,25 +2,26 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package ssd1306 controls a 128x64 monochrome OLED display via a ssd1306
-// controler.
+// Package ssd1306 controls a 128x64 monochrome OLED display via a SSD1306
+// controller.
 //
-// The SSD1306 is a write-only device. It can be driven on either I²C or SPI.
-// Changing between protocol is likely done through resistor soldering, for
-// boards that support both.
+// The driver does differential updates: it only sends modified pixels for the
+// smallest rectangle, to economize bus bandwidth. This is especially important
+// when using I²C as the bus default speed (often 100kHz) is slow enough to
+// saturate the bus at less than 10 frames per second.
 //
-// Known issue
+// The SSD1306 is a write-only device. It can be driven on either I²C or SPI
+// with 4 wires. Changing between protocol is likely done through resistor
+// soldering, for boards that support both.
 //
-// The SPI version of this driver is not functional. To interface with the ssd1306
-// in 3-wire SPI mode each byte must be transmitted using 9 bits where the 9th bit
-// discriminates between command & data. To interface using 4-wire SPI a separate
-// gpio is needed to drive a c/d input. Neither of these two mechanisms have been
-// implemented yet.
-// For more info, see
-// https://drive.google.com/file/d/0B5lkVYnewKTGYzhyWWp0clBMR1E/view
-// pages 17-18 (8.1.3, 8.1.4).
+// Some boards expose a RES / Reset pin. If present, it must be normally be
+// High. When set to Low (Ground), it enables the reset circuitry. It can be
+// used externally to this driver, if used, the driver must be reinstantiated.
 //
 // Datasheets
+//
+// Product page:
+// http://www.solomon-systech.com/en/product/display-ic/oled-driver-controller/ssd1306/
 //
 // https://cdn-shop.adafruit.com/datasheets/SSD1306.pdf
 //
@@ -34,13 +35,15 @@ package ssd1306
 // https://learn.adafruit.com/ssd1306-oled-displays-with-raspberry-pi-and-beaglebone-black?view=all
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"image"
 	"image/color"
-	"log"
+	"image/draw"
 
 	"periph.io/x/periph/conn"
+	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/spi"
 	"periph.io/x/periph/devices"
@@ -50,7 +53,8 @@ import (
 // FrameRate determines scrolling speed.
 type FrameRate byte
 
-// Possible frame rates.
+// Possible frame rates. The value determines the number of refreshes between
+// movement. The lower value, the higher speed.
 const (
 	FrameRate2   FrameRate = 7
 	FrameRate3   FrameRate = 4
@@ -73,49 +77,109 @@ const (
 	UpLeft  Orientation = 0x2A
 )
 
-// Dev is an open handle to the display controler.
+// Dev is an open handle to the display controller.
 type Dev struct {
-	c conn.Conn
-	W int
-	H int
+	// Communication
+	c   conn.Conn
+	dc  gpio.PinOut
+	spi bool
+
+	// Display size controlled by the SSD1306.
+	rect image.Rectangle
+
+	// Mutable
+	// See page 25 for the GDDRAM pages structure.
+	// Narrow screen will waste the end of each page.
+	// Short screen will ignore the lower pages.
+	// There is 8 pages, each covering an horizontal band of 8 pixels high (1
+	// byte) for 128 bytes.
+	// 8*128 = 1024 bytes total for 128x64 display.
+	buffer []byte
+	// next is lazy initialized on first Draw(). Write() skips this buffer.
+	next               *image1bit.VerticalLSB
+	startPage, endPage int
+	startCol, endCol   int
+	scrolled           bool
+	halted             bool
+	err                error
 }
 
-// NewSPI returns a Dev object that communicates over SPI to SSD1306 display
-// controler.
+// NewSPI returns a Dev object that communicates over SPI to a SSD1306 display
+// controller.
 //
-// If rotated, turns the display by 180°
+// If rotated is true, turns the display by 180°
 //
-// It's up to the caller to use the RES (reset) pin if desired. Simpler
-// connection is to connect RES and DC to ground, CS to 3.3v, SDA to MOSI, SCK
-// to SCLK.
+// The SSD1306 can operate at up to 3.3Mhz, which is much higher than I²C. This
+// permits higher refresh rates.
 //
-func NewSPI(s spi.Conn, w, h int, rotated bool) (*Dev, error) {
-	if err := s.DevParams(3300000, spi.Mode3, 8); err != nil {
+// Wiring
+//
+// Connect SDA to MOSI, SCK to SCLK, CS to CS.
+//
+// In 3-wire SPI mode, pass nil for 'dc'. In 4-wire SPI mode, pass a GPIO pin
+// to use.
+//
+// The RES (reset) pin can be used outside of this driver but is not supported
+// natively. In case of external reset via the RES pin, this device drive must
+// be reinstantiated.
+func NewSPI(s spi.Conn, dc gpio.PinOut, w, h int, rotated bool) (*Dev, error) {
+	if dc == gpio.INVALID {
+		return nil, errors.New("ssd1306: use nil for dc to use 3-wire mode, do not use gpio.INVALID")
+	}
+	bits := 8
+	if dc == nil {
+		// 3-wire SPI uses 9 bits per word.
+		bits = 9
+	} else if err := dc.Out(gpio.Low); err != nil {
 		return nil, err
 	}
-	return newDev(s, w, h, rotated)
+	if err := s.DevParams(3300000, spi.Mode0, bits); err != nil {
+		return nil, err
+	}
+	return newDev(s, w, h, rotated, true, dc)
 }
 
-// NewI2C returns a Dev object that communicates over I²C to SSD1306 display
-// controler.
+// NewI2C returns a Dev object that communicates over I²C to a SSD1306 display
+// controller.
 //
 // If rotated, turns the display by 180°
 func NewI2C(i i2c.Bus, w, h int, rotated bool) (*Dev, error) {
 	// Maximum clock speed is 1/2.5µs = 400KHz.
-	return newDev(&i2c.Dev{Bus: i, Addr: 0x3C}, w, h, rotated)
+	return newDev(&i2c.Dev{Bus: i, Addr: 0x3C}, w, h, rotated, false, nil)
 }
 
 // newDev is the common initialization code that is independent of the bus
 // being used.
-func newDev(c conn.Conn, w, h int, rotated bool) (*Dev, error) {
+func newDev(c conn.Conn, w, h int, rotated, usingSPI bool, dc gpio.PinOut) (*Dev, error) {
 	if w < 8 || w > 128 || w&7 != 0 {
 		return nil, fmt.Errorf("ssd1306: invalid width %d", w)
 	}
 	if h < 8 || h > 64 || h&7 != 0 {
 		return nil, fmt.Errorf("ssd1306: invalid height %d", h)
 	}
-	d := &Dev{c: c, W: w, H: h}
 
+	nbPages := h / 8
+	pageSize := w
+	d := &Dev{
+		c:         c,
+		spi:       usingSPI,
+		dc:        dc,
+		rect:      image.Rect(0, 0, int(w), int(h)),
+		buffer:    make([]byte, nbPages*pageSize),
+		startPage: 0,
+		endPage:   nbPages,
+		startCol:  0,
+		endCol:    w,
+		// Signal that the screen must be redrawn on first draw().
+		scrolled: true,
+	}
+	if err := d.sendCommand(getInitCmd(w, h, rotated)); err != nil {
+		return nil, err
+	}
+	return d, nil
+}
+
+func getInitCmd(w, h int, rotated bool) []byte {
 	// Set COM output scan direction; C0 means normal; C8 means reversed
 	comScan := byte(0xC8)
 	// See page 40.
@@ -125,193 +189,302 @@ func newDev(c conn.Conn, w, h int, rotated bool) (*Dev, error) {
 		comScan = 0xC0
 		columnAddr = byte(0xA0)
 	}
+	// Set the max frequency. The problem with I²C is that it creates visible
+	// tear down. On SPI at high speed this is not visible. Page 23 pictures how
+	// to avoid tear down. For now default to max frequency.
+	freq := byte(0xF0)
+
 	// Initialize the device by fully resetting all values.
-	// https://cdn-shop.adafruit.com/datasheets/SSD1306.pdf
 	// Page 64 has the full recommended flow.
 	// Page 28 lists all the commands.
-	// Some values come from the DM-OLED096 datasheet p15.
-	init := []byte{
-		i2cCmd,
+	return []byte{
 		0xAE,       // Display off
 		0xD3, 0x00, // Set display offset; 0
 		0x40,       // Start display start line; 0
 		columnAddr, // Set segment remap; RESET is column 127.
-		comScan,
+		comScan,    //
 		0xDA, 0x12, // Set COM pins hardware configuration; see page 40
-		0x81, 0xff, // Set max contrast
+		0x81, 0xFF, // Set max contrast
 		0xA4,       // Set display to use GDDRAM content
 		0xA6,       // Set normal display (0xA7 for inverted 0=lit, 1=dark)
-		0xD5, 0x80, // Set osc frequency and divide ratio; power on reset value is 0x3F.
+		0xD5, freq, // Set osc frequency and divide ratio; power on reset value is 0x80.
 		0x8D, 0x14, // Enable charge pump regulator; page 62
-		0xD9, 0xf1, // Set pre-charge period; from adafruit driver
+		0xD9, 0xF1, // Set pre-charge period; from adafruit driver
 		0xDB, 0x40, // Set Vcomh deselect level; page 32
+		0x2E,              // Deactivate scroll
+		0xA8, byte(h - 1), // Set multiplex ratio (number of lines to display)
 		0x20, 0x00, // Set memory addressing mode to horizontal
-		0xB0,                // Set page start address
-		0x2E,                // Deactivate scroll
-		0x00,                // Set column offset (lower nibble)
-		0x10,                // Set column offset (higher nibble)
-		0xA8, byte(d.H - 1), // Set multiplex ratio (number of lines to display)
+		0x21, 0, uint8(w - 1), // Set column address (Width)
+		0x22, 0, uint8(h/8 - 1), // Set page address (Pages)
 		0xAF, // Display on
 	}
-	if err := d.c.Tx(init, nil); err != nil {
-		return nil, err
-	}
-
-	return d, nil
 }
 
-// ColorModel implements devices.Display. It is a one bit color model.
+func (d *Dev) String() string {
+	if d.spi {
+		return fmt.Sprintf("ssd1360.Dev{%s, %s, %s}", d.c, d.dc, d.rect.Max)
+	}
+	return fmt.Sprintf("ssd1360.Dev{%s, %s}", d.c, d.rect.Max)
+}
+
+// ColorModel implements devices.Display.
+//
+// It is a one bit color model, as implemented by image1bit.Bit.
 func (d *Dev) ColorModel() color.Model {
-	return color.NRGBAModel
+	return image1bit.BitModel
 }
 
 // Bounds implements devices.Display. Min is guaranteed to be {0, 0}.
 func (d *Dev) Bounds() image.Rectangle {
-	return image.Rectangle{Max: image.Point{X: d.W, Y: d.H}}
-}
-
-func colorToBit(c color.Color) byte {
-	r, g, b, a := c.RGBA()
-	if (r|g|b) >= 0x8000 && a >= 0x4000 {
-		return 1
-	}
-	return 0
+	return d.rect
 }
 
 // Draw implements devices.Display.
 //
-// BUG(maruel): It discards any failure. Change devices.Display interface?
-// BUG(maruel): Support r.Min.Y and r.Max.Y not divisible by 8.
-// BUG(maruel): Support sp.Y not divisible by 8.
+// It draws synchronously, once this function returns, the display is updated.
+// It means that on slow bus  (I²C), it may be preferable to defer Draw() calls
+// to a background goroutine.
+//
+// It discards any failure.
 func (d *Dev) Draw(r image.Rectangle, src image.Image, sp image.Point) {
-	r = r.Intersect(d.Bounds())
-	srcR := src.Bounds()
-	srcR.Min = srcR.Min.Add(sp)
-	if dX := r.Dx(); dX < srcR.Dx() {
-		srcR.Max.X = srcR.Min.X + dX
+	var next []byte
+	if img, ok := src.(*image1bit.VerticalLSB); ok && r == d.Bounds() && src.Bounds() == d.rect && sp.X == 0 && sp.Y == 0 {
+		// Exact size, full frame, image1bit encoding: fast path!
+		next = img.Pix
+	} else {
+		// Double buffering.
+		if d.next == nil {
+			d.next = image1bit.NewVerticalLSB(d.rect)
+		}
+		next = d.next.Pix
+		draw.Src.Draw(d.next, r, src, sp)
 	}
-	if dY := r.Dy(); dY < srcR.Dy() {
-		srcR.Max.Y = srcR.Min.Y + dY
-	}
-	// Take 8 lines at a time.
-	deltaX := r.Min.X - srcR.Min.X
-	deltaY := r.Min.Y - srcR.Min.Y
+	d.err = d.drawInternal(next)
+}
 
-	var pixels []byte
-	if img, ok := src.(*image1bit.VerticalLSB); ok {
-		if srcR.Min.X == 0 && srcR.Dx() == d.W && srcR.Min.Y == 0 && srcR.Dy() == d.H {
-			// Fast path.
-			pixels = img.Pix
-		}
-	}
-	if pixels == nil {
-		pixels = make([]byte, d.W*d.H/8)
-		for sY := srcR.Min.Y; sY < srcR.Max.Y; sY += 8 {
-			rY := ((sY + deltaY) / 8) * d.W
-			for sX := srcR.Min.X; sX < srcR.Max.X; sX++ {
-				rX := sX + deltaX
-				c0 := colorToBit(src.At(sX, sY))
-				c1 := colorToBit(src.At(sX, sY+1)) << 1
-				c2 := colorToBit(src.At(sX, sY+2)) << 2
-				c3 := colorToBit(src.At(sX, sY+3)) << 3
-				c4 := colorToBit(src.At(sX, sY+4)) << 4
-				c5 := colorToBit(src.At(sX, sY+5)) << 5
-				c6 := colorToBit(src.At(sX, sY+6)) << 6
-				c7 := colorToBit(src.At(sX, sY+7)) << 7
-				pixels[rX+rY] = c0 | c1 | c2 | c3 | c4 | c5 | c6 | c7
-			}
-		}
-	}
-	if _, err := d.Write(pixels); err != nil {
-		log.Printf("ssd1306: Draw failed: %v", err)
-	}
+// Err returns the last error that occurred
+func (d *Dev) Err() error {
+	return d.err
 }
 
 // Write writes a buffer of pixels to the display.
 //
-// The format is unsual as each byte represent 8 vertical pixels at a time. So
-// the memory is effectively horizontal bands of 8 pixels high.
+// The format is unsual as each byte represent 8 vertical pixels at a time. The
+// format is horizontal bands of 8 pixels high.
+//
+// This function accepts the content of image1bit.VerticalLSB.Pix.
 func (d *Dev) Write(pixels []byte) (int, error) {
-	if len(pixels) != d.H*d.W/8 {
-		return 0, errors.New("ssd1306: invalid pixel stream")
+	if len(pixels) != len(d.buffer) {
+		return 0, fmt.Errorf("ssd1306: invalid pixel stream length; expected %d bytes, got %d bytes", len(d.buffer), len(pixels))
 	}
-
-	// Run as 2 big transactions to reduce downtime on the bus.
-	// First tx is commands, second is data.
-
-	// The following commands should not be needed, but then if the ssd1306 gets out of sync
-	// for some reason the display ends up messed-up. Given the small overhead compared to
-	// sending all the data might as well reset things a bit.
-	hdr := []byte{
-		i2cCmd,
-		0xB0,       // Set page start addr just in case
-		0x00, 0x10, // Set column start addr, lower & upper nibble
-		0x20, 0x00, // Ensure addressing mode is horizontal
-		0x21, 0x00, byte(d.W - 1), // Set start/end column
-		0x22, 0x00, byte(d.H/8 - 1), // Set start/end page
-	}
-	if err := d.c.Tx(hdr, nil); err != nil {
+	// Write() skips d.next so it saves 1kb of RAM.
+	if err := d.drawInternal(pixels); err != nil {
 		return 0, err
 	}
-
-	// Write the data.
-	if err := d.c.Tx(append([]byte{i2cData}, pixels...), nil); err != nil {
-		return 0, err
-	}
-
 	return len(pixels), nil
 }
 
-// Scroll scrolls the entire screen.
-func (d *Dev) Scroll(o Orientation, rate FrameRate) error {
-	// TODO(maruel): Allow to specify page.
-	// TODO(maruel): Allow to specify offset.
+// Scroll scrolls an horizontal band.
+//
+// Only one scrolling operation can happen at a time.
+//
+// Both startLine and endLine must be multiples of 8.
+//
+// Use -1 for endLine to extend to the bottom of the display.
+func (d *Dev) Scroll(o Orientation, rate FrameRate, startLine, endLine int) error {
+	h := d.rect.Dy()
+	if endLine == -1 {
+		endLine = h
+	}
+	if startLine >= endLine {
+		return fmt.Errorf("startLine (%d) must be lower than endLine (%d)", startLine, endLine)
+	}
+	if startLine&7 != 0 || startLine < 0 || startLine >= h {
+		return fmt.Errorf("invalid startLine %d", startLine)
+	}
+	if endLine&7 != 0 || endLine < 0 || endLine > h {
+		return fmt.Errorf("invalid endLine %d", endLine)
+	}
+
+	startPage := uint8(startLine / 8)
+	endPage := uint8(endLine / 8)
+	d.scrolled = true
 	if o == Left || o == Right {
 		// page 28
-		// STOP, <op>, dummy, <start page>, <rate>,  <end page>, <dummy>, <dummy>, <ENABLE>
-		return d.c.Tx([]byte{i2cCmd, 0x2E, byte(o), 0x00, 0x00, byte(rate), 0x07, 0x00, 0xFF, 0x2F}, nil)
+		// <op>, dummy, <start page>, <rate>,  <end page>, <dummy>, <dummy>, <ENABLE>
+		return d.sendCommand([]byte{byte(o), 0x00, startPage, byte(rate), endPage - 1, 0x00, 0xFF, 0x2F})
 	}
 	// page 29
-	// STOP, <op>, dummy, <start page>, <rate>,  <end page>, <offset>, <ENABLE>
+	// <op>, dummy, <start page>, <rate>,  <end page>, <offset>, <ENABLE>
 	// page 30: 0xA3 permits to set rows for scroll area.
-	return d.c.Tx([]byte{i2cCmd, 0x2E, byte(o), 0x00, 0x00, byte(rate), 0x07, 0x01, 0x2F}, nil)
+	return d.sendCommand([]byte{byte(o), 0x00, startPage, byte(rate), endPage - 1, 0x01, 0x2F})
 }
 
-// StopScroll stops any scrolling previously set.
-//
-// It will only take effect after redrawing the ram.
+// StopScroll stops any scrolling previously set and resets the screen.
 func (d *Dev) StopScroll() error {
-	return d.c.Tx([]byte{i2cCmd, 0x2E}, nil)
+	return d.sendCommand([]byte{0x2E})
 }
 
 // SetContrast changes the screen contrast.
 //
 // Note: values other than 0xff do not seem useful...
 func (d *Dev) SetContrast(level byte) error {
-	return d.c.Tx([]byte{i2cCmd, 0x81, level}, nil)
+	return d.sendCommand([]byte{0x81, level})
 }
 
-// Enable or disable the display.
-func (d *Dev) Enable(on bool) error {
-	b := byte(0xAE)
-	if on {
-		b = 0xAF
+// Halt turns off the display.
+//
+// Sending any other command afterward reenables the display.
+func (d *Dev) Halt() error {
+	d.halted = false
+	err := d.sendCommand([]byte{0xAE})
+	if err == nil {
+		d.halted = true
 	}
-	return d.c.Tx([]byte{i2cCmd, b}, nil)
+	return err
 }
 
 // Invert the display (black on white vs white on black).
 func (d *Dev) Invert(blackOnWhite bool) error {
-	b := byte(0xA6)
+	b := []byte{0xA6}
 	if blackOnWhite {
-		b = 0xA7
+		b[0] = 0xA7
 	}
-	return d.c.Tx([]byte{i2cCmd, b}, nil)
+	return d.sendCommand(b)
+}
+
+//
+
+func (d *Dev) calculateSubset(next []byte) (int, int, int, int, bool) {
+	w := d.rect.Dx()
+	h := d.rect.Dy()
+	startPage := 0
+	endPage := h / 8
+	startCol := 0
+	endCol := w
+	if d.scrolled {
+		// Painting disable scrolling but if scrolling was enabled, this requires a
+		// full screen redraw.
+		d.scrolled = false
+	} else {
+		// Calculate the smallest square that need to be sent.
+		pageSize := w
+
+		// Top.
+		for ; startPage < endPage; startPage++ {
+			x := pageSize * startPage
+			y := pageSize * (startPage + 1)
+			if !bytes.Equal(d.buffer[x:y], next[x:y]) {
+				break
+			}
+		}
+		// Bottom.
+		for ; endPage > startPage; endPage-- {
+			x := pageSize * (endPage - 1)
+			y := pageSize * endPage
+			if !bytes.Equal(d.buffer[x:y], next[x:y]) {
+				break
+			}
+		}
+		if startPage == endPage {
+			// Early exit, the image is exactly the same.
+			return 0, 0, 0, 0, true
+		}
+		// TODO(maruel): This currently corrupts the screen. Likely a small error
+		// in the way the commands are sent.
+		/*
+				// Left.
+				for ; startCol < endCol; startCol++ {
+					for i := startPage; i < endPage; i++ {
+						x := i*pageSize + startCol
+						if d.buffer[x] != next[x] {
+							goto breakLeft
+						}
+					}
+				}
+			breakLeft:
+				// Right.
+				for ; endCol > startCol; endCol-- {
+					for i := startPage; i < endPage; i++ {
+						x := i*pageSize + endCol - 1
+						if d.buffer[x] != next[x] {
+							goto breakRight
+						}
+					}
+				}
+			breakRight:
+		*/
+	}
+	return startPage, endPage, startCol, endCol, false
+}
+
+// drawInternal sends image data to the controller.
+func (d *Dev) drawInternal(next []byte) error {
+	startPage, endPage, startCol, endCol, skip := d.calculateSubset(next)
+	if skip {
+		return nil
+	}
+	copy(d.buffer, next)
+
+	if d.startPage != startPage || d.endPage != endPage || d.startCol != startCol || d.endCol != endCol {
+		d.startPage = startPage
+		d.endPage = endPage
+		d.startCol = startCol
+		d.endCol = endCol
+		cmd := []byte{
+			0x21, uint8(d.startCol), uint8(d.endCol - 1), // Set column address (Width)
+			0x22, uint8(d.startPage), uint8(d.endPage - 1), // Set page address (Pages)
+		}
+		if err := d.sendCommand(cmd); err != nil {
+			return err
+		}
+	}
+
+	// Write the subset of the data as needed.
+	pageSize := d.rect.Dx()
+	return d.sendData(d.buffer[startPage*pageSize+startCol : (endPage-1)*pageSize+endCol])
+}
+
+func (d *Dev) sendData(c []byte) error {
+	if d.halted {
+		// Transparently enable the display.
+		if err := d.sendCommand(nil); err != nil {
+			return err
+		}
+	}
+	if d.spi {
+		// 4-wire SPI.
+		if err := d.dc.Out(gpio.High); err != nil {
+			return err
+		}
+		return d.c.Tx(c, nil)
+	}
+	return d.c.Tx(append([]byte{i2cData}, c...), nil)
+}
+
+func (d *Dev) sendCommand(c []byte) error {
+	if d.halted {
+		// Transparently enable the display.
+		c = append([]byte{0xAF}, c...)
+		d.halted = false
+	}
+	if d.spi {
+		if d.dc == nil {
+			// 3-wire SPI.
+			return errors.New("ssd1306: 3-wire SPI mode is not yet implemented")
+		}
+		// 4-wire SPI.
+		if err := d.dc.Out(gpio.Low); err != nil {
+			return err
+		}
+		return d.c.Tx(c, nil)
+	}
+	return d.c.Tx(append([]byte{i2cCmd}, c...), nil)
 }
 
 const (
-	i2cCmd  = 0x00 // i2c transaction has stream of command bytes
-	i2cData = 0x40 // i2c transaction has stream of data bytes
+	i2cCmd  = 0x00 // I²C transaction has stream of command bytes
+	i2cData = 0x40 // I²C transaction has stream of data bytes
 )
 
 var _ devices.Display = &Dev{}

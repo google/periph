@@ -24,6 +24,8 @@ import (
 	"golang.org/x/image/font/basicfont"
 	"golang.org/x/image/math/fixed"
 
+	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/conn/spi"
@@ -100,37 +102,6 @@ func resize(src image.Image, size image.Point) *image.NRGBA {
 	return dst
 }
 
-func demo(s *ssd1306.Dev) error {
-	if err := s.Scroll(ssd1306.Left, ssd1306.FrameRate2); err != nil {
-		return err
-	}
-	time.Sleep(2 * time.Second)
-	if err := s.Scroll(ssd1306.Right, ssd1306.FrameRate2); err != nil {
-		return err
-	}
-	time.Sleep(2 * time.Second)
-	if err := s.Scroll(ssd1306.UpLeft, ssd1306.FrameRate2); err != nil {
-		return err
-	}
-	time.Sleep(2 * time.Second)
-	if err := s.Scroll(ssd1306.UpRight, ssd1306.FrameRate2); err != nil {
-		return err
-	}
-	time.Sleep(2 * time.Second)
-	if err := s.StopScroll(); err != nil {
-		return err
-	}
-	if err := s.SetContrast(0); err != nil {
-		return err
-	}
-	time.Sleep(2 * time.Second)
-	if err := s.SetContrast(0xFF); err != nil {
-		return err
-	}
-	time.Sleep(2 * time.Second)
-	return nil
-}
-
 // drawText draws text at the bottom right of img.
 func drawText(img draw.Image, text string) {
 	f := basicfont.Face7x13
@@ -154,100 +125,28 @@ func drawText(img draw.Image, text string) {
 // aspect ratio, put it in a centered image of the same size as the display.
 func convert(s *ssd1306.Dev, src image.Image) *image1bit.VerticalLSB {
 	screenBounds := s.Bounds()
-	src = resize(src, screenBounds.Size())
+	size := screenBounds.Size()
+	src = resize(src, size)
 	img := image1bit.NewVerticalLSB(screenBounds)
 	r := src.Bounds()
-	r = r.Add(image.Point{(s.W - r.Max.X) / 2, (s.H - r.Max.Y) / 2})
+	r = r.Add(image.Point{(size.X - r.Max.X) / 2, (size.Y - r.Max.Y) / 2})
 	draw.Draw(img, r, src, image.Point{}, draw.Src)
 	return img
-}
-
-// patterns runs a number of test patterns to verify that the basics are working.
-func patterns(s *ssd1306.Dev) error {
-	// Create synthetic images using a raw array. Each byte corresponds to 8
-	// vertical pixels, and then the array scans horizontally and down.
-	var img [128 * 64 / 8]byte
-
-	// Fill with broad stripes.
-	for y := 0; y < 8; y++ {
-		// Horizontal stripes.
-		for x := 0; x < 64; x++ {
-			img[x+128*y] = byte((y & 1) * 0xff)
-		}
-		// Vertical stripes.
-		for x := 64; x < 128; x++ {
-			img[x+128*y] = byte(((x / 8) & 1) * 0xff)
-		}
-	}
-	if _, err := s.Write(img[:]); err != nil {
-		return err
-	}
-
-	// Display off and back on.
-	log.Printf("off & on")
-	time.Sleep(500 * time.Millisecond)
-	if err := s.Enable(false); err != nil {
-		return err
-	}
-	time.Sleep(500 * time.Millisecond)
-	if err := s.Enable(true); err != nil {
-		return err
-	}
-
-	// Display inverted and back.
-	log.Printf("inverted and back")
-	time.Sleep(500 * time.Millisecond)
-	if err := s.Invert(true); err != nil {
-		return err
-	}
-	time.Sleep(500 * time.Millisecond)
-	if err := s.Invert(false); err != nil {
-		return err
-	}
-
-	// Change the contrast around.
-	log.Printf("contrast ramp")
-	for c := 0; c < 256; c++ {
-		if err := s.SetContrast(byte(c)); err != nil {
-			return err
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
-	s.SetContrast(0xff)
-
-	// Fill display with binary 0..255 pattern.
-	for i := 0; i < len(img); i++ {
-		img[i] = byte(i)
-	}
-	if _, err := s.Write(img[:]); err != nil {
-		return err
-	}
-
-	// Display inverted and back.
-	log.Printf("inverted and back")
-	time.Sleep(500 * time.Millisecond)
-	if err := s.Invert(true); err != nil {
-		return err
-	}
-	time.Sleep(500 * time.Millisecond)
-	if err := s.Invert(false); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func mainImpl() error {
 	i2cID := flag.String("i2c", "", "I²C bus to use")
 	spiID := flag.String("spi", "", "SPI bus to use")
+	dcName := flag.String("dc", "", "DC pin to use in 4-wire SPI mode")
 	speed := flag.Int("speed", 0, "specify SPI speed in Hz to use")
+
 	h := flag.Int("h", 64, "display height")
+	w := flag.Int("w", 128, "display width")
+	rotated := flag.Bool("r", false, "Rotate the display by 180°")
+
 	imgName := flag.String("i", "ballerine.gif", "image to load; try bunny.gif")
 	text := flag.String("t", "periph is awesome", "text to display")
-	w := flag.Int("w", 128, "display width")
-	demoMode := flag.Bool("d", false, "demo scrolling")
-	rotated := flag.Bool("r", false, "Rotate the display by 180°")
-	pattern := flag.Bool("p", false, "Display test patterns")
+
 	verbose := flag.Bool("v", false, "verbose mode")
 	flag.Parse()
 	if !*verbose {
@@ -279,7 +178,11 @@ func mainImpl() error {
 			// TODO(maruel): Print where the pins are located.
 			log.Printf("Using pins CLK: %s  MOSI: %s  CS: %s", p.CLK(), p.MOSI(), p.CS())
 		}
-		s, err = ssd1306.NewSPI(bus, *w, *h, *rotated)
+		var dc gpio.PinOut
+		if len(*dcName) != 0 {
+			dc = gpioreg.ByName(*dcName)
+		}
+		s, err = ssd1306.NewSPI(bus, dc, *w, *h, *rotated)
 		if err != nil {
 			return err
 		}
@@ -299,20 +202,12 @@ func mainImpl() error {
 		}
 	}
 
-	// Run test patterns, if requested.
-	if *pattern {
-		if err := patterns(s); err != nil {
-			return err
-		}
-	}
-
 	// Load image.
 	src, g, err := loadImg(*imgName)
 	if err != nil {
 		return err
 	}
 	// If an animated GIF, draw it in a loop.
-	// TODO: this probably shouldn't loop forever...
 	if g != nil {
 		// Resize all the images up front to save on CPU processing.
 		imgs := make([]*image1bit.VerticalLSB, len(g.Image))
@@ -338,15 +233,7 @@ func mainImpl() error {
 	img := convert(s, src)
 	drawText(img, *text)
 	s.Draw(img.Bounds(), img, image.Point{})
-	if *demoMode {
-		if err := demo(s); err != nil {
-			return err
-		}
-	}
-	if err := s.Enable(false); err != nil {
-		return err
-	}
-	return err
+	return s.Halt()
 }
 
 func main() {
