@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/experimental/conn/uart"
 )
@@ -70,6 +71,11 @@ func (u *UART) Configure(stopBit uart.Stop, parity uart.Parity, bits int) error 
 	return errors.New("sysfs-uart: not implemented")
 }
 
+// Duplex implements uart.Conn.
+func (u *UART) Duplex() conn.Duplex {
+	return conn.DuplexUnknown
+}
+
 // Write implements uart.Conn.
 func (u *UART) Write(b []byte) (int, error) {
 	return 0, errors.New("sysfs-uart: not implemented")
@@ -81,7 +87,7 @@ func (u *UART) Tx(w, r []byte) error {
 }
 
 // Speed implements uart.Conn.
-func (u *UART) Speed(hz int64) error {
+func (u *UART) Speed(baud int) error {
 	return errors.New("sysfs-uart: not implemented")
 }
 
