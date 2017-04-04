@@ -356,7 +356,10 @@ func TestDev16_ReadStruct_Order_nil(t *testing.T) {
 }
 
 func TestDev16_ReadStruct_Precond_Fail(t *testing.T) {
-	d := Dev16{Conn: &conntest.Playback{D: conn.Half}, Order: binary.LittleEndian}
+	d := Dev16{
+		Conn:  &conntest.Playback{D: conn.Half, DontPanic: true},
+		Order: binary.LittleEndian,
+	}
 	if err := d.ReadStruct(0x1234, nil); err == nil {
 		t.Fatal()
 	}
@@ -381,7 +384,10 @@ func TestDev16_ReadStruct_Precond_Fail(t *testing.T) {
 }
 
 func TestDev16_ReadStruct_Decode_fail(t *testing.T) {
-	d := Dev16{Conn: &conntest.Playback{Ops: []conntest.IO{{Write: []byte{34}, Read: []byte{}}}, D: conn.Half}, Order: binary.LittleEndian}
+	d := Dev16{
+		Conn:  &conntest.Playback{Ops: []conntest.IO{{Write: []byte{34}, Read: []byte{}}}, D: conn.Half, DontPanic: true},
+		Order: binary.LittleEndian,
+	}
 	z := [0]int{}
 	if err := d.ReadStruct(34, &z); err == nil {
 		t.Fatal()

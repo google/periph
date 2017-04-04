@@ -6,7 +6,6 @@
 package spitest
 
 import (
-	"errors"
 	"io"
 	"log"
 	"sync"
@@ -63,7 +62,7 @@ func (r *Record) Tx(w, read []byte) error {
 	defer r.Unlock()
 	if r.Conn == nil {
 		if len(read) != 0 {
-			return errors.New("spitest: read unsupported when no bus is connected")
+			return conntest.Errorf("spitest: read unsupported when no bus is connected")
 		}
 	} else {
 		if err := r.Conn.Tx(w, read); err != nil {

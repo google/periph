@@ -7,6 +7,7 @@ package i2ctest
 import (
 	"testing"
 
+	"periph.io/x/periph/conn/conntest"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpiotest"
 )
@@ -30,7 +31,7 @@ func TestRecord_empty(t *testing.T) {
 	}
 }
 
-func TestRecord_empty_tx(t *testing.T) {
+func TestRecord_Tx_empty(t *testing.T) {
 	r := Record{}
 	if err := r.Tx(1, nil, nil); err != nil {
 		t.Fatal(err)
@@ -74,7 +75,23 @@ func TestPlayback(t *testing.T) {
 	}
 }
 
-func TestPlayback_tx(t *testing.T) {
+func TestPlayback_Close_panic(t *testing.T) {
+	p := Playback{Ops: []IO{{Write: []byte{10}}}}
+	defer func() {
+		v := recover()
+		err, ok := v.(error)
+		if !ok {
+			t.Fatal("expected error")
+		}
+		if !conntest.IsErr(err) {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	}()
+	p.Close()
+	t.Fatal("shouldn't run")
+}
+
+func TestPlayback_Tx(t *testing.T) {
 	p := Playback{
 		Ops: []IO{
 			{
@@ -83,6 +100,7 @@ func TestPlayback_tx(t *testing.T) {
 				Read:  []byte{12},
 			},
 		},
+		DontPanic: true,
 	}
 	if p.Tx(23, nil, nil) == nil {
 		t.Fatal("missing read and write")
@@ -121,8 +139,9 @@ func TestRecord_Playback(t *testing.T) {
 					Read:  []byte{12},
 				},
 			},
-			SDAPin: &gpiotest.Pin{N: "DA"},
-			SCLPin: &gpiotest.Pin{N: "CL"},
+			DontPanic: true,
+			SDAPin:    &gpiotest.Pin{N: "DA"},
+			SCLPin:    &gpiotest.Pin{N: "CL"},
 		},
 	}
 	if err := r.Speed(-100); err != nil {

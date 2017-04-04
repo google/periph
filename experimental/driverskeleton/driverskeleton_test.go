@@ -7,6 +7,7 @@ package driverskeleton
 import (
 	"fmt"
 	"log"
+	"strings"
 	"testing"
 
 	"periph.io/x/periph"
@@ -44,6 +45,7 @@ func TestDriverSkeleton(t *testing.T) {
 			// Read().
 			{Addr: 42, Write: []byte("what"), Read: []byte("Hello world!")},
 		},
+		DontPanic: true,
 	}
 	dev, err := New(&bus)
 	if err != nil {
@@ -55,13 +57,13 @@ func TestDriverSkeleton(t *testing.T) {
 	}
 
 	// Playback is empty.
-	if data := dev.Read(); data != "i2ctest: unexpected Tx()" {
+	if data := dev.Read(); !strings.HasPrefix(data, "i2ctest: unexpected Tx()") {
 		t.Fatal(data)
 	}
 }
 
 func TestDriverSkeleton_empty(t *testing.T) {
-	if dev, err := New(&i2ctest.Playback{}); dev != nil || err == nil {
+	if dev, err := New(&i2ctest.Playback{DontPanic: true}); dev != nil || err == nil {
 		t.Fatal("Tx should have failed")
 	}
 }

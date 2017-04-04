@@ -79,7 +79,6 @@ func TestSPISense_success(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dev.Stop()
 	env := devices.Environment{}
 	if err := dev.Sense(&env); err != nil {
 		t.Fatal(err)
@@ -95,6 +94,9 @@ func TestSPISense_success(t *testing.T) {
 	}
 	if env.Humidity != 995 {
 		t.Fatalf("humidity %d", env.Humidity)
+	}
+	if err := bus.Close(); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -114,10 +116,16 @@ func TestNewSPI_fail_len(t *testing.T) {
 					Read:  []byte{0x00},
 				},
 			},
+			DontPanic: true,
 		},
 	}
 	if dev, err := NewSPI(&bus, nil); dev != nil || err == nil {
 		t.Fatal("read failed")
+	}
+	// The I/O didn't occur.
+	bus.Count++
+	if err := bus.Close(); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -136,6 +144,9 @@ func TestNewSPI_fail_chipid(t *testing.T) {
 	if dev, err := NewSPI(&bus, nil); dev != nil || err == nil {
 		t.Fatal("read failed")
 	}
+	if err := bus.Close(); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestNewI2C_fail(t *testing.T) {
@@ -144,9 +155,15 @@ func TestNewI2C_fail(t *testing.T) {
 			// Chipd ID detection.
 			{Addr: 0x76, Write: []byte{0xd0}},
 		},
+		DontPanic: true,
 	}
 	if dev, err := NewI2C(&bus, nil); dev != nil || err == nil {
 		t.Fatal("read failed")
+	}
+	// The I/O didn't occur.
+	bus.Count++
+	if err := bus.Close(); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -156,9 +173,13 @@ func TestNewI2C_chipid(t *testing.T) {
 			// Chipd ID detection.
 			{Addr: 0x76, Write: []byte{0xd0}, Read: []byte{0x60}},
 		},
+		DontPanic: true,
 	}
 	if dev, err := NewI2C(&bus, nil); dev != nil || err == nil {
 		t.Fatal("invalid chip id")
+	}
+	if err := bus.Close(); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -174,10 +195,14 @@ func TestNewI2C_calib1(t *testing.T) {
 				Read:  []byte{0x10, 0x6e, 0x6c, 0x66, 0x32, 0x0, 0x5d, 0x95, 0xb8, 0xd5, 0xd0, 0xb, 0x77, 0x1e, 0x9d, 0xff, 0xf9, 0xff, 0xac, 0x26, 0xa, 0xd8, 0xbd, 0x10, 0x0, 0x4b},
 			},
 		},
+		DontPanic: true,
 	}
 	opts := Opts{Address: 0}
 	if dev, err := NewI2C(&bus, &opts); dev != nil || err == nil {
 		t.Fatal("2nd calib read failed")
+	}
+	if err := bus.Close(); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -195,9 +220,13 @@ func TestNewI2C_calib2(t *testing.T) {
 			// Calibration data.
 			{Addr: 0x76, Write: []byte{0xe1}, Read: []byte{0x6e, 0x1, 0x0, 0x13, 0x5, 0x0, 0x1e}},
 		},
+		DontPanic: true,
 	}
 	if dev, err := NewI2C(&bus, nil); dev != nil || err == nil {
 		t.Fatal("3rd calib read failed")
+	}
+	if err := bus.Close(); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -207,13 +236,19 @@ func TestI2COpts_bad_addr(t *testing.T) {
 	if dev, err := NewI2C(&bus, &opts); dev != nil || err == nil {
 		t.Fatal("bad addr")
 	}
+	if err := bus.Close(); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestI2COpts(t *testing.T) {
-	bus := i2ctest.Playback{}
+	bus := i2ctest.Playback{DontPanic: true}
 	opts := Opts{Address: 0x76}
 	if dev, err := NewI2C(&bus, &opts); dev != nil || err == nil {
 		t.Fatal("write fails")
+	}
+	if err := bus.Close(); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -236,6 +271,7 @@ func TestI2CSense_fail(t *testing.T) {
 			// Read.
 			{Addr: 0x76, Write: []byte{0xf7}},
 		},
+		DontPanic: true,
 	}
 	dev, err := NewI2C(&bus, nil)
 	if err != nil {
@@ -243,6 +279,11 @@ func TestI2CSense_fail(t *testing.T) {
 	}
 	if dev.Sense(&devices.Environment{}) == nil {
 		t.Fatal("sense fail read")
+	}
+	// The I/O didn't occur.
+	bus.Count++
+	if err := bus.Close(); err != nil {
+		t.Fatal(err)
 	}
 }
 

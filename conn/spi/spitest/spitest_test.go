@@ -63,7 +63,7 @@ func TestRecord_empty(t *testing.T) {
 	}
 }
 
-func TestRecord_empty_tx(t *testing.T) {
+func TestRecord_Tx_empty(t *testing.T) {
 	r := Record{}
 	if err := r.Tx(nil, nil); err != nil {
 		t.Fatal(err)
@@ -101,7 +101,7 @@ func TestPlayback(t *testing.T) {
 	}
 }
 
-func TestPlayback_tx_err(t *testing.T) {
+func TestPlayback_Tx_err(t *testing.T) {
 	p := Playback{
 		Playback: conntest.Playback{
 			Ops: []conntest.IO{
@@ -110,6 +110,7 @@ func TestPlayback_tx_err(t *testing.T) {
 					Read:  []byte{12},
 				},
 			},
+			DontPanic: true,
 		},
 	}
 	if p.Tx(nil, nil) == nil {
@@ -123,14 +124,14 @@ func TestPlayback_tx_err(t *testing.T) {
 	}
 }
 
-func TestPlayback_tx_empty(t *testing.T) {
-	p := Playback{}
+func TestPlayback_Tx_empty(t *testing.T) {
+	p := Playback{Playback: conntest.Playback{DontPanic: true}}
 	if err := p.Tx([]byte{0}, []byte{0}); err == nil {
 		t.Fatal("Playback.Ops is empty")
 	}
 }
 
-func TestPlayback_tx(t *testing.T) {
+func TestPlayback_Tx(t *testing.T) {
 	p := Playback{
 		Playback: conntest.Playback{
 			Ops: []conntest.IO{
@@ -163,7 +164,8 @@ func TestRecord_Playback(t *testing.T) {
 						Read:  []byte{12},
 					},
 				},
-				D: conn.Full,
+				D:         conn.Full,
+				DontPanic: true,
 			},
 			CLKPin:  &gpiotest.Pin{N: "CLK"},
 			MOSIPin: &gpiotest.Pin{N: "MOSI"},
@@ -218,7 +220,8 @@ func TestLog_Playback(t *testing.T) {
 						Read:  []byte{12},
 					},
 				},
-				D: conn.Full,
+				D:         conn.Full,
+				DontPanic: true,
 			},
 			CLKPin:  &gpiotest.Pin{N: "CLK"},
 			MOSIPin: &gpiotest.Pin{N: "MOSI"},

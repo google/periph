@@ -7,10 +7,9 @@ package onewiretest
 
 import (
 	"bytes"
-	"errors"
-	"fmt"
 	"sync"
 
+	"periph.io/x/periph/conn/conntest"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/onewire"
 )
@@ -41,7 +40,7 @@ func (r *Record) Tx(w, read []byte, pull onewire.Pullup) error {
 	defer r.Unlock()
 	if r.Bus == nil {
 		if len(read) != 0 {
-			return errors.New("onewiretest: read unsupported when no bus is connected")
+			return conntest.Errorf("onewiretest: read unsupported when no bus is connected")
 		}
 	} else {
 		if err := r.Bus.Tx(w, read, pull); err != nil {
@@ -80,13 +79,19 @@ func (r *Record) Search(alarmOnly bool) ([]onewire.Address, error) {
 //
 // While "replay" type of unit tests are of limited value, they still present
 // an easy way to do basic code coverage.
+//
+// Set DontPanic to true to return an error instead of panicking, which is the
+// default.
 type Playback struct {
 	sync.Mutex
-	Ops       []IO              // recorded operations
+	Ops       []IO // recorded operations
+	Count     int
 	Devices   []onewire.Address // devices that respond to a search operation
-	QPin      gpio.PinIO        //
-	inactive  []bool            // Devices that are no longer active in the search
-	searchBit uint              // which bit is being searched next
+	QPin      gpio.PinIO
+	DontPanic bool
+
+	inactive  []bool // Devices that are no longer active in the search
+	searchBit uint   // which bit is being searched next
 }
 
 func (p *Playback) String() string {
@@ -97,8 +102,8 @@ func (p *Playback) String() string {
 func (p *Playback) Close() error {
 	p.Lock()
 	defer p.Unlock()
-	if len(p.Ops) != 0 {
-		return fmt.Errorf("onewiretest: expected playback to be empty:\n%#v", p.Ops)
+	if len(p.Ops) != p.Count {
+		return errorf(p.DontPanic, "onewiretest: expected playback to be empty: I/O count %d; expected %d", p.Count, len(p.Ops))
 	}
 	return nil
 }
@@ -107,17 +112,17 @@ func (p *Playback) Close() error {
 func (p *Playback) Tx(w, r []byte, pull onewire.Pullup) error {
 	p.Lock()
 	defer p.Unlock()
-	if len(p.Ops) == 0 {
-		return errors.New("onewiretest: unexpected Tx()")
+	if len(p.Ops) <= p.Count {
+		return errorf(p.DontPanic, "onewiretest: unexpected Tx() (count #%d) W:%#v  R:%#v", p.Count, w, r)
 	}
-	if !bytes.Equal(p.Ops[0].Write, w) {
-		return fmt.Errorf("onewiretest: unexpected write %#v != %#v", w, p.Ops[0].Write)
+	if !bytes.Equal(p.Ops[p.Count].Write, w) {
+		return errorf(p.DontPanic, "onewiretest: unexpected write (count #%d) %#v != %#v", p.Count, w, p.Ops[p.Count].Write)
 	}
-	if len(p.Ops[0].Read) != len(r) {
-		return fmt.Errorf("onewiretest: unexpected read buffer length %d != %d", len(r), len(p.Ops[0].Read))
+	if len(p.Ops[p.Count].Read) != len(r) {
+		return errorf(p.DontPanic, "onewiretest: unexpected read buffer length (count #%d) %d != %d", p.Count, len(r), len(p.Ops[p.Count].Read))
 	}
-	if pull != p.Ops[0].Pull {
-		return fmt.Errorf("onewiretest: unexpected pullup %s != %s", pull, p.Ops[0].Pull)
+	if pull != p.Ops[p.Count].Pull {
+		return errorf(p.DontPanic, "onewiretest: unexpected pullup (count #%d) %s != %s", p.Count, pull, p.Ops[p.Count].Pull)
 	}
 	// Determine whether this starts a search and reset search state.
 	if len(w) > 0 && w[0] == 0xf0 {
@@ -125,8 +130,8 @@ func (p *Playback) Tx(w, r []byte, pull onewire.Pullup) error {
 		p.inactive = make([]bool, len(p.Devices))
 	}
 	// Concoct response.
-	copy(r, p.Ops[0].Read)
-	p.Ops = p.Ops[1:]
+	copy(r, p.Ops[p.Count].Read)
+	p.Count++
 	return nil
 }
 
@@ -146,10 +151,10 @@ func (p *Playback) Search(alarmOnly bool) ([]onewire.Address, error) {
 func (p *Playback) SearchTriplet(direction byte) (onewire.TripletResult, error) {
 	tr := onewire.TripletResult{}
 	if p.searchBit > 63 {
-		return tr, errors.New("onewiretest: search performs more than 64 triplet operations")
+		return tr, errorf(p.DontPanic, "onewiretest: search performs more than 64 triplet operations")
 	}
 	if len(p.inactive) != len(p.Devices) {
-		return tr, errors.New("onewiretest: Devices must be initialized before starting search")
+		return tr, errorf(p.DontPanic, "onewiretest: Devices must be initialized before starting search")
 	}
 	// Figure out the devices' response.
 	for i := range p.Devices {
@@ -183,6 +188,16 @@ func (p *Playback) SearchTriplet(direction byte) (onewire.TripletResult, error) 
 }
 
 //
+// errorf is the internal implementation that optionally panic.
+//
+// If dontPanic is false, it panics instead.
+func errorf(dontPanic bool, format string, a ...interface{}) error {
+	err := conntest.Errorf(format, a...)
+	if !dontPanic {
+		panic(err)
+	}
+	return err
+}
 
 var _ onewire.Bus = &Record{}
 var _ onewire.Pins = &Record{}

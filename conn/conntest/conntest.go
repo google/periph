@@ -7,13 +7,23 @@ package conntest
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"sync"
 
 	"periph.io/x/periph/conn"
 )
+
+// IsErr returns true if the error is from a conntest failure.
+func IsErr(err error) bool {
+	_, ok := err.(testErr)
+	return ok
+}
+
+// Errorf returns a new error that returns true with IsErr().
+func Errorf(format string, a ...interface{}) error {
+	return testErr{fmt.Errorf(format, a...)}
+}
 
 // RecordRaw implements conn.Conn. It sends everything written to it to W.
 type RecordRaw struct {
@@ -28,7 +38,7 @@ func (r *RecordRaw) String() string {
 // Tx implements conn.Conn.
 func (r *RecordRaw) Tx(w, read []byte) error {
 	if len(read) != 0 {
-		return errors.New("conntest: not implemented")
+		return Errorf("conntest: not implemented")
 	}
 	_, err := r.W.Write(w)
 	return err
@@ -64,7 +74,7 @@ func (r *Record) Tx(w, read []byte) error {
 	defer r.Unlock()
 	if r.Conn == nil {
 		if len(read) != 0 {
-			return errors.New("conntest: read unsupported when no bus is connected")
+			return Errorf("conntest: read unsupported when no bus is connected")
 		}
 	} else {
 		if err := r.Conn.Tx(w, read); err != nil {
@@ -93,11 +103,15 @@ func (r *Record) Duplex() conn.Duplex {
 //
 // While "replay" type of unit tests are of limited value, they still present
 // an easy way to do basic code coverage.
+//
+// Set DontPanic to true to return an error instead of panicking, which is the
+// default.
 type Playback struct {
 	sync.Mutex
-	Ops   []IO
-	D     conn.Duplex
-	Count int
+	Ops       []IO
+	D         conn.Duplex
+	Count     int
+	DontPanic bool
 }
 
 func (p *Playback) String() string {
@@ -109,7 +123,7 @@ func (p *Playback) Close() error {
 	p.Lock()
 	defer p.Unlock()
 	if len(p.Ops) != p.Count {
-		return fmt.Errorf("conntest: expected playback to be empty: I/O count %d; expected %d", p.Count, len(p.Ops))
+		return errorf(p.DontPanic, "conntest: expected playback to be empty: I/O count %d; expected %d", p.Count, len(p.Ops))
 	}
 	return nil
 }
@@ -119,13 +133,13 @@ func (p *Playback) Tx(w, r []byte) error {
 	p.Lock()
 	defer p.Unlock()
 	if len(p.Ops) <= p.Count {
-		return fmt.Errorf("conntest: unexpected Tx() (count #%d)", p.Count)
+		return errorf(p.DontPanic, "conntest: unexpected Tx() (count #%d) W:%#v  R:%#v", p.Count, w, r)
 	}
 	if !bytes.Equal(p.Ops[p.Count].Write, w) {
-		return fmt.Errorf("conntest: unexpected write (count #%d) %#v != %#v", p.Count, w, p.Ops[p.Count].Write)
+		return errorf(p.DontPanic, "conntest: unexpected write (count #%d) %#v != %#v", p.Count, w, p.Ops[p.Count].Write)
 	}
 	if len(p.Ops[p.Count].Read) != len(r) {
-		return fmt.Errorf("conntest: unexpected read buffer length (count #%d) %d != %d", p.Count, len(r), len(p.Ops[p.Count].Read))
+		return errorf(p.DontPanic, "conntest: unexpected read buffer length (count #%d) %d != %d", p.Count, len(r), len(p.Ops[p.Count].Read))
 	}
 	copy(r, p.Ops[p.Count].Read)
 	p.Count++
@@ -163,6 +177,21 @@ func (d *Discard) Duplex() conn.Duplex {
 }
 
 //
+
+// errorf is the internal implementation that optionally panic.
+//
+// If dontPanic is false, it panics instead.
+func errorf(dontPanic bool, format string, a ...interface{}) error {
+	err := Errorf(format, a...)
+	if !dontPanic {
+		panic(err)
+	}
+	return err
+}
+
+type testErr struct {
+	error
+}
 
 var _ conn.Conn = &RecordRaw{}
 var _ conn.Conn = &Record{}

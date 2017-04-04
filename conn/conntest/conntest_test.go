@@ -44,7 +44,7 @@ func TestRecord_empty(t *testing.T) {
 	}
 }
 
-func TestRecord_empty_tx(t *testing.T) {
+func TestRecord_Tx_empty(t *testing.T) {
 	r := Record{}
 	if err := r.Tx(nil, nil); err != nil {
 		t.Fatal(err)
@@ -76,7 +76,23 @@ func TestPlayback(t *testing.T) {
 	}
 }
 
-func TestPlayback_tx(t *testing.T) {
+func TestPlayback_Close_panic(t *testing.T) {
+	p := Playback{Ops: []IO{{Write: []byte{10}}}}
+	defer func() {
+		v := recover()
+		err, ok := v.(error)
+		if !ok {
+			t.Fatal("expected error")
+		}
+		if !IsErr(err) {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	}()
+	p.Close()
+	t.Fatal("shouldn't run")
+}
+
+func TestPlayback_Tx(t *testing.T) {
 	p := Playback{
 		Ops: []IO{
 			{
@@ -84,6 +100,7 @@ func TestPlayback_tx(t *testing.T) {
 				Read:  []byte{12},
 			},
 		},
+		DontPanic: true,
 	}
 	if p.Tx(nil, nil) == nil {
 		t.Fatal("missing read and write")
@@ -109,6 +126,54 @@ func TestPlayback_tx(t *testing.T) {
 	}
 }
 
+func TestPlayback_Tx_panic_count(t *testing.T) {
+	p := Playback{}
+	defer func() {
+		v := recover()
+		err, ok := v.(error)
+		if !ok {
+			t.Fatal("expected error")
+		}
+		if !IsErr(err) {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	}()
+	p.Tx([]byte{0}, nil)
+	t.Fatal("shouldn't run")
+}
+
+func TestPlayback_Tx_panic_write(t *testing.T) {
+	p := Playback{Ops: []IO{{Write: []byte{1}}}}
+	defer func() {
+		v := recover()
+		err, ok := v.(error)
+		if !ok {
+			t.Fatal("expected error")
+		}
+		if !IsErr(err) {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	}()
+	p.Tx([]byte{0}, nil)
+	t.Fatal("shouldn't run")
+}
+
+func TestPlayback_Tx_panic_read(t *testing.T) {
+	p := Playback{Ops: []IO{{Read: []byte{1}}}}
+	defer func() {
+		v := recover()
+		err, ok := v.(error)
+		if !ok {
+			t.Fatal("expected error")
+		}
+		if !IsErr(err) {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	}()
+	p.Tx(nil, []byte{0, 1})
+	t.Fatal("shouldn't run")
+}
+
 func TestRecord_Playback(t *testing.T) {
 	r := Record{
 		Conn: &Playback{
@@ -118,7 +183,8 @@ func TestRecord_Playback(t *testing.T) {
 					Read:  []byte{12},
 				},
 			},
-			D: conn.Full,
+			D:         conn.Full,
+			DontPanic: true,
 		},
 	}
 	if d := r.Duplex(); d != conn.Full {

@@ -69,7 +69,7 @@ match:
 	}
 }
 
-func TestSearch_tx_err(t *testing.T) {
+func TestSearch_Tx_err(t *testing.T) {
 	p := playback{}
 	if addrs, err := p.Search(true); len(addrs) != 0 || err == nil {
 		t.Fatal("expected Tx() error")

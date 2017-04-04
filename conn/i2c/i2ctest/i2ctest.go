@@ -7,10 +7,9 @@ package i2ctest
 
 import (
 	"bytes"
-	"errors"
-	"fmt"
 	"sync"
 
+	"periph.io/x/periph/conn/conntest"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/i2c"
 )
@@ -43,7 +42,7 @@ func (r *Record) Tx(addr uint16, w, read []byte) error {
 	defer r.Unlock()
 	if r.Bus == nil {
 		if len(read) != 0 {
-			return errors.New("i2ctest: read unsupported when no bus is connected")
+			return conntest.Errorf("i2ctest: read unsupported when no bus is connected")
 		}
 	} else {
 		if err := r.Bus.Tx(addr, w, read); err != nil {
@@ -88,11 +87,16 @@ func (r *Record) SDA() gpio.PinIO {
 //
 // While "replay" type of unit tests are of limited value, they still present
 // an easy way to do basic code coverage.
+//
+// Set DontPanic to true to return an error instead of panicking, which is the
+// default.
 type Playback struct {
 	sync.Mutex
-	Ops    []IO
-	SDAPin gpio.PinIO
-	SCLPin gpio.PinIO
+	Ops       []IO
+	Count     int
+	DontPanic bool
+	SDAPin    gpio.PinIO
+	SCLPin    gpio.PinIO
 }
 
 func (p *Playback) String() string {
@@ -105,8 +109,8 @@ func (p *Playback) String() string {
 func (p *Playback) Close() error {
 	p.Lock()
 	defer p.Unlock()
-	if len(p.Ops) != 0 {
-		return fmt.Errorf("i2ctest: expected playback to be empty:\n%#v", p.Ops)
+	if len(p.Ops) != p.Count {
+		return errorf(p.DontPanic, "i2ctest: expected playback to be empty: I/O count %d; expected %d", p.Count, len(p.Ops))
 	}
 	return nil
 }
@@ -115,20 +119,20 @@ func (p *Playback) Close() error {
 func (p *Playback) Tx(addr uint16, w, r []byte) error {
 	p.Lock()
 	defer p.Unlock()
-	if len(p.Ops) == 0 {
-		return errors.New("i2ctest: unexpected Tx()")
+	if len(p.Ops) <= p.Count {
+		return errorf(p.DontPanic, "i2ctest: unexpected Tx() (count #%d) W:%#v  R:%#v", p.Count, w, r)
 	}
-	if addr != p.Ops[0].Addr {
-		return fmt.Errorf("i2ctest: unexpected addr %d != %d", addr, p.Ops[0].Addr)
+	if addr != p.Ops[p.Count].Addr {
+		return errorf(p.DontPanic, "i2ctest: unexpected addr (count #%d) %d != %d", p.Count, addr, p.Ops[p.Count].Addr)
 	}
-	if !bytes.Equal(p.Ops[0].Write, w) {
-		return fmt.Errorf("i2ctest: unexpected write %#v != %#v", w, p.Ops[0].Write)
+	if !bytes.Equal(p.Ops[p.Count].Write, w) {
+		return errorf(p.DontPanic, "i2ctest: unexpected write (count #%d) %#v != %#v", p.Count, w, p.Ops[p.Count].Write)
 	}
-	if len(p.Ops[0].Read) != len(r) {
-		return fmt.Errorf("i2ctest: unexpected read buffer length %d != %d", len(r), len(p.Ops[0].Read))
+	if len(p.Ops[p.Count].Read) != len(r) {
+		return errorf(p.DontPanic, "i2ctest: unexpected read buffer length (count #%d) %d != %d", p.Count, len(r), len(p.Ops[p.Count].Read))
 	}
-	copy(r, p.Ops[0].Read)
-	p.Ops = p.Ops[1:]
+	copy(r, p.Ops[p.Count].Read)
+	p.Count++
 	return nil
 }
 
@@ -145,6 +149,19 @@ func (p *Playback) SCL() gpio.PinIO {
 // SDA implements i2c.Pins.
 func (p *Playback) SDA() gpio.PinIO {
 	return p.SDAPin
+}
+
+//
+
+// errorf is the internal implementation that optionally panic.
+//
+// If dontPanic is false, it panics instead.
+func errorf(dontPanic bool, format string, a ...interface{}) error {
+	err := conntest.Errorf(format, a...)
+	if !dontPanic {
+		panic(err)
+	}
+	return err
 }
 
 var _ i2c.Bus = &Record{}

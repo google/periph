@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"testing"
 
+	"periph.io/x/periph/conn/conntest"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpiotest"
 	"periph.io/x/periph/conn/onewire"
@@ -29,7 +30,7 @@ func TestRecord_empty(t *testing.T) {
 	}
 }
 
-func TestRecord_empty_tx(t *testing.T) {
+func TestRecord_Tx_empty(t *testing.T) {
 	r := Record{}
 	if err := r.Tx(nil, nil, onewire.WeakPullup); err != nil {
 		t.Fatal(err)
@@ -53,7 +54,8 @@ func TestRecord_empty_tx(t *testing.T) {
 
 func TestPlayback_empty(t *testing.T) {
 	p := Playback{
-		QPin: &gpiotest.Pin{N: "Q"},
+		QPin:      &gpiotest.Pin{N: "Q"},
+		DontPanic: true,
 	}
 	if s := p.String(); s != "playback" {
 		t.Fatal(s)
@@ -83,7 +85,8 @@ func TestPlayback(t *testing.T) {
 				Pull:  onewire.WeakPullup,
 			},
 		},
-		QPin: &gpiotest.Pin{N: "Q"},
+		QPin:      &gpiotest.Pin{N: "Q"},
+		DontPanic: true,
 	}
 	if len(p.Ops) != 1 {
 		t.Fatal(p.Ops)
@@ -93,15 +96,31 @@ func TestPlayback(t *testing.T) {
 	}
 }
 
+func TestPlayback_Close_panic(t *testing.T) {
+	p := Playback{Ops: []IO{{Write: []byte{10}}}}
+	defer func() {
+		v := recover()
+		err, ok := v.(error)
+		if !ok {
+			t.Fatal("expected error")
+		}
+		if !conntest.IsErr(err) {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	}()
+	p.Close()
+	t.Fatal("shouldn't run")
+}
+
 func TestPlayback_searchbit(t *testing.T) {
-	p := Playback{searchBit: 64}
+	p := Playback{searchBit: 64, DontPanic: true}
 	if _, err := p.SearchTriplet(0); err == nil {
 		t.Fatal("invalid search triplet")
 	}
 }
 
 func TestPlayback_inactive(t *testing.T) {
-	p := Playback{inactive: []bool{true}}
+	p := Playback{inactive: []bool{true}, DontPanic: true}
 	if _, err := p.SearchTriplet(0); err == nil {
 		t.Fatal("invalid search inactive devices")
 	}
@@ -122,7 +141,8 @@ func TestRecord_Playback(t *testing.T) {
 					Pull:  onewire.StrongPullup,
 				},
 			},
-			QPin: &gpiotest.Pin{N: "Q"},
+			QPin:      &gpiotest.Pin{N: "Q"},
+			DontPanic: true,
 		},
 	}
 	if n := r.Q().Name(); n != "Q" {
