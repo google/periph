@@ -6,11 +6,9 @@
 package uart
 
 import (
-	"errors"
-	"fmt"
 	"io"
-	"sync"
 
+	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio"
 )
 
@@ -46,11 +44,9 @@ const (
 //
 // It implements conn.Conn.
 type Conn interface {
-	fmt.Stringer
-	io.Writer
-	Tx(w, r []byte) error
+	conn.Conn
 	// Speed changes the bus speed.
-	Speed(baud int64) error
+	Speed(baud int) error
 	// Configure changes the communication parameters of the bus.
 	//
 	// There's rarely a reason to use anything else than One stop bit and 8 bits
@@ -78,98 +74,3 @@ type Pins interface {
 	// CTS returns the clear to send pin.
 	CTS() gpio.PinIO
 }
-
-// All returns all the UART buses available on this host.
-func All() map[string]Opener {
-	mu.Lock()
-	defer mu.Unlock()
-	out := make(map[string]Opener, len(byName))
-	for k, v := range byName {
-		out[k] = v
-	}
-	return out
-}
-
-// New returns an open handle to the UART bus.
-//
-// Specify busNumber -1 to get the first available bus. This is the
-// recommended value.
-func New(busNumber int) (ConnCloser, error) {
-	opener, err := find(busNumber)
-	if err != nil {
-		return nil, err
-	}
-	return opener()
-}
-
-// Opener opens an UART bus.
-type Opener func() (ConnCloser, error)
-
-// Register registers an UART bus.
-func Register(name string, busNumber int, opener Opener) error {
-	mu.Lock()
-	defer mu.Unlock()
-	if _, ok := byName[name]; ok {
-		return fmt.Errorf("uart: registering the same port %s twice", name)
-	}
-	if busNumber != -1 {
-		if _, ok := byNumber[busNumber]; ok {
-			return fmt.Errorf("uart: registering the same port #%d twice", busNumber)
-		}
-	}
-
-	byName[name] = opener
-	if busNumber != -1 {
-		byNumber[busNumber] = opener
-	}
-	return nil
-}
-
-// Unregister removes a previously registered UART bus.
-//
-// This can happen when an UART bus is exposed via an USB device and the device
-// is unplugged.
-func Unregister(name string, busNumber int) error {
-	mu.Lock()
-	defer mu.Unlock()
-	_, ok := byName[name]
-	if !ok {
-		return fmt.Errorf("uart: unknown port name %s", name)
-	}
-	if _, ok := byNumber[busNumber]; !ok {
-		return fmt.Errorf("uart: unknown port number %d", busNumber)
-	}
-
-	delete(byName, name)
-	delete(byNumber, busNumber)
-	return nil
-}
-
-//
-
-func find(busNumber int) (Opener, error) {
-	mu.Lock()
-	defer mu.Unlock()
-	if len(byNumber) == 0 {
-		return nil, errors.New("uart: no port found; did you forget to call Init()?")
-	}
-	if busNumber == -1 {
-		busNumber = int((^uint(0)) >> 1)
-		for n := range byNumber {
-			if busNumber > n {
-				busNumber = n
-			}
-		}
-	}
-	bus, ok := byNumber[busNumber]
-	if !ok {
-		return nil, fmt.Errorf("uart: no port %d found", busNumber)
-	}
-	return bus, nil
-}
-
-var (
-	mu       sync.Mutex
-	byName   = map[string]Opener{}
-	byNumber = map[int]Opener{}
-)

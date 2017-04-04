@@ -2,7 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-package spireg
+package uartreg
 
 import (
 	"errors"
@@ -14,12 +14,12 @@ import (
 	"testing"
 
 	"periph.io/x/periph/conn"
-	"periph.io/x/periph/conn/spi"
+	"periph.io/x/periph/experimental/conn/uart"
 )
 
 func ExampleAll() {
-	// Enumerate all SPI buses available and the corresponding pins.
-	fmt.Print("SPI buses available:\n")
+	// Enumerate all UART ports available and the corresponding pins.
+	fmt.Print("UART ports available:\n")
 	for _, ref := range All() {
 		fmt.Printf("- %s\n", ref.Name)
 		if ref.Number != -1 {
@@ -33,11 +33,11 @@ func ExampleAll() {
 		if err != nil {
 			fmt.Printf("  Failed to open: %v", err)
 		}
-		if p, ok := b.(spi.Pins); ok {
-			fmt.Printf("  CLK : %s", p.CLK())
-			fmt.Printf("  MOSI: %s", p.MOSI())
-			fmt.Printf("  MISO: %s", p.MISO())
-			fmt.Printf("  CS  : %s", p.CS())
+		if p, ok := b.(uart.Pins); ok {
+			fmt.Printf("  RX : %s", p.RX())
+			fmt.Printf("  TX : %s", p.TX())
+			fmt.Printf("  RTS: %s", p.RTS())
+			fmt.Printf("  CTS: %s", p.CTS())
 		}
 		if err := b.Close(); err != nil {
 			fmt.Printf("  Failed to close: %v", err)
@@ -47,13 +47,13 @@ func ExampleAll() {
 
 func ExampleOpen() {
 	// On linux, the following calls will likely open the same bus.
-	Open("/dev/spidev1.0")
-	Open("SPI1.0")
-	Open("1")
+	Open("/dev/ttyUSB0")
+	Open("UART0")
+	Open("0")
 
-	// How a command line tool may let the user choose an SPI bus, yet default to
-	// the first bus known.
-	name := flag.String("spi", "", "SPI bus to use")
+	// How a command line tool may let the user choose an UART port, yet default
+	// to the first bus known.
+	name := flag.String("uart", "", "UART port to use")
 	flag.Parse()
 	b, err := Open(*name)
 	if err != nil {
@@ -190,7 +190,7 @@ func TestUnregister(t *testing.T) {
 
 //
 
-func fakeBuser() (spi.ConnCloser, error) {
+func fakeBuser() (uart.ConnCloser, error) {
 	return &fakeBus{}, nil
 }
 
@@ -213,11 +213,11 @@ func (f *fakeBus) Duplex() conn.Duplex {
 	return conn.DuplexUnknown
 }
 
-func (f *fakeBus) Speed(maxHz int64) error {
+func (f *fakeBus) Speed(baud int) error {
 	return errors.New("not implemented")
 }
 
-func (f *fakeBus) DevParams(maxHz int64, mode spi.Mode, bits int) error {
+func (f *fakeBus) Configure(stopBit uart.Stop, parity uart.Parity, bits int) error {
 	return errors.New("not implemented")
 }
 

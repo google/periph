@@ -47,8 +47,8 @@ func ExampleOpen() {
 	Open("I2C1")
 	Open("1")
 
-	// How a command line tool may let the user choose an I²C, yet default to the
-	// first bus known.
+	// How a command line tool may let the user choose an I²C bus, yet default to
+	// the first bus known.
 	name := flag.String("i2c", "", "I²C bus to use")
 	flag.Parse()
 	b, err := Open(*name)

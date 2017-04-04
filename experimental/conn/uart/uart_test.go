@@ -4,20 +4,18 @@
 
 package uart
 
-import (
-	"fmt"
-	"testing"
-)
+import "fmt"
 
-func ExampleAll() {
-	fmt.Print("UART buses available:\n")
-	for name := range All() {
-		fmt.Printf("- %s\n", name)
-	}
-}
+func ExamplePins() {
+	//b, err := uartreg.Open("")
+	//defer b.Close()
+	var b Conn
 
-func TestInvalid(t *testing.T) {
-	if _, err := New(-1); err == nil {
-		t.Fail()
+	// Prints out the gpio pin used.
+	if p, ok := b.(Pins); ok {
+		fmt.Printf("  RX : %s", p.RX())
+		fmt.Printf("  TX : %s", p.TX())
+		fmt.Printf("  RTS: %s", p.RTS())
+		fmt.Printf("  CTS: %s", p.CTS())
 	}
 }
