@@ -17,7 +17,7 @@ func TestRecord_empty(t *testing.T) {
 	if s := r.String(); s != "record" {
 		t.Fatal(s)
 	}
-	if err := r.Speed(-100); err != nil {
+	if err := r.SetSpeed(-100); err != nil {
 		t.Fatal(err)
 	}
 	if r.Tx(1, nil, []byte{'a'}) == nil {
@@ -61,7 +61,7 @@ func TestPlayback(t *testing.T) {
 	if s := p.String(); s != "playback" {
 		t.Fatal(s)
 	}
-	if err := p.Speed(-100); err != nil {
+	if err := p.SetSpeed(-100); err != nil {
 		t.Fatal(err)
 	}
 	if err := p.Close(); err != nil {
@@ -144,7 +144,7 @@ func TestRecord_Playback(t *testing.T) {
 			SCLPin:    &gpiotest.Pin{N: "CL"},
 		},
 	}
-	if err := r.Speed(-100); err != nil {
+	if err := r.SetSpeed(-100); err != nil {
 		t.Fatal(err)
 	}
 	if n := r.SDA().Name(); n != "DA" {

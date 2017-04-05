@@ -131,7 +131,7 @@ func (f *fakeBus) Tx(addr uint16, w, r []byte) error {
 	return f.err
 }
 
-func (f *fakeBus) Speed(hz int64) error {
+func (f *fakeBus) SetSpeed(hz int64) error {
 	f.speed = hz
 	return f.err
 }

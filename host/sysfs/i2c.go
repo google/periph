@@ -126,8 +126,8 @@ func (i *I2C) Tx(addr uint16, w, r []byte) error {
 	return i.ioctl(ioctlRdwr, pp)
 }
 
-// Speed implements i2c.Bus.
-func (i *I2C) Speed(hz int64) error {
+// SetSpeed implements i2c.Bus.
+func (i *I2C) SetSpeed(hz int64) error {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 	// One has to resort to kernel driver specific value to be able to achieve

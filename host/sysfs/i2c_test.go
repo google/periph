@@ -41,7 +41,7 @@ func TestI2C_faked(t *testing.T) {
 	bus.Tx(1, []byte{0}, nil)
 	bus.Tx(1, nil, []byte{0})
 	bus.Tx(1, []byte{0}, []byte{0})
-	bus.Speed(0)
+	bus.SetSpeed(0)
 	bus.SCL()
 	bus.SDA()
 	if err := bus.Close(); err != nil {

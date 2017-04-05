@@ -50,7 +50,7 @@ type Conn interface {
 type ConnCloser interface {
 	io.Closer
 	Conn
-	// Speed sets the maximum bus speed.
+	// LimitSpeed sets the maximum bus speed.
 	//
 	// It lets an application use a device at a lower speed than the maximum
 	// speed as rated by the device driver. This is useful for example when the
@@ -59,7 +59,7 @@ type ConnCloser interface {
 	// This function can be called multiple times and resets the previous value.
 	// 0 is not a value value for maxHz. The lowest speed between the bus speed
 	// and the device speed is selected.
-	Speed(maxHz int64) error
+	LimitSpeed(maxHz int64) error
 }
 
 // Pins defines the pins that a SPI bus interconnect is using on the host.

@@ -18,7 +18,7 @@ import (
 func TestRecordRaw(t *testing.T) {
 	b := bytes.Buffer{}
 	r := NewRecordRaw(&b)
-	if err := r.Speed(-100); err != nil {
+	if err := r.LimitSpeed(-100); err != nil {
 		t.Fatal(err)
 	}
 	if err := r.DevParams(0, spi.Mode0, 0); err != nil {
@@ -34,7 +34,7 @@ func TestRecord_empty(t *testing.T) {
 	if s := r.String(); s != "record" {
 		t.Fatal(s)
 	}
-	if err := r.Speed(-100); err != nil {
+	if err := r.LimitSpeed(-100); err != nil {
 		t.Fatal(err)
 	}
 	if err := r.DevParams(0, spi.Mode0, 0); err != nil {
@@ -90,7 +90,7 @@ func TestPlayback(t *testing.T) {
 	if s := p.String(); s != "playback" {
 		t.Fatal(s)
 	}
-	if err := p.Speed(-100); err != nil {
+	if err := p.LimitSpeed(-100); err != nil {
 		t.Fatal(err)
 	}
 	if err := p.DevParams(0, spi.Mode0, 0); err != nil {
@@ -173,7 +173,7 @@ func TestRecord_Playback(t *testing.T) {
 			CSPin:   &gpiotest.Pin{N: "CS"},
 		},
 	}
-	if err := r.Speed(-100); err != nil {
+	if err := r.LimitSpeed(-100); err != nil {
 		t.Fatal(err)
 	}
 	if err := r.DevParams(0, spi.Mode0, 0); err != nil {
@@ -229,7 +229,7 @@ func TestLog_Playback(t *testing.T) {
 			CSPin:   &gpiotest.Pin{N: "CS"},
 		},
 	}
-	if err := r.Speed(-100); err != nil {
+	if err := r.LimitSpeed(-100); err != nil {
 		t.Fatal(err)
 	}
 	if err := r.DevParams(0, spi.Mode0, 0); err != nil {

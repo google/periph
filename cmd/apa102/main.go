@@ -146,7 +146,7 @@ func mainImpl() error {
 	}
 	defer bus.Close()
 	if *speed != 0 {
-		if err := bus.Speed(int64(*speed)); err != nil {
+		if err := bus.LimitSpeed(int64(*speed)); err != nil {
 			return err
 		}
 	}

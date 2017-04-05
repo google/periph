@@ -85,8 +85,8 @@ func (s *SPI) String() string {
 	return fmt.Sprintf("SPI%d.%d", s.busNumber, s.chipSelect)
 }
 
-// Speed implements spi.ConnCloser.
-func (s *SPI) Speed(maxHz int64) error {
+// LimitSpeed implements spi.ConnCloser.
+func (s *SPI) LimitSpeed(maxHz int64) error {
 	if maxHz < 1 || maxHz >= 1<<32 {
 		return fmt.Errorf("sysfs-spi: invalid speed %d", maxHz)
 	}

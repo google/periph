@@ -26,8 +26,8 @@ import (
 // object.
 type Bus interface {
 	Tx(addr uint16, w, r []byte) error
-	// Speed changes the bus speed, if supported.
-	Speed(hz int64) error
+	// SetSpeed changes the bus speed, if supported.
+	SetSpeed(hz int64) error
 }
 
 // BusCloser is an I²C bus that can be closed.

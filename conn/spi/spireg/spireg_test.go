@@ -213,7 +213,7 @@ func (f *fakeBus) Duplex() conn.Duplex {
 	return conn.DuplexUnknown
 }
 
-func (f *fakeBus) Speed(maxHz int64) error {
+func (f *fakeBus) LimitSpeed(maxHz int64) error {
 	return errors.New("not implemented")
 }
 

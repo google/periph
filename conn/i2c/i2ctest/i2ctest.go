@@ -59,10 +59,10 @@ func (r *Record) Tx(addr uint16, w, read []byte) error {
 	return nil
 }
 
-// Speed implements i2c.Bus.
-func (r *Record) Speed(hz int64) error {
+// SetSpeed implements i2c.Bus.
+func (r *Record) SetSpeed(hz int64) error {
 	if r.Bus != nil {
-		return r.Bus.Speed(hz)
+		return r.Bus.SetSpeed(hz)
 	}
 	return nil
 }
@@ -136,8 +136,8 @@ func (p *Playback) Tx(addr uint16, w, r []byte) error {
 	return nil
 }
 
-// Speed implements i2c.Bus.
-func (p *Playback) Speed(hz int64) error {
+// SetSpeed implements i2c.Bus.
+func (p *Playback) SetSpeed(hz int64) error {
 	return nil
 }
 

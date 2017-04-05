@@ -53,8 +53,8 @@ func (s *SPI) Duplex() conn.Duplex {
 	return conn.Full
 }
 
-// Speed implements spi.ConnCloser.
-func (s *SPI) Speed(maxHz int64) error {
+// LimitSpeed implements spi.ConnCloser.
+func (s *SPI) LimitSpeed(maxHz int64) error {
 	if maxHz <= 0 {
 		return errors.New("bitbang-spi: invalid maxHz")
 	}

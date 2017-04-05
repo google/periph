@@ -33,8 +33,8 @@ func (r *RecordRaw) Close() error {
 	return nil
 }
 
-// Speed is a no-op.
-func (r *RecordRaw) Speed(maxHz int64) error {
+// LimitSpeed is a no-op.
+func (r *RecordRaw) LimitSpeed(maxHz int64) error {
 	return nil
 }
 
@@ -95,10 +95,10 @@ func (r *Record) Close() error {
 	return nil
 }
 
-// Speed implements spi.ConnCloser.
-func (r *Record) Speed(maxHz int64) error {
+// LimitSpeed implements spi.ConnCloser.
+func (r *Record) LimitSpeed(maxHz int64) error {
 	if r.Conn != nil {
-		return r.Conn.Speed(maxHz)
+		return r.Conn.LimitSpeed(maxHz)
 	}
 	return nil
 }
@@ -162,8 +162,8 @@ func (p *Playback) Close() error {
 	return p.Playback.Close()
 }
 
-// Speed implements spi.ConnCloser.
-func (p *Playback) Speed(maxHz int64) error {
+// LimitSpeed implements spi.ConnCloser.
+func (p *Playback) LimitSpeed(maxHz int64) error {
 	return nil
 }
 
@@ -204,10 +204,10 @@ func (l *Log) Close() error {
 	return err
 }
 
-// Speed implements spi.ConnCloser.
-func (l *Log) Speed(maxHz int64) error {
-	err := l.Conn.Speed(maxHz)
-	log.Printf("%s.Speed(%d) = %v", l.Conn, maxHz, err)
+// LimitSpeed implements spi.ConnCloser.
+func (l *Log) LimitSpeed(maxHz int64) error {
+	err := l.Conn.LimitSpeed(maxHz)
+	log.Printf("%s.LimitSpeed(%d) = %v", l.Conn, maxHz, err)
 	return err
 }
 

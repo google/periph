@@ -116,7 +116,7 @@ func mainImpl() error {
 			printPin("CS", p.CS())
 		}
 		// Slow down bus speed in case wires are too long.
-		if err := bus.Speed(100000); err != nil {
+		if err := bus.LimitSpeed(100000); err != nil {
 			return err
 		}
 		if dev, err = bme280.NewSPI(bus, &opts); err != nil {
