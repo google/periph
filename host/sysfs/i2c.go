@@ -23,6 +23,20 @@ import (
 	"periph.io/x/periph/conn/i2c/i2creg"
 )
 
+// SetSpeedHook can be set by a driver to enable changing the I²C buses speed.
+func SetSpeedHook(h func(hz int64) error) error {
+	if h == nil {
+		return errors.New("sysfs-i2c: hook must not be nil")
+	}
+	i2cMu.Lock()
+	defer i2cMu.Unlock()
+	if setSpeed != nil {
+		return errors.New("sysfs-i2c: a speed hook was already set")
+	}
+	setSpeed = h
+	return nil
+}
+
 // I2C is an open I²C bus via sysfs.
 //
 // It can be used to communicate with multiple devices from multiple goroutines.
@@ -128,18 +142,14 @@ func (i *I2C) Tx(addr uint16, w, r []byte) error {
 
 // SetSpeed implements i2c.Bus.
 func (i *I2C) SetSpeed(hz int64) error {
-	i.mu.Lock()
-	defer i.mu.Unlock()
-	// One has to resort to kernel driver specific value to be able to achieve
-	// this.
-	//
-	// Raspberry Pi:
-	// - /sys/module/i2c_bcm2708/parameters/baudrate
-	// - /boot/config.txt; dtparam=i2c_baudrate=40000
-	//
-	// Sadly it doesn't seem like Allwinner drivers implement the same
-	// functionality:
-	// - /sys/module/i2c_sunxi/
+	if hz < 1 || hz >= 1<<32 {
+		return fmt.Errorf("sysfs-i2c: invalid speed %d", hz)
+	}
+	i2cMu.Lock()
+	defer i2cMu.Unlock()
+	if setSpeed != nil {
+		return setSpeed(hz)
+	}
 	return errors.New("sysfs-i2c: not supported")
 }
 
@@ -303,8 +313,16 @@ type i2cMsg struct {
 	buf    uintptr
 }
 
+var (
+	i2cMu    sync.Mutex
+	setSpeed func(hz int64) error
+)
+
+//
+
 // driverI2C implements periph.Driver.
 type driverI2C struct {
+	buses []string
 }
 
 func (d *driverI2C) String() string {
@@ -334,6 +352,7 @@ func (d *driverI2C) Init() (bool, error) {
 			continue
 		}
 		name := fmt.Sprintf("/dev/i2c-%d", bus)
+		d.buses = append(d.buses, name)
 		aliases := []string{fmt.Sprintf("I2C%d", bus)}
 		if err := i2creg.Register(name, aliases, bus, openerI2C(bus).Open); err != nil {
 			return true, err
@@ -345,7 +364,11 @@ func (d *driverI2C) Init() (bool, error) {
 type openerI2C int
 
 func (o openerI2C) Open() (i2c.BusCloser, error) {
-	return NewI2C(int(o))
+	b, err := NewI2C(int(o))
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
 }
 
 func init() {

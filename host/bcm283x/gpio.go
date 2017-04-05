@@ -661,7 +661,18 @@ func (d *driverGPIO) Init() (bool, error) {
 			}
 		}
 	}
-	return true, nil
+	return true, sysfs.SetSpeedHook(setSpeed)
+}
+
+func setSpeed(hz int64) error {
+	b := []byte(strconv.FormatInt(hz, 10))
+	f, err := os.OpenFile("/sys/module/i2c_bcm2708/parameters/baudrate", os.O_WRONLY, 0666)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	_, err = f.Write(b)
+	return err
 }
 
 func init() {

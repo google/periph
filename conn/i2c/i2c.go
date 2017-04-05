@@ -27,6 +27,9 @@ import (
 type Bus interface {
 	Tx(addr uint16, w, r []byte) error
 	// SetSpeed changes the bus speed, if supported.
+	//
+	// On linux due to the way the I²C sysfs driver is exposed in userland,
+	// calling this function will likely affect *all* I²C buses on the host.
 	SetSpeed(hz int64) error
 }
 
