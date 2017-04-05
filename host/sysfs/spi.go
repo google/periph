@@ -42,7 +42,8 @@ func NewSPI(busNumber, chipSelect int) (*SPI, error) {
 // SPI is an open SPI bus.
 type SPI struct {
 	// Immutable
-	f          *os.File
+	frwc       io.ReadWriteCloser
+	fd         uintptr
 	busNumber  int
 	chipSelect int
 
@@ -68,7 +69,7 @@ func newSPI(busNumber, chipSelect int) (*SPI, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &SPI{f: f, busNumber: busNumber, chipSelect: chipSelect}, nil
+	return &SPI{frwc: f, fd: f.Fd(), busNumber: busNumber, chipSelect: chipSelect}, nil
 }
 
 // Close closes the handle to the SPI driver. It is not a requirement to close
@@ -76,9 +77,7 @@ func newSPI(busNumber, chipSelect int) (*SPI, error) {
 func (s *SPI) Close() error {
 	s.Lock()
 	defer s.Unlock()
-	err := s.f.Close()
-	s.f = nil
-	return err
+	return s.frwc.Close()
 }
 
 func (s *SPI) String() string {
@@ -132,7 +131,7 @@ func (s *SPI) Read(b []byte) (int, error) {
 	if !s.initialized {
 		return 0, errors.New("sysfs-spi: DevParams wasn't called")
 	}
-	return s.f.Read(b)
+	return s.frwc.Read(b)
 }
 
 // Write implements io.Writer.
@@ -142,7 +141,7 @@ func (s *SPI) Write(b []byte) (int, error) {
 	if !s.initialized {
 		return 0, errors.New("sysfs-spi: DevParams wasn't called")
 	}
-	return s.f.Write(b)
+	return s.frwc.Write(b)
 }
 
 // Tx sends and receives data simultaneously.
@@ -253,7 +252,7 @@ func (s *SPI) setFlag(op uint, arg uint64) error {
 }
 
 func (s *SPI) ioctl(op uint, arg unsafe.Pointer) error {
-	if err := ioctl(s.f.Fd(), op, uintptr(arg)); err != nil {
+	if err := ioctl(s.fd, op, uintptr(arg)); err != nil {
 		return fmt.Errorf("sysfs-spi: ioctl: %v", err)
 	}
 	return nil

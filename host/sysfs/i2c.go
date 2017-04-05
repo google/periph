@@ -7,6 +7,7 @@ package sysfs
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -26,7 +27,8 @@ import (
 //
 // It can be used to communicate with multiple devices from multiple goroutines.
 type I2C struct {
-	f         *os.File
+	fd        uintptr
+	fc        io.Closer
 	busNumber int
 
 	mu  sync.Mutex // In theory the kernel probably has an internal lock but not taking any chance.
@@ -63,7 +65,7 @@ func newI2C(busNumber int) (*I2C, error) {
 		// TODO(maruel): This is a debianism.
 		return nil, fmt.Errorf("sysfs-i2c: are you member of group 'plugdev'? %v", err)
 	}
-	i := &I2C{f: f, busNumber: busNumber}
+	i := &I2C{fd: f.Fd(), fc: f, busNumber: busNumber}
 
 	// TODO(maruel): Changing the speed is currently doing this for all devices.
 	// https://github.com/raspberrypi/linux/issues/215
@@ -81,9 +83,7 @@ func newI2C(busNumber int) (*I2C, error) {
 func (i *I2C) Close() error {
 	i.mu.Lock()
 	defer i.mu.Unlock()
-	err := i.f.Close()
-	i.f = nil
-	return err
+	return i.fc.Close()
 }
 
 func (i *I2C) String() string {
@@ -93,7 +93,7 @@ func (i *I2C) String() string {
 // Tx execute a transaction as a single operation unit.
 func (i *I2C) Tx(addr uint16, w, r []byte) error {
 	if addr >= 0x400 || (addr >= 0x80 && i.fn&func10BitAddr == 0) {
-		return nil
+		return errors.New("sysfs-i2c: invalid address")
 	}
 	if len(w) == 0 && len(r) == 0 {
 		return nil
@@ -164,7 +164,7 @@ func (i *I2C) SDA() gpio.PinIO {
 // Private details.
 
 func (i *I2C) ioctl(op uint, arg uintptr) error {
-	if err := ioctl(i.f.Fd(), op, arg); err != nil {
+	if err := ioctl(i.fd, op, arg); err != nil {
 		return fmt.Errorf("sysfs-i2c: ioctl: %v", err)
 	}
 	return nil
