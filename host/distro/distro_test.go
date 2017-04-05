@@ -41,6 +41,8 @@ VERSION="8 (jessie)"
 ID_LIKE=debian
 HOME_URL="http://www.raspbian.org/"
 # foo : bar
+# foo = bar
+FOO="aa""
 `
 	expected := map[string]string{
 		"HOME_URL":    "http://www.raspbian.org/",
@@ -65,5 +67,38 @@ func TestSplitNull(t *testing.T) {
 	expected = []string{}
 	if actual := splitNull(data); !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("%# v != %# v", expected, actual)
+	}
+}
+
+func TestIsArmbian(t *testing.T) {
+	// At least ensure it doesn't crash.
+	IsArmbian()
+}
+
+func TestIsDebian(t *testing.T) {
+	// At least ensure it doesn't crash.
+	IsDebian()
+}
+
+func TestIsRaspbian(t *testing.T) {
+	// At least ensure it doesn't crash.
+	IsRaspbian()
+}
+
+func TestIsUbuntu(t *testing.T) {
+	// At least ensure it doesn't crash.
+	IsUbuntu()
+}
+
+func TestCPUInfo(t *testing.T) {
+	c := CPUInfo()
+	if isLinux {
+		if len(c) == 0 {
+			t.Fatal("CPUInfo() is not implemented on non-linux")
+		}
+	} else {
+		if len(c) != 0 {
+			t.Fatal("CPUInfo() is not implemented on non-linux")
+		}
 	}
 }

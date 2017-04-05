@@ -169,10 +169,9 @@ func makeCPUInfoLinux() map[string]string {
 	mu.Lock()
 	defer mu.Unlock()
 	if cpuInfo == nil {
+		cpuInfo = map[string]string{}
 		if bytes, err := ioutil.ReadFile("/proc/cpuinfo"); err == nil {
 			cpuInfo = splitSemiColon(string(bytes))
-		} else {
-			cpuInfo = map[string]string{}
 		}
 	}
 	return cpuInfo
@@ -184,10 +183,9 @@ func makeOSReleaseLinux() map[string]string {
 	if osRelease == nil {
 		// This file may not exist on older distros. Send a PR if you want to have
 		// a specific fallback.
+		osRelease = map[string]string{}
 		if bytes, err := ioutil.ReadFile("/etc/os-release"); err == nil {
 			osRelease = splitStrict(string(bytes))
-		} else {
-			osRelease = map[string]string{}
 		}
 	}
 	return osRelease

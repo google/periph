@@ -5,6 +5,7 @@
 package pmem
 
 import (
+	"bytes"
 	"log"
 	"reflect"
 	"testing"
@@ -37,6 +38,9 @@ func TestSlice(t *testing.T) {
 	}
 	if r[0] != u32[0] {
 		t.Fatalf("%x != %x", r[0], u32[0])
+	}
+	if !bytes.Equal([]byte(s), s.Bytes()) {
+		t.Fatal("Slice.Bytes() is the slice")
 	}
 }
 
