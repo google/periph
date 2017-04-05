@@ -5,20 +5,28 @@
 package ds18b20
 
 import (
-	"os"
 	"testing"
 	"time"
 
 	"periph.io/x/periph/conn/onewire"
 	"periph.io/x/periph/conn/onewire/onewiretest"
 	"periph.io/x/periph/devices"
-	"periph.io/x/periph/host"
 )
 
-// TestMain lets periph load all drivers and then runs the tests.
-func TestMain(m *testing.M) {
-	host.Init()
-	os.Exit(m.Run())
+func TestNew_resolution(t *testing.T) {
+	bus := &onewiretest.Playback{}
+	var addr onewire.Address = 0x740000070e41ac28
+	if d, err := New(bus, addr, 1); d != nil || err == nil {
+		t.Fatal("invalid resolution")
+	}
+}
+
+func TestNew_read(t *testing.T) {
+	bus := &onewiretest.Playback{DontPanic: true}
+	var addr onewire.Address = 0x740000070e41ac28
+	if d, err := New(bus, addr, 9); d != nil || err == nil {
+		t.Fatal("invalid resolution")
+	}
 }
 
 // TestTemperature tests a temperature conversion on a ds18b20 using
@@ -27,20 +35,26 @@ func TestTemperature(t *testing.T) {
 	// set-up playback using the recording output.
 	ops := []onewiretest.IO{
 		// Match ROM + Read Scratchpad (init)
-		{Write: []uint8{0x55, 0x28, 0xac, 0x41, 0xe, 0x7, 0x0, 0x0, 0x74, 0xbe},
-			Read: []uint8{0xe0, 0x1, 0x0, 0x0, 0x3f, 0xff, 0x10, 0x10, 0x3f}, Pull: false},
+		{
+			Write: []uint8{0x55, 0x28, 0xac, 0x41, 0xe, 0x7, 0x0, 0x0, 0x74, 0xbe},
+			Read:  []uint8{0xe0, 0x1, 0x0, 0x0, 0x3f, 0xff, 0x10, 0x10, 0x3f},
+		},
 		// Match ROM + Convert
-		{Write: []uint8{0x55, 0x28, 0xac, 0x41, 0xe, 0x7, 0x0, 0x0, 0x74, 0x44},
-			Read: []uint8(nil), Pull: true},
+		{
+			Write: []uint8{0x55, 0x28, 0xac, 0x41, 0xe, 0x7, 0x0, 0x0, 0x74, 0x44},
+			Pull:  true,
+		},
 		// Match ROM + Read Scratchpad (read temp)
-		{Write: []uint8{0x55, 0x28, 0xac, 0x41, 0xe, 0x7, 0x0, 0x0, 0x74, 0xbe},
-			Read: []uint8{0xe0, 0x1, 0x0, 0x0, 0x3f, 0xff, 0x10, 0x10, 0x3f}, Pull: false},
+		{
+			Write: []uint8{0x55, 0x28, 0xac, 0x41, 0xe, 0x7, 0x0, 0x0, 0x74, 0xbe},
+			Read:  []uint8{0xe0, 0x1, 0x0, 0x0, 0x3f, 0xff, 0x10, 0x10, 0x3f},
+		},
 	}
 	var addr onewire.Address = 0x740000070e41ac28
 	var temp devices.Celsius = 30000 // 30.000°C
-	owBus := &onewiretest.Playback{Ops: ops}
+	bus := onewiretest.Playback{Ops: ops}
 	// Init the ds18b20.
-	ds18b20, err := New(owBus, addr, 10)
+	ds18b20, err := New(&bus, addr, 10)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,6 +73,9 @@ func TestTemperature(t *testing.T) {
 	if dt < 188*time.Millisecond {
 		t.Errorf("expected conversion to take >187ms, took %s", dt)
 	}
+	if err := bus.Close(); err != nil {
+		t.Fatal(err)
+	}
 }
 
 // TestConvertAll tests a temperature conversion on all ds18b20 using
@@ -69,15 +86,32 @@ func TestConvertAll(t *testing.T) {
 		// Skip ROM + Convert
 		{Write: []uint8{0xcc, 0x44}, Read: []uint8(nil), Pull: true},
 	}
-	owBus := &onewiretest.Playback{Ops: ops}
+	bus := onewiretest.Playback{Ops: ops}
 	// Perform the conversion
 	t0 := time.Now()
-	if err := ConvertAll(owBus, 9); err != nil {
+	if err := ConvertAll(&bus, 9); err != nil {
 		t.Fatal(err)
 	}
 	// Expect it to take >93ms
 	if dt := time.Since(t0); dt < 94*time.Millisecond {
 		t.Errorf("expected conversion to take >93ms, took %s", dt)
+	}
+	if err := bus.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestConvertAll_resolution(t *testing.T) {
+	bus := &onewiretest.Playback{}
+	if err := ConvertAll(bus, 1); err == nil {
+		t.Fatal("invalid resolution")
+	}
+}
+
+func TestConvertAll_fail(t *testing.T) {
+	bus := &onewiretest.Playback{DontPanic: true}
+	if err := ConvertAll(bus, 9); err == nil {
+		t.Fatal("invalid resolution")
 	}
 }
 

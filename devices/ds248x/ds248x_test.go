@@ -6,56 +6,79 @@ package ds248x
 
 import (
 	"fmt"
+	"log"
 	"testing"
 
 	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/conn/i2c/i2ctest"
 )
 
-// TestInit tests the initialization of a ds2483 using a recording.
-func TestInit(t *testing.T) {
-	var ops = []i2ctest.IO{
-		{Addr: 0x18, Write: []byte{0xf0}, Read: []byte(nil)},
-		{Addr: 0x18, Write: []byte{0xe1, 0xf0}, Read: []byte{0x18}},
-		{Addr: 0x18, Write: []byte{0xd2, 0xe1}, Read: []byte{0x1}},
-		{Addr: 0x18, Write: []byte{0xe1, 0xb4}, Read: []byte(nil)},
-		{Addr: 0x18, Write: []byte{0xc3, 0x6, 0x26, 0x46, 0x66, 0x86}, Read: []byte(nil)},
-		{Addr: 0x18, Write: []byte{0x78, 0x0}, Read: []byte(nil)},
-		{Addr: 0x18, Write: []byte{}, Read: []byte{0xe8}},
-	}
-
-	bus := &i2ctest.Playback{Ops: ops}
-	if _, err := New(bus, nil); err != nil {
-		t.Fatal(err)
-	}
-}
-
 func Example() {
 	// Open the I²C bus to which the DS248x is connected.
 	i2cBus, err := i2creg.Open("")
 	if err != nil {
-		fmt.Println(err)
-		return
+		log.Fatal(err)
 	}
 	defer i2cBus.Close()
 
 	// Open the DS248x to get a 1-wire bus.
 	owBus, err := New(i2cBus, nil)
 	if err != nil {
-		fmt.Println(err)
-		return
+		log.Fatal(err)
 	}
 	// Search devices on the bus
 	devices, err := owBus.Search(false)
 	if err != nil {
-		fmt.Println(err)
-		return
+		log.Fatal(err)
 	}
 	fmt.Printf("Found %d 1-wire devices: ", len(devices))
 	for _, d := range devices {
 		fmt.Printf(" %#16x", uint64(d))
 	}
-	fmt.Print('\n')
+	fmt.Print("\n")
+}
+
+//
+
+func TestNew(t *testing.T) {
+	bus := i2ctest.Playback{
+		Ops: []i2ctest.IO{
+			{Addr: 0x18, Write: []byte{0xf0}},
+			{Addr: 0x18, Write: []byte{0xe1, 0xf0}, Read: []byte{0x18}},
+			{Addr: 0x18, Write: []byte{0xd2, 0xe1}, Read: []byte{0x1}},
+			{Addr: 0x18, Write: []byte{0xe1, 0xb4}},
+			{Addr: 0x18, Write: []byte{0xc3, 0x6, 0x26, 0x46, 0x66, 0x86}},
+		},
+	}
+	d, err := New(&bus, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s := d.String(); s != "ds248x" {
+		t.Fatal(s)
+	}
+	if err := bus.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestNew_opts(t *testing.T) {
+	bus := i2ctest.Playback{
+		Ops: []i2ctest.IO{
+			{Addr: 0x18, Write: []byte{0xf0}},
+			{Addr: 0x18, Write: []byte{0xe1, 0xf0}, Read: []byte{0x18}},
+			{Addr: 0x18, Write: []byte{0xd2, 0xe1}, Read: []byte{0x1}},
+			{Addr: 0x18, Write: []byte{0xe1, 0xb4}},
+			{Addr: 0x18, Write: []byte{0xc3, 0x6, 0x26, 0x46, 0x66, 0x86}},
+		},
+	}
+	opts := &Opts{Addr: 0x18}
+	if _, err := New(&bus, opts); err != nil {
+		t.Fatal(err)
+	}
+	if err := bus.Close(); err != nil {
+		t.Fatal(err)
+	}
 }
 
 /* Commented out in order not to import periph/host, need to move to smoke test

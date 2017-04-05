@@ -13,15 +13,18 @@ import (
 	"periph.io/x/periph/conn/onewire"
 )
 
-// Dev is a handle to a ds248x device and it implements the onewire.Bus interface.
+// Dev is a handle to a ds248x device and it implements the onewire.Bus
+// interface.
 //
-// Dev implements a persistent error model: if a fatal error is encountered it places
-// itself into an error state and immediately returns the last error on all subsequent
-// calls. A fresh Dev, which reinitializes the hardware, must be created to proceed.
+// Dev implements a persistent error model: if a fatal error is encountered it
+// places itself into an error state and immediately returns the last error on
+// all subsequent calls. A fresh Dev, which reinitializes the hardware, must be
+// created to proceed.
 //
-// A persistent error is only set when there is a problem with the ds248x device itself
-// (or the I²C bus used to access it). Errors on the 1-wire bus do not cause persistent
-// errors and implement the onewire.BusError interface to indicate this fact.
+// A persistent error is only set when there is a problem with the ds248x
+// device itself (or the I²C bus used to access it). Errors on the 1-wire bus
+// do not cause persistent errors and implement the onewire.BusError interface
+// to indicate this fact.
 type Dev struct {
 	sync.Mutex               // lock for the bus while a transaction is in progress
 	i2c        conn.Conn     // i2c device handle for the ds248x
@@ -32,24 +35,16 @@ type Dev struct {
 	err        error         // persistent error, device will no longer operate
 }
 
-// String
 func (d *Dev) String() string {
-	return fmt.Sprintf("ds248x")
+	return "ds248x"
 }
 
-// Close drops the I²C bus handle and sets a persistent error.
-func (d *Dev) Close() error {
-	d.i2c = nil
-	d.err = fmt.Errorf("ds248x: invalid operation on closed bus")
-	return nil
-}
-
-// Tx performs a bus transaction, sending and receiving bytes, and
-// ending by pulling the bus high either weakly or strongly depending
-// on the value of power.
+// Tx performs a bus transaction, sending and receiving bytes, and ending by
+// pulling the bus high either weakly or strongly depending on the value of
+// power.
 //
-// A strong pull-up is typically required to power temperature conversion
-// or EEPROM writes.
+// A strong pull-up is typically required to power temperature conversion or
+// EEPROM writes.
 func (d *Dev) Tx(w, r []byte, power onewire.Pullup) error {
 	d.Lock()
 	defer d.Unlock()
@@ -85,9 +80,9 @@ func (d *Dev) Tx(w, r []byte, power onewire.Pullup) error {
 	return d.err
 }
 
-// Search performs a "search" cycle on the 1-wire bus and returns the
-// addresses of all devices on the bus if alarmOnly is false and of all
-// devices in alarm state if alarmOnly is true.
+// Search performs a "search" cycle on the 1-wire bus and returns the addresses
+// of all devices on the bus if alarmOnly is false and of all devices in alarm
+// state if alarmOnly is true.
 //
 // If an error occurs during the search the already-discovered devices are
 // returned with the error.
@@ -95,8 +90,8 @@ func (d *Dev) Search(alarmOnly bool) ([]onewire.Address, error) {
 	return onewire.Search(d, alarmOnly)
 }
 
-// SearchTriplet performs a single bit search triplet command on the bus,
-// waits for it to complete and returs the outcome.
+// SearchTriplet performs a single bit search triplet command on the bus, waits
+// for it to complete and returs the outcome.
 //
 // SearchTriplet should not be used directly, use Search instead.
 func (d *Dev) SearchTriplet(direction byte) (onewire.TripletResult, error) {
@@ -136,7 +131,8 @@ func (d *Dev) reset() (bool, error) {
 	return (status & 2) != 0, nil
 }
 
-// i2cTx is a helper function to call i2c.Tx and handle the error by persisting it.
+// i2cTx is a helper function to call i2c.Tx and handle the error by persisting
+// it.
 func (d *Dev) i2cTx(w, r []byte) {
 	if d.err != nil {
 		return
@@ -147,11 +143,11 @@ func (d *Dev) i2cTx(w, r []byte) {
 // waitIdle waits for the one wire bus to be idle.
 //
 // It initially sleeps for the delay and then polls the status register and
-// sleeps for a tenth of the delay each time the status register indicates
-// that the bus is still busy. The last read status byte is returned.
+// sleeps for a tenth of the delay each time the status register indicates that
+// the bus is still busy. The last read status byte is returned.
 //
-// An overall timeout of 3ms is applied to the whole procedure. waitIdle
-// uses the persistent error model and returns 0 if there is an error.
+// An overall timeout of 3ms is applied to the whole procedure. waitIdle uses
+// the persistent error model and returns 0 if there is an error.
 func (d *Dev) waitIdle(delay time.Duration) byte {
 	if d.err != nil {
 		return 0

@@ -60,7 +60,6 @@ func (s *SmokeTest) Run(args []string) error {
 	if err != nil {
 		return fmt.Errorf("cannot open DS248x: %v", err)
 	}
-	defer onewireBus.Close()
 
 	// Init rand.
 	if *seed == 0 {
