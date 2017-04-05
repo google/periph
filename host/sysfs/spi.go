@@ -49,8 +49,9 @@ type SPI struct {
 
 	sync.Mutex
 	initialized bool
-	maxHzBus    int64
-	maxHzDev    int64
+	maxHzBus    uint32
+	maxHzDev    uint32
+	bitsPerWord uint8
 	clk         gpio.PinOut
 	mosi        gpio.PinOut
 	miso        gpio.PinIn
@@ -86,15 +87,12 @@ func (s *SPI) String() string {
 
 // Speed implements spi.ConnCloser.
 func (s *SPI) Speed(maxHz int64) error {
-	if maxHz < 1 {
+	if maxHz < 1 || maxHz >= 1<<32 {
 		return fmt.Errorf("sysfs-spi: invalid speed %d", maxHz)
 	}
 	s.Lock()
 	defer s.Unlock()
-	s.maxHzBus = maxHz
-	if s.maxHzDev == 0 || s.maxHzBus < s.maxHzDev {
-		return s.setFlag(spiIOCMaxSpeedHz, uint64(maxHz))
-	}
+	s.maxHzBus = uint32(maxHz)
 	return nil
 }
 
@@ -102,10 +100,10 @@ func (s *SPI) Speed(maxHz int64) error {
 //
 // It must be called before any I/O.
 func (s *SPI) DevParams(maxHz int64, mode spi.Mode, bits int) error {
-	if bits < 1 || bits > 256 {
+	if bits < 1 || bits >= 256 {
 		return fmt.Errorf("sysfs-spi: invalid bits %d", bits)
 	}
-	if maxHz < 0 {
+	if maxHz < 0 || maxHz >= 1<<32 {
 		return fmt.Errorf("sysfs-spi: invalid speed %d", maxHz)
 	}
 	s.Lock()
@@ -114,62 +112,50 @@ func (s *SPI) DevParams(maxHz int64, mode spi.Mode, bits int) error {
 		return errors.New("sysfs-spi: DevParams() can only be called exactly once")
 	}
 	s.initialized = true
-	s.maxHzDev = maxHz
-	if s.maxHzDev != 0 && (s.maxHzBus == 0 || s.maxHzDev < s.maxHzBus) {
-		return s.setFlag(spiIOCMaxSpeedHz, uint64(maxHz))
-	}
-	if err := s.setFlag(spiIOCMode, uint64(mode)); err != nil {
-		return err
-	}
-	return s.setFlag(spiIOCBitsPerWord, uint64(bits))
+	s.maxHzDev = uint32(maxHz)
+	s.bitsPerWord = uint8(bits)
+	// Only mode needs to be set via an IOCTL, others can be specified in the
+	// spiIOCTransfer packet, which saves a kernel call.
+	return s.setFlag(spiIOCMode, uint64(mode))
 }
 
 // Read implements io.Reader.
 func (s *SPI) Read(b []byte) (int, error) {
-	s.Lock()
-	defer s.Unlock()
-	if !s.initialized {
-		return 0, errors.New("sysfs-spi: DevParams wasn't called")
+	if len(b) == 0 {
+		return 0, errors.New("Read() with empty buffer")
 	}
-	return s.frwc.Read(b)
+	return s.txInternal(nil, b)
 }
 
 // Write implements io.Writer.
 func (s *SPI) Write(b []byte) (int, error) {
-	s.Lock()
-	defer s.Unlock()
-	if !s.initialized {
-		return 0, errors.New("sysfs-spi: DevParams wasn't called")
+	if len(b) == 0 {
+		return 0, errors.New("Write() with empty buffer")
 	}
-	return s.frwc.Write(b)
+	return s.txInternal(b, nil)
 }
 
 // Tx sends and receives data simultaneously.
+//
+// It is OK if both w and r point to the same underlying byte slice.
+//
+// Tx() implements transparent support for large I/O operations of more than
+// 4096 bytes. The main problem is that if the same bus with another CS line is
+// opened, it is possible that a transaction on the other device happens in
+// between. So do not use multiple devices with separate CS lines on the same
+// bus when doing I/O operations of more than 4096 bytes.
 func (s *SPI) Tx(w, r []byte) error {
 	if len(w) == 0 {
 		if len(r) == 0 {
 			return errors.New("Tx with empty buffers")
 		}
-		_, err := s.Read(r)
-		return err
-	} else if len(r) == 0 {
-		_, err := s.Write(w)
-		return err
-	} else if len(w) != len(r) {
-		return errors.New("Tx with zero or non-equal length w&r slices")
+	} else {
+		if len(r) != 0 && len(w) != len(r) {
+			return errors.New("Tx with zero or non-equal length w&r slices")
+		}
 	}
-	p := spiIOCTransfer{
-		tx:          uint64(uintptr(unsafe.Pointer(&w[0]))),
-		rx:          uint64(uintptr(unsafe.Pointer(&r[0]))),
-		length:      uint32(len(w)),
-		bitsPerWord: 8, // s.bitsPerWord?
-	}
-	s.Lock()
-	defer s.Unlock()
-	if !s.initialized {
-		return errors.New("sysfs-spi: DevParams wasn't called")
-	}
-	return s.ioctl(spiIOCTx|0x40000000, unsafe.Pointer(&p))
+	_, err := s.txInternal(w, r)
+	return err
 }
 
 // Duplex implements spi.Conn.
@@ -204,36 +190,54 @@ func (s *SPI) CS() gpio.PinOut {
 
 // Private details.
 
-const (
-	cSHigh    spi.Mode = 0x4
-	lSBFirst  spi.Mode = 0x8
-	threeWire spi.Mode = 0x10
-	loop      spi.Mode = 0x20
-	noCS      spi.Mode = 0x40
-)
+func (s *SPI) txInternal(w, r []byte) (int, error) {
+	// TODO(maruel): The driver supports a series of half-duplex transfer, which
+	// is needed in 3-wire SPI mode and when using 9 bits command but 8 bits data.
+	s.Lock()
+	defer s.Unlock()
+	if !s.initialized {
+		return 0, errors.New("sysfs-spi: DevParams wasn't called")
+	}
+	// Most spidev drivers limit each buffer to one page size (4096 bytes) so
+	// chunk the I/O into multiple pages to increase compatibility, keeping CS
+	// low in between (only the clock is paused).
+	p := spiIOCTransfer{
+		speedHz:     s.maxHzBus,
+		bitsPerWord: s.bitsPerWord,
+	}
+	if s.maxHzDev != 0 && (s.maxHzBus == 0 || s.maxHzDev < s.maxHzBus) {
+		p.speedHz = s.maxHzDev
+	}
 
-// spidev driver IOCTL control codes.
-//
-// Constants and structure definition can be found at
-// /usr/include/linux/spi/spidev.h.
-const (
-	spiIOCMode        = 0x16B01
-	spiIOCBitsPerWord = 0x16B03
-	spiIOCMaxSpeedHz  = 0x46B04
-	spiIOCTx          = 0x206B00
-)
-
-type spiIOCTransfer struct {
-	tx          uint64 // Pointer to byte slice
-	rx          uint64 // Pointer to byte slice
-	length      uint32
-	speedHz     uint32
-	delayUsecs  uint16
-	bitsPerWord uint8
-	csChange    uint8
-	txNBits     uint8
-	rxNBits     uint8
-	pad         uint16
+	n := 0
+	for len(w) != 0 && len(r) != 0 {
+		p.csChange = 1
+		if l := len(w); l != 0 {
+			if l > 4096 {
+				// Limit kernel calls to one page and keep CS low.
+				l = 4096
+				p.csChange = 0
+			}
+			p.tx = uint64(uintptr(unsafe.Pointer(&w[0])))
+			p.length = uint32(l)
+			w = w[l:]
+		}
+		if l := len(r); l != 0 {
+			if l > 4096 {
+				// Limit kernel calls to one page and keep CS low.
+				l = 4096
+				p.csChange = 0
+			}
+			p.rx = uint64(uintptr(unsafe.Pointer(&r[0])))
+			p.length = uint32(l)
+			r = r[l:]
+		}
+		if err := s.ioctl(spiIOCTx(1), unsafe.Pointer(&p)); err != nil {
+			return n, err
+		}
+		n += int(p.length)
+	}
+	return n, nil
 }
 
 func (s *SPI) setFlag(op uint, arg uint64) error {
@@ -289,6 +293,76 @@ func (s *SPI) initPins() {
 		s.Unlock()
 	}
 }
+
+//
+
+const (
+	cSHigh    spi.Mode = 0x4  // CS active high instead of default low (not recommended)
+	lSBFirst  spi.Mode = 0x8  // Use little endian encoding for each word
+	threeWire spi.Mode = 0x10 // half-duplex; MOSI and MISO are shared
+	loop      spi.Mode = 0x20 // loopback mode
+	noCS      spi.Mode = 0x40 // do not assert CS
+	ready     spi.Mode = 0x80 // slave pulls low to pause
+	// The driver optionally support dual and quad data lines.
+)
+
+// spidev driver IOCTL control codes.
+//
+// Constants and structure definition can be found at
+// /usr/include/linux/spi/spidev.h.
+const (
+	spiIOCMode        = 0x16B01 // SPI_IOC_WR_MODE (8 bits)
+	spiIOLSBFirst     = 0x16B02 // SPI_IOC_WR_LSB_FIRST
+	spiIOCBitsPerWord = 0x16B03 // SPI_IOC_WR_BITS_PER_WORD
+	spiIOCMaxSpeedHz  = 0x46B04 // SPI_IOC_WR_MAX_SPEED_HZ
+	spiIOCMode32      = 0x46B05 // SPI_IOC_WR_MODE32 (32 bits)
+)
+
+// spiIOCTx(l) calculates the equivalent of SPI_IOC_MESSAGE(l) to execute a
+// transaction.
+//
+// The IOCTL for TX was deduced from this C code:
+//
+//   #include "linux/spi/spidev.h"
+//   #include "sys/ioctl.h"
+//   #include <stdio.h>
+//   int main() {
+//     for (int i = 1; i < 10; i++) {
+//       printf("len(%d) = 0x%08X\n", i, SPI_IOC_MESSAGE(i));
+//     }
+//     return 0;
+//   }
+//
+//   $ gcc a.cc && ./a.out
+//   len(1) = 0x40206B00
+//   len(2) = 0x40406B00
+//   len(3) = 0x40606B00
+//   len(4) = 0x40806B00
+//   len(5) = 0x40A06B00
+//   len(6) = 0x40C06B00
+//   len(7) = 0x40E06B00
+//   len(8) = 0x41006B00
+//   len(9) = 0x41206B00
+func spiIOCTx(l int) uint {
+	op := uint(0x40006B00)
+	return op | uint(0x200000)*uint(l)
+}
+
+// spiIOCTransfer is spi_ioc_transfer in linux/spi/spidev.h.
+type spiIOCTransfer struct {
+	tx          uint64 // Pointer to byte slice
+	rx          uint64 // Pointer to byte slice
+	length      uint32 // buffer length of tx and rx in bytes
+	speedHz     uint32 // temporarily override the speed
+	delayUsecs  uint16 // µs to sleep before selecting the device before the next transfer
+	bitsPerWord uint8  // temporarily override the number of bytes per word
+	csChange    uint8  // true to deassert CS before next transfer
+	txNBits     uint8
+	rxNBits     uint8
+	pad         uint16
+}
+
+//
 
 // driverSPI implements periph.Driver.
 type driverSPI struct {
