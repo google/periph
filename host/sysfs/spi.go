@@ -210,7 +210,7 @@ func (s *SPI) txInternal(w, r []byte) (int, error) {
 	}
 
 	n := 0
-	for len(w) != 0 && len(r) != 0 {
+	for len(w) != 0 || len(r) != 0 {
 		p.csChange = 1
 		if l := len(w); l != 0 {
 			if l > 4096 {
