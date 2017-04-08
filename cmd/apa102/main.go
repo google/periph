@@ -115,7 +115,7 @@ func mainImpl() error {
 	numLights := flag.Int("n", 150, "number of lights on the strip")
 	intensity := flag.Int("l", 127, "light intensity [1-255]")
 	temperature := flag.Int("t", 5000, "light temperature in °Kelvin [3500-7500]")
-	speed := flag.Int("s", 0, "speed in Hz")
+	hz := flag.Int("hz", 0, "SPI bus speed")
 	color := flag.String("color", "208020", "hex encoded color to show")
 	imgName := flag.String("img", "", "image to load")
 	lineMs := flag.Int("linems", 2, "number of ms to show each line of the image")
@@ -145,8 +145,8 @@ func mainImpl() error {
 		return err
 	}
 	defer bus.Close()
-	if *speed != 0 {
-		if err := bus.LimitSpeed(int64(*speed)); err != nil {
+	if *hz != 0 {
+		if err := bus.LimitSpeed(int64(*hz)); err != nil {
 			return err
 		}
 	}

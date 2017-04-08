@@ -52,6 +52,7 @@ func mainImpl() error {
 	i2cID := flag.String("i2c", "", "I²C bus to use")
 	i2cADDR := flag.Uint("ia", 0, "I²C bus address to use")
 	spiID := flag.String("spi", "", "SPI bus to use")
+	hz := flag.Int("hz", 0, "I²C/SPI bus speed")
 	sample1x := flag.Bool("s1", false, "sample at 1x")
 	sample2x := flag.Bool("s2", false, "sample at 2x")
 	sample4x := flag.Bool("s4", false, "sample at 4x")
@@ -115,9 +116,10 @@ func mainImpl() error {
 			printPin("MISO", p.MISO())
 			printPin("CS", p.CS())
 		}
-		// Slow down bus speed in case wires are too long.
-		if err := bus.LimitSpeed(100000); err != nil {
-			return err
+		if *hz != 0 {
+			if err := bus.LimitSpeed(int64(*hz)); err != nil {
+				return err
+			}
 		}
 		if dev, err = bme280.NewSPI(bus, &opts); err != nil {
 			return err
@@ -131,6 +133,11 @@ func mainImpl() error {
 		if p, ok := bus.(i2c.Pins); ok {
 			printPin("SCL", p.SCL())
 			printPin("SDA", p.SDA())
+		}
+		if *hz != 0 {
+			if err := bus.SetSpeed(int64(*hz)); err != nil {
+				return err
+			}
 		}
 		if dev, err = bme280.NewI2C(bus, &opts); err != nil {
 			return err

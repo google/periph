@@ -138,7 +138,7 @@ func mainImpl() error {
 	i2cID := flag.String("i2c", "", "I²C bus to use")
 	spiID := flag.String("spi", "", "SPI bus to use")
 	dcName := flag.String("dc", "", "DC pin to use in 4-wire SPI mode")
-	speed := flag.Int("speed", 0, "specify SPI speed in Hz to use")
+	hz := flag.Int("hz", 0, "I²C/SPI bus speed")
 
 	h := flag.Int("h", 64, "display height")
 	w := flag.Int("w", 128, "display width")
@@ -169,8 +169,8 @@ func mainImpl() error {
 			return err
 		}
 		defer bus.Close()
-		if *speed != 0 {
-			if err := bus.LimitSpeed(int64(*speed)); err != nil {
+		if *hz != 0 {
+			if err := bus.LimitSpeed(int64(*hz)); err != nil {
 				return err
 			}
 		}
@@ -192,6 +192,11 @@ func mainImpl() error {
 			return err
 		}
 		defer bus.Close()
+		if *hz != 0 {
+			if err := bus.SetSpeed(int64(*hz)); err != nil {
+				return err
+			}
+		}
 		if p, ok := bus.(i2c.Pins); ok {
 			// TODO(maruel): Print where the pins are located.
 			log.Printf("Using pins SCL: %s  SDA: %s", p.SCL(), p.SDA())
