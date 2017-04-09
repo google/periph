@@ -302,7 +302,7 @@ func readReg(c conn.Conn, order binary.ByteOrder, reg []byte, b interface{}) err
 		return errors.New("reg: ReadRegStruct() requires a pointer or slice to an int or struct, got nil")
 	}
 	v := reflect.ValueOf(b)
-	if !isAcceptable(v.Type()) {
+	if !isAcceptableRead(v.Type()) {
 		return fmt.Errorf("reg: ReadRegStruct() requires a slice or a pointer to a int or struct, got %s", v.Kind())
 	}
 	buf := make([]byte, int(getSize(v)))
@@ -320,11 +320,11 @@ func readReg(c conn.Conn, order binary.ByteOrder, reg []byte, b interface{}) err
 // Warning: reg is modified.
 func writeReg(c conn.Conn, order binary.ByteOrder, reg []byte, b interface{}) error {
 	if b == nil {
-		return errors.New("reg: ReadRegStruct() requires a pointer or slice to an int or struct, got nil")
+		return errors.New("reg: WriteRegStruct() requires a pointer or slice to an int or struct, got nil")
 	}
 	t := reflect.TypeOf(b)
-	if !isAcceptable(t) {
-		return fmt.Errorf("reg: ReadRegStruct() requires a slice or a pointer to a int or struct, got %s", t.Kind())
+	if !isAcceptableWrite(t) {
+		return fmt.Errorf("reg: WriteRegStruct() requires a slice or a pointer to a int or struct, got %s", t.Kind())
 	}
 	buf := bytes.NewBuffer(reg)
 	if err := binary.Write(buf, order, b); err != nil {
@@ -333,13 +333,29 @@ func writeReg(c conn.Conn, order binary.ByteOrder, reg []byte, b interface{}) er
 	return c.Tx(buf.Bytes(), nil)
 }
 
-// isAcceptable returns true if the struct can be safely serialized.
-// TODO(maruel): Keep a cache because this is somewhat expensive.
+// isAcceptableRead returns true if the struct can be safely serialized for
+// reads.
+//
 // TODO(maruel): Run perf tests.
-func isAcceptable(t reflect.Type) bool {
+func isAcceptableRead(t reflect.Type) bool {
 	switch t.Kind() {
 	case reflect.Ptr, reflect.Slice:
 		return isAcceptableInner(t.Elem())
+	default:
+		return false
+	}
+}
+
+// isAcceptableWrite returns true if the struct can be safely serialized for
+// writes.
+//
+// TODO(maruel): Run perf tests.
+func isAcceptableWrite(t reflect.Type) bool {
+	switch t.Kind() {
+	case reflect.Ptr, reflect.Slice:
+		return isAcceptableInner(t.Elem())
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return true
 	default:
 		return false
 	}
