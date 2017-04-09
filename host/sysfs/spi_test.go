@@ -138,6 +138,9 @@ func TestSPI_other(t *testing.T) {
 	if err := bus.LimitSpeed(1); err != nil {
 		t.Fatal(err)
 	}
+	if v := bus.MaxTxSize(); v != bufSize {
+		t.Fatal(v, bufSize)
+	}
 }
 
 func TestSPI_DevParams(t *testing.T) {

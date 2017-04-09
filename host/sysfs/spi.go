@@ -251,6 +251,11 @@ func (s *SPI) Duplex() conn.Duplex {
 	return conn.Full
 }
 
+// MaxTxSize implements conn.Limits
+func (s *SPI) MaxTxSize() int {
+	return bufSize
+}
+
 // CLK implements spi.Pins.
 func (s *SPI) CLK() gpio.PinOut {
 	s.initPins()
@@ -532,6 +537,7 @@ func init() {
 	}
 }
 
-var _ spi.Conn = &SPI{}
+var _ conn.Limits = &SPI{}
 var _ io.Reader = &SPI{}
 var _ io.Writer = &SPI{}
+var _ spi.Conn = &SPI{}

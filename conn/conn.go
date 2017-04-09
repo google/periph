@@ -58,11 +58,14 @@ func (i Duplex) String() string {
 type Conn interface {
 	// Tx does a single transaction.
 	//
-	// For full duplex protocols (SPI, UART), the two buffers must have the same
-	// length as both reading and writing happen simultaneously.
+	// For full duplex protocols (generally SPI, UART), the two buffers must have
+	// the same length as both reading and writing happen simultaneously.
 	//
 	// For half duplex protocols (I²C), there is no restriction as reading
 	// happens after writing, and r can be nil.
+	//
+	// Query Limits.MaxTxSize() to know if there is a limit on the buffer size
+	// per Tx() call.
 	Tx(w, r []byte) error
 	// Duplex returns the current duplex setting for this point-to-point
 	// connection.
@@ -70,4 +73,13 @@ type Conn interface {
 	// It is expected to be either Half or Full unless the connection itself is
 	// in an unknown state.
 	Duplex() Duplex
+}
+
+// Limits returns information about the connection's limits.
+type Limits interface {
+	// MaxTxSize returns the maximum allowed data size to be sent as a single
+	// I/O.
+	//
+	// Returns 0 if undefined.
+	MaxTxSize() int
 }

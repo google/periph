@@ -117,7 +117,8 @@ type Conn interface {
 	DevParams(maxHz int64, mode Mode, bits int) error
 	// TxPackets does multiple operations over the SPI bus.
 	//
-	// There can be limitations like a maximum of 4096 bytes per call.
+	// The maximum number of bytes can be limited depending on the driver. Query
+	// conn.Limits.MaxTxSize() can be used to determine the limit.
 	//
 	// If the last packet has KeepCS:true, the behavior is undefined. The CS line
 	// will likely not stay asserted. This is a driver limitation.
