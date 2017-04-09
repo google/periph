@@ -14,6 +14,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -26,43 +27,22 @@ import (
 	"periph.io/x/periph/host"
 )
 
-func mainImpl() error {
-	busName := flag.String("b", "", "SPI bus to use")
-	speed := flag.Int("speed", 1000000, "SPI bus speed in Hz")
-	verbose := flag.Bool("v", false, "verbose mode")
-	flag.Parse()
-	if !*verbose {
-		log.SetOutput(ioutil.Discard)
-	}
-	log.SetFlags(log.Lmicroseconds)
-	if _, err := host.Init(); err != nil {
-		return err
-	}
-	bus, err := spireg.Open(*busName)
-	if err != nil {
-		return err
-	}
-	defer bus.Close()
-
-	if *verbose {
-		if p, ok := bus.(spi.Pins); ok {
-			log.Printf("Using pins CLK: %s  MOSI: %s  MISO:  %s", p.CLK(), p.MOSI(), p.MISO())
-		}
-	}
-	if err = bus.DevParams(int64(*speed), spi.Mode0, 8); err != nil {
-		return err
-	}
-
+// runTx does the I/O.
+//
+// If you find yourself with the need to do a one-off complicated transaction
+// using TxPackets, temporarily override this function.
+func runTx(s spi.Conn, args []string) error {
 	hex := false
 	var write []byte
-	if flag.NArg() == 0 {
+	var err error
+	if len(args) == 0 {
 		write, err = ioutil.ReadAll(os.Stdin)
 		if err != nil {
 			return err
 		}
 	} else {
 		hex = true
-		for _, b := range flag.Args() {
+		for _, b := range args {
 			i, err := strconv.ParseUint(b, 0, 8)
 			if err != nil {
 				return err
@@ -72,7 +52,7 @@ func mainImpl() error {
 	}
 
 	read := make([]byte, len(write))
-	if err = bus.Tx(write, read); err != nil {
+	if err = s.Tx(write, read); err != nil {
 		return err
 	}
 	if !hex {
@@ -91,6 +71,71 @@ func mainImpl() error {
 		_, err = fmt.Print("\n")
 	}
 	return err
+	// Sample custom testing:
+	/*
+		p := []spi.Packet{
+			{
+				W:      []byte{0x01},
+				KeepCS: true,
+			},
+			{
+				R: make([]byte, 16),
+			},
+		}
+		return s.TxPackets(p)
+	*/
+}
+
+func mainImpl() error {
+	busName := flag.String("b", "", "SPI bus to use")
+	hz := flag.Int("hz", 1000000, "SPI bus speed")
+
+	nocs := flag.Bool("nocs", false, "do not assert the CS line")
+	half := flag.Bool("half", false, "half duplex mode, sharing MOSI and MISO")
+	lsbfirst := flag.Bool("lsb", false, "lsb first (default is msb)")
+	mode := flag.Int("mode", 0, "CLK and data polarity, between 0 and 3")
+	bits := flag.Int("bits", 8, "bits per word")
+
+	verbose := flag.Bool("v", false, "verbose mode")
+	flag.Parse()
+	if !*verbose {
+		log.SetOutput(ioutil.Discard)
+	}
+	log.SetFlags(log.Lmicroseconds)
+	if *mode < 0 || *mode > 3 {
+		return errors.New("invalid mode")
+	}
+	if *bits < 1 || *bits > 255 {
+		return errors.New("invalid bits")
+	}
+	m := spi.Mode(*mode)
+	if *half {
+		m |= spi.HalfDuplex
+	}
+	if *nocs {
+		m |= spi.NoCS
+	}
+	if *lsbfirst {
+		m |= spi.LSBFirst
+	}
+
+	if _, err := host.Init(); err != nil {
+		return err
+	}
+	bus, err := spireg.Open(*busName)
+	if err != nil {
+		return err
+	}
+	defer bus.Close()
+	if err = bus.DevParams(int64(*hz), m, *bits); err != nil {
+		return err
+	}
+	if *verbose {
+		if p, ok := bus.(spi.Pins); ok {
+			log.Printf("Using pins CLK: %s  MOSI: %s  MISO:  %s", p.CLK(), p.MOSI(), p.MISO())
+		}
+	}
+	return runTx(bus, flag.Args())
 }
 
 func main() {

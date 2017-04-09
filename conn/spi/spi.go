@@ -7,26 +7,95 @@ package spi
 
 import (
 	"io"
+	"strconv"
 
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio"
 )
 
-// Mode determines how communication is done. The bits can be OR'ed to change
-// the polarity and phase used for communication.
+// Mode determines how communication is done.
+//
+// The bits can be OR'ed to change the parameters used for
+// communication.
+//
+type Mode int
+
+// Mode determines the SPI communication parameters.
 //
 // CPOL means the clock polarity. Idle is High when set.
 //
 // CPHA is the clock phase, sample on trailing edge when set.
-type Mode int
-
-// Valid SPI clock and phase.
 const (
 	Mode0 Mode = 0x0 // CPOL=0, CPHA=0
 	Mode1 Mode = 0x1 // CPOL=0, CPHA=1
 	Mode2 Mode = 0x2 // CPOL=1, CPHA=0
 	Mode3 Mode = 0x3 // CPOL=1, CPHA=1
+
+	// HalfDuplex specifies that MOSI and MISO use the same wire, and that only
+	// one duplex is used at a time.
+	HalfDuplex Mode = 0x4
+	// NoCS request the driver to not use the CS line.
+	NoCS Mode = 0x8
+	// LSBFirst requests the words to be encoded in little endian instead of the
+	// default big endian.
+	LSBFirst = 0x10
 )
+
+func (m Mode) String() string {
+	s := ""
+	switch m & Mode3 {
+	case Mode0:
+		s = "Mode0"
+	case Mode1:
+		s = "Mode1"
+	case Mode2:
+		s = "Mode2"
+	case Mode3:
+		s = "Mode3"
+	}
+	m &^= Mode3
+	if m&HalfDuplex != 0 {
+		s += "|HalfDuplex"
+	}
+	m &^= HalfDuplex
+	if m&NoCS != 0 {
+		s += "|NoCS"
+	}
+	m &^= NoCS
+	if m&LSBFirst != 0 {
+		s += "|LSBFirst"
+	}
+	m &^= LSBFirst
+	if m != 0 {
+		s += "|0x"
+		s += strconv.FormatUint(uint64(m), 16)
+	}
+	return s
+}
+
+// Packet represents one packet when sending multiple packets as a transaction.
+type Packet struct {
+	// W and R are the output and input data. When HalfDuplex is specified to
+	// DevParams, only one of the two can be set.
+	W, R []byte
+	// BitsPerWord overrides the default bits per word value set in DevParams.
+	BitsPerWord uint8
+	// KeepCS tells the driver to keep CS asserted after this packet is
+	// completed. This can be leveraged to create long transaction as multiple
+	// packets like to use 9 bits commands then 8 bits data.
+	//
+	// Casual observation on a Rasberry Pi 3 is that two packets with
+	// KeepCS:false, there is a few µs with CS asserted after the clock stops,
+	// then 11.2µs with CS not asserted, then CS is asserted for (roughly) one
+	// clock cycle before the clock starts again for the next packet. This seems
+	// to be independent of the bus clock speed but this wasn't fully verified.
+	//
+	// It cannot be expected that the driver will correctly keep CS asserted even
+	// if KeepCS:true on the last packet.
+	//
+	// KeepCS is ignored when NoCS was specified to DevParams.
+	KeepCS bool
+}
 
 // Conn defines the interface a concrete SPI driver must implement.
 //
@@ -37,11 +106,22 @@ type Conn interface {
 	// DevParams sets the communication parameters of the connection for use by a
 	// device.
 	//
-	// The device driver calls this function exactly once. It must specify the
-	// maximum rated speed by the device's spec. The lowest speed between the bus
-	// speed and the device speed is selected. Use 0 for maxHz if there is no
-	// known maximum value for this device.
+	// The device driver must calls this function exactly once.
+	//
+	// maxHz must specify the maximum rated speed by the device's spec. The lowest
+	// speed between the bus speed and the device speed is selected. Use 0 for
+	// maxHz if there is no known maximum value for this device.
+	//
+	// mode specifies the clock and signal polarities, if the bus is using half
+	// duplex (shared MISO and MOSI) or if CS is not needed.
 	DevParams(maxHz int64, mode Mode, bits int) error
+	// TxPackets does multiple operations over the SPI bus.
+	//
+	// There can be limitations like a maximum of 4096 bytes per call.
+	//
+	// If the last packet has KeepCS:true, the behavior is undefined. The CS line
+	// will likely not stay asserted. This is a driver limitation.
+	TxPackets(p []Packet) error
 }
 
 // ConnCloser is a SPI bus that can be closed.

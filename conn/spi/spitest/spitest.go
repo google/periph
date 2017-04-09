@@ -43,6 +43,11 @@ func (r *RecordRaw) DevParams(maxHz int64, mode spi.Mode, bits int) error {
 	return nil
 }
 
+// TxPackets is not yet implemented.
+func (r *RecordRaw) TxPackets(p []spi.Packet) error {
+	return conntest.Errorf("spitest: TxPackets is not implemented")
+}
+
 // Record implements spi.Conn that records everything written to it.
 //
 // This can then be used to feed to Playback to do "replay" based unit tests.
@@ -111,6 +116,11 @@ func (r *Record) DevParams(maxHz int64, mode spi.Mode, bits int) error {
 	return nil
 }
 
+// TxPackets is not yet implemented.
+func (r *Record) TxPackets(p []spi.Packet) error {
+	return conntest.Errorf("spitest: TxPackets is not implemented")
+}
+
 // CLK implements spi.Pins.
 func (r *Record) CLK() gpio.PinOut {
 	if p, ok := r.Conn.(spi.Pins); ok {
@@ -172,6 +182,11 @@ func (p *Playback) DevParams(maxHz int64, mode spi.Mode, bits int) error {
 	return nil
 }
 
+// TxPackets is not yet implemented.
+func (p *Playback) TxPackets(packets []spi.Packet) error {
+	return conntest.Errorf("spitest: TxPackets is not implemented")
+}
+
 // CLK implements spi.Pins.
 func (p *Playback) CLK() gpio.PinOut {
 	return p.CLKPin
@@ -223,6 +238,11 @@ func (l *Log) Tx(w, r []byte) error {
 	err := l.Conn.Tx(w, r)
 	log.Printf("%s.Tx(%#v, %#v) = %v", l.Conn, w, r, err)
 	return err
+}
+
+// TxPackets is not yet implemented.
+func (l *Log) TxPackets(p []spi.Packet) error {
+	return conntest.Errorf("spitest: TxPackets is not implemented")
 }
 
 // Duplex implements spi.Conn.

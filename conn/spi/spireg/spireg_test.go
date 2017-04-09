@@ -221,6 +221,10 @@ func (f *fakeBus) DevParams(maxHz int64, mode spi.Mode, bits int) error {
 	return errors.New("not implemented")
 }
 
+func (f *fakeBus) TxPackets(p []spi.Packet) error {
+	return errors.New("not implemented")
+}
+
 func reset() {
 	mu.Lock()
 	defer mu.Unlock()

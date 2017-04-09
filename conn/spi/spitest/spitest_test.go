@@ -6,6 +6,8 @@ package spitest
 
 import (
 	"bytes"
+	"io/ioutil"
+	"log"
 	"testing"
 
 	"periph.io/x/periph/conn"
@@ -23,6 +25,9 @@ func TestRecordRaw(t *testing.T) {
 	}
 	if err := r.DevParams(0, spi.Mode0, 0); err != nil {
 		t.Fatal(err)
+	}
+	if err := r.TxPackets(nil); err == nil {
+		t.Fatal("not yet implemented")
 	}
 	if err := r.Close(); err != nil {
 		t.Fatal(err)
@@ -42,6 +47,9 @@ func TestRecord_empty(t *testing.T) {
 	}
 	if r.Tx(nil, []byte{'a'}) == nil {
 		t.Fatal("Bus is nil")
+	}
+	if err := r.TxPackets(nil); err == nil {
+		t.Fatal("not yet implemented")
 	}
 	if s := r.CLK(); s != gpio.INVALID {
 		t.Fatal(s)
@@ -95,6 +103,9 @@ func TestPlayback(t *testing.T) {
 	}
 	if err := p.DevParams(0, spi.Mode0, 0); err != nil {
 		t.Fatal(err)
+	}
+	if err := p.TxPackets(nil); err == nil {
+		t.Fatal("not yet implemented")
 	}
 	if err := p.Close(); err != nil {
 		t.Fatal(err)
@@ -235,6 +246,9 @@ func TestLog_Playback(t *testing.T) {
 	if err := r.DevParams(0, spi.Mode0, 0); err != nil {
 		t.Fatal(err)
 	}
+	if err := r.TxPackets(nil); err == nil {
+		t.Fatal("not yet implemented")
+	}
 	if d := r.Duplex(); d != conn.Full {
 		t.Fatal(d)
 	}
@@ -252,4 +266,10 @@ func TestLog_Playback(t *testing.T) {
 	if err := r.Close(); err != nil {
 		t.Fatal(err)
 	}
+}
+
+//
+
+func init() {
+	log.SetOutput(ioutil.Discard)
 }

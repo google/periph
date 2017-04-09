@@ -73,7 +73,7 @@ func (s *SPI) DevParams(maxHz int64, mode spi.Mode, bits int) error {
 		return errors.New("bitbang-spi: invalid maxHz")
 	}
 	if mode != spi.Mode3 {
-		return errors.New("bitbang-spi: not implemented")
+		return fmt.Errorf("bitbang-spi: mode %v is not implemented", mode)
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -119,7 +119,12 @@ func (s *SPI) Tx(w, r []byte) error {
 	return nil
 }
 
-// Write implements spi.Conn.
+// TxPackets implements spi.Conn.
+func (s *SPI) TxPackets(p []spi.Packet) error {
+	return errors.New("bitbang-spi: not implemented")
+}
+
+// Write implements io.Writer.
 func (s *SPI) Write(d []byte) (int, error) {
 	if err := s.Tx(d, nil); err != nil {
 		return 0, err

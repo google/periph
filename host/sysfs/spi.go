@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -42,16 +43,17 @@ func NewSPI(busNumber, chipSelect int) (*SPI, error) {
 // SPI is an open SPI bus.
 type SPI struct {
 	// Immutable
-	frwc       io.ReadWriteCloser
-	fd         uintptr
+	f          ioctler
 	busNumber  int
 	chipSelect int
 
 	sync.Mutex
 	initialized bool
+	bitsPerWord uint8
+	halfDuplex  bool
+	noCS        bool
 	maxHzBus    uint32
 	maxHzDev    uint32
-	bitsPerWord uint8
 	clk         gpio.PinOut
 	mosi        gpio.PinOut
 	miso        gpio.PinIn
@@ -70,7 +72,7 @@ func newSPI(busNumber, chipSelect int) (*SPI, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &SPI{frwc: f, fd: f.Fd(), busNumber: busNumber, chipSelect: chipSelect}, nil
+	return &SPI{f: &file{f}, busNumber: busNumber, chipSelect: chipSelect}, nil
 }
 
 // Close closes the handle to the SPI driver. It is not a requirement to close
@@ -78,7 +80,7 @@ func newSPI(busNumber, chipSelect int) (*SPI, error) {
 func (s *SPI) Close() error {
 	s.Lock()
 	defer s.Unlock()
-	return s.frwc.Close()
+	return s.f.Close()
 }
 
 func (s *SPI) String() string {
@@ -100,11 +102,14 @@ func (s *SPI) LimitSpeed(maxHz int64) error {
 //
 // It must be called before any I/O.
 func (s *SPI) DevParams(maxHz int64, mode spi.Mode, bits int) error {
-	if bits < 1 || bits >= 256 {
-		return fmt.Errorf("sysfs-spi: invalid bits %d", bits)
-	}
 	if maxHz < 0 || maxHz >= 1<<32 {
 		return fmt.Errorf("sysfs-spi: invalid speed %d", maxHz)
+	}
+	if mode&^(spi.Mode3|spi.HalfDuplex|spi.NoCS|spi.LSBFirst) != 0 {
+		return fmt.Errorf("sysfs-spi: invalid mode %v", mode)
+	}
+	if bits < 1 || bits >= 256 {
+		return fmt.Errorf("sysfs-spi: invalid bits %d", bits)
 	}
 	s.Lock()
 	defer s.Unlock()
@@ -116,7 +121,21 @@ func (s *SPI) DevParams(maxHz int64, mode spi.Mode, bits int) error {
 	s.bitsPerWord = uint8(bits)
 	// Only mode needs to be set via an IOCTL, others can be specified in the
 	// spiIOCTransfer packet, which saves a kernel call.
-	return s.setFlag(spiIOCMode, uint64(mode))
+	m := mode & spi.Mode3
+	if mode&spi.HalfDuplex != 0 {
+		m |= threeWire
+		s.halfDuplex = true
+	}
+	if mode&spi.NoCS != 0 {
+		m |= noCS
+		s.noCS = true
+	}
+	if mode&spi.LSBFirst != 0 {
+		m |= lSBFirst
+	}
+	// Only the first 8 bits are used. This only works because the system is
+	// running in little endian.
+	return s.setFlag(spiIOCMode, uint64(m))
 }
 
 // Read implements io.Reader.
@@ -139,11 +158,9 @@ func (s *SPI) Write(b []byte) (int, error) {
 //
 // It is OK if both w and r point to the same underlying byte slice.
 //
-// Tx() implements transparent support for large I/O operations of more than
-// 4096 bytes. The main problem is that if the same bus with another CS line is
-// opened, it is possible that a transaction on the other device happens in
-// between. So do not use multiple devices with separate CS lines on the same
-// bus when doing I/O operations of more than 4096 bytes.
+// spidev enforces the maximum limit of transaction size. It can be as low as
+// 4096 bytes. See the platform documentation to learn how to increase the
+// limit.
 func (s *SPI) Tx(w, r []byte) error {
 	if len(w) == 0 {
 		if len(r) == 0 {
@@ -158,9 +175,79 @@ func (s *SPI) Tx(w, r []byte) error {
 	return err
 }
 
+// TxPackets sends and receives packets as specified by the user.
+//
+// spidev enforces the maximum limit of transaction size. It can be as low as
+// 4096 bytes. See the platform documentation to learn how to increase the
+// limit.
+func (s *SPI) TxPackets(p []spi.Packet) error {
+	total := 0
+	for i := range p {
+		lW := len(p[i].W)
+		lR := len(p[i].R)
+		if lW != lR && lW != 0 && lR != 0 {
+			return fmt.Errorf("sysfs-spi: when both w and r are used, they must be the same size; got %d and %d bytes", lW, lR)
+		}
+		l := 0
+		if lW != 0 {
+			l = lW
+		}
+		if lR != 0 {
+			l = lR
+		}
+		if total += l; bufSize != 0 && total > bufSize {
+			return fmt.Errorf("sysfs-spi: maximum TxPackets length is %d, got at least %d bytes", bufSize, total)
+		}
+	}
+	if total == 0 {
+		return errors.New("sysfs-spi: empty packets")
+	}
+
+	s.Lock()
+	defer s.Unlock()
+	if !s.initialized {
+		return errors.New("sysfs-spi: DevParams wasn't called")
+	}
+	// Convert the packets.
+	speed := s.maxHzBus
+	if s.maxHzDev != 0 && (s.maxHzBus == 0 || s.maxHzDev < s.maxHzBus) {
+		speed = s.maxHzDev
+	}
+	m := make([]spiIOCTransfer, len(p))
+	for i := range m {
+		m[i].speedHz = speed
+		if m[i].bitsPerWord = p[i].BitsPerWord; m[i].bitsPerWord == 0 {
+			m[i].bitsPerWord = s.bitsPerWord
+		}
+		if !s.noCS && !p[i].KeepCS {
+			m[i].csChange = 1
+		}
+		lW := len(p[i].W)
+		lR := len(p[i].R)
+		if lW != 0 && lR != 0 && s.halfDuplex {
+			return errors.New("sysfs-spi: can only specify one of w or r when in half duplex")
+		}
+		if lW != 0 {
+			m[i].tx = uint64(uintptr(unsafe.Pointer(&p[i].W[0])))
+			m[i].length = uint32(lW)
+		}
+		if lR != 0 {
+			m[i].rx = uint64(uintptr(unsafe.Pointer(&p[i].R[0])))
+			m[i].length = uint32(lR)
+		}
+	}
+	return s.f.ioctl(spiIOCTx(len(m)), unsafe.Pointer(&m[0]))
+}
+
 // Duplex implements spi.Conn.
+//
+// Until DevParams() is called, Duplex() defaults to conn.Full.
 func (s *SPI) Duplex() conn.Duplex {
-	// If half-duplex SPI is ever supported, change this code.
+	s.Lock()
+	defer s.Unlock()
+	if s.halfDuplex {
+		return conn.Half
+	}
 	return conn.Full
 }
 
@@ -179,86 +266,72 @@ func (s *SPI) MISO() gpio.PinIn {
 // MOSI implements spi.Pins.
 func (s *SPI) MOSI() gpio.PinOut {
 	s.initPins()
+	// TODO(maruel): spi.HalfDuplex.
 	return s.mosi
 }
 
 // CS implements spi.Pins.
 func (s *SPI) CS() gpio.PinOut {
 	s.initPins()
+	// TODO(maruel): spi.NoCS and generally fix properly.
 	return s.cs
 }
 
 // Private details.
 
 func (s *SPI) txInternal(w, r []byte) (int, error) {
-	// TODO(maruel): The driver supports a series of half-duplex transfer, which
-	// is needed in 3-wire SPI mode and when using 9 bits command but 8 bits data.
+	l := len(w)
+	if l == 0 {
+		l = len(r)
+	}
+	if bufSize != 0 && l > bufSize {
+		return 0, fmt.Errorf("sysfs-spi: maximum Tx length is %d, got at least %d bytes", bufSize, l)
+	}
+
 	s.Lock()
 	defer s.Unlock()
 	if !s.initialized {
 		return 0, errors.New("sysfs-spi: DevParams wasn't called")
 	}
-	// Most spidev drivers limit each buffer to one page size (4096 bytes) so
-	// chunk the I/O into multiple pages to increase compatibility, keeping CS
-	// low in between (only the clock is paused).
-	p := spiIOCTransfer{
+	if len(w) != 0 && len(r) != 0 && s.halfDuplex {
+		return 0, errors.New("sysfs-spi: can only specify one of w or r when in half duplex")
+	}
+	m := spiIOCTransfer{
 		speedHz:     s.maxHzBus,
 		bitsPerWord: s.bitsPerWord,
 	}
 	if s.maxHzDev != 0 && (s.maxHzBus == 0 || s.maxHzDev < s.maxHzBus) {
-		p.speedHz = s.maxHzDev
+		m.speedHz = s.maxHzDev
 	}
-
-	n := 0
-	for len(w) != 0 || len(r) != 0 {
-		p.csChange = 1
-		if l := len(w); l != 0 {
-			if l > 4096 {
-				// Limit kernel calls to one page and keep CS low.
-				l = 4096
-				p.csChange = 0
-			}
-			p.tx = uint64(uintptr(unsafe.Pointer(&w[0])))
-			p.length = uint32(l)
-			w = w[l:]
-		}
-		if l := len(r); l != 0 {
-			if l > 4096 {
-				// Limit kernel calls to one page and keep CS low.
-				l = 4096
-				p.csChange = 0
-			}
-			p.rx = uint64(uintptr(unsafe.Pointer(&r[0])))
-			p.length = uint32(l)
-			r = r[l:]
-		}
-		if err := s.ioctl(spiIOCTx(1), unsafe.Pointer(&p)); err != nil {
-			return n, err
-		}
-		n += int(p.length)
+	if l := len(w); l != 0 {
+		m.tx = uint64(uintptr(unsafe.Pointer(&w[0])))
+		m.length = uint32(l)
 	}
-	return n, nil
+	if l := len(r); l != 0 {
+		m.rx = uint64(uintptr(unsafe.Pointer(&r[0])))
+		m.length = uint32(l)
+	}
+	if err := s.f.ioctl(spiIOCTx(1), unsafe.Pointer(&m)); err != nil {
+		return 0, err
+	}
+	return l, nil
 }
 
 func (s *SPI) setFlag(op uint, arg uint64) error {
-	if err := s.ioctl(op|0x40000000, unsafe.Pointer(&arg)); err != nil {
+	if err := s.f.ioctl(op|0x40000000, unsafe.Pointer(&arg)); err != nil {
 		return err
 	}
-	actual := uint64(0)
-	// getFlag() equivalent.
-	if err := s.ioctl(op|0x80000000, unsafe.Pointer(&actual)); err != nil {
-		return err
-	}
-	if actual != arg {
-		return fmt.Errorf("sysfs-spi: op 0x%x: set 0x%x, read 0x%x", op, arg, actual)
-	}
-	return nil
-}
-
-func (s *SPI) ioctl(op uint, arg unsafe.Pointer) error {
-	if err := ioctl(s.fd, op, uintptr(arg)); err != nil {
-		return fmt.Errorf("sysfs-spi: ioctl: %v", err)
-	}
+	/*
+		// Verification.
+		actual := uint64(0)
+		// getFlag() equivalent.
+		if err := s.f.ioctl(op|0x80000000, unsafe.Pointer(&actual)); err != nil {
+			return err
+		}
+		if actual != arg {
+			return fmt.Errorf("sysfs-spi: op 0x%x: set 0x%x, read 0x%x", op, arg, actual)
+		}
+	*/
 	return nil
 }
 
@@ -362,6 +435,8 @@ type spiIOCTransfer struct {
 	pad         uint16
 }
 
+var bufSize = 0
+
 //
 
 // driverSPI implements periph.Driver.
@@ -414,6 +489,15 @@ func (d *driverSPI) Init() (bool, error) {
 			return true, err
 		}
 	}
+	b, err := ioutil.ReadFile("/sys/module/spidev/parameters/bufsiz")
+	if err != nil {
+		return true, err
+	}
+	// Update the global value.
+	bufSize, err = strconv.Atoi(strings.TrimSpace(string(b)))
+	if err != nil {
+		return true, err
+	}
 	return true, nil
 }
 
@@ -424,6 +508,22 @@ type openerSPI struct {
 
 func (o *openerSPI) Open() (spi.ConnCloser, error) {
 	return NewSPI(o.bus, o.cs)
+}
+
+type ioctler interface {
+	io.Closer
+	ioctl(op uint, arg unsafe.Pointer) error
+}
+
+type file struct {
+	*os.File
+}
+
+func (f *file) ioctl(op uint, arg unsafe.Pointer) error {
+	if err := ioctl(f.Fd(), op, uintptr(arg)); err != nil {
+		return fmt.Errorf("sysfs-spi: ioctl: %v", err)
+	}
+	return nil
 }
 
 func init() {
