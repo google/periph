@@ -10,6 +10,7 @@ package allwinner
 import (
 	"strings"
 
+	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/pin"
 )
 
@@ -157,7 +158,7 @@ var mappingA64 = map[string][5]string{
 // and mark them as available.
 //
 // It is called by the generic allwinner processor code if an A64 is detected.
-func mapA64Pins() {
+func mapA64Pins() error {
 	for name, altFuncs := range mappingA64 {
 		pin := cpupins[name]
 		pin.altFunc = altFuncs
@@ -165,5 +166,15 @@ func mapA64Pins() {
 		if strings.Contains(altFuncs[4], "EINT") {
 			pin.supportEdge = true
 		}
+		// Manually map the CS line as an alias because otherwise it never gets
+		// registered.
+		for _, s := range altFuncs {
+			if strings.HasPrefix(s, "SPI") && strings.HasSuffix(s, "_CS0") {
+				if err := gpioreg.RegisterAlias(s, pin.Number()); err != nil {
+					return err
+				}
+			}
+		}
 	}
+	return nil
 }

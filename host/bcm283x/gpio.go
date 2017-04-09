@@ -661,6 +661,28 @@ func (d *driverGPIO) Init() (bool, error) {
 			}
 		}
 	}
+	// The CS pins are never switched to their alternate mode, so manually map
+	// them. They are dependent on their parent pins.
+	csMap := map[string]int{
+		"SPI1_CS0": 18,
+		"SPI1_CS1": 17,
+		"SPI1_CS2": 16,
+		"SPI2_CS0": 43,
+		"SPI2_CS1": 44,
+		"SPI2_CS2": 45,
+	}
+	if GPIO11.Function() == "SPI0_CLK" {
+		csMap["SPI0_CS1"] = 7
+		csMap["SPI0_CS0"] = 8
+	} else if GPIO39.Function() == "SPI0_CLK" {
+		csMap["SPI0_CS1"] = 35
+		csMap["SPI0_CS0"] = 36
+	}
+	for a, n := range csMap {
+		if err := gpioreg.RegisterAlias(a, n); err != nil {
+			return true, err
+		}
+	}
 	return true, sysfs.SetSpeedHook(setSpeed)
 }
 

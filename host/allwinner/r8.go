@@ -10,6 +10,7 @@ package allwinner
 import (
 	"strings"
 
+	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/pin"
 )
 
@@ -132,7 +133,7 @@ var mappingR8 = map[string][5]string{
 // mark them as available.
 //
 // It is called by the generic allwinner processor code if a R8 is detected.
-func mapR8Pins() {
+func mapR8Pins() error {
 	for name, altFuncs := range mappingR8 {
 		pin := cpupins[name]
 		pin.altFunc = altFuncs
@@ -140,5 +141,15 @@ func mapR8Pins() {
 		if strings.Contains(altFuncs[4], "EINT") {
 			pin.supportEdge = true
 		}
+		// Manually map the CS line as an alias because otherwise it never gets
+		// registered.
+		for _, s := range altFuncs {
+			if strings.HasPrefix(s, "SPI") && strings.HasSuffix(s[:len(s)-1], "_CS") {
+				if err := gpioreg.RegisterAlias(s, pin.Number()); err != nil {
+					return err
+				}
+			}
+		}
 	}
+	return nil
 }

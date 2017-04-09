@@ -53,9 +53,13 @@ func (d *driverGPIO) Init() (bool, error) {
 
 	switch {
 	case IsA64():
-		mapA64Pins()
+		if err := mapA64Pins(); err != nil {
+			return true, err
+		}
 	case IsR8():
-		mapR8Pins()
+		if err := mapR8Pins(); err != nil {
+			return true, err
+		}
 	default:
 		return false, errors.New("unknown Allwinner CPU model")
 	}
