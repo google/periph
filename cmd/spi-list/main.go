@@ -30,7 +30,17 @@ func mainImpl() error {
 		return err
 	}
 	for _, ref := range spireg.All() {
-		fmt.Printf("%s:\n", ref)
+		fmt.Printf("%s", ref.Name)
+		if ref.Number != -1 {
+			fmt.Printf(" #%d", ref.Number)
+		}
+		fmt.Print(":\n")
+		if len(ref.Aliases) != 0 {
+			fmt.Printf("  Aliases:\n")
+			for _, a := range ref.Aliases {
+				fmt.Printf("    %s\n", a)
+			}
+		}
 		bus, err := ref.Open()
 		if err != nil {
 			fmt.Printf("  Failed to open: %v\n", err)
