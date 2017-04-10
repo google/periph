@@ -13,7 +13,7 @@ import (
 	"periph.io/x/periph/devices"
 )
 
-func TestNew_resolution(t *testing.T) {
+func TestNew_fail_resolution(t *testing.T) {
 	bus := &onewiretest.Playback{}
 	var addr onewire.Address = 0x740000070e41ac28
 	if d, err := New(bus, addr, 1); d != nil || err == nil {
@@ -21,7 +21,7 @@ func TestNew_resolution(t *testing.T) {
 	}
 }
 
-func TestNew_read(t *testing.T) {
+func TestNew_fail_read(t *testing.T) {
 	bus := &onewiretest.Playback{DontPanic: true}
 	var addr onewire.Address = 0x740000070e41ac28
 	if d, err := New(bus, addr, 9); d != nil || err == nil {
@@ -53,14 +53,16 @@ func TestTemperature(t *testing.T) {
 	var addr onewire.Address = 0x740000070e41ac28
 	var temp devices.Celsius = 30000 // 30.000°C
 	bus := onewiretest.Playback{Ops: ops}
-	// Init the ds18b20.
-	ds18b20, err := New(&bus, addr, 10)
+	dev, err := New(&bus, addr, 10)
 	if err != nil {
 		t.Fatal(err)
 	}
+	if s := dev.String(); s != "DS18B20{{playback 8358680938703596584}}" {
+		t.Fatal(s)
+	}
 	// Read the temperature.
 	t0 := time.Now()
-	now, err := ds18b20.Temperature()
+	now, err := dev.Temperature()
 	dt := time.Since(t0)
 	if err != nil {
 		t.Fatal(err)
@@ -72,6 +74,9 @@ func TestTemperature(t *testing.T) {
 	// Expect it to take >187ms
 	if dt < 188*time.Millisecond {
 		t.Errorf("expected conversion to take >187ms, took %s", dt)
+	}
+	if err := dev.Halt(); err != nil {
+		t.Fatal(err)
 	}
 	if err := bus.Close(); err != nil {
 		t.Fatal(err)
@@ -101,17 +106,17 @@ func TestConvertAll(t *testing.T) {
 	}
 }
 
-func TestConvertAll_resolution(t *testing.T) {
+func TestConvertAll_fail_resolution(t *testing.T) {
 	bus := &onewiretest.Playback{}
 	if err := ConvertAll(bus, 1); err == nil {
 		t.Fatal("invalid resolution")
 	}
 }
 
-func TestConvertAll_fail(t *testing.T) {
+func TestConvertAll_fail_io(t *testing.T) {
 	bus := &onewiretest.Playback{DontPanic: true}
 	if err := ConvertAll(bus, 9); err == nil {
-		t.Fatal("invalid resolution")
+		t.Fatal("invalid io")
 	}
 }
 

@@ -145,7 +145,7 @@ func mainImpl() error {
 	}
 
 	err := read(dev, *loop)
-	err2 := dev.Stop()
+	err2 := dev.Halt()
 	if err != nil {
 		return err
 	}

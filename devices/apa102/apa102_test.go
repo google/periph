@@ -14,6 +14,7 @@ import (
 	"log"
 	"testing"
 
+	"periph.io/x/periph/conn/conntest"
 	"periph.io/x/periph/conn/spi"
 	"periph.io/x/periph/conn/spi/spireg"
 	"periph.io/x/periph/conn/spi/spitest"
@@ -334,6 +335,9 @@ func TestDevEmpty(t *testing.T) {
 	if expected := []byte{0x0, 0x0, 0x0, 0x0, 0xFF}; !bytes.Equal(expected, buf.Bytes()) {
 		t.Fatalf("%#v != %#v", expected, buf.Bytes())
 	}
+	if s := d.String(); s != "APA102{I:255, T:6500K, 0LEDs, recordraw}" {
+		t.Fatal(s)
+	}
 }
 
 func TestDevParamsFail(t *testing.T) {
@@ -544,6 +548,23 @@ func TestDrawRGBA(t *testing.T) {
 	d.Draw(d.Bounds(), img, image.Point{})
 	if !bytes.Equal(expectedi250t5000, buf.Bytes()) {
 		t.Fatalf("%#v != %#v", expectedi250t5000, buf.Bytes())
+	}
+}
+
+func TestHalt(t *testing.T) {
+	bus := spitest.Playback{
+		Playback: conntest.Playback{
+			Ops: []conntest.IO{
+				{W: []byte{0x0, 0x0, 0x0, 0x0, 0xe1, 0x0, 0x0, 0x0, 0xe1, 0x0, 0x0, 0x0, 0xe1, 0x0, 0x0, 0x0, 0xe1, 0x0, 0x0, 0x0, 0xff}},
+			},
+		},
+	}
+	d, _ := New(&bus, 4, 250, 5000)
+	if err := d.Halt(); err != nil {
+		t.Fatal(err)
+	}
+	if err := bus.Close(); err != nil {
+		t.Fatal(err)
 	}
 }
 

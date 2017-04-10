@@ -54,8 +54,11 @@ func TestNew(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if s := d.String(); s != "ds248x" {
+	if s := d.String(); s != "DS2483{playback(24)}" {
 		t.Fatal(s)
+	}
+	if err := d.Halt(); err != nil {
+		t.Fatal(err)
 	}
 	if err := bus.Close(); err != nil {
 		t.Fatal(err)

@@ -133,7 +133,7 @@ func run(i2cBus i2c.Bus, spiBus spi.ConnCloser) (err error) {
 		return err2
 	}
 	defer func() {
-		if err2 := i2cDev.Stop(); err == nil {
+		if err2 := i2cDev.Halt(); err == nil {
 			err = err2
 		}
 	}()
@@ -143,7 +143,7 @@ func run(i2cBus i2c.Bus, spiBus spi.ConnCloser) (err error) {
 		return err2
 	}
 	defer func() {
-		if err2 := spiDev.Stop(); err == nil {
+		if err2 := spiDev.Halt(); err == nil {
 			err = err2
 		}
 	}()

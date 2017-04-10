@@ -11,6 +11,7 @@ import (
 
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/onewire"
+	"periph.io/x/periph/devices"
 )
 
 // Dev is a handle to a ds248x device and it implements the onewire.Bus
@@ -36,7 +37,15 @@ type Dev struct {
 }
 
 func (d *Dev) String() string {
-	return "ds248x"
+	if d.isDS2483 {
+		return fmt.Sprintf("DS2483{%s}", d.i2c)
+	}
+	return fmt.Sprintf("DS2482-100{%s}", d.i2c)
+}
+
+// Halt implements devices.Device.
+func (d *Dev) Halt() error {
+	return nil
 }
 
 // Tx performs a bus transaction, sending and receiving bytes, and ending by
@@ -187,3 +196,5 @@ type busError string
 
 func (e busError) Error() string  { return string(e) }
 func (e busError) BusError() bool { return true }
+
+var _ devices.Device = &Dev{}

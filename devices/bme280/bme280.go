@@ -77,6 +77,10 @@ type Dev struct {
 	c     calibration
 }
 
+func (d *Dev) String() string {
+	return fmt.Sprintf("BME280{%s}", d.d)
+}
+
 // Sense returns measurements as °C, kPa and % of relative humidity.
 func (d *Dev) Sense(env *devices.Environment) error {
 	// All registers must be read in a single pass, as noted at page 21, section
@@ -105,9 +109,10 @@ func (d *Dev) Sense(env *devices.Environment) error {
 	return nil
 }
 
-// Stop stops the bme280 from acquiring measurements. It is recommended to call
-// to reduce idle power usage.
-func (d *Dev) Stop() error {
+// Halt stops the bme280 from acquiring measurements.
+//
+// It is recommended to call to reduce idle power usage.
+func (d *Dev) Halt() error {
 	// Page 27 (for register) and 12~13 section 3.3.
 	return d.writeCommands([]byte{0xF4, byte(sleep)})
 }
@@ -397,3 +402,4 @@ func (c *calibration) compensateHumidityInt(raw, tFine int32) uint32 {
 }
 
 var _ devices.Environmental = &Dev{}
+var _ devices.Device = &Dev{}

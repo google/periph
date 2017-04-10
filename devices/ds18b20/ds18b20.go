@@ -23,6 +23,7 @@ package ds18b20
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"periph.io/x/periph/conn/onewire"
@@ -91,6 +92,15 @@ func ConvertAll(o onewire.Bus, maxResolutionBits int) error {
 type Dev struct {
 	onewire    onewire.Dev // device on 1-wire bus
 	resolution int         // resolution in bits (9..12)
+}
+
+func (d *Dev) String() string {
+	return fmt.Sprintf("DS18B20{%v}", d.onewire)
+}
+
+// Halt implements devices.Device.
+func (d *Dev) Halt() error {
+	return nil
 }
 
 // Temperature performs a conversion and returns the temperature.
@@ -163,3 +173,5 @@ func (d *Dev) readScratchpad() ([]byte, error) {
 
 	return spad[:8], nil
 }
+
+var _ devices.Device = &Dev{}

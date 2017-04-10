@@ -488,3 +488,4 @@ const (
 )
 
 var _ devices.Display = &Dev{}
+var _ devices.Device = &Dev{}

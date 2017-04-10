@@ -6,6 +6,7 @@ package apa102
 
 import (
 	"errors"
+	"fmt"
 	"image"
 	"image/color"
 
@@ -224,6 +225,10 @@ type Dev struct {
 	pixels      []byte
 }
 
+func (d *Dev) String() string {
+	return fmt.Sprintf("APA102{I:%d, T:%dK, %dLEDs, %s}", d.Intensity, d.Temperature, d.numLights, d.s)
+}
+
 // ColorModel implements devices.Display. There's no surprise, it is
 // color.NRGBAModel.
 func (d *Dev) ColorModel() color.Model {
@@ -262,13 +267,19 @@ func (d *Dev) Write(pixels []byte) (int, error) {
 	}
 	d.l.init(d.Intensity, d.Temperature)
 	// Trying to write more pixels than defined?
-	if o := len(d.pixels) / 4; o < len(pixels)/3 {
+	if o := d.numLights; o < len(pixels)/3 {
 		pixels = pixels[:o*3]
 	}
 	// Do not touch header and footer.
 	d.l.raster(d.pixels, pixels)
 	err := d.s.Tx(d.rawBuf, nil)
 	return len(pixels), err
+}
+
+// Halt turns off all the lights.
+func (d *Dev) Halt() error {
+	_, err := d.Write(make([]byte, d.numLights*3))
+	return err
 }
 
 // New returns a strip that communicates over SPI to APA102 LEDs.
@@ -309,3 +320,4 @@ func New(s spi.Conn, numLights int, intensity uint8, temperature uint16) (*Dev, 
 var errLength = errors.New("apa102: invalid RGB stream length")
 
 var _ devices.Display = &Dev{}
+var _ devices.Device = &Dev{}

@@ -11,10 +11,12 @@ package tm1637
 
 import (
 	"errors"
+	"fmt"
 	"runtime"
 	"time"
 
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/devices"
 	"periph.io/x/periph/host/cpu"
 )
 
@@ -67,6 +69,10 @@ type Dev struct {
 	data gpio.PinIO
 }
 
+func (d *Dev) String() string {
+	return fmt.Sprintf("TM1637{clk:%s, data:%s}", d.clk, d.data)
+}
+
 // SetBrightness changes the brightness and/or turns the display on and off.
 func (d *Dev) SetBrightness(b Brightness) error {
 	// This helps reduce jitter a little.
@@ -111,6 +117,13 @@ func (d *Dev) Write(seg []byte) (int, error) {
 	}
 	d.stop()
 	return len(seg), nil
+}
+
+// Halt turns the display off.
+func (d *Dev) Halt() error {
+	b := [6]byte{}
+	_, err := d.Write(b[:])
+	return err
 }
 
 // New returns an object that communicates over two pins to a TM1637.
@@ -186,3 +199,5 @@ func (d *Dev) writeByte(b byte) (bool, error) {
 func (d *Dev) sleepHalfCycle() {
 	cpu.Nanospin(clockHalfCycle)
 }
+
+var _ devices.Device = &Dev{}

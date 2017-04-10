@@ -79,6 +79,9 @@ func TestSPISense_success(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if s := dev.String(); s != "BME280{playback}" {
+		t.Fatal(s)
+	}
 	env := devices.Environment{}
 	if err := dev.Sense(&env); err != nil {
 		t.Fatal(err)
@@ -149,7 +152,7 @@ func TestNewSPI_fail_chipid(t *testing.T) {
 	}
 }
 
-func TestNewI2C_fail(t *testing.T) {
+func TestNewI2C_fail_io(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Chipd ID detection.
@@ -167,7 +170,7 @@ func TestNewI2C_fail(t *testing.T) {
 	}
 }
 
-func TestNewI2C_chipid(t *testing.T) {
+func TestNewI2C_fail_chipid(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Chipd ID detection.
@@ -305,13 +308,16 @@ func TestI2CSense_success(t *testing.T) {
 			{Addr: 0x76, W: []byte{0xf4, 0x6c, 0xf2, 0x3, 0xf5, 0xe0, 0xf4, 0x6f}, R: nil},
 			// Read.
 			{Addr: 0x76, W: []byte{0xf7}, R: []byte{0x4a, 0x52, 0xc0, 0x80, 0x96, 0xc0, 0x7a, 0x76}},
-			// Stop.
+			// Halt.
 			{Addr: 0x76, W: []byte{0xf4, 0x0}},
 		},
 	}
 	dev, err := NewI2C(&bus, nil)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if s := dev.String(); s != "BME280{playback(118)}" {
+		t.Fatal(s)
 	}
 	env := devices.Environment{}
 	if err := dev.Sense(&env); err != nil {
@@ -326,7 +332,7 @@ func TestI2CSense_success(t *testing.T) {
 	if env.Humidity != 6531 {
 		t.Fatalf("humidity %d", env.Humidity)
 	}
-	if err := dev.Stop(); err != nil {
+	if err := dev.Halt(); err != nil {
 		t.Fatal(err)
 	}
 	if err := bus.Close(); err != nil {

@@ -40,11 +40,17 @@ func TestNew(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to initialize tm1637: %v", err)
 	}
+	if s := dev.String(); s != "TM1637{clk:(0), data:(0)}" {
+		t.Fatal(s)
+	}
 	if _, err := dev.Write(Clock(12, 00, true)); err != nil {
 		log.Fatalf("failed to write to tm1637: %v", err)
 	}
 	if err := dev.SetBrightness(Brightness10); err != nil {
 		log.Fatalf("failed to write to tm1637: %v", err)
+	}
+	if err := dev.Halt(); err != nil {
+		t.Fatal(err)
 	}
 	// TODO(maruel): Check the state of the pins. That's hard since it has to
 	// emulate the quasi-I²C protocol.

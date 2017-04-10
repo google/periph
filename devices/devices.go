@@ -11,6 +11,18 @@ import (
 	"io"
 )
 
+// Device is a basic device.
+type Device interface {
+	fmt.Stringer
+	// Halt stops the device.
+	//
+	// Unlike a connection, a device cannot be closed, only the port can be
+	// closed. On the other hand, a device can be halted. What halting entails
+	// depends on the actual device but it should stop motion, sensing or light
+	// emition.
+	Halt() error
+}
+
 // Display represents a pixel output device. It is a write-only interface.
 //
 // What Display represents can be as varied as a 1 bit OLED display or a strip
