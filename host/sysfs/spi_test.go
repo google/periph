@@ -14,7 +14,7 @@ import (
 	"periph.io/x/periph/conn/spi"
 )
 
-func Example_NewSPI() {
+func ExampleNewSPI() {
 	b, err := NewSPI(0, 0)
 	if err != nil {
 		log.Fatal(err)

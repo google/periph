@@ -11,7 +11,7 @@ import (
 	"periph.io/x/periph/conn/i2c/i2creg"
 )
 
-func Example_NewI2C() {
+func ExampleNewI2C() {
 	b, err := NewI2C(1)
 	if err != nil {
 		log.Fatal(err)

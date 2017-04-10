@@ -165,7 +165,7 @@ func (s *SmokeTest) run(i2cBus i2c.Bus, spiBus spi.ConnCloser, dc gpio.PinOut, w
 	}
 
 	s.devices = []*ssd1306.Dev{i2cDev, spiDev}
-	fmt.Printf("%s: Devices:   %s,   %s\n", s, s.devices[0], s.devices[1])
+	fmt.Printf("%s: Devices:   %v,   %v\n", s, s.devices[0], s.devices[1])
 	s.printStr("NewXXX() durations")
 
 	// Preparations.

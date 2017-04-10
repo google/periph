@@ -123,7 +123,7 @@ func (p *Playback) Tx(addr uint16, w, r []byte) error {
 	p.Lock()
 	defer p.Unlock()
 	if len(p.Ops) <= p.Count {
-		return errorf(p.DontPanic, "i2ctest: unexpected Tx() (count #%d) W:%#v  R:%#v", p.Count, w, r)
+		return errorf(p.DontPanic, "i2ctest: unexpected Tx() (count #%d) expecting i2ctest.IO{Addr:%d, W:%#v, R:%#v}", p.Count, addr, w, r)
 	}
 	if addr != p.Ops[p.Count].Addr {
 		return errorf(p.DontPanic, "i2ctest: unexpected addr (count #%d) %d != %d", p.Count, addr, p.Ops[p.Count].Addr)

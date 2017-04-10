@@ -59,7 +59,7 @@ func TestNew(t *testing.T) {
 func TestDigits(t *testing.T) {
 	expected := []byte{0x3F, 0x06}
 	if b := Digits(0, 1); !bytes.Equal(b, expected) {
-		t.Fatal("%v != %v", b, expected)
+		t.Fatalf("%v != %v", b, expected)
 	}
 }
 

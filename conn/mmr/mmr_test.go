@@ -28,7 +28,7 @@ func ExampleDev8() {
 		log.Fatal(err)
 	}
 	defer bus.Close()
-	c := &i2c.Dev{bus, 0xD0}
+	c := &i2c.Dev{Bus: bus, Addr: 0xD0}
 
 	dev := Dev8{c, binary.BigEndian}
 	v, err := dev.ReadUint8(0xD0)
@@ -47,7 +47,7 @@ func ExampleDev8_ReadStruct() {
 		log.Fatal(err)
 	}
 	defer bus.Close()
-	c := &i2c.Dev{bus, 0xD0}
+	c := &i2c.Dev{Bus: bus, Addr: 0xD0}
 
 	dev := Dev8{c, binary.BigEndian}
 	flags := struct {

@@ -50,7 +50,7 @@ func TestIsConnected(t *testing.T) {
 	defer reset()
 	gpio2 := &gpiotest.Pin{N: "GPIO2", Num: 2, Fn: "I2C1_SDA"}
 	gpio3 := &gpiotest.Pin{N: "GPIO3", Num: 3, Fn: "I2C1_SCL"}
-	alias := &pinAlias{Pin: gpiotest.Pin{N: "ALIAS", Num: 4}, alias: *gpio2}
+	alias := &pinAlias{Pin: &gpiotest.Pin{N: "ALIAS", Num: 4}, alias: gpio2}
 	p := [][]pin.Pin{
 		{pin.GROUND, pin.V3_3},
 		{gpio2, gpio3},
@@ -80,10 +80,10 @@ func reset() {
 }
 
 type pinAlias struct {
-	gpiotest.Pin
-	alias gpiotest.Pin
+	*gpiotest.Pin
+	alias *gpiotest.Pin
 }
 
 func (p *pinAlias) Real() gpio.PinIO {
-	return &p.alias
+	return p.alias
 }

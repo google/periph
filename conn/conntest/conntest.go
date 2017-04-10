@@ -136,7 +136,7 @@ func (p *Playback) Tx(w, r []byte) error {
 	p.Lock()
 	defer p.Unlock()
 	if len(p.Ops) <= p.Count {
-		return errorf(p.DontPanic, "conntest: unexpected Tx() (count #%d) W:%#v  R:%#v", p.Count, w, r)
+		return errorf(p.DontPanic, "conntest: unexpected Tx() (count #%d) expecting []conntest.IO{W:%#v, R:%#v}", p.Count, w, r)
 	}
 	if !bytes.Equal(p.Ops[p.Count].W, w) {
 		return errorf(p.DontPanic, "conntest: unexpected write (count #%d) %#v != %#v", p.Count, w, p.Ops[p.Count].W)
