@@ -41,9 +41,9 @@ func TestDriverSkeleton(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Initial detection in New().
-			{Addr: 42, Write: []byte("in"), Read: []byte("IN")},
+			{Addr: 42, W: []byte("in"), R: []byte("IN")},
 			// Read().
-			{Addr: 42, Write: []byte("what"), Read: []byte("Hello world!")},
+			{Addr: 42, W: []byte("what"), R: []byte("Hello world!")},
 		},
 		DontPanic: true,
 	}
@@ -71,7 +71,7 @@ func TestDriverSkeleton_empty(t *testing.T) {
 func TestDriverSkeleton_init_failed(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
-			{Addr: 42, Write: []byte("in"), Read: []byte("xx")},
+			{Addr: 42, W: []byte("in"), R: []byte("xx")},
 		},
 	}
 	if dev, err := New(&bus); dev != nil || err == nil {

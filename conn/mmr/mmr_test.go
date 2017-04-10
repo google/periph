@@ -109,22 +109,22 @@ func TestDev8_ReadUint_Order_nil(t *testing.T) {
 
 func TestDev8_ReadUint(t *testing.T) {
 	r := []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10}
-	c := &conntest.Playback{Ops: []conntest.IO{{Write: []byte{34}, Read: r[:1]}}, D: conn.Half}
+	c := &conntest.Playback{Ops: []conntest.IO{{W: []byte{34}, R: r[:1]}}, D: conn.Half}
 	d := Dev8{Conn: c, Order: binary.BigEndian}
 	if v, err := d.ReadUint8(34); err != nil || v != 0x01 {
 		t.Fatal(v, err)
 	}
-	c = &conntest.Playback{Ops: []conntest.IO{{Write: []byte{34}, Read: r[:2]}}, D: conn.Half}
+	c = &conntest.Playback{Ops: []conntest.IO{{W: []byte{34}, R: r[:2]}}, D: conn.Half}
 	d = Dev8{Conn: c, Order: binary.BigEndian}
 	if v, err := d.ReadUint16(34); err != nil || v != d.Order.Uint16(r) {
 		t.Fatal(v, err)
 	}
-	c = &conntest.Playback{Ops: []conntest.IO{{Write: []byte{34}, Read: r[:4]}}, D: conn.Half}
+	c = &conntest.Playback{Ops: []conntest.IO{{W: []byte{34}, R: r[:4]}}, D: conn.Half}
 	d = Dev8{Conn: c, Order: binary.BigEndian}
 	if v, err := d.ReadUint32(34); err != nil || v != d.Order.Uint32(r) {
 		t.Fatal(v, err)
 	}
-	c = &conntest.Playback{Ops: []conntest.IO{{Write: []byte{34}, Read: r[:8]}}, D: conn.Half}
+	c = &conntest.Playback{Ops: []conntest.IO{{W: []byte{34}, R: r[:8]}}, D: conn.Half}
 	d = Dev8{Conn: c, Order: binary.BigEndian}
 	if v, err := d.ReadUint64(34); err != nil || v != d.Order.Uint64(r) {
 		t.Fatal(v, err)
@@ -159,7 +159,7 @@ func TestDev8_ReadStruct_Precond_Fail(t *testing.T) {
 }
 
 func TestDev8_ReadStruct_Decode_fail(t *testing.T) {
-	d := Dev8{Conn: &conntest.Playback{Ops: []conntest.IO{{Write: []byte{34}, Read: []byte{}}}, D: conn.Half}, Order: binary.LittleEndian}
+	d := Dev8{Conn: &conntest.Playback{Ops: []conntest.IO{{W: []byte{34}, R: []byte{}}}, D: conn.Half}, Order: binary.LittleEndian}
 	z := [0]int{}
 	if err := d.ReadStruct(34, &z); err == nil {
 		t.Fatal()
@@ -174,7 +174,7 @@ func TestDev8_ReadStruct_struct(t *testing.T) {
 	if err := binary.Write(&buf, binary.LittleEndian, packed{0x123456789abcdef0, 0x12345678, 0x1234, [2]uint8{0x12, 0x01}}); err != nil {
 		t.Fatal(err)
 	}
-	c := &conntest.Playback{Ops: []conntest.IO{{Write: []byte{34}, Read: buf.Bytes()}}, D: conn.Half}
+	c := &conntest.Playback{Ops: []conntest.IO{{W: []byte{34}, R: buf.Bytes()}}, D: conn.Half}
 	d := Dev8{Conn: c, Order: binary.LittleEndian}
 	p := &packed{}
 	if err := d.ReadStruct(34, p); err != nil {
@@ -195,7 +195,7 @@ func TestDev8_ReadStruct_struct(t *testing.T) {
 }
 
 func TestDev8_ReadStruct_slice(t *testing.T) {
-	c := &conntest.Playback{Ops: []conntest.IO{{Write: []byte{34}, Read: []byte{1, 2}}}, D: conn.Half}
+	c := &conntest.Playback{Ops: []conntest.IO{{W: []byte{34}, R: []byte{1, 2}}}, D: conn.Half}
 	d := Dev8{Conn: c, Order: binary.LittleEndian}
 	p := make([]uint8, 2)
 	if err := d.ReadStruct(34, p); err != nil {
@@ -227,22 +227,22 @@ func TestDev8_WriteUint_nil(t *testing.T) {
 }
 
 func TestDev8_WriteUint(t *testing.T) {
-	c := &conntest.Playback{Ops: []conntest.IO{{Write: []byte{34, 56}}}, D: conn.Half}
+	c := &conntest.Playback{Ops: []conntest.IO{{W: []byte{34, 56}}}, D: conn.Half}
 	d := Dev8{Conn: c, Order: binary.LittleEndian}
 	if err := d.WriteUint8(34, 56); err != nil {
 		t.Fatal(err)
 	}
-	c = &conntest.Playback{Ops: []conntest.IO{{Write: []byte{34, 0x78, 0x56}}}, D: conn.Half}
+	c = &conntest.Playback{Ops: []conntest.IO{{W: []byte{34, 0x78, 0x56}}}, D: conn.Half}
 	d = Dev8{Conn: c, Order: binary.LittleEndian}
 	if err := d.WriteUint16(34, 0x5678); err != nil {
 		t.Fatal(err)
 	}
-	c = &conntest.Playback{Ops: []conntest.IO{{Write: []byte{34, 0xbc, 0x9a, 0x78, 0x56}}}, D: conn.Half}
+	c = &conntest.Playback{Ops: []conntest.IO{{W: []byte{34, 0xbc, 0x9a, 0x78, 0x56}}}, D: conn.Half}
 	d = Dev8{Conn: c, Order: binary.LittleEndian}
 	if err := d.WriteUint32(34, 0x56789abc); err != nil {
 		t.Fatal(err)
 	}
-	c = &conntest.Playback{Ops: []conntest.IO{{Write: []byte{34, 0x34, 0x12, 0xf0, 0xde, 0xbc, 0x9a, 0x78, 0x56}}}, D: conn.Half}
+	c = &conntest.Playback{Ops: []conntest.IO{{W: []byte{34, 0x34, 0x12, 0xf0, 0xde, 0xbc, 0x9a, 0x78, 0x56}}}, D: conn.Half}
 	d = Dev8{Conn: c, Order: binary.LittleEndian}
 	if err := d.WriteUint64(34, 0x56789abcdef01234); err != nil {
 		t.Fatal(err)
@@ -285,7 +285,7 @@ func TestDev8_WriteStruct(t *testing.T) {
 	c := &conntest.Playback{
 		Ops: []conntest.IO{
 			{
-				Write: []byte{
+				W: []byte{
 					34,
 					0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0,
 					0x12, 0x34, 0x56, 0x78,
@@ -307,7 +307,7 @@ func TestDev8_WriteStruct_uint16(t *testing.T) {
 	c := &conntest.Playback{
 		Ops: []conntest.IO{
 			{
-				Write: []byte{
+				W: []byte{
 					34,
 					0x12, 0x34,
 				},
@@ -348,22 +348,22 @@ func TestDev16_ReadUint_Order_nil(t *testing.T) {
 
 func TestDev16_ReadUint(t *testing.T) {
 	r := []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10}
-	c := &conntest.Playback{Ops: []conntest.IO{{Write: []byte{0x12, 0x34}, Read: r[:1]}}, D: conn.Half}
+	c := &conntest.Playback{Ops: []conntest.IO{{W: []byte{0x12, 0x34}, R: r[:1]}}, D: conn.Half}
 	d := Dev16{Conn: c, Order: binary.BigEndian}
 	if v, err := d.ReadUint8(0x1234); err != nil || v != 0x01 {
 		t.Fatal(v, err)
 	}
-	c = &conntest.Playback{Ops: []conntest.IO{{Write: []byte{0, 34}, Read: r[:2]}}, D: conn.Half}
+	c = &conntest.Playback{Ops: []conntest.IO{{W: []byte{0, 34}, R: r[:2]}}, D: conn.Half}
 	d = Dev16{Conn: c, Order: binary.BigEndian}
 	if v, err := d.ReadUint16(34); err != nil || v != d.Order.Uint16(r) {
 		t.Fatal(v, err)
 	}
-	c = &conntest.Playback{Ops: []conntest.IO{{Write: []byte{0, 34}, Read: r[:4]}}, D: conn.Half}
+	c = &conntest.Playback{Ops: []conntest.IO{{W: []byte{0, 34}, R: r[:4]}}, D: conn.Half}
 	d = Dev16{Conn: c, Order: binary.BigEndian}
 	if v, err := d.ReadUint32(34); err != nil || v != d.Order.Uint32(r) {
 		t.Fatal(v, err)
 	}
-	c = &conntest.Playback{Ops: []conntest.IO{{Write: []byte{0, 34}, Read: r[:8]}}, D: conn.Half}
+	c = &conntest.Playback{Ops: []conntest.IO{{W: []byte{0, 34}, R: r[:8]}}, D: conn.Half}
 	d = Dev16{Conn: c, Order: binary.BigEndian}
 	if v, err := d.ReadUint64(34); err != nil || v != d.Order.Uint64(r) {
 		t.Fatal(v, err)
@@ -407,7 +407,7 @@ func TestDev16_ReadStruct_Precond_Fail(t *testing.T) {
 
 func TestDev16_ReadStruct_Decode_fail(t *testing.T) {
 	d := Dev16{
-		Conn:  &conntest.Playback{Ops: []conntest.IO{{Write: []byte{34}, Read: []byte{}}}, D: conn.Half, DontPanic: true},
+		Conn:  &conntest.Playback{Ops: []conntest.IO{{W: []byte{34}, R: []byte{}}}, D: conn.Half, DontPanic: true},
 		Order: binary.LittleEndian,
 	}
 	z := [0]int{}
@@ -421,7 +421,7 @@ func TestDev16_ReadStruct_struct(t *testing.T) {
 	if err := binary.Write(&buf, binary.LittleEndian, packed{0x123456789abcdef0, 0x12345678, 0x1234, [2]uint8{0x12, 0x01}}); err != nil {
 		t.Fatal(err)
 	}
-	c := &conntest.Playback{Ops: []conntest.IO{{Write: []byte{0x34, 0x12}, Read: buf.Bytes()}}, D: conn.Half}
+	c := &conntest.Playback{Ops: []conntest.IO{{W: []byte{0x34, 0x12}, R: buf.Bytes()}}, D: conn.Half}
 	d := Dev16{Conn: c, Order: binary.LittleEndian}
 	p := &packed{}
 	if err := d.ReadStruct(0x1234, p); err != nil {
@@ -449,7 +449,7 @@ func TestDev16_ReadStruct_fail(t *testing.T) {
 }
 
 func TestDev16_ReadStruct_slice(t *testing.T) {
-	c := &conntest.Playback{Ops: []conntest.IO{{Write: []byte{0x34, 0x12}, Read: []byte{1, 2}}}, D: conn.Half}
+	c := &conntest.Playback{Ops: []conntest.IO{{W: []byte{0x34, 0x12}, R: []byte{1, 2}}}, D: conn.Half}
 	d := Dev16{Conn: c, Order: binary.LittleEndian}
 	p := make([]uint8, 2)
 	if err := d.ReadStruct(0x1234, p); err != nil {
@@ -481,22 +481,22 @@ func TestDev16_WriteUint_nil(t *testing.T) {
 }
 
 func TestDev16_WriteUint(t *testing.T) {
-	c := &conntest.Playback{Ops: []conntest.IO{{Write: []byte{0x34, 0x12, 56}}}, D: conn.Half}
+	c := &conntest.Playback{Ops: []conntest.IO{{W: []byte{0x34, 0x12, 56}}}, D: conn.Half}
 	d := Dev16{Conn: c, Order: binary.LittleEndian}
 	if err := d.WriteUint8(0x1234, 56); err != nil {
 		t.Fatal(err)
 	}
-	c = &conntest.Playback{Ops: []conntest.IO{{Write: []byte{0x34, 0x12, 0x78, 0x56}}}, D: conn.Half}
+	c = &conntest.Playback{Ops: []conntest.IO{{W: []byte{0x34, 0x12, 0x78, 0x56}}}, D: conn.Half}
 	d = Dev16{Conn: c, Order: binary.LittleEndian}
 	if err := d.WriteUint16(0x1234, 0x5678); err != nil {
 		t.Fatal(err)
 	}
-	c = &conntest.Playback{Ops: []conntest.IO{{Write: []byte{0x34, 0x12, 0xbc, 0x9a, 0x78, 0x56}}}, D: conn.Half}
+	c = &conntest.Playback{Ops: []conntest.IO{{W: []byte{0x34, 0x12, 0xbc, 0x9a, 0x78, 0x56}}}, D: conn.Half}
 	d = Dev16{Conn: c, Order: binary.LittleEndian}
 	if err := d.WriteUint32(0x1234, 0x56789abc); err != nil {
 		t.Fatal(err)
 	}
-	c = &conntest.Playback{Ops: []conntest.IO{{Write: []byte{0x34, 0x12, 0x34, 0x12, 0xf0, 0xde, 0xbc, 0x9a, 0x78, 0x56}}}, D: conn.Half}
+	c = &conntest.Playback{Ops: []conntest.IO{{W: []byte{0x34, 0x12, 0x34, 0x12, 0xf0, 0xde, 0xbc, 0x9a, 0x78, 0x56}}}, D: conn.Half}
 	d = Dev16{Conn: c, Order: binary.LittleEndian}
 	if err := d.WriteUint64(0x1234, 0x56789abcdef01234); err != nil {
 		t.Fatal(err)
@@ -537,13 +537,14 @@ func TestDev16_WriteStruct_Precond_Fail(t *testing.T) {
 func TestDev16_WriteStruct(t *testing.T) {
 	c := &conntest.Playback{
 		Ops: []conntest.IO{
-			{Write: []byte{
-				0x12, 0x34,
-				0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0,
-				0x12, 0x34, 0x56, 0x78,
-				0x12, 0x34,
-				0x12, 0x01,
-			},
+			{
+				W: []byte{
+					0x12, 0x34,
+					0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0,
+					0x12, 0x34, 0x56, 0x78,
+					0x12, 0x34,
+					0x12, 0x01,
+				},
 			},
 		},
 		D: conn.Half,
@@ -559,7 +560,7 @@ func TestDev16_WriteStruct_uint16(t *testing.T) {
 	c := &conntest.Playback{
 		Ops: []conntest.IO{
 			{
-				Write: []byte{
+				W: []byte{
 					0x12, 0x34,
 					0x56, 0x78,
 				},

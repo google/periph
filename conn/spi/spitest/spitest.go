@@ -63,6 +63,11 @@ func (r *Record) String() string {
 
 // Tx implements spi.Conn.
 func (r *Record) Tx(w, read []byte) error {
+	io := conntest.IO{}
+	if len(w) != 0 {
+		io.W = make([]byte, len(w))
+		copy(io.W, w)
+	}
 	r.Lock()
 	defer r.Unlock()
 	if r.Conn == nil {
@@ -74,12 +79,10 @@ func (r *Record) Tx(w, read []byte) error {
 			return err
 		}
 	}
-	io := conntest.IO{Write: make([]byte, len(w))}
 	if len(read) != 0 {
-		io.Read = make([]byte, len(read))
+		io.R = make([]byte, len(read))
+		copy(io.R, read)
 	}
-	copy(io.Write, w)
-	copy(io.Read, read)
 	r.Ops = append(r.Ops, io)
 	return nil
 }

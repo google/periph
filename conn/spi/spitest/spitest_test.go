@@ -115,12 +115,7 @@ func TestPlayback(t *testing.T) {
 func TestPlayback_Tx_err(t *testing.T) {
 	p := Playback{
 		Playback: conntest.Playback{
-			Ops: []conntest.IO{
-				{
-					Write: []byte{10},
-					Read:  []byte{12},
-				},
-			},
+			Ops:       []conntest.IO{{W: []byte{10}, R: []byte{12}}},
 			DontPanic: true,
 		},
 	}
@@ -145,12 +140,7 @@ func TestPlayback_Tx_empty(t *testing.T) {
 func TestPlayback_Tx(t *testing.T) {
 	p := Playback{
 		Playback: conntest.Playback{
-			Ops: []conntest.IO{
-				{
-					Write: []byte{10},
-					Read:  []byte{12},
-				},
-			},
+			Ops: []conntest.IO{{W: []byte{10}, R: []byte{12}}},
 		},
 	}
 	v := [1]byte{}
@@ -169,12 +159,7 @@ func TestRecord_Playback(t *testing.T) {
 	r := Record{
 		Conn: &Playback{
 			Playback: conntest.Playback{
-				Ops: []conntest.IO{
-					{
-						Write: []byte{10},
-						Read:  []byte{12},
-					},
-				},
+				Ops:       []conntest.IO{{W: []byte{10}, R: []byte{12}}},
 				D:         conn.Full,
 				DontPanic: true,
 			},
@@ -225,12 +210,7 @@ func TestLog_Playback(t *testing.T) {
 	r := Log{
 		Conn: &Playback{
 			Playback: conntest.Playback{
-				Ops: []conntest.IO{
-					{
-						Write: []byte{10},
-						Read:  []byte{12},
-					},
-				},
+				Ops:       []conntest.IO{{W: []byte{10}, R: []byte{12}}},
 				D:         conn.Full,
 				DontPanic: true,
 			},

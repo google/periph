@@ -51,8 +51,8 @@ func (r *RecordRaw) Duplex() conn.Duplex {
 
 // IO registers the I/O that happened on either a real or fake connection.
 type IO struct {
-	Write []byte
-	Read  []byte
+	W []byte
+	R []byte
 }
 
 // Record implements conn.Conn that records everything written to it.
@@ -70,6 +70,11 @@ func (r *Record) String() string {
 
 // Tx implements conn.Conn.
 func (r *Record) Tx(w, read []byte) error {
+	io := IO{}
+	if len(w) != 0 {
+		io.W = make([]byte, len(w))
+		copy(io.W, w)
+	}
 	r.Lock()
 	defer r.Unlock()
 	if r.Conn == nil {
@@ -81,12 +86,10 @@ func (r *Record) Tx(w, read []byte) error {
 			return err
 		}
 	}
-	io := IO{Write: make([]byte, len(w))}
 	if len(read) != 0 {
-		io.Read = make([]byte, len(read))
+		io.R = make([]byte, len(read))
+		copy(io.R, read)
 	}
-	copy(io.Write, w)
-	copy(io.Read, read)
 	r.Ops = append(r.Ops, io)
 	return nil
 }
@@ -135,13 +138,13 @@ func (p *Playback) Tx(w, r []byte) error {
 	if len(p.Ops) <= p.Count {
 		return errorf(p.DontPanic, "conntest: unexpected Tx() (count #%d) W:%#v  R:%#v", p.Count, w, r)
 	}
-	if !bytes.Equal(p.Ops[p.Count].Write, w) {
-		return errorf(p.DontPanic, "conntest: unexpected write (count #%d) %#v != %#v", p.Count, w, p.Ops[p.Count].Write)
+	if !bytes.Equal(p.Ops[p.Count].W, w) {
+		return errorf(p.DontPanic, "conntest: unexpected write (count #%d) %#v != %#v", p.Count, w, p.Ops[p.Count].W)
 	}
-	if len(p.Ops[p.Count].Read) != len(r) {
-		return errorf(p.DontPanic, "conntest: unexpected read buffer length (count #%d) %d != %d", p.Count, len(r), len(p.Ops[p.Count].Read))
+	if len(p.Ops[p.Count].R) != len(r) {
+		return errorf(p.DontPanic, "conntest: unexpected read buffer length (count #%d) %d != %d", p.Count, len(r), len(p.Ops[p.Count].R))
 	}
-	copy(r, p.Ops[p.Count].Read)
+	copy(r, p.Ops[p.Count].R)
 	p.Count++
 	return nil
 }

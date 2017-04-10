@@ -80,9 +80,9 @@ func TestPlayback(t *testing.T) {
 	p := Playback{
 		Ops: []IO{
 			{
-				Write: []byte{0x55, 0x28, 0xac, 0x41, 0xe, 0x7, 0x0, 0x0, 0x74, 10, 11},
-				Read:  []byte{12, 13},
-				Pull:  onewire.WeakPullup,
+				W:    []byte{0x55, 0x28, 0xac, 0x41, 0xe, 0x7, 0x0, 0x0, 0x74, 10, 11},
+				R:    []byte{12, 13},
+				Pull: onewire.WeakPullup,
 			},
 		},
 		QPin:      &gpiotest.Pin{N: "Q"},
@@ -97,7 +97,7 @@ func TestPlayback(t *testing.T) {
 }
 
 func TestPlayback_Close_panic(t *testing.T) {
-	p := Playback{Ops: []IO{{Write: []byte{10}}}}
+	p := Playback{Ops: []IO{{W: []byte{10}}}}
 	defer func() {
 		v := recover()
 		err, ok := v.(error)
@@ -131,14 +131,14 @@ func TestRecord_Playback(t *testing.T) {
 		Bus: &Playback{
 			Ops: []IO{
 				{
-					Write: []byte{0x55, 0x28, 0xac, 0x41, 0xe, 0x7, 0x0, 0x0, 0x74, 10, 11},
-					Read:  []byte{12, 13},
-					Pull:  onewire.WeakPullup,
+					W:    []byte{0x55, 0x28, 0xac, 0x41, 0xe, 0x7, 0x0, 0x0, 0x74, 10, 11},
+					R:    []byte{12, 13},
+					Pull: onewire.WeakPullup,
 				},
 				{
-					Write: []byte{0x55, 0x28, 0xac, 0x41, 0xe, 0x7, 0x0, 0x0, 0x74, 20, 21},
-					Read:  []byte{22, 23},
-					Pull:  onewire.StrongPullup,
+					W:    []byte{0x55, 0x28, 0xac, 0x41, 0xe, 0x7, 0x0, 0x0, 0x74, 20, 21},
+					R:    []byte{22, 23},
+					Pull: onewire.StrongPullup,
 				},
 			},
 			QPin:      &gpiotest.Pin{N: "Q"},
@@ -208,7 +208,7 @@ func TestSearch(t *testing.T) {
 	// We're doing one search operation per device, plus a last one.
 	p.Ops = make([]IO, len(p.Devices)+1)
 	for i := 0; i < len(p.Ops); i++ {
-		p.Ops[i] = IO{Write: []byte{0xf0}, Pull: onewire.WeakPullup}
+		p.Ops[i] = IO{W: []byte{0xf0}, Pull: onewire.WeakPullup}
 	}
 
 	// Start search.

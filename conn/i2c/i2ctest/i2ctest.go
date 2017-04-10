@@ -16,9 +16,9 @@ import (
 
 // IO registers the I/O that happened on either a real or fake I²C bus.
 type IO struct {
-	Addr  uint16
-	Write []byte
-	Read  []byte
+	Addr uint16
+	W    []byte
+	R    []byte
 }
 
 // Record implements i2c.Bus that records everything written to it.
@@ -38,6 +38,11 @@ func (r *Record) String() string {
 
 // Tx implements i2c.Bus
 func (r *Record) Tx(addr uint16, w, read []byte) error {
+	io := IO{Addr: addr}
+	if len(w) != 0 {
+		io.W = make([]byte, len(w))
+		copy(io.W, w)
+	}
 	r.Lock()
 	defer r.Unlock()
 	if r.Bus == nil {
@@ -49,12 +54,10 @@ func (r *Record) Tx(addr uint16, w, read []byte) error {
 			return err
 		}
 	}
-	io := IO{Addr: addr, Write: make([]byte, len(w))}
 	if len(read) != 0 {
-		io.Read = make([]byte, len(read))
+		io.R = make([]byte, len(read))
+		copy(io.R, read)
 	}
-	copy(io.Write, w)
-	copy(io.Read, read)
 	r.Ops = append(r.Ops, io)
 	return nil
 }
@@ -125,13 +128,13 @@ func (p *Playback) Tx(addr uint16, w, r []byte) error {
 	if addr != p.Ops[p.Count].Addr {
 		return errorf(p.DontPanic, "i2ctest: unexpected addr (count #%d) %d != %d", p.Count, addr, p.Ops[p.Count].Addr)
 	}
-	if !bytes.Equal(p.Ops[p.Count].Write, w) {
-		return errorf(p.DontPanic, "i2ctest: unexpected write (count #%d) %#v != %#v", p.Count, w, p.Ops[p.Count].Write)
+	if !bytes.Equal(p.Ops[p.Count].W, w) {
+		return errorf(p.DontPanic, "i2ctest: unexpected write (count #%d) %#v != %#v", p.Count, w, p.Ops[p.Count].W)
 	}
-	if len(p.Ops[p.Count].Read) != len(r) {
-		return errorf(p.DontPanic, "i2ctest: unexpected read buffer length (count #%d) %d != %d", p.Count, len(r), len(p.Ops[p.Count].Read))
+	if len(p.Ops[p.Count].R) != len(r) {
+		return errorf(p.DontPanic, "i2ctest: unexpected read buffer length (count #%d) %d != %d", p.Count, len(r), len(p.Ops[p.Count].R))
 	}
-	copy(r, p.Ops[p.Count].Read)
+	copy(r, p.Ops[p.Count].R)
 	p.Count++
 	return nil
 }

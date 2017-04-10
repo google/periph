@@ -43,11 +43,11 @@ func Example() {
 func TestNew(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
-			{Addr: 0x18, Write: []byte{0xf0}},
-			{Addr: 0x18, Write: []byte{0xe1, 0xf0}, Read: []byte{0x18}},
-			{Addr: 0x18, Write: []byte{0xd2, 0xe1}, Read: []byte{0x1}},
-			{Addr: 0x18, Write: []byte{0xe1, 0xb4}},
-			{Addr: 0x18, Write: []byte{0xc3, 0x6, 0x26, 0x46, 0x66, 0x86}},
+			{Addr: 0x18, W: []byte{0xf0}},
+			{Addr: 0x18, W: []byte{0xe1, 0xf0}, R: []byte{0x18}},
+			{Addr: 0x18, W: []byte{0xd2, 0xe1}, R: []byte{0x1}},
+			{Addr: 0x18, W: []byte{0xe1, 0xb4}},
+			{Addr: 0x18, W: []byte{0xc3, 0x6, 0x26, 0x46, 0x66, 0x86}},
 		},
 	}
 	d, err := New(&bus, nil)
@@ -65,11 +65,11 @@ func TestNew(t *testing.T) {
 func TestNew_opts(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
-			{Addr: 0x18, Write: []byte{0xf0}},
-			{Addr: 0x18, Write: []byte{0xe1, 0xf0}, Read: []byte{0x18}},
-			{Addr: 0x18, Write: []byte{0xd2, 0xe1}, Read: []byte{0x1}},
-			{Addr: 0x18, Write: []byte{0xe1, 0xb4}},
-			{Addr: 0x18, Write: []byte{0xc3, 0x6, 0x26, 0x46, 0x66, 0x86}},
+			{Addr: 0x18, W: []byte{0xf0}},
+			{Addr: 0x18, W: []byte{0xe1, 0xf0}, R: []byte{0x18}},
+			{Addr: 0x18, W: []byte{0xd2, 0xe1}, R: []byte{0x1}},
+			{Addr: 0x18, W: []byte{0xe1, 0xb4}},
+			{Addr: 0x18, W: []byte{0xc3, 0x6, 0x26, 0x46, 0x66, 0x86}},
 		},
 	}
 	opts := &Opts{Addr: 0x18}
@@ -114,7 +114,7 @@ func TestRecordInit(t *testing.T) {
 	// Output the recording.
 	t.Logf("var ops = i2ctest.IO{\n")
 	for _, op := range i2cBus.Ops {
-		t.Logf("  {Addr: %#x, Write: %#v, Read: %#v},\n", op.Addr, op.Write, op.Read)
+		t.Logf("  {Addr: %#x, W: %#v, R: %#v},\n", op.Addr, op.W, op.R)
 	}
 	t.Logf("}\n")
 }

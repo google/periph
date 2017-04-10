@@ -75,15 +75,15 @@ func (s *SmokeTest) Run(args []string) (err error) {
 		fmt.Print("I²C recorder\n")
 	}
 	for _, op := range i2cRecorder.Ops {
-		fmt.Print("  Write: ")
-		for i, b := range op.Write {
+		fmt.Print("  W: ")
+		for i, b := range op.W {
 			if i != 0 {
 				fmt.Print(", ")
 			}
 			fmt.Printf("0x%02X", b)
 		}
-		fmt.Print("\n   Read: ")
-		for i, b := range op.Read {
+		fmt.Print("\n   R: ")
+		for i, b := range op.R {
 			if i != 0 {
 				fmt.Print(", ")
 			}
@@ -93,12 +93,12 @@ func (s *SmokeTest) Run(args []string) (err error) {
 	}
 	fmt.Print("\nSPI recorder\n")
 	for _, op := range spiRecorder.Ops {
-		fmt.Print("  Write: ")
-		if len(op.Read) != 0 {
+		fmt.Print("  W: ")
+		if len(op.R) != 0 {
 			// Read data.
-			fmt.Printf("0x%02X\n   Read: ", op.Write[0])
+			fmt.Printf("0x%02X\n   R: ", op.W[0])
 			// first byte is dummy.
-			for i, b := range op.Read[1:] {
+			for i, b := range op.R[1:] {
 				if i != 0 {
 					fmt.Print(", ")
 				}
@@ -106,13 +106,13 @@ func (s *SmokeTest) Run(args []string) (err error) {
 			}
 		} else {
 			// Write-only command.
-			for i, b := range op.Write {
+			for i, b := range op.W {
 				if i != 0 {
 					fmt.Print(", ")
 				}
 				fmt.Printf("0x%02X", b)
 			}
-			fmt.Print("\n   Read: ")
+			fmt.Print("\n   R: ")
 		}
 		fmt.Print("\n")
 	}

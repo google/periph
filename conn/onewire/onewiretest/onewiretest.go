@@ -16,9 +16,9 @@ import (
 
 // IO registers the I/O that happened on either a real or fake 1-wire bus.
 type IO struct {
-	Write []byte
-	Read  []byte
-	Pull  onewire.Pullup
+	W    []byte
+	R    []byte
+	Pull onewire.Pullup
 }
 
 // Record implements onewire.Bus that records everything written to it.
@@ -36,6 +36,11 @@ func (r *Record) String() string {
 
 // Tx implements onewire.Bus.
 func (r *Record) Tx(w, read []byte, pull onewire.Pullup) error {
+	io := IO{Pull: pull}
+	if len(w) != 0 {
+		io.W = make([]byte, len(w))
+		copy(io.W, w)
+	}
 	r.Lock()
 	defer r.Unlock()
 	if r.Bus == nil {
@@ -47,12 +52,10 @@ func (r *Record) Tx(w, read []byte, pull onewire.Pullup) error {
 			return err
 		}
 	}
-	io := IO{Write: make([]byte, len(w)), Pull: pull}
 	if len(read) != 0 {
-		io.Read = make([]byte, len(read))
-		copy(io.Read, read)
+		io.R = make([]byte, len(read))
+		copy(io.R, read)
 	}
-	copy(io.Write, w)
 	r.Ops = append(r.Ops, io)
 	return nil
 }
@@ -115,11 +118,11 @@ func (p *Playback) Tx(w, r []byte, pull onewire.Pullup) error {
 	if len(p.Ops) <= p.Count {
 		return errorf(p.DontPanic, "onewiretest: unexpected Tx() (count #%d) W:%#v  R:%#v", p.Count, w, r)
 	}
-	if !bytes.Equal(p.Ops[p.Count].Write, w) {
-		return errorf(p.DontPanic, "onewiretest: unexpected write (count #%d) %#v != %#v", p.Count, w, p.Ops[p.Count].Write)
+	if !bytes.Equal(p.Ops[p.Count].W, w) {
+		return errorf(p.DontPanic, "onewiretest: unexpected write (count #%d) %#v != %#v", p.Count, w, p.Ops[p.Count].W)
 	}
-	if len(p.Ops[p.Count].Read) != len(r) {
-		return errorf(p.DontPanic, "onewiretest: unexpected read buffer length (count #%d) %d != %d", p.Count, len(r), len(p.Ops[p.Count].Read))
+	if len(p.Ops[p.Count].R) != len(r) {
+		return errorf(p.DontPanic, "onewiretest: unexpected read buffer length (count #%d) %d != %d", p.Count, len(r), len(p.Ops[p.Count].R))
 	}
 	if pull != p.Ops[p.Count].Pull {
 		return errorf(p.DontPanic, "onewiretest: unexpected pullup (count #%d) %s != %s", p.Count, pull, p.Ops[p.Count].Pull)
@@ -130,7 +133,7 @@ func (p *Playback) Tx(w, r []byte, pull onewire.Pullup) error {
 		p.inactive = make([]bool, len(p.Devices))
 	}
 	// Concoct response.
-	copy(r, p.Ops[p.Count].Read)
+	copy(r, p.Ops[p.Count].R)
 	p.Count++
 	return nil
 }

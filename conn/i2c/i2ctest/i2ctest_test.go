@@ -76,7 +76,7 @@ func TestPlayback(t *testing.T) {
 }
 
 func TestPlayback_Close_panic(t *testing.T) {
-	p := Playback{Ops: []IO{{Write: []byte{10}}}}
+	p := Playback{Ops: []IO{{W: []byte{10}}}}
 	defer func() {
 		v := recover()
 		err, ok := v.(error)
@@ -95,9 +95,9 @@ func TestPlayback_Tx(t *testing.T) {
 	p := Playback{
 		Ops: []IO{
 			{
-				Addr:  23,
-				Write: []byte{10},
-				Read:  []byte{12},
+				Addr: 23,
+				W:    []byte{10},
+				R:    []byte{12},
 			},
 		},
 		DontPanic: true,
@@ -134,9 +134,9 @@ func TestRecord_Playback(t *testing.T) {
 		Bus: &Playback{
 			Ops: []IO{
 				{
-					Addr:  23,
-					Write: []byte{10},
-					Read:  []byte{12},
+					Addr: 23,
+					W:    []byte{10},
+					R:    []byte{12},
 				},
 			},
 			DontPanic: true,

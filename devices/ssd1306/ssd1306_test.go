@@ -107,9 +107,9 @@ func TestI2C_Draw_VerticalLSD_fast(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Startup initialization.
-			{Addr: 0x3c, Write: initCmdI2C()},
+			{Addr: 0x3c, W: initCmdI2C()},
 			// Actual draw buffer.
-			{Addr: 0x3c, Write: buf},
+			{Addr: 0x3c, W: buf},
 		},
 	}
 	dev, err := NewI2C(&bus, 128, 64, false)
@@ -135,13 +135,13 @@ func TestI2C_Halt_Write(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Startup initialization.
-			{Addr: 0x3c, Write: initCmdI2C()},
+			{Addr: 0x3c, W: initCmdI2C()},
 			// Halt()
-			{Addr: 0x3c, Write: []byte{0x0, 0xae}},
+			{Addr: 0x3c, W: []byte{0x0, 0xae}},
 			// transparent resume
-			{Addr: 0x3c, Write: []byte{0x0, 0xaf}},
+			{Addr: 0x3c, W: []byte{0x0, 0xaf}},
 			// Actual draw buffer.
-			{Addr: 0x3c, Write: buf},
+			{Addr: 0x3c, W: buf},
 		},
 	}
 	dev, err := NewI2C(&bus, 128, 64, false)
@@ -165,9 +165,9 @@ func TestI2C_Halt_resume_fail(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Startup initialization.
-			{Addr: 0x3c, Write: initCmdI2C()},
+			{Addr: 0x3c, W: initCmdI2C()},
 			// Halt()
-			{Addr: 0x3c, Write: []byte{0x0, 0xae}},
+			{Addr: 0x3c, W: []byte{0x0, 0xae}},
 		},
 		DontPanic: true,
 	}
@@ -190,7 +190,7 @@ func TestI2C_Write_invalid_size(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Startup initialization.
-			{Addr: 0x3c, Write: initCmdI2C()},
+			{Addr: 0x3c, W: initCmdI2C()},
 		},
 	}
 	dev, err := NewI2C(&bus, 128, 64, false)
@@ -209,7 +209,7 @@ func TestI2C_Write_fail(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Startup initialization.
-			{Addr: 0x3c, Write: initCmdI2C()},
+			{Addr: 0x3c, W: initCmdI2C()},
 		},
 		DontPanic: true,
 	}
@@ -229,7 +229,7 @@ func TestI2C_Draw_fail(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Startup initialization.
-			{Addr: 0x3c, Write: initCmdI2C()},
+			{Addr: 0x3c, W: initCmdI2C()},
 		},
 		DontPanic: true,
 	}
@@ -250,9 +250,9 @@ func TestI2C_DrawGray(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Startup initialization.
-			{Addr: 0x3c, Write: initCmdI2C()},
+			{Addr: 0x3c, W: initCmdI2C()},
 			// Actual draw buffer.
-			{Addr: 0x3c, Write: append([]byte{i2cData}, grayCheckboard()...)},
+			{Addr: 0x3c, W: append([]byte{i2cData}, grayCheckboard()...)},
 		},
 	}
 	dev, err := NewI2C(&bus, 128, 64, false)
@@ -276,13 +276,13 @@ func TestI2C_DrawGray(t *testing.T) {
 func TestI2C_Scroll(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
-			{Addr: 0x3c, Write: initCmdI2C()},
+			{Addr: 0x3c, W: initCmdI2C()},
 			// Scroll Left.
-			{Addr: 0x3c, Write: []byte{0x0, 0x27, 0x0, 0x0, 0x6, 0x7, 0x0, 0xff, 0x2f}},
+			{Addr: 0x3c, W: []byte{0x0, 0x27, 0x0, 0x0, 0x6, 0x7, 0x0, 0xff, 0x2f}},
 			// Scroll UpRight.
-			{Addr: 0x3c, Write: []byte{0x0, 0x29, 0x0, 0x0, 0x6, 0x0, 0x1, 0x2f}},
+			{Addr: 0x3c, W: []byte{0x0, 0x29, 0x0, 0x0, 0x6, 0x0, 0x1, 0x2f}},
 			// StopScroll.
-			{Addr: 0x3c, Write: []byte{0x0, 0x2e}},
+			{Addr: 0x3c, W: []byte{0x0, 0x2e}},
 		},
 	}
 	dev, err := NewI2C(&bus, 128, 64, false)
@@ -315,10 +315,10 @@ func TestI2C_Scroll(t *testing.T) {
 func TestI2C_SetContrast(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
-			{Addr: 0x3c, Write: initCmdI2C()},
-			{Addr: 0x3c, Write: []byte{0x0, 0x81, 0x0}},
-			{Addr: 0x3c, Write: []byte{0x0, 0x81, 0x7f}},
-			{Addr: 0x3c, Write: []byte{0x0, 0x81, 0xff}},
+			{Addr: 0x3c, W: initCmdI2C()},
+			{Addr: 0x3c, W: []byte{0x0, 0x81, 0x0}},
+			{Addr: 0x3c, W: []byte{0x0, 0x81, 0x7f}},
+			{Addr: 0x3c, W: []byte{0x0, 0x81, 0xff}},
 		},
 	}
 	dev, err := NewI2C(&bus, 128, 64, false)
@@ -342,13 +342,13 @@ func TestI2C_SetContrast(t *testing.T) {
 func TestI2C_Invert_Halt_resume(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
-			{Addr: 0x3c, Write: initCmdI2C()},
+			{Addr: 0x3c, W: initCmdI2C()},
 			// Invert(true)
-			{Addr: 0x3c, Write: []byte{0x0, 0xa7}},
+			{Addr: 0x3c, W: []byte{0x0, 0xa7}},
 			// Halt()
-			{Addr: 0x3c, Write: []byte{0x0, 0xae}},
+			{Addr: 0x3c, W: []byte{0x0, 0xae}},
 			// transparent resume + Invert(false)
-			{Addr: 0x3c, Write: []byte{0x0, 0xaf, 0xa6}},
+			{Addr: 0x3c, W: []byte{0x0, 0xaf, 0xa6}},
 		},
 	}
 	dev, err := NewI2C(&bus, 128, 64, false)
@@ -372,11 +372,11 @@ func TestI2C_Invert_Halt_resume(t *testing.T) {
 func TestI2C_Halt(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
-			{Addr: 0x3c, Write: initCmdI2C()},
+			{Addr: 0x3c, W: initCmdI2C()},
 			// Halt()
-			{Addr: 0x3c, Write: []byte{0x0, 0xae}},
+			{Addr: 0x3c, W: []byte{0x0, 0xae}},
 			// transparent resume + StopScroll()
-			{Addr: 0x3c, Write: []byte{0x0, 0xaf, 0x2e}},
+			{Addr: 0x3c, W: []byte{0x0, 0xaf, 0x2e}},
 		},
 		DontPanic: true,
 	}
@@ -422,7 +422,7 @@ func TestSPI_3wire(t *testing.T) {
 func TestSPI_4wire_String(t *testing.T) {
 	bus := spitest.Playback{
 		Playback: conntest.Playback{
-			Ops: []conntest.IO{{Write: getInitCmd(128, 64, false)}},
+			Ops: []conntest.IO{{W: getInitCmd(128, 64, false)}},
 		},
 	}
 	dev, err := NewSPI(&bus, &gpiotest.Pin{N: "pin1", Num: 42}, 128, 64, false)
@@ -447,11 +447,11 @@ func TestSPI_4wire_Write_differential(t *testing.T) {
 	bus := spitest.Playback{
 		Playback: conntest.Playback{
 			Ops: []conntest.IO{
-				{Write: getInitCmd(128, 64, false)},
-				{Write: buf1},
+				{W: getInitCmd(128, 64, false)},
+				{W: buf1},
 				// Reset to write only to the first page.
-				{Write: []byte{0x21, 0x0, 0x7f, 0x22, 0x1, 0x1}},
-				{Write: buf2},
+				{W: []byte{0x21, 0x0, 0x7f, 0x22, 0x1, 0x1}},
+				{W: buf2},
 			},
 		},
 	}
@@ -479,8 +479,8 @@ func TestSPI_4wire_Write_differential_fail(t *testing.T) {
 	bus := spitest.Playback{
 		Playback: conntest.Playback{
 			Ops: []conntest.IO{
-				{Write: getInitCmd(128, 64, false)},
-				{Write: buf1},
+				{W: getInitCmd(128, 64, false)},
+				{W: buf1},
 			},
 			DontPanic: true,
 		},
@@ -506,9 +506,7 @@ func TestSPI_4wire_Write_differential_fail(t *testing.T) {
 func TestSPI_4wire_gpio_fail(t *testing.T) {
 	bus := spitest.Playback{
 		Playback: conntest.Playback{
-			Ops: []conntest.IO{
-				{Write: getInitCmd(128, 64, false)},
-			},
+			Ops: []conntest.IO{{W: getInitCmd(128, 64, false)}},
 		},
 	}
 	pin := &failPin{fail: false}
@@ -543,7 +541,7 @@ func getI2CPlayback() *i2ctest.Playback {
 	return &i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Startup initialization.
-			{Addr: 0x3c, Write: initCmdI2C()},
+			{Addr: 0x3c, W: initCmdI2C()},
 		},
 	}
 }
