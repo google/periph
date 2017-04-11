@@ -303,7 +303,7 @@ func readReg(c conn.Conn, order binary.ByteOrder, reg []byte, b interface{}) err
 	}
 	v := reflect.ValueOf(b)
 	if !isAcceptableRead(v.Type()) {
-		return fmt.Errorf("reg: ReadRegStruct() requires a slice or a pointer to a int or struct, got %s", v.Kind())
+		return fmt.Errorf("reg: ReadRegStruct() requires a slice or a pointer to a int or struct, got %s as %T", v.Kind(), b)
 	}
 	buf := make([]byte, int(getSize(v)))
 	if err := c.Tx(reg, buf); err != nil {
@@ -324,7 +324,7 @@ func writeReg(c conn.Conn, order binary.ByteOrder, reg []byte, b interface{}) er
 	}
 	t := reflect.TypeOf(b)
 	if !isAcceptableWrite(t) {
-		return fmt.Errorf("reg: WriteRegStruct() requires a slice or a pointer to a int or struct, got %s", t.Kind())
+		return fmt.Errorf("reg: WriteRegStruct() requires a slice or a pointer to a int or struct, got %s as %T", t.Kind(), b)
 	}
 	buf := bytes.NewBuffer(reg)
 	if err := binary.Write(buf, order, b); err != nil {
