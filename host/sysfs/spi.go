@@ -70,7 +70,7 @@ func newSPI(busNumber, chipSelect int) (*SPI, error) {
 	// Use the devfs path for now.
 	f, err := os.OpenFile(fmt.Sprintf("/dev/spidev%d.%d", busNumber, chipSelect), os.O_RDWR, os.ModeExclusive)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("sysfs-spi: %v", err)
 	}
 	return &SPI{f: &file{f}, busNumber: busNumber, chipSelect: chipSelect}, nil
 }
@@ -135,13 +135,16 @@ func (s *SPI) DevParams(maxHz int64, mode spi.Mode, bits int) error {
 	}
 	// Only the first 8 bits are used. This only works because the system is
 	// running in little endian.
-	return s.setFlag(spiIOCMode, uint64(m))
+	if err := s.setFlag(spiIOCMode, uint64(m)); err != nil {
+		return fmt.Errorf("sysfs-spi: setting mode %s failed: %v", mode, err)
+	}
+	return nil
 }
 
 // Read implements io.Reader.
 func (s *SPI) Read(b []byte) (int, error) {
 	if len(b) == 0 {
-		return 0, errors.New("Read() with empty buffer")
+		return 0, errors.New("sysfs-spi: Read() with empty buffer")
 	}
 	return s.txInternal(nil, b)
 }
@@ -149,7 +152,7 @@ func (s *SPI) Read(b []byte) (int, error) {
 // Write implements io.Writer.
 func (s *SPI) Write(b []byte) (int, error) {
 	if len(b) == 0 {
-		return 0, errors.New("Write() with empty buffer")
+		return 0, errors.New("sysfs-spi: Write() with empty buffer")
 	}
 	return s.txInternal(b, nil)
 }
@@ -164,11 +167,11 @@ func (s *SPI) Write(b []byte) (int, error) {
 func (s *SPI) Tx(w, r []byte) error {
 	if len(w) == 0 {
 		if len(r) == 0 {
-			return errors.New("Tx with empty buffers")
+			return errors.New("sysfs-spi: Tx with empty buffers")
 		}
 	} else {
 		if len(r) != 0 && len(w) != len(r) {
-			return errors.New("Tx with zero or non-equal length w&r slices")
+			return errors.New("sysfs-spi: Tx with zero or non-equal length w&r slices")
 		}
 	}
 	_, err := s.txInternal(w, r)
@@ -236,7 +239,10 @@ func (s *SPI) TxPackets(p []spi.Packet) error {
 			m[i].length = uint32(lR)
 		}
 	}
-	return s.f.ioctl(spiIOCTx(len(m)), unsafe.Pointer(&m[0]))
+	if err := s.f.ioctl(spiIOCTx(len(m)), unsafe.Pointer(&m[0])); err != nil {
+		return fmt.Errorf("sysfs-spi: TxPackets(%d) packets failed: %v", len(m), err)
+	}
+	return nil
 }
 
 // Duplex implements spi.Conn.
@@ -317,7 +323,7 @@ func (s *SPI) txInternal(w, r []byte) (int, error) {
 		m.length = uint32(l)
 	}
 	if err := s.f.ioctl(spiIOCTx(1), unsafe.Pointer(&m)); err != nil {
-		return 0, err
+		return 0, fmt.Errorf("sysfs-spi: I/O failed: %v", err)
 	}
 	return l, nil
 }
@@ -525,10 +531,7 @@ type file struct {
 }
 
 func (f *file) ioctl(op uint, arg unsafe.Pointer) error {
-	if err := ioctl(f.Fd(), op, uintptr(arg)); err != nil {
-		return fmt.Errorf("sysfs-spi: ioctl: %v", err)
-	}
-	return nil
+	return ioctl(f.Fd(), op, uintptr(arg))
 }
 
 func init() {
