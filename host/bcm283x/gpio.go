@@ -687,14 +687,20 @@ func (d *driverGPIO) Init() (bool, error) {
 }
 
 func setSpeed(hz int64) error {
-	b := []byte(strconv.FormatInt(hz, 10))
-	f, err := os.OpenFile("/sys/module/i2c_bcm2708/parameters/baudrate", os.O_WRONLY, 0666)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	_, err = f.Write(b)
-	return err
+	// Writing to "/sys/module/i2c_bcm2708/parameters/baudrate" was confirmed to
+	// not work.
+	// modprobe hangs when a bus is opened, so this must be called *before* the
+	// bus is opened.
+	// TL;DR: we can't do anything here.
+	/*
+		if err := exec.Command("modprobe", "-r", "i2c_bcm2708").Run(); err != nil {
+			return fmt.Errorf("bcm283x: failed to unload driver i2c_bcm2708: %v", err)
+		}
+		if err := exec.Command("modprobe", "i2c_bcm2708", "baudrate=600000"); err != nil {
+			return fmt.Errorf("bcm283x: failed to reload driver i2c_bcm2708: %v", err)
+		}
+	*/
+	return errors.New("bcm283x: to change the I²C bus speed, please refer to https://periph.io/platform/raspberrypi/#i²c")
 }
 
 func init() {
