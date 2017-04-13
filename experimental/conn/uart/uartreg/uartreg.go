@@ -2,35 +2,36 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package uartreg is a registry of all UART ports found on the hos.
+// Package uartreg defines the UART registry for UART ports discovered on the
+// host.
 package uartreg
 
 import (
-	"errors"
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 
 	"periph.io/x/periph/experimental/conn/uart"
 )
 
-// Opener opens an handle to a bus.
+// Opener opens an handle to a port.
 //
-// It is provided by the actual bus driver.
+// It is provided by the actual port driver.
 type Opener func() (uart.ConnCloser, error)
 
 // Ref references an UART port.
 //
-// It is returned by All() to enumerate all registered buses.
+// It is returned by All() to enumerate all registered ports.
 type Ref struct {
-	// Name of the bus.
+	// Name of the port.
 	//
 	// It must not be a sole number. It must be unique across the host.
 	Name string
-	// Aliases are the alternative names that can be used to reference this bus.
+	// Aliases are the alternative names that can be used to reference this port.
 	Aliases []string
-	// Number of the bus or -1 if the bus doesn't have any "native" number.
+	// Number of the port or -1 if the port doesn't have any "native" number.
 	//
 	// Buses provided by the CPU normally have a 0 based number. Buses provided
 	// via an addon (like over USB) generally are not numbered.
@@ -42,19 +43,20 @@ type Ref struct {
 // Open opens an UART port by its name, an alias or its number and returns an
 // handle to it.
 //
-// Specify the empty string "" to get the first available bus. This is the
-// recommended default value unless an application knows the exact bus to use.
+// Specify the empty string "" to get the first available port. This is the
+// recommended default value unless an application knows the exact port to use.
 //
-// Each bus can register multiple aliases, each leading to the same bus handle.
+// Each port can register multiple aliases, each leading to the same port
+// handle.
 //
 // "Bus number" is a generic concept that is highly dependent on the platform
-// and OS. On some platform, the first bus may have the number 0, 1 or as high
+// and OS. On some platform, the first port may have the number 0, 1 or as high
 // as 32766. Bus numbers are not necessarily continuous and may not start at 0.
-// It was observed that the bus number as reported by the OS may change across
+// It was observed that the port number as reported by the OS may change across
 // OS revisions.
 //
-// When the UART port is provided by an off board plug and play bus like
-// USB via an FT232R USB device, there can be no associated number.
+// When the UART port is provided by an off board plug and play bus like USB
+// via a FT232R USB device, there can be no associated number.
 func Open(name string) (uart.ConnCloser, error) {
 	var r *Ref
 	var err error
@@ -62,12 +64,11 @@ func Open(name string) (uart.ConnCloser, error) {
 		mu.Lock()
 		defer mu.Unlock()
 		if len(byName) == 0 {
-			err = errors.New("uart: no bus found; did you forget to call Init()?")
+			err = wrapf("no port found; did you forget to call Init()?")
 			return
 		}
 		if len(name) == 0 {
-			// Asking for the default bus.
-			r = defaultBus()
+			r = getDefault()
 			return
 		}
 		// Try by name, by alias, by number.
@@ -83,7 +84,7 @@ func Open(name string) (uart.ConnCloser, error) {
 		return nil, err
 	}
 	if r == nil {
-		return nil, fmt.Errorf("uart: unknown bus %q", name)
+		return nil, wrapf("can't open unknown port: %q", name)
 	}
 	return r.Open()
 }
@@ -91,7 +92,7 @@ func Open(name string) (uart.ConnCloser, error) {
 // All returns a copy of all the registered references to all know UART ports
 // available on this host.
 //
-// The list is sorted by the bus name.
+// The list is sorted by the port name.
 func All() []*Ref {
 	var out refList
 	func() {
@@ -110,55 +111,61 @@ func All() []*Ref {
 
 // Register registers an UART port.
 //
-// Registering the same bus name twice is an error, e.g. o.Name(). o.Number()
-// can be -1 to signify that the bus doesn't have an inherent "bus number". A
-// good example is a bus provided over a FT232H device connected on an USB bus.
-// In this case, the bus name should be created from the serial number of the
+// Registering the same port name twice is an error, e.g. o.Name(). o.Number()
+// can be -1 to signify that the port doesn't have an inherent "port number". A
+// good example is a port provided over a FT232R device connected on an USB bus.
+// In this case, the port name should be created from the serial number of the
 // device for unique identification.
 func Register(name string, aliases []string, number int, o Opener) error {
+	if len(name) == 0 {
+		return wrapf("can't register a port with no name")
+	}
 	if o == nil {
-		return errors.New("uart: nil Opener")
+		return wrapf("can't register port %q with nil Opener", name)
 	}
 	if number < -1 {
-		return errors.New("uart: invalid bus number")
-	}
-	if len(name) == 0 {
-		return errors.New("uart: empty name")
+		return wrapf("can't register port %q with invalid port number %d", name, number)
 	}
 	if _, err := strconv.Atoi(name); err == nil {
-		return fmt.Errorf("uart: can't register an alias being only a number %q", name)
+		return wrapf("can't register port %q with name being only a number", name)
+	}
+	if strings.Contains(name, ":") {
+		return wrapf("can't register port %q with name containing ':'", name)
 	}
 	for _, alias := range aliases {
 		if len(alias) == 0 {
-			return errors.New("uart: empty alias")
+			return wrapf("can't register port %q with an empty alias", name)
 		}
 		if name == alias {
-			return errors.New("uart: alias of the same name than the bus itself")
+			return wrapf("can't register port %q with an alias the same as the port name", name)
 		}
 		if _, err := strconv.Atoi(alias); err == nil {
-			return fmt.Errorf("uart: can't register an alias being only a number %q", alias)
+			return wrapf("can't register port %q with an alias that is a number: %q", name, alias)
+		}
+		if strings.Contains(alias, ":") {
+			return wrapf("can't register port %q with an alias containing ':': %q", name, alias)
 		}
 	}
 
 	mu.Lock()
 	defer mu.Unlock()
 	if _, ok := byName[name]; ok {
-		return fmt.Errorf("uart: registering the same bus %q twice", name)
+		return wrapf("can't register port %q twice", name)
 	}
 	if _, ok := byAlias[name]; ok {
-		return fmt.Errorf("uart: registering the same bus %q twice", name)
+		return wrapf("can't register port %q twice; it is already an alias", name)
 	}
 	if number != -1 {
 		if _, ok := byNumber[number]; ok {
-			return fmt.Errorf("uart: registering the same bus %d twice", number)
+			return wrapf("can't register port %q; port number %d is already registered", name, number)
 		}
 	}
 	for _, alias := range aliases {
 		if _, ok := byName[alias]; ok {
-			return fmt.Errorf("uart: registering the same bus %q twice", alias)
+			return wrapf("can't register port %q twice; alias %q is already a port", name, alias)
 		}
 		if _, ok := byAlias[alias]; ok {
-			return fmt.Errorf("uart: registering the same bus %q twice", alias)
+			return wrapf("can't register port %q twice; alias %q is already an alias", name, alias)
 		}
 	}
 
@@ -183,7 +190,7 @@ func Unregister(name string) error {
 	defer mu.Unlock()
 	r := byName[name]
 	if r == nil {
-		return fmt.Errorf("uart: unknown bus name %q", name)
+		return wrapf("can't unregister unknown port name %q", name)
 	}
 	delete(byName, name)
 	delete(byNumber, r.Number)
@@ -203,7 +210,8 @@ var (
 	byAlias  = map[string]*Ref{}
 )
 
-func defaultBus() *Ref {
+// getDefault returns the Ref that should be used as the default port.
+func getDefault() *Ref {
 	var o *Ref
 	if len(byNumber) == 0 {
 		// Fallback to use byName using a lexical sort.
@@ -216,14 +224,19 @@ func defaultBus() *Ref {
 		}
 		return o
 	}
-	busNumber := int((^uint(0)) >> 1)
+	number := int((^uint(0)) >> 1)
 	for n, o2 := range byNumber {
-		if busNumber > n {
-			busNumber = n
+		if number > n {
+			number = n
 			o = o2
 		}
 	}
 	return o
+}
+
+// wrapf returns an error that is wrapped with the package name.
+func wrapf(format string, a ...interface{}) error {
+	return fmt.Errorf("uartreg: "+format, a...)
 }
 
 type refList []*Ref

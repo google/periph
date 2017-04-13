@@ -6,10 +6,10 @@
 package i2creg
 
 import (
-	"errors"
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 
 	"periph.io/x/periph/conn/i2c"
@@ -54,7 +54,7 @@ type Ref struct {
 // revisions.
 //
 // When the I²C bus is provided by an off board plug and play bus like USB via
-// an FT232H USB device, there can be no associated number.
+// a FT232H USB device, there can be no associated number.
 func Open(name string) (i2c.BusCloser, error) {
 	var r *Ref
 	var err error
@@ -62,12 +62,11 @@ func Open(name string) (i2c.BusCloser, error) {
 		mu.Lock()
 		defer mu.Unlock()
 		if len(byName) == 0 {
-			err = errors.New("i2c: no bus found; did you forget to call Init()?")
+			err = wrapf("no bus found; did you forget to call Init()?")
 			return
 		}
 		if len(name) == 0 {
-			// Asking for the default bus.
-			r = defaultBus()
+			r = getDefault()
 			return
 		}
 		// Try by name, by alias, by number.
@@ -83,7 +82,7 @@ func Open(name string) (i2c.BusCloser, error) {
 		return nil, err
 	}
 	if r == nil {
-		return nil, fmt.Errorf("i2c: unknown bus %q", name)
+		return nil, wrapf("can't open unknown bus: %q", name)
 	}
 	return r.Open()
 }
@@ -116,49 +115,55 @@ func All() []*Ref {
 // In this case, the bus name should be created from the serial number of the
 // device for unique identification.
 func Register(name string, aliases []string, number int, o Opener) error {
+	if len(name) == 0 {
+		return wrapf("can't register a bus with no name")
+	}
 	if o == nil {
-		return errors.New("i2c: nil Opener")
+		return wrapf("can't register bus %q with nil Opener", name)
 	}
 	if number < -1 {
-		return errors.New("i2c: invalid bus number")
-	}
-	if len(name) == 0 {
-		return errors.New("i2c: empty name")
+		return wrapf("can't register bus %q with invalid bus number %d", name, number)
 	}
 	if _, err := strconv.Atoi(name); err == nil {
-		return fmt.Errorf("i2c: can't register an alias being only a number %q", name)
+		return wrapf("can't register bus %q with name being only a number", name)
+	}
+	if strings.Contains(name, ":") {
+		return wrapf("can't register bus %q with name containing ':'", name)
 	}
 	for _, alias := range aliases {
 		if len(alias) == 0 {
-			return errors.New("i2c: empty alias")
+			return wrapf("can't register bus %q with an empty alias", name)
 		}
 		if name == alias {
-			return errors.New("i2c: alias of the same name than the bus itself")
+			return wrapf("can't register bus %q with an alias the same as the bus name", name)
 		}
 		if _, err := strconv.Atoi(alias); err == nil {
-			return fmt.Errorf("i2c: can't register an alias being only a number %q", alias)
+			return wrapf("can't register bus %q with an alias that is a number: %q", name, alias)
+		}
+		if strings.Contains(alias, ":") {
+			return wrapf("can't register bus %q with an alias containing ':': %q", name, alias)
 		}
 	}
 
 	mu.Lock()
 	defer mu.Unlock()
 	if _, ok := byName[name]; ok {
-		return fmt.Errorf("i2c: registering the same bus %q twice", name)
+		return wrapf("can't register bus %q twice", name)
 	}
 	if _, ok := byAlias[name]; ok {
-		return fmt.Errorf("i2c: registering the same bus %q twice", name)
+		return wrapf("can't register bus %q twice; it is already an alias", name)
 	}
 	if number != -1 {
 		if _, ok := byNumber[number]; ok {
-			return fmt.Errorf("i2c: registering the same bus %d twice", number)
+			return wrapf("can't register bus %q; bus number %d is already registered", name, number)
 		}
 	}
 	for _, alias := range aliases {
 		if _, ok := byName[alias]; ok {
-			return fmt.Errorf("i2c: registering the same bus %q twice", alias)
+			return wrapf("can't register bus %q twice; alias %q is already a bus", name, alias)
 		}
 		if _, ok := byAlias[alias]; ok {
-			return fmt.Errorf("i2c: registering the same bus %q twice", alias)
+			return wrapf("can't register bus %q twice; alias %q is already an alias", name, alias)
 		}
 	}
 
@@ -183,7 +188,7 @@ func Unregister(name string) error {
 	defer mu.Unlock()
 	r := byName[name]
 	if r == nil {
-		return fmt.Errorf("i2c: unknown bus name %q", name)
+		return wrapf("can't unregister unknown bus name %q", name)
 	}
 	delete(byName, name)
 	delete(byNumber, r.Number)
@@ -203,7 +208,8 @@ var (
 	byAlias  = map[string]*Ref{}
 )
 
-func defaultBus() *Ref {
+// getDefault returns the Ref that should be used as the default bus.
+func getDefault() *Ref {
 	var o *Ref
 	if len(byNumber) == 0 {
 		// Fallback to use byName using a lexical sort.
@@ -216,14 +222,19 @@ func defaultBus() *Ref {
 		}
 		return o
 	}
-	busNumber := int((^uint(0)) >> 1)
+	number := int((^uint(0)) >> 1)
 	for n, o2 := range byNumber {
-		if busNumber > n {
-			busNumber = n
+		if number > n {
+			number = n
 			o = o2
 		}
 	}
 	return o
+}
+
+// wrapf returns an error that is wrapped with the package name.
+func wrapf(format string, a ...interface{}) error {
+	return fmt.Errorf("i2creg: "+format, a...)
 }
 
 type refList []*Ref

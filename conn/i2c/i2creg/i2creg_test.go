@@ -154,6 +154,9 @@ func TestRegister_fail(t *testing.T) {
 	if Register("1", nil, 42, fakeBuser) == nil {
 		t.Fatal("numeric name")
 	}
+	if Register("a:b", nil, 42, fakeBuser) == nil {
+		t.Fatal("':' in name")
+	}
 	if Register("a", []string{"a"}, 0, fakeBuser) == nil {
 		t.Fatal("\"a\" is already registered")
 	}
@@ -162,6 +165,9 @@ func TestRegister_fail(t *testing.T) {
 	}
 	if Register("a", []string{"1"}, 0, fakeBuser) == nil {
 		t.Fatal("numeric alias")
+	}
+	if Register("a", []string{"a:b"}, 0, fakeBuser) == nil {
+		t.Fatal("':' in alias")
 	}
 	if a := All(); len(a) != 0 {
 		t.Fatal(a)
