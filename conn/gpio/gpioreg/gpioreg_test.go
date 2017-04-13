@@ -76,11 +76,11 @@ func TestRegister(t *testing.T) {
 	if Register(&basicPin{PinIO: gpio.INVALID, name: "a", num: 2}, true) == nil {
 		t.Fatal("same name, different numbers")
 	}
-	if Register(&basicPin{PinIO: gpio.INVALID, name: "b", num: 0}, true) == nil {
-		t.Fatal("same number, different names")
-	}
 	if err := Register(&basicPin{PinIO: gpio.INVALID, name: "a", num: 0}, true); err != nil {
 		t.Fatal(err)
+	}
+	if err := Register(&basicPin{PinIO: gpio.INVALID, name: "b", num: 0}, true); err == nil {
+		t.Fatalf("#0 already registered as a")
 	}
 	if a := All(); len(a) != 1 {
 		t.Fatalf("Expected one pin, got %v", a)

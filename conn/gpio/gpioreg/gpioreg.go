@@ -129,9 +129,6 @@ func Register(p gpio.PinIO, preferred bool) error {
 	if alias, ok := byAlias[name]; ok {
 		return wrapf("can't register pin %q; an alias already exist: %s", name, alias)
 	}
-	if orig, ok := byNumber[other][number]; ok && name != orig.Name() {
-		return wrapf("can't register pin %q twice with different name; already registered as %s", name, orig)
-	}
 	if orig, ok := byName[other][name]; ok && number != orig.Number() {
 		return wrapf("can't register pin %q twice with different number; already registered as %s", name, orig)
 	}
