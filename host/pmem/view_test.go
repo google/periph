@@ -11,9 +11,17 @@ import (
 	"testing"
 )
 
-type simpleStruct struct {
-	u uint32
+func ExampleMapStruct() {
+	// Let's say the CPU has 4 x 32 bits memory mapped registers at the address
+	// 0xDEADBEEF.
+	var reg *[4]uint32
+	if err := MapStruct(0xDEADBEAF, reflect.ValueOf(reg)); err != nil {
+		log.Fatal(err)
+	}
+	// reg now points to physical memory.
 }
+
+//
 
 func TestSlice(t *testing.T) {
 	// Assumes binary.LittleEndian. Correct if this code is ever run on BigEndian.
@@ -66,12 +74,67 @@ func TestSliceErrors(t *testing.T) {
 	}
 }
 
-func ExampleMapStruct() {
-	// Let's say the CPU has 4 x 32 bits memory mapped registers at the address
-	// 0xDEADBEEF.
-	var reg *[4]uint32
-	if err := MapStruct(0xDEADBEAF, reflect.ValueOf(reg)); err != nil {
-		log.Fatal(err)
+// These are really just exercising code, not real tests.
+
+func TestMapGPIO(t *testing.T) {
+	defer reset()
+	MapGPIO()
+}
+
+func TestMap(t *testing.T) {
+	defer reset()
+	if v, err := Map(0, 0); v != nil || err == nil {
+		t.Fatal("0 size")
 	}
-	// reg now points to physical memory.
+}
+
+func TestMapStruct(t *testing.T) {
+	defer reset()
+	if MapStruct(0, reflect.Value{}) == nil {
+		t.Fatal("0 size")
+	}
+	var i *int
+	if MapStruct(0, reflect.ValueOf(i)) == nil {
+		t.Fatal("not pointer to pointer")
+	}
+	x := 0
+	i = &x
+	if MapStruct(0, reflect.ValueOf(&i)) == nil {
+		t.Fatal("pointer is not nil")
+	}
+
+	type tmp struct {
+		A int
+	}
+	var v *tmp
+	if MapStruct(0, reflect.ValueOf(&v)) == nil {
+		t.Fatal("not as root")
+	}
+}
+
+func TestView(t *testing.T) {
+	v := View{}
+	v.Close()
+	v.PhysAddr()
+}
+
+//
+
+type simpleStruct struct {
+	u uint32
+}
+
+func reset() {
+	mu.Lock()
+	defer mu.Unlock()
+	gpioMemErr = nil
+	if gpioMemView != nil {
+		gpioMemView.Close()
+		gpioMemView = nil
+	}
+	if devMem != nil {
+		devMem.Close()
+		devMem = nil
+	}
+	devMemErr = nil
 }

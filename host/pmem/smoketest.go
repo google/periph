@@ -7,21 +7,25 @@ package pmem
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
 	"math/rand"
 )
 
 // CopyTest is used by CPU drivers to verify that the DMA engine works
 // correctly.
 //
-// It allocates a buffer of `size` via the `alloc` function provided. It fills
-// the source buffer with random data and copies it to the destination with
-// `holeSize` bytes as an untouched header and footer. This is done to confirm
-// misaligned copying works.
+// CopyTest allocates two buffer via `alloc`, once as the source and one as the
+// destination. It fills the source with random data and the destination with
+// 0x11.
 //
-// The function `f` being tested is only given the buffer physical addresses and
-// must copy the data without other help.
-func CopyTest(size, holeSize int, alloc func(size int) (Mem, error), f func(pDst, pSrc uint64) error) error {
+// `copyMem` is expected to copy the memory from pSrc to pDst, with an offset
+// of `hole` and size `size-2*hole`.
+//
+// The function `copyMem` being tested is only given the buffer physical
+// addresses and must copy the data without other help. It is expected to
+//
+// This confirm misaligned DMA copying works.
+// leverage the host's DMA engine.
+func CopyTest(size, holeSize int, alloc func(size int) (Mem, error), copyMem func(pDst, pSrc uint64) error) error {
 	pSrc, err2 := alloc(size)
 	if err2 != nil {
 		return err2
@@ -43,19 +47,22 @@ func CopyTest(size, holeSize int, alloc func(size int) (Mem, error), f func(pDst
 	copy(pSrc.Bytes(), src[:])
 
 	// Run the driver supplied memory copying code.
-	if err := f(pSrc.PhysAddr(), pDst.PhysAddr()); err != nil {
+	if err := copyMem(pDst.PhysAddr(), pSrc.PhysAddr()); err != nil {
 		return err
 	}
 
 	// Verifications.
 	for i := 0; i < holeSize; i++ {
 		if dst[i] != 0x11 {
-			return fmt.Errorf("DMA corrupted the buffer header: %s", hex.EncodeToString(dst[:holeSize]))
+			return wrapf("DMA corrupted the buffer header: %s", hex.EncodeToString(dst[:holeSize]))
 		}
 		if dst[size-1-i] != 0x11 {
-			return fmt.Errorf("DMA corrupted the buffer footer: %s", hex.EncodeToString(dst[size-1-holeSize:]))
+			return wrapf("DMA corrupted the buffer footer: %s", hex.EncodeToString(dst[size-1-holeSize:]))
 		}
 	}
+
+	// Headers and footers were not corupted in the destination. Verify the inner
+	// view that should match.
 	x := src[:size-2*holeSize]
 	y := dst[holeSize : size-holeSize]
 	if !bytes.Equal(x, y) {
@@ -75,7 +82,7 @@ func CopyTest(size, holeSize int, alloc func(size int) (Mem, error), f func(pDst
 		if len(y) > 32 {
 			y = y[:32]
 		}
-		return fmt.Errorf("DMA corrupted the buffer at offset %d:\n%s\n%s", offset, hex.EncodeToString(x), hex.EncodeToString(y))
+		return wrapf("DMA corrupted the buffer at offset %d:\n%s\n%s", offset, hex.EncodeToString(x), hex.EncodeToString(y))
 	}
 	return nil
 }

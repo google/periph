@@ -4,27 +4,38 @@
 
 package pmem
 
-import (
-	"fmt"
-	"syscall"
-)
+import "syscall"
 
 const isLinux = true
 
 func mmap(fd uintptr, offset int64, length int) ([]byte, error) {
-	return syscall.Mmap(int(fd), offset, length, syscall.PROT_READ|syscall.PROT_WRITE, syscall.MAP_SHARED)
+	v, err := syscall.Mmap(int(fd), offset, length, syscall.PROT_READ|syscall.PROT_WRITE, syscall.MAP_SHARED)
+	if err != nil {
+		return nil, wrapf("failed to memory map: %v", err)
+	}
+	return v, nil
 }
 
 func munmap(b []byte) error {
-	return syscall.Munmap(b)
+	if err := syscall.Munmap(b); err != nil {
+		return wrapf("failed to unmap memory: %v", err)
+	}
+	return nil
+
 }
 
 func mlock(b []byte) error {
-	return syscall.Mlock(b)
+	if err := syscall.Mlock(b); err != nil {
+		return wrapf("failed to lock memory: %v", err)
+	}
+	return nil
 }
 
 func munlock(b []byte) error {
-	return syscall.Munlock(b)
+	if err := syscall.Munlock(b); err != nil {
+		return wrapf("failed to unlock memory: %v", err)
+	}
+	return nil
 }
 
 // uallocMem allocates user space memory.
@@ -39,7 +50,7 @@ func uallocMem(size int) ([]byte, error) {
 	// See /sys/kernel/mm/hugepages but both C.H.I.P. running Jessie and Raspbian
 	// Jessie do not expose huge pages. :(
 	if err != nil {
-		return nil, fmt.Errorf("phys: allocating %d bytes failed: %v", size, err)
+		return nil, wrapf("allocating %d bytes failed: %v", size, err)
 	}
 	return b, err
 }

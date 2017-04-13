@@ -5,7 +5,6 @@
 package pmem
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"reflect"
@@ -38,7 +37,7 @@ func (s *Slice) Struct(pp reflect.Value) error {
 	p := pp.Elem()
 	t := p.Type().Elem()
 	if size > len(*s) {
-		return fmt.Errorf("pmem: can't map struct %s (size %d) on [%d]byte", t, size, len(*s))
+		return wrapf("can't map struct %s (size %d) on [%d]byte", t, size, len(*s))
 	}
 	// Use casting black magic to read the internal slice headers.
 	dest := unsafe.Pointer(((*reflect.SliceHeader)(unsafe.Pointer(s))).Data)
@@ -82,7 +81,7 @@ func MapGPIO() (*View, error) {
 	if isLinux {
 		return mapGPIOLinux()
 	}
-	return nil, errors.New("pmem: /dev/gpiomem is not support on this platform")
+	return nil, wrapf("/dev/gpiomem is not supported on this platform")
 }
 
 // Map returns a memory mapped view of arbitrary physical memory range using OS
@@ -96,7 +95,7 @@ func Map(base uint64, size int) (*View, error) {
 	if isLinux {
 		return mapLinux(base, size)
 	}
-	return nil, errors.New("pmem: /dev/mem is not supported on this platform")
+	return nil, wrapf("physical memory mapping is not supported on this platform")
 }
 
 // MapStruct is a shorthand to call Map(base, sizeof(v)) then Struct(v).
@@ -133,10 +132,10 @@ func mapGPIOLinux() (*View, error) {
 			if i, err := mmap(f.Fd(), 0, pageSize); err == nil {
 				gpioMemView = &View{Slice: i, orig: i, phys: 0}
 			} else {
-				gpioMemErr = err
+				gpioMemErr = wrapf("failed to memory map in user space GPIO memory: %v", err)
 			}
 		} else {
-			gpioMemErr = err
+			gpioMemErr = wrapf("failed to open GPIO memory: %v", err)
 		}
 	}
 	return gpioMemView, gpioMemErr
@@ -152,7 +151,7 @@ func mapLinux(base uint64, size int) (*View, error) {
 	offset := int(base & 0xFFF)
 	i, err := mmap(f.Fd(), int64(base&^0xFFF), (size+offset+0xFFF)&^0xFFF)
 	if err != nil {
-		return nil, fmt.Errorf("pmem: mapping at 0x%x failed: %v", base, err)
+		return nil, wrapf("mapping at 0x%x failed: %v", base, err)
 	}
 	return &View{Slice: i[offset : offset+size], orig: i, phys: base + uint64(offset)}, nil
 }
@@ -161,7 +160,9 @@ func openDevMemLinux() (*os.File, error) {
 	mu.Lock()
 	defer mu.Unlock()
 	if devMem == nil && devMemErr == nil {
-		devMem, devMemErr = os.OpenFile("/dev/mem", os.O_RDWR|os.O_SYNC, 0)
+		if devMem, devMemErr = os.OpenFile("/dev/mem", os.O_RDWR|os.O_SYNC, 0); devMemErr != nil {
+			devMemErr = wrapf("failed to open physical memory: %v", devMemErr)
+		}
 	}
 	return devMem, devMemErr
 }
@@ -170,22 +171,26 @@ func openDevMemLinux() (*os.File, error) {
 // sanity checks to reduce likelihood of a panic().
 func isPP(pp reflect.Value) (int, error) {
 	if k := pp.Kind(); k != reflect.Ptr {
-		return 0, fmt.Errorf("pmem: require Ptr, got %s", k)
+		return 0, wrapf("require Ptr, got %s", k)
 	}
 	if pp.IsNil() {
-		return 0, errors.New("pmem: require Ptr to be valid")
+		return 0, wrapf("require Ptr to be valid")
 	}
 	p := pp.Elem()
 	if k := p.Kind(); k != reflect.Ptr {
-		return 0, fmt.Errorf("pmem: require Ptr to Ptr, got %s", k)
+		return 0, wrapf("require Ptr to Ptr, got %s", k)
 	}
 	if !p.IsNil() {
-		return 0, errors.New("pmem: require Ptr to Ptr to be nil")
+		return 0, wrapf("require Ptr to Ptr to be nil")
 	}
 	// p.Elem() can't be used since it's a nil pointer. Use the type instead.
 	t := p.Type().Elem()
 	if k := t.Kind(); k != reflect.Struct && k != reflect.Array {
-		return 0, fmt.Errorf("pmem: require Ptr to Ptr to a struct or an array, got Ptr to Ptr to %d", k)
+		return 0, wrapf("require Ptr to Ptr to a struct or an array, got Ptr to Ptr to %d", k)
 	}
 	return int(t.Size()), nil
+}
+
+func wrapf(format string, a ...interface{}) error {
+	return fmt.Errorf("pmem: "+format, a...)
 }

@@ -5,8 +5,6 @@
 package pmem
 
 import (
-	"errors"
-	"fmt"
 	"io"
 	"reflect"
 	"unsafe"
@@ -67,13 +65,13 @@ func (m *MemAlloc) Close() error {
 //
 // The allocated memory is uncached.
 func Alloc(size int) (*MemAlloc, error) {
-	if size&(pageSize-1) != 0 {
-		return nil, fmt.Errorf("pmem: allocated memory must be rounded to %d bytes", pageSize)
+	if size == 0 || size&(pageSize-1) != 0 {
+		return nil, wrapf("allocated memory must be rounded to %d bytes", pageSize)
 	}
 	if isLinux {
 		return allocLinux(size)
 	}
-	return nil, errors.New("pmem: memory allocation is not supported on this platform")
+	return nil, wrapf("memory allocation is not supported on this platform")
 }
 
 //
@@ -89,7 +87,7 @@ func uallocMemLocked(size int) ([]byte, error) {
 		}
 		if err := mlock(b); err != nil {
 			munmap(b)
-			return nil, fmt.Errorf("pmem: locking %d bytes failed: %v", size, err)
+			return nil, wrapf("locking %d bytes failed: %v", size, err)
 		}
 	}
 	return b, err
@@ -104,7 +102,7 @@ func allocLinux(size int) (*MemAlloc, error) {
 	// individual page alive with their initial allocation. When done release
 	// each individual page.
 	if size > pageSize {
-		return nil, errors.New("large allocation is not yet implemented")
+		return nil, wrapf("large allocation is not yet implemented")
 	}
 	// First allocate a chunk of user space memory.
 	b, err := uallocMemLocked(size)
@@ -119,13 +117,13 @@ func allocLinux(size int) (*MemAlloc, error) {
 			return nil, err
 		}
 		if pages[i] == 0 {
-			return nil, fmt.Errorf("pmem: failed to read page %d", i)
+			return nil, wrapf("failed to read page %d", i)
 		}
 	}
 	for i := 1; i < len(pages); i++ {
 		// Fail if the memory is not contiguous.
 		if pages[i] != pages[i-1]+pageSize {
-			return nil, fmt.Errorf("pmem: failed to allocate %d bytes of continugous physical memory; page %d =0x%x; page %d=0x%x", size, i, pages[i], i-1, pages[i-1])
+			return nil, wrapf("failed to allocate %d bytes of continugous physical memory; page %d =0x%x; page %d=0x%x", size, i, pages[i], i-1, pages[i-1])
 		}
 	}
 
@@ -141,7 +139,7 @@ func virtToPhys(virt uintptr) (uint64, error) {
 	}
 	if physPage&(1<<63) == 0 {
 		// If high bit is not set, the page doesn't exist.
-		return 0, fmt.Errorf("pmem: 0x%08x has no physical address", virt)
+		return 0, wrapf("0x%08x has no physical address", virt)
 	}
 	// Strip flags. See linux documentation on kernel.org for more details.
 	physPage &^= 0x1FF << 55
