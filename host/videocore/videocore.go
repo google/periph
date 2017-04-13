@@ -15,7 +15,6 @@
 package videocore
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"sync"
@@ -39,13 +38,15 @@ type Mem struct {
 // the host reboots.
 func (m *Mem) Close() error {
 	if err := m.View.Close(); err != nil {
-		return err
+		return wrapf("failed to close physical view: %v", err)
 	}
 	if _, err := mailboxTx32(mbUnlockMemory, m.handle); err != nil {
-		return err
+		return wrapf("failed to unlock memory: %v", err)
 	}
-	_, err := mailboxTx32(mbReleaseMemory, m.handle)
-	return err
+	if _, err := mailboxTx32(mbReleaseMemory, m.handle); err != nil {
+		return wrapf("failed to release memory: %v", err)
+	}
+	return nil
 }
 
 // Alloc allocates a continuous chunk of physical memory for use with DMA
@@ -54,34 +55,34 @@ func (m *Mem) Close() error {
 // Size must be rounded to 4Kb.
 func Alloc(size int) (*Mem, error) {
 	if size <= 0 {
-		return nil, errors.New("videocore: memory size must be > 0")
+		return nil, wrapf("memory size must be > 0; got %d", size)
 	}
 	if size&0xFFF != 0 {
-		return nil, errors.New("videocore: memory size must be rounded to 4096 pages")
+		return nil, wrapf("memory size must be rounded to 4096 pages; got %d", size)
 	}
 	if err := openMailbox(); err != nil {
-		return nil, fmt.Errorf("videocore: %v", err)
+		return nil, wrapf("failed to open the mailbox to the GPU: %v", err)
 	}
 	// Size, Alignment, Flags; returns an opaque handle to be used to release the
 	// memory.
 	handle, err := mailboxTx32(mbAllocateMemory, uint32(size), 4096, flagDirect)
 	if err != nil {
-		return nil, err
+		return nil, wrapf("failed request to allocate memory: %v", err)
 	}
 	if handle == 0 {
-		return nil, fmt.Errorf("videocore: failed to allocate %d bytes", size)
+		return nil, wrapf("failed to allocate %d bytes", size)
 	}
 	// Lock the memory to retrieve a physical memory address.
 	p, err := mailboxTx32(mbLockMemory, handle)
 	if err != nil {
-		return nil, err
+		return nil, wrapf("failed request to lock memory: %v", err)
 	}
 	if p == 0 {
-		return nil, errors.New("videocore: failed to lock memory")
+		return nil, wrapf("failed to lock memory")
 	}
 	b, err := pmem.Map(uint64(p&^0xC0000000), size)
 	if err != nil {
-		return nil, err
+		return nil, wrapf("failed to memory map phyisical pages: %v", err)
 	}
 	return &Mem{View: b, handle: handle}, nil
 }
@@ -90,7 +91,7 @@ func Alloc(size int) (*Mem, error) {
 
 var (
 	mu         sync.Mutex
-	mailbox    *os.File
+	mailbox    messager
 	mailboxErr error
 )
 
@@ -122,14 +123,29 @@ const (
 	flagHintPermalock   = 1 << 6                    // Likely to be locked for long periods of time
 )
 
+type messager interface {
+	sendMessage(b []uint32) error
+}
+
+type messageBox struct {
+	f  *os.File
+	fd uintptr
+}
+
+func (m *messageBox) sendMessage(b []uint32) error {
+	return ioctl(m.fd, mbIoctl, uintptr(unsafe.Pointer(&b[0])))
+}
+
 func openMailbox() error {
 	mu.Lock()
 	defer mu.Unlock()
-	if mailbox != nil && mailboxErr != nil {
+	if mailbox != nil || mailboxErr != nil {
 		return mailboxErr
 	}
-	mailbox, mailboxErr = os.OpenFile("/dev/vcio", os.O_RDWR|os.O_SYNC, 0)
-	if mailboxErr == nil {
+	f, err := os.OpenFile("/dev/vcio", os.O_RDWR|os.O_SYNC, 0)
+	mailboxErr = err
+	if err == nil {
+		mailbox = &messageBox{f, f.Fd()}
 		mailboxErr = smokeTest()
 	}
 	return mailboxErr
@@ -158,12 +174,12 @@ func genPacket(cmd uint32, replyLen uint32, args ...uint32) []uint32 {
 }
 
 func sendPacket(b []uint32) error {
-	if err := ioctl(mailbox.Fd(), mbIoctl, uintptr(unsafe.Pointer(&b[0]))); err != nil {
-		return fmt.Errorf("videocore: iotcl %v", err)
+	if err := mailbox.sendMessage(b); err != nil {
+		return fmt.Errorf("failed to send IOCTL: %v", err)
 	}
 	if b[1] != mbReply {
 		// 0x80000001 means partial response.
-		return fmt.Errorf("videocore: got unexpected reply bit 0x%08x", b[1])
+		return fmt.Errorf("got unexpected reply bit 0x%08x", b[1])
 	}
 	return nil
 }
@@ -174,11 +190,13 @@ func mailboxTx32(cmd uint32, args ...uint32) (uint32, error) {
 		return 0, err
 	}
 	if b[4] != mbReply|4 {
-		return 0, fmt.Errorf("videocore: got unexpected reply size 0x%08x", b[4])
+		return 0, fmt.Errorf("got unexpected reply size 0x%08x", b[4])
 	}
 	return b[5], nil
 }
 
+/*
+// mailboxTx is the generic version of mailboxTx32. It is not currently needed.
 func mailboxTx(cmd uint32, reply []byte, args ...uint32) error {
 	b := genPacket(cmd, uint32(len(reply)), args...)
 	if err := sendPacket(b); err != nil {
@@ -186,20 +204,25 @@ func mailboxTx(cmd uint32, reply []byte, args ...uint32) error {
 	}
 	rep := b[4]
 	if rep&mbReply == 0 {
-		return fmt.Errorf("videocore: got unexpected reply size 0x%08x", b[4])
+		return fmt.Errorf("got unexpected reply size 0x%08x", b[4])
 	}
 	rep &^= mbReply
 	if rep == 0 || rep > uint32(len(reply)) {
-		return fmt.Errorf("videocore: got unexpected reply size 0x%08x", b[4])
+		return fmt.Errorf("got unexpected reply size 0x%08x", b[4])
 	}
 	return nil
 }
+*/
 
 func smokeTest() error {
 	// It returns 0 on a RPi3 but don't assert this in case the VC firmware gets
 	// updated.
 	_, err := mailboxTx32(mbFirmwareVersion)
 	return err
+}
+
+func wrapf(format string, a ...interface{}) error {
+	return fmt.Errorf("videocore: "+format, a...)
 }
 
 var _ pmem.Mem = &Mem{}
