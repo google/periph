@@ -96,7 +96,7 @@ func TestByName(t *testing.T) {
 
 var (
 	gpio2  = &Pin{N: "GPIO2", Num: 2, Fn: "I2C1_SDA"}
-	gpio2a = &Pin{N: "GPIO2a", Num: 2}
+	gpio2a = &Pin{N: "GPIO2", Num: 2}
 	gpio3  = &Pin{N: "GPIO3", Num: 3, Fn: "I2C1_SCL"}
 )
 
