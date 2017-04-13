@@ -3,9 +3,6 @@
 // that can be found in the LICENSE file.
 
 // Package gpio defines digital pins.
-//
-// The GPIO pins are described in their logical functionality, not in their
-// physical position.
 package gpio
 
 import (
@@ -155,10 +152,10 @@ type PinOut interface {
 	PWM(duty int) error
 }
 
-// PinIO is a GPIO pin that supports both input and output.
+// PinIO is a GPIO pin that supports both input and output. It matches both
+// interfaces PinIn and PinOut.
 //
-// It may fail at either input and or output, for example ground, vcc and other
-// similar pins.
+// A GPIO pin implementing PinIO may fail at either input or output or both.
 type PinIO interface {
 	pin.Pin
 	In(pull Pull, edge Edge) error

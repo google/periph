@@ -220,12 +220,12 @@ func (d *driver) Init() (bool, error) {
 		return false, nil
 	}
 	if in != -1 {
-		if err := gpioreg.RegisterAlias("IR_IN", in); err != nil {
+		if err := gpioreg.RegisterAlias("IR_IN", strconv.Itoa(in)); err != nil {
 			return true, err
 		}
 	}
 	if out != -1 {
-		if err := gpioreg.RegisterAlias("IR_OUT", out); err != nil {
+		if err := gpioreg.RegisterAlias("IR_OUT", strconv.Itoa(out)); err != nil {
 			return true, err
 		}
 	}

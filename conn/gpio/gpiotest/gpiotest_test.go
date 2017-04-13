@@ -110,6 +110,10 @@ func init() {
 	if err := gpioreg.Register(gpio3, false); err != nil {
 		panic(err)
 	}
-	gpioreg.RegisterAlias(gpio2.Function(), gpio2.Number())
-	gpioreg.RegisterAlias(gpio3.Function(), gpio3.Number())
+	if err := gpioreg.RegisterAlias(gpio2.Function(), gpio2.Name()); err != nil {
+		panic(err)
+	}
+	if err := gpioreg.RegisterAlias(gpio3.Function(), gpio3.Name()); err != nil {
+		panic(err)
+	}
 }

@@ -170,7 +170,7 @@ func mapA64Pins() error {
 		// registered.
 		for _, s := range altFuncs {
 			if strings.HasPrefix(s, "SPI") && strings.HasSuffix(s, "_CS0") {
-				if err := gpioreg.RegisterAlias(s, pin.Number()); err != nil {
+				if err := gpioreg.RegisterAlias(s, pin.Name()); err != nil {
 					return err
 				}
 			}

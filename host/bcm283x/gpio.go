@@ -655,7 +655,7 @@ func (d *driverGPIO) Init() (bool, error) {
 			// functionality is changed.
 			if _, ok := functions[f]; !ok {
 				functions[f] = struct{}{}
-				if err := gpioreg.RegisterAlias(f, i); err != nil {
+				if err := gpioreg.RegisterAlias(f, fmt.Sprintf("GPIO%d", i)); err != nil {
 					return true, err
 				}
 			}
@@ -679,7 +679,7 @@ func (d *driverGPIO) Init() (bool, error) {
 		csMap["SPI0_CS0"] = 36
 	}
 	for a, n := range csMap {
-		if err := gpioreg.RegisterAlias(a, n); err != nil {
+		if err := gpioreg.RegisterAlias(a, fmt.Sprintf("GPIO%d", n)); err != nil {
 			return true, err
 		}
 	}

@@ -261,11 +261,7 @@ func (d *driver) Init() (bool, error) {
 	// At this point the sysfs driver has initialized and discovered its pins,
 	// we can now hook-up the appropriate CHIP pins to sysfs gpio pins.
 	for alias, real := range aliases {
-		r := gpioreg.ByName(real)
-		if r == nil {
-			return true, fmt.Errorf("cannot create alias for %s: it doesn't exist", real)
-		}
-		if err := gpioreg.RegisterAlias(alias, r.Number()); err != nil {
+		if err := gpioreg.RegisterAlias(alias, real); err != nil {
 			return true, err
 		}
 	}

@@ -145,7 +145,7 @@ func mapR8Pins() error {
 		// registered.
 		for _, s := range altFuncs {
 			if strings.HasPrefix(s, "SPI") && strings.HasSuffix(s[:len(s)-1], "_CS") {
-				if err := gpioreg.RegisterAlias(s, pin.Number()); err != nil {
+				if err := gpioreg.RegisterAlias(s, pin.Name()); err != nil {
 					return err
 				}
 			}

@@ -360,7 +360,7 @@ func (d *driverGPIOPL) Init() (bool, error) {
 		if f := p.Function(); f[0] != '<' && f[:2] != "In" && f[:3] != "Out" {
 			// TODO(maruel): Stop ignoring errors by not registering the same
 			// function multiple times.
-			gpioreg.RegisterAlias(f, p.Number())
+			gpioreg.RegisterAlias(f, p.Name())
 			/*
 				if err := gpioreg.RegisterAlias(f, p.Number()); err != nil {
 					return true, err

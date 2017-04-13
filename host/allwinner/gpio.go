@@ -546,7 +546,7 @@ func initPins() error {
 			if f != "" && f[0] != '<' && f[:2] != "In" && f[:3] != "Out" {
 				// TODO(maruel): Stop ignoring errors by not registering the same
 				// function multiple times.
-				gpioreg.RegisterAlias(f, cpupins[i].Number())
+				gpioreg.RegisterAlias(f, cpupins[i].Name())
 				/*
 					if err := gpioreg.RegisterAlias(f, cpupins[i].Number()); err != nil {
 						return true, err

@@ -6,6 +6,7 @@ package odroidc1
 
 import (
 	"errors"
+	"strconv"
 	"strings"
 
 	"periph.io/x/periph"
@@ -174,7 +175,7 @@ func (d *driver) Init() (bool, error) {
 		return true, err
 	}
 	for alias, number := range aliases {
-		if err := gpioreg.RegisterAlias(alias, number); err != nil {
+		if err := gpioreg.RegisterAlias(alias, strconv.Itoa(number)); err != nil {
 			return true, err
 		}
 	}
