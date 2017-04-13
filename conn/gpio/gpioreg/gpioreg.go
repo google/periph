@@ -6,7 +6,6 @@
 package gpioreg
 
 import (
-	"errors"
 	"fmt"
 	"sort"
 	"strconv"
@@ -117,14 +116,14 @@ func Aliases() []gpio.PinIO {
 func Register(p gpio.PinIO, preferred bool) error {
 	name := p.Name()
 	if len(name) == 0 {
-		return errors.New("gpio: can't register a pin with no name")
+		return wrapf("can't register a pin with no name")
 	}
 	if _, err := strconv.Atoi(name); err == nil {
-		return fmt.Errorf("gpio: can't register a pin with a name being only a number %q", name)
+		return wrapf("can't register pin %q with name being only a number", name)
 	}
 	number := p.Number()
 	if number < 0 {
-		return fmt.Errorf("gpio: can't register a pin with a negative number %d", number)
+		return wrapf("can't register pin %q with invalid pin number %d", name, number)
 	}
 	i := 0
 	if !preferred {
@@ -134,16 +133,16 @@ func Register(p gpio.PinIO, preferred bool) error {
 	mu.Lock()
 	defer mu.Unlock()
 	if orig, ok := byNumber[i][number]; ok {
-		return fmt.Errorf("gpio: can't register the same pin %d twice; had %q, registering %q", number, orig, p)
+		return wrapf("can't register pin %q twice with the same number %d; already registered as %s", name, number, orig)
 	}
 	if orig, ok := byName[i][name]; ok {
-		return fmt.Errorf("gpio: can't register the same pin %q twice; had %q, registering %q", name, orig, p)
+		return wrapf("can't register pin %q twice; already registered as %s", name, orig)
 	}
 	if r, ok := p.(gpio.RealPin); ok {
-		return fmt.Errorf("gpio: can't register %q, which is an aliased for %q, use RegisterAlias() instead", p, r)
+		return wrapf("can't register pin %q, it is already an alias: %s; use RegisterAlias() instead", name, r)
 	}
 	if alias, ok := byAlias[name]; ok {
-		return fmt.Errorf("gpio: can't register %q for which an alias %q already exists", p, alias)
+		return wrapf("can't register pin %q; an alias already exist: %s", name, alias)
 	}
 	byNumber[i][number] = p
 	byName[i][name] = p
@@ -156,19 +155,19 @@ func Register(p gpio.PinIO, preferred bool) error {
 // been registered yet.
 func RegisterAlias(alias string, number int) error {
 	if len(alias) == 0 {
-		return errors.New("gpio: can't register an alias with no name")
+		return wrapf("can't register an alias with no name")
 	}
 	if _, err := strconv.Atoi(alias); err == nil {
-		return fmt.Errorf("gpio: can't register an alias being only a number %q", alias)
+		return wrapf("can't register alias %q with name being only a number", alias)
 	}
 	if number < 0 {
-		return fmt.Errorf("gpio: can't register an alias to a pin with a negative number %d", number)
+		return wrapf("can't register alias %q with invalid pin number %d", alias, number)
 	}
 
 	mu.Lock()
 	defer mu.Unlock()
 	if orig := byAlias[alias]; orig != nil {
-		return fmt.Errorf("gpio: can't register alias %q for pin %d: it is already aliased to %q", alias, number, orig)
+		return wrapf("can't register alias %q twice; it is already an alias: %v", alias, orig)
 	}
 	byAlias[alias] = &pinAlias{name: alias, number: number}
 	return nil
@@ -222,6 +221,11 @@ func getByNumber(number int) gpio.PinIO {
 		return p
 	}
 	return nil
+}
+
+// wrapf returns an error that is wrapped with the package name.
+func wrapf(format string, a ...interface{}) error {
+	return fmt.Errorf("gpioreg: "+format, a...)
 }
 
 type pinList []gpio.PinIO
