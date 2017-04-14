@@ -103,13 +103,16 @@ func TestMapStruct(t *testing.T) {
 		t.Fatal("pointer is not nil")
 	}
 
-	type tmp struct {
-		A int
-	}
-	var v *tmp
-	if MapStruct(0, reflect.ValueOf(&v)) == nil {
-		t.Fatal("not as root")
-	}
+	// TODO(maruel): https://github.com/google/periph/issues/126
+	/*
+		type tmp struct {
+			A int
+		}
+		var v *tmp
+		if MapStruct(0, reflect.ValueOf(&v)) == nil {
+			t.Fatal("not as root")
+		}
+	*/
 }
 
 func TestView(t *testing.T) {

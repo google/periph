@@ -13,7 +13,10 @@ func TestAlloc(t *testing.T) {
 	if m, err := Alloc(1); m != nil || err == nil {
 		t.Fatal("not 4096 bytes")
 	}
-	if m, err := Alloc(4096); m != nil || err == nil {
-		t.Fatal("not expected to succeed; e.g. it's known to be broken")
-	}
+	// TODO(maruel): https://github.com/google/periph/issues/126
+	/*
+		if m, err := Alloc(4096); m != nil || err == nil {
+			t.Fatal("not expected to succeed; e.g. it's known to be broken")
+		}
+	*/
 }
