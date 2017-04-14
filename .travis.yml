@@ -2,7 +2,7 @@ language: go
 sudo: false
 go_import_path: periph.io/x/periph
 go:
-  - 1.8
+  - 1.8.1
 before_script:
   - go get -t -v periph.io/x/periph/...
 script:
