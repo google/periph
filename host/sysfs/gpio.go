@@ -40,9 +40,9 @@ type Pin struct {
 	err        error     // If open() failed
 	direction  direction // Cache of the last known direction
 	edge       gpio.Edge // Cache of the last edge used.
-	fDirection *os.File  // handle to /sys/class/gpio/gpio*/direction; never closed
-	fEdge      *os.File  // handle to /sys/class/gpio/gpio*/edge; never closed
-	fValue     *os.File  // handle to /sys/class/gpio/gpio*/value; never closed
+	fDirection simpleIO  // handle to /sys/class/gpio/gpio*/direction; never closed
+	fEdge      simpleIO  // handle to /sys/class/gpio/gpio*/edge; never closed
+	fValue     simpleIO  // handle to /sys/class/gpio/gpio*/value; never closed
 	event      event     // Initialized once
 }
 
@@ -70,7 +70,7 @@ func (p *Pin) Function() string {
 		return "ERR"
 	}
 	var buf [4]byte
-	if err := seekRead(p.fDirection, buf[:]); err != nil {
+	if err := p.fDirection.read(buf[:]); err != nil {
 		return "ERR"
 	}
 	if buf[0] == 'i' && buf[1] == 'n' {
@@ -97,7 +97,7 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 		if err := p.open(); err != nil {
 			return p.wrap(err)
 		}
-		if err := seekWrite(p.fDirection, bIn); err != nil {
+		if err := p.fDirection.write(bIn); err != nil {
 			return p.wrap(err)
 		}
 		p.direction = dIn
@@ -105,20 +105,20 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	// Always push none to help accumulated flush edges. This is not fool proof
 	// but it seems to help.
 	if p.fEdge != nil {
-		if err := seekWrite(p.fEdge, bNone); err != nil {
+		if err := p.fEdge.write(bNone); err != nil {
 			return p.wrap(err)
 		}
 	}
 	// Assume that when the pin was switched, the driver doesn't recall if edge
 	// triggering was enabled.
 	if edge != gpio.NoEdge {
-		var err error
 		if p.fEdge == nil {
-			p.fEdge, err = os.OpenFile(p.root+"edge", os.O_RDWR|os.O_APPEND, 0600)
+			fE, err := os.OpenFile(p.root+"edge", os.O_RDWR|os.O_APPEND, 0600)
 			if err != nil {
 				return p.wrap(err)
 			}
-			if err = p.event.makeEvent(p.fValue); err != nil {
+			p.fEdge = &resetFile{fE}
+			if err = p.event.makeEvent(p.fValue.Fd()); err != nil {
 				p.fEdge.Close()
 				p.fEdge = nil
 				return p.wrap(err)
@@ -134,7 +134,7 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 			case gpio.BothEdges:
 				b = bBoth
 			}
-			if err := seekWrite(p.fEdge, b); err != nil {
+			if err := p.fEdge.write(b); err != nil {
 				return p.wrap(err)
 			}
 		}
@@ -155,8 +155,11 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 
 func (p *Pin) Read() gpio.Level {
 	// There's no lock here.
+	if p.fValue == nil {
+		return gpio.Low
+	}
 	var buf [4]byte
-	if err := seekRead(p.fValue, buf[:]); err != nil {
+	if err := p.fValue.read(buf[:]); err != nil {
 		// Error.
 		return gpio.Low
 	}
@@ -215,7 +218,7 @@ func (p *Pin) Out(l gpio.Level) error {
 		}
 		if p.edge != gpio.NoEdge {
 			p.edge = gpio.NoEdge
-			if err := seekWrite(p.fEdge, bNone); err != nil {
+			if err := p.fEdge.write(bNone); err != nil {
 				return p.wrap(err)
 			}
 			// This is still important to remove an accumulated edge.
@@ -229,7 +232,7 @@ func (p *Pin) Out(l gpio.Level) error {
 		} else {
 			d = bHigh
 		}
-		if err := seekWrite(p.fDirection, d); err != nil {
+		if err := p.fDirection.write(d); err != nil {
 			return p.wrap(err)
 		}
 		p.direction = dOut
@@ -241,7 +244,7 @@ func (p *Pin) Out(l gpio.Level) error {
 	} else {
 		d[0] = '1'
 	}
-	if err := seekWrite(p.fValue, d[:]); err != nil {
+	if err := p.fValue.write(d[:]); err != nil {
 		return p.wrap(err)
 	}
 	return nil
@@ -258,14 +261,12 @@ func (p *Pin) PWM(duty int) error {
 //
 // lock must be held.
 func (p *Pin) open() error {
+	if p.fDirection != nil || p.err != nil {
+		return p.err
+	}
+
 	if exportHandle == nil {
 		return errors.New("sysfs gpio is not initialized")
-	}
-	if p.fDirection != nil {
-		return nil
-	}
-	if p.err != nil {
-		return p.err
 	}
 	_, p.err = exportHandle.Write([]byte(strconv.Itoa(p.number)))
 	if p.err != nil && !isErrBusy(p.err) {
@@ -274,24 +275,33 @@ func (p *Pin) open() error {
 		}
 		return p.err
 	}
+
 	// There's a race condition where the file may be created but udev is still
 	// running the Raspbian udev rule to make it readable to the current user.
 	// It's simpler to just loop a little as if /export is accessible, it doesn't
 	// make sense that gpioN/value doesn't become accessible eventually.
 	timeout := 5 * time.Second
 	for start := time.Now(); time.Since(start) < timeout; {
-		p.fValue, p.err = os.OpenFile(p.root+"value", os.O_RDWR, 0600)
+		fv, err := os.OpenFile(p.root+"value", os.O_RDWR, 0600)
 		// The virtual file creation is synchronous when writing to /export for
 		// udev rule execution is asynchronous.
-		if p.err == nil || !os.IsPermission(p.err) {
+		if err == nil {
+			p.fValue = &resetFile{fv}
+			break
+		}
+		if !os.IsPermission(err) {
+			p.err = err
 			break
 		}
 	}
 	if p.err != nil {
 		return p.err
 	}
-	p.fDirection, p.err = os.OpenFile(p.root+"direction", os.O_RDWR, 0600)
-	if p.err != nil {
+	fD, err := os.OpenFile(p.root+"direction", os.O_RDWR, 0600)
+	if err == nil {
+		p.fDirection = &resetFile{fD}
+	} else {
+		p.err = err
 		p.fValue.Close()
 		p.fValue = nil
 	}
@@ -324,6 +334,8 @@ var (
 	bBoth    = []byte("both")
 )
 
+// readInt reads a pseudo-file (sysfs) that is known to contain an integer and
+// returns the parsed number.
 func readInt(path string) (int, error) {
 	raw, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -335,19 +347,31 @@ func readInt(path string) (int, error) {
 	return strconv.Atoi(string(raw[:len(raw)-1]))
 }
 
-func seekRead(f *os.File, b []byte) error {
-	if _, err := f.Seek(0, 0); err != nil {
+type simpleIO interface {
+	io.Closer
+	Fd() uintptr
+	read(b []byte) error
+	write([]byte) error
+}
+
+// resetFile is file where all I/O are done from the start.
+type resetFile struct {
+	*os.File
+}
+
+func (r *resetFile) read(b []byte) error {
+	if _, err := r.Seek(0, 0); err != nil {
 		return err
 	}
-	_, err := f.Read(b)
+	_, err := r.Read(b)
 	return err
 }
 
-func seekWrite(f *os.File, b []byte) error {
-	if _, err := f.Seek(0, 0); err != nil {
+func (r *resetFile) write(b []byte) error {
+	if _, err := r.Seek(0, 0); err != nil {
 		return err
 	}
-	_, err := f.Write(b)
+	_, err := r.Write(b)
 	return err
 }
 

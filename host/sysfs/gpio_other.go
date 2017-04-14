@@ -6,14 +6,11 @@
 
 package sysfs
 
-import (
-	"errors"
-	"os"
-)
+import "errors"
 
 type event struct{}
 
-func (e event) makeEvent(f *os.File) error {
+func (e event) makeEvent(f uintptr) error {
 	return errors.New("sysfs-gpio: unreachable code")
 }
 

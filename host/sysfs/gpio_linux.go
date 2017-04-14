@@ -40,13 +40,13 @@ type event struct {
 // behavior and flags: http://man7.org/linux/man-pages/man7/epoll.7.html
 // syscall.EpollCreate: http://man7.org/linux/man-pages/man2/epoll_create.2.html
 // syscall.EpollCtl: http://man7.org/linux/man-pages/man2/epoll_ctl.2.html
-func (e *event) makeEvent(f *os.File) error {
+func (e *event) makeEvent(fd uintptr) error {
 	epollFd, err := syscall.EpollCreate(1)
 	if err != nil {
 		return err
 	}
 	e.epollFd = epollFd
-	e.fd = int(f.Fd())
+	e.fd = int(fd)
 	// EPOLLWAKEUP could be used to force the system to not go do sleep while
 	// waiting for an edge. This is generally a bad idea, as we'd instead have
 	// the system to *wake up* when an edge is triggered. Achieving this is
