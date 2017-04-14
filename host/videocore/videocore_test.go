@@ -12,7 +12,7 @@ import (
 	"periph.io/x/periph/host/pmem"
 )
 
-func Example_Alloc() {
+func ExampleAlloc() {
 	// Allocates physical memory on a Broadcom CPU by leveraging the GPU.
 	// This memory can be leveraged to do DMA operations.
 	m, err := Alloc(64536)

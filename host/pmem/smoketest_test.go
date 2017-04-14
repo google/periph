@@ -17,7 +17,7 @@ func TestSmokeTest_fail(t *testing.T) {
 			return nil, errors.New("oops")
 		}
 		count--
-		return allocRam(size)
+		return allocRAM(size)
 	}
 
 	if CopyTest(1024, 1, alloc, copyOk) == nil {
@@ -31,21 +31,21 @@ func TestSmokeTest_fail(t *testing.T) {
 	copyFail := func(d, s uint64) error {
 		return errors.New("oops")
 	}
-	if CopyTest(1024, 1, allocRam, copyFail) == nil {
+	if CopyTest(1024, 1, allocRAM, copyFail) == nil {
 		t.Fatal("copy failed")
 	}
 
 	copyNop := func(d, s uint64) error {
 		return nil
 	}
-	if CopyTest(1024, 1, allocRam, copyNop) == nil {
+	if CopyTest(1024, 1, allocRAM, copyNop) == nil {
 		t.Fatal("no copy")
 	}
 
 	copyPartial := func(d, s uint64) error {
-		return copyRam(d, s, 1024, 2)
+		return copyRAM(d, s, 1024, 2)
 	}
-	if CopyTest(1024, 1, allocRam, copyPartial) == nil {
+	if CopyTest(1024, 1, allocRAM, copyPartial) == nil {
 		t.Fatal("copy corrupted")
 	}
 
@@ -53,37 +53,37 @@ func TestSmokeTest_fail(t *testing.T) {
 		toSlice(d)[0] = 0
 		return nil
 	}
-	if CopyTest(1024, 1, allocRam, copyHdr) == nil {
+	if CopyTest(1024, 1, allocRAM, copyHdr) == nil {
 		t.Fatal("header corrupted")
 	}
 
 	copyFtr := func(d, s uint64) error {
 		toSlice(d)[1023] = 0
-		return copyRam(d, s, 1024, 1)
+		return copyRAM(d, s, 1024, 1)
 	}
-	if CopyTest(1024, 1, allocRam, copyFtr) == nil {
+	if CopyTest(1024, 1, allocRAM, copyFtr) == nil {
 		t.Fatal("footer corrupted")
 	}
 
 	copyOffset := func(d, s uint64) error {
-		copyRam(d, s, 1024, 1)
+		copyRAM(d, s, 1024, 1)
 		toSlice(d)[3] = 0
 		return nil
 	}
-	if CopyTest(1024, 1, allocRam, copyOffset) == nil {
+	if CopyTest(1024, 1, allocRAM, copyOffset) == nil {
 		t.Fatal("copy corrupted")
 	}
 }
 
 func TestSmokeTest(t *testing.T) {
 	// Successfully copy the memory.
-	if err := CopyTest(1024, 1, allocRam, copyOk); err != nil {
+	if err := CopyTest(1024, 1, allocRAM, copyOk); err != nil {
 		t.Fatal(err)
 	}
 }
 
-// allocRam allocates memory and fake it is physical memory.
-func allocRam(size int) (Mem, error) {
+// allocRAM allocates memory and fake it is physical memory.
+func allocRAM(size int) (Mem, error) {
 	p := make([]byte, size)
 	return &MemAlloc{
 		View: View{
@@ -95,11 +95,11 @@ func allocRam(size int) (Mem, error) {
 }
 
 func copyOk(d, s uint64) error {
-	return copyRam(d, s, 1024, 1)
+	return copyRAM(d, s, 1024, 1)
 }
 
-// copyRam copies the memory.
-func copyRam(pDst, pSrc uint64, size, hole int) error {
+// copyRAM copies the memory.
+func copyRAM(pDst, pSrc uint64, size, hole int) error {
 	dst := toSlice(pDst)
 	src := toSlice(pSrc)
 	copy(dst[hole:size-hole], src)

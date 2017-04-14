@@ -136,7 +136,7 @@ func (s *SPI) DevParams(maxHz int64, mode spi.Mode, bits int) error {
 	// Only the first 8 bits are used. This only works because the system is
 	// running in little endian.
 	if err := s.setFlag(spiIOCMode, uint64(m)); err != nil {
-		return fmt.Errorf("sysfs-spi: setting mode %s failed: %v", mode, err)
+		return fmt.Errorf("sysfs-spi: setting mode %v failed: %v", mode, err)
 	}
 	return nil
 }
