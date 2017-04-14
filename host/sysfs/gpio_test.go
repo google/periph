@@ -188,13 +188,6 @@ func TestPin_Out(t *testing.T) {
 	}
 }
 
-func TestPin_PWM(t *testing.T) {
-	p := Pin{number: 42, name: "foo", root: "/tmp/gpio/priv/"}
-	if p.PWM(0) == nil {
-		t.Fatal("sysfs-gpio doesn't support PWM")
-	}
-}
-
 func TestPin_readInt(t *testing.T) {
 	if _, err := readInt("/tmp/gpio/priv/invalid_file"); err == nil {
 		t.Fatal("file is not expected to exist")

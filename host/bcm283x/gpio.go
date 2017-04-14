@@ -280,13 +280,6 @@ func (p *Pin) Out(l gpio.Level) error {
 	return nil
 }
 
-// PWM implements gpio.PinOut.
-func (p *Pin) PWM(duty int) error {
-	return p.wrap(errors.New("pwm is not supported"))
-}
-
-// Special functionality.
-
 // DefaultPull returns the default pull for the function.
 //
 // The CPU doesn't return the current pull.

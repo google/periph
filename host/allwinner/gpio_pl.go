@@ -196,11 +196,6 @@ func (p *PinPL) Out(l gpio.Level) error {
 	return nil
 }
 
-// PWM implements gpio.PinOut.
-func (p *PinPL) PWM(duty int) error {
-	return p.wrap(errors.New("pwm is not supported"))
-}
-
 //
 
 // function returns the current GPIO pin function.

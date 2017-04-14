@@ -133,11 +133,6 @@ func (l *LED) Out(level gpio.Level) error {
 	return err
 }
 
-// PWM implements gpio.PinOut.
-func (l *LED) PWM(duty int) error {
-	return errors.New("sysfs-led: pwm is not supported")
-}
-
 //
 
 func (l *LED) open() error {

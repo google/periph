@@ -3,11 +3,16 @@
 // that can be found in the LICENSE file.
 
 // Package gpio defines digital pins.
+//
+// While all GPIO implementations are expected to implement PinIO, they may
+// expose more specific functionality like PinPWM, PinDefaultPull, etc.
 package gpio
 
 import (
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"periph.io/x/periph/conn/pin"
@@ -78,6 +83,72 @@ func (i Edge) String() string {
 	return edgeName[edgeIndex[i]:edgeIndex[i+1]]
 }
 
+const (
+	// DutyMax is a duty cycle of 100%.
+	DutyMax Duty = 65535
+	// DutyHalf is a 50% duty PWM, which boils down to a normal clock.
+	DutyHalf Duty = DutyMax / 2
+)
+
+// Duty is the duty cycle for a PWM.
+//
+// Valid values are between 0 and DutyMax.
+type Duty int32
+
+func (d Duty) String() string {
+	// TODO(maruel): Implement one fractional number.
+	return fmt.Sprintf("%d%%", (d+50)/(DutyMax/100))
+}
+
+// Valid returns true if the Duty cycle value is valid.
+func (d Duty) Valid() bool {
+	return d >= 0 && d <= DutyMax
+}
+
+// ParseDuty parses a string and converts it to a Duty value.
+func ParseDuty(s string) (Duty, error) {
+	percent := strings.HasSuffix(s, "%")
+	if percent {
+		s = s[:len(s)-1]
+	}
+	i64, err := strconv.ParseInt(s, 10, 32)
+	if err != nil {
+		return 0, err
+	}
+	i := Duty(i64)
+	if percent {
+		// TODO(maruel): Add support for fractional number.
+		if i < 0 {
+			return 0, errors.New("duty must be >= 0%")
+		}
+		if i > 100 {
+			return 0, errors.New("duty must be <= 100%")
+		}
+		return ((i * DutyMax) + 49) / 100, nil
+	}
+	if i < 0 {
+		return 0, errors.New("duty must be >= 0")
+	}
+	if i > DutyMax {
+		return 0, fmt.Errorf("duty must be <= %d", DutyMax)
+	}
+	return i, nil
+}
+
+// PinPWM exposes hardware PWM.
+//
+// The driver may uses DMA controller underneath for zero CPU implementation.
+type PinPWM interface {
+	// PWM sets the PWM output on supported pins.
+	//
+	// To use as a general purpose clock, set duty to DutyHalf. Some pins may
+	// only support DutyHalf and no other value.
+	//
+	// Using 0 as period will use the optimal value as supported/preferred by the
+	// pin.
+	PWM(duty Duty, period time.Duration) error
+}
+
 // PinIn is an input GPIO pin.
 //
 // It may optionally support internal pull resistor and edge based triggering.
@@ -126,13 +197,6 @@ type PinIn interface {
 	Pull() Pull
 }
 
-const (
-	// Max is the PWM fully at high. One should use Out(High) instead.
-	Max = 65536
-	// Half is a 50% PWM duty cycle.
-	Half = Max / 2
-)
-
 // PinOut is an output GPIO pin.
 type PinOut interface {
 	pin.Pin
@@ -144,26 +208,32 @@ type PinOut interface {
 	// Out() tries to empty the accumulated edges detected if the gpio was
 	// previously set as input but this is not 100% guaranteed due to the OS.
 	Out(l Level) error
-	// PWM sets a pin as output with a specified duty cycle between 0 and Max.
-	//
-	// The pin should use the highest frequency it can use.
-	//
-	// Use Half for a 50% duty cycle.
-	PWM(duty int) error
 }
 
 // PinIO is a GPIO pin that supports both input and output. It matches both
 // interfaces PinIn and PinOut.
 //
 // A GPIO pin implementing PinIO may fail at either input or output or both.
+//
+// The GPIO pin may optionally support more interfaces, like PinPWM,
+// PinDefaultPull.
 type PinIO interface {
 	pin.Pin
+	// PinIn
 	In(pull Pull, edge Edge) error
 	Read() Level
 	WaitForEdge(timeout time.Duration) bool
 	Pull() Pull
+	// PinOut
 	Out(l Level) error
-	PWM(duty int) error
+}
+
+// PinDefaultPull is optionally implemented to return the default pull at boot
+// time. This is useful to determine if the pin is acceptable for operation
+// with certain devices.
+type PinDefaultPull interface {
+	// DefaultPull returns the pull that is initialized on CPU reset.
+	DefaultPull() Pull
 }
 
 // INVALID implements PinIO and fails on all access.
@@ -224,10 +294,6 @@ func (invalidPin) Pull() Pull {
 }
 
 func (invalidPin) Out(Level) error {
-	return errInvalidPin
-}
-
-func (invalidPin) PWM(duty int) error {
 	return errInvalidPin
 }
 

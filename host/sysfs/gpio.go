@@ -250,11 +250,6 @@ func (p *Pin) Out(l gpio.Level) error {
 	return nil
 }
 
-// PWM implements gpio.PinOut.
-func (p *Pin) PWM(duty int) error {
-	return errors.New("sysfs-gpio: pwm is not supported")
-}
-
 //
 
 // open opens the gpio sysfs handle to /value and /direction.

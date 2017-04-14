@@ -105,9 +105,4 @@ func (p *Pin) Out(l gpio.Level) error {
 	return nil
 }
 
-// PWM implements gpio.PinOut.
-func (p *Pin) PWM(duty int) error {
-	return errors.New("gpiotest: pwm is not implemented")
-}
-
 var _ gpio.PinIO = &Pin{}
