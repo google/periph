@@ -48,9 +48,12 @@ func TestAlloc_fail(t *testing.T) {
 	}
 	mailboxErr = nil
 	mailbox = &dummy{}
+	// TODO(maruel): https://github.com/google/periph/issues/126
+	/* pmem.Map() may just work fine.
 	if m, err := Alloc(4096); m != nil || err == nil {
 		t.Fatal("can't map arbitrary physical pages")
 	}
+	*/
 	mailbox = &playback{}
 	if m, err := Alloc(4096); m != nil || err == nil {
 		t.Fatal("mailbox failed")
@@ -89,7 +92,8 @@ func TestAlloc_fail(t *testing.T) {
 
 func TestOpenMailbox(t *testing.T) {
 	defer reset()
-	// It is expected to fail unless running as root.
+	// TODO(maruel): https://github.com/google/periph/issues/126
+	mailbox = &playback{}
 	if err := openMailbox(); err != nil {
 		if mailboxErr != err {
 			t.Fatal("error is different")
@@ -128,14 +132,6 @@ func TestGenPacket(t *testing.T) {
 	expected = []uint32{0x24, 0x0, 0xa, 0x8, 0xc, 0x1, 0x2, 0x0, 0x0}
 	if !uint32Equals(actual, expected) {
 		t.Fatal(actual)
-	}
-}
-
-func TestIOCTL(t *testing.T) {
-	// Sends an invalid ioctl to stdin. Not a big deal.
-	m := messageBox{}
-	if m.sendMessage([]uint32{0}) == nil {
-		t.Fatal("can't send arbitrary ioctl to stdin")
 	}
 }
 
