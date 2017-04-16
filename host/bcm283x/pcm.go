@@ -1,4 +1,4 @@
-// Copyright 2016 The Periph Authors. All rights reserved.
+// Copyright 2017 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -6,9 +6,11 @@
 
 package bcm283x
 
+var pcmMemory *pcmMap
+
 type pcmCS uint32
 
-// Pages 126-129.
+// Pages 126-129
 const (
 	// 31:26 reserved
 	pcmStandby      pcmCS = 1 << 25 // STBY
@@ -36,3 +38,16 @@ const (
 	pcmRXEnable    pcmCS = 1 << 1      // RXON
 	pcmEnable      pcmCS = 1 << 0      // EN
 )
+
+// Page 119
+type pcmMap struct {
+	controlStatus pcmCS  // CS_A
+	fifo          uint32 // FIFO_A
+	mode          uint32 // MODE_A
+	rxc           uint32 // RXC_A
+	txc           uint32 // TXC_A
+	dreq          uint32 // DREQ_A
+	inten         uint32 // INTEN_A
+	intstc        uint32 // INTSTC_A
+	gray          uint32 // GRAY
+}

@@ -7,12 +7,28 @@
 // This driver implements memory-mapped GPIO pin manipulation and leverages
 // sysfs-gpio for edge detection.
 //
+// If you are looking at the actual implementation, open doc.go for further
+// implementation details.
+//
 // Datasheet
 //
 // https://www.raspberrypi.org/wp-content/uploads/2012/02/BCM2835-ARM-Peripherals.pdf
 //
 // Its crowd-sourced errata: http://elinux.org/BCM2835_datasheet_errata
 //
+// BCM2836:
+// https://www.raspberrypi.org/documentation/hardware/raspberrypi/bcm2836/QA7_rev3.4.pdf
+//
 // Another doc about PCM and PWM:
-// https://fr.scribd.com/doc/127599939/BCM2835-Audio-clocks
+// https://scribd.com/doc/127599939/BCM2835-Audio-clocks
 package bcm283x
+
+// Other implementations details
+//
+// mainline:
+// https://github.com/torvalds/linux/blob/master/drivers/dma/bcm2835-dma.c
+// https://github.com/torvalds/linux/blob/master/drivers/gpio
+//
+// Raspbian kernel:
+// https://github.com/raspberrypi/linux/blob/rpi-4.11.y/drivers/dma
+// https://github.com/raspberrypi/linux/blob/rpi-4.11.y/drivers/gpio

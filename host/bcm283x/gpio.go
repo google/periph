@@ -1,4 +1,4 @@
-// Copyright 2016 The Periph Authors. All rights reserved.
+// Copyright 2017 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -7,11 +7,8 @@ package bcm283x
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path"
 	"reflect"
-	"strconv"
 	"strings"
 	"time"
 
@@ -280,7 +277,9 @@ func (p *Pin) Out(l gpio.Level) error {
 	return nil
 }
 
-// DefaultPull returns the default pull for the function.
+// DefaultPull returns the default pull for the pin.
+//
+// Implements gpio.PinDefaultPull.
 //
 // The CPU doesn't return the current pull.
 func (p *Pin) DefaultPull() gpio.Pull {
@@ -322,7 +321,19 @@ const (
 	alt5 function = 2
 )
 
-var gpioMemory *gpioMap
+var (
+	// baseAddr is the base for all the CPU registers.
+	//
+	// It is initialized by driverGPIO.Init().
+	baseAddr uint32
+	// dramBus is high bits to address uncached memory. See virtToUncachedPhys()
+	// in dma.go.
+	dramBus uint32
+	// gpioMemory is the memory map of the CPU GPIO registers.
+	gpioMemory *gpioMap
+	// gpioBaseAddr is needed for DMA transfers.
+	gpioBaseAddr uint32
+)
 
 // cpuPins is all the pins as supported by the CPU. There is no guarantee that
 // they are actually connected to anything on the board.
@@ -396,6 +407,7 @@ var mapping = [][6]string{
 	{"UART0_RXD", "", "", "", "", "UART1_RXD"}, // 15
 	{"", "", "", "UART0_CTS", "SPI1_CS2", "UART1_CTS"},
 	{"", "", "", "UART0_RTS", "SPI1_CS1", "UART1_RTS"},
+	// TODO(maruel): Alias the PCM_xxx to I2S0_xxx.
 	{"PCM_CLK", "", "", "", "SPI1_CS0", "PWM0_OUT"},
 	{"PCM_FS", "", "", "", "SPI1_MISO", "PWM1_OUT"},
 	{"PCM_DIN", "", "", "", "SPI1_MOSI", "GPCLK0"}, // 20
@@ -571,28 +583,6 @@ func sleep150cycles() uint32 {
 	return out
 }
 
-// getBaseAddress queries the virtual file system to retrieve the base address
-// of the GPIO registers.
-//
-// Defaults to 0x3F200000 as per datasheet if could query the file system.
-func getBaseAddress() uint64 {
-	items, _ := ioutil.ReadDir("/sys/bus/platform/drivers/pinctrl-bcm2835/")
-	for _, item := range items {
-		if item.Mode()&os.ModeSymlink != 0 {
-			parts := strings.SplitN(path.Base(item.Name()), ".", 2)
-			if len(parts) != 2 {
-				continue
-			}
-			base, err := strconv.ParseUint(parts[0], 16, 64)
-			if err != nil {
-				continue
-			}
-			return base
-		}
-	}
-	return 0x3F200000
-}
-
 // driverGPIO implements periph.Driver.
 type driverGPIO struct {
 }
@@ -609,12 +599,33 @@ func (d *driverGPIO) Init() (bool, error) {
 	if !Present() {
 		return false, errors.New("bcm283x CPU not detected")
 	}
+	model := distro.CPUInfo()["model name"]
+	if strings.Index(model, "ARMv6") != -1 {
+		baseAddr = 0x20000000
+		dramBus = 0x40000000
+	} else {
+		// RPi2+
+		baseAddr = 0x3F000000
+		dramBus = 0xC0000000
+	}
+	// Page 6.
+	// Virtual addresses in kernel mode will range between 0xC0000000 and
+	// 0xEFFFFFFF.
+	// Virtual addresses in user mode (i.e. seen by processes running in ARM
+	// Linux) will range between 0x00000000 and 0xBFFFFFFF.
+	// Peripherals (at physical address 0x20000000 on) are mapped into the kernel
+	// virtual address space starting at address 0xF2000000. Thus a peripheral
+	// advertised here at bus address 0x7Ennnnnn is available in the ARM kenel at
+	// virtual address 0xF2nnnnnn.
+
+	gpioBaseAddr = baseAddr + 0x200000
 	m, err := pmem.MapGPIO()
 	if err != nil {
 		// Try without /dev/gpiomem. This is the case of not running on Raspbian or
 		// raspbian before Jessie. This requires running as root.
 		var err2 error
-		m, err2 = pmem.Map(getBaseAddress(), 4096)
+		m, err2 = pmem.Map(uint64(gpioBaseAddr), 4096)
+		var err error
 		if err2 != nil {
 			if distro.IsRaspbian() {
 				// Raspbian specific error code to help guide the user to troubleshoot
@@ -702,6 +713,7 @@ func init() {
 	}
 }
 
+var _ gpio.PinDefaultPull = &Pin{}
+var _ gpio.PinIO = &Pin{}
 var _ gpio.PinIn = &Pin{}
 var _ gpio.PinOut = &Pin{}
-var _ gpio.PinIO = &Pin{}
