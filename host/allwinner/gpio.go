@@ -230,6 +230,11 @@ func (p *Pin) Out(l gpio.Level) error {
 	return nil
 }
 
+// DefaultPull returns the default pull for the pin.
+func (p *Pin) DefaultPull() gpio.Pull {
+	return p.defaultPull
+}
+
 //
 
 // function returns the current GPIO pin function.
@@ -261,19 +266,8 @@ func (p *Pin) wrap(err error) error {
 
 //
 
-// ===== PinIO implementation.
-// Page 73 for memory mapping overview.
-// Page 194 for PWM.
-// Page 230 for crypto engine.
-// Page 278 audio including ADC.
-// Page 376 GPIO PB to PH
-// Page 410 GPIO PL
-// Page 536 I²C (I2C)
-// Page 545 SPI
-// Page 560 UART
-// Page 621 I2S/PCM
-
-// Page 23~24
+// A64: Page 23~24
+// R8: Page 322-334.
 // Each pin can have one of 7 functions.
 const (
 	in       function = 0
@@ -286,7 +280,12 @@ const (
 	disabled function = 7
 )
 
-var gpioMemory *gpioMap
+var (
+	// gpioMemory is the memory map of the CPU GPIO registers.
+	gpioMemory *gpioMap
+	// gpioBaseAddr is the physical base address of the GPIO registers.
+	gpioBaseAddr uint32
+)
 
 // cpupins that may be implemented by a generic Allwinner CPU. Not all pins
 // will be present on all models and even if the CPU model supports them they
@@ -608,14 +607,11 @@ func (d *driverGPIO) Init() (bool, error) {
 	if !Present() {
 		return false, errors.New("Allwinner CPU not detected")
 	}
-	m, err := pmem.Map(getBaseAddress(), 4096)
-	if err != nil {
+	gpioBaseAddr = uint32(getBaseAddress())
+	if err := pmem.MapStruct(uint64(gpioBaseAddr), reflect.ValueOf(&gpioMemory)); err != nil {
 		if os.IsPermission(err) {
 			return true, fmt.Errorf("need more access, try as root: %v", err)
 		}
-		return true, err
-	}
-	if err := m.Struct(reflect.ValueOf(&gpioMemory)); err != nil {
 		return true, err
 	}
 
@@ -665,6 +661,7 @@ func getBaseAddress() uint64 {
 
 // Ensure that the various structs implement the interfaces they're supposed to.
 
+var _ gpio.PinDefaultPull = &Pin{}
+var _ gpio.PinIO = &Pin{}
 var _ gpio.PinIn = &Pin{}
 var _ gpio.PinOut = &Pin{}
-var _ gpio.PinIO = &Pin{}

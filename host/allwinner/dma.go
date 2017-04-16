@@ -15,6 +15,134 @@
 
 package allwinner
 
+import (
+	"errors"
+	"fmt"
+	"os"
+	"reflect"
+
+	"github.com/kr/pretty"
+	"periph.io/x/periph/host/pmem"
+)
+
+var (
+	// dmaMemory is the memory map of the CPU DMA registers.
+	dmaMemory *dmaMap
+	// dmaBaseAddr is the physical base address of the DMA registers.
+	dmaBaseAddr uint32
+)
+
+// dmaMap represents the DMA memory mapped CPU registers.
+//
+// This map is specific to the currently supported CPUs and will have to be
+// adapted as more CPUs are supported. In particular the number of physical
+// channels varies across different CPUs.
+//
+// Note that we modify the DMA controllers without telling the kernel driver.
+// The driver keeps its own table of which DMA channel is available so this
+// code could effectively crash the whole system. It practice this works.
+// #everythingisfine
+type dmaMap struct {
+	irqEn       dmaR8Irq                // DMA_IRQ_EN_REG
+	irqPendStas dmaR8PendingIrq         // DMA_IRQ_PEND_STAS_REG
+	reserved0   [(0x100 - 8) / 4]uint32 //
+	normal      [8]dmaR8NormalGroup     // 0x100 The "8" "normal" DMA channels (only one active at a time so there's effectively one)
+	reserved1   [0x100 / 4]uint32       //
+	dedicated   [8]dmaDedicatedGroup    // 0x300 The 8 "dedicated" (as in actually existing) DMA channels
+}
+
+func (d *dmaMap) getDedicated() int {
+	for i := len(d.dedicated) - 1; i >= 0; i-- {
+		if d.dedicated[i].isAvailable() {
+			return i
+		}
+	}
+	return -1
+}
+
+// dmaNormalGroup is the control registers for the first block of 8 DMA
+// controllers.
+//
+// They can be intentionally slowed down, unlike the dedicated DMA ones.
+//
+// The big caveat is that only one controller can be active at a time and the
+// execution sequence is in accordance with the priority level. This means that
+// two normal DMA cannot be used to do simultaneous read and write. This
+// feature is critical for bus bitbanging.
+type dmaR8NormalGroup struct {
+	cfg         ndmaR8Cfg // NDMA_CTRL_REG
+	srcAddr     uint32    // NDMA_SRC_ADDR_REG
+	dstAddr     uint32    // NDMA_DEST_ADDR_REG
+	byteCounter uint32    // NDMA_BC_REG
+	reserved    [4]uint32 //
+}
+
+func (d *dmaR8NormalGroup) isAvailable() bool {
+	return d.cfg == 0 && d.srcAddr == 0 && d.dstAddr == 0 && d.byteCounter == 0
+}
+
+func (d *dmaR8NormalGroup) release() error {
+	d.srcAddr = 0
+	d.dstAddr = 0
+	d.byteCounter = 0
+	d.cfg = ndmaLoad
+	//dmaMemory.irqEn &^= ...
+	//dmaMemory.irqPendStas &^= ...
+	return nil
+}
+
+// dmaNormalGroup is the control registers for the second block of 8 DMA
+// controllers.
+//
+// They support different DReq and can do non-linear streaming.
+type dmaDedicatedGroup struct {
+	cfg         ddmaR8Cfg   // DDMA_CTRL_REG
+	srcAddr     uint32      // DDMA_SRC_ADDR_REG
+	dstAddr     uint32      // DDMA_DEST_ADDR_REG
+	byteCounter uint32      // DDMA_BC_REG (24 bits)
+	reserved0   [2]uint32   //
+	param       ddmaR8Param // DDMA_PARA_REG (dedicated DMA only)
+	reserved1   uint32      //
+}
+
+func (d *dmaDedicatedGroup) isAvailable() bool {
+	return d.cfg == 0 && d.srcAddr == 0 && d.dstAddr == 0 && d.byteCounter == 0 && d.param == 0
+}
+
+func (d *dmaDedicatedGroup) set(srcAddr, dstAddr, l uint32, srcIO, dstIO bool, src ddmaR8Cfg) {
+	d.srcAddr = srcAddr
+	d.dstAddr = dstAddr
+	d.byteCounter = l
+	// TODO(maruel): Slow down the clock by another 2*250x
+	//d.param = ddmaR8Param(250 | 250<<16)
+	d.param = ddmaR8Param(1<<24 | 1<<8 | 1)
+	// All these have value 0. This statement only exist for documentation.
+	cfg := ddmaDstWidth8 | ddmaDstBurst1 | ddmaDstLinear | ddmaSrcWidth8 | ddmaSrcLinear | ddmaSrcBurst1
+	cfg |= src | ddmaBCRemain
+	if srcIO {
+		cfg |= ddmaSrcIOMode
+	} else if dstIO {
+		cfg |= ddmaDstIOMode
+	}
+	d.cfg = ddmaLoad | cfg
+	for i := 0; d.cfg&ddmaLoad != 0 && i < 100000; i++ {
+	}
+	if d.cfg&ddmaLoad != 0 {
+		pretty.Printf("failed to load DDMA: %# v\n", d)
+	}
+}
+
+func (d *dmaDedicatedGroup) release() error {
+	d.param = 0
+	d.srcAddr = 0
+	d.dstAddr = 0
+	d.byteCounter = 0
+	d.cfg = ddmaLoad
+	//dmaMemory.irqEn &^= ...
+	//dmaMemory.irqPendStas &^= ...
+	return nil
+}
+
 const (
 	// 31 reserved
 	dma7QueueEndIrq   dmaA64Irq = 1 << 30 // DMA7_END_IRQ_EN; DMA 7 Queue End Transfer Interrupt Enable.
@@ -206,3 +334,121 @@ const (
 // DDMA_PARA_REG
 // R8: Page 134.
 type ddmaR8Param uint32
+
+// smokeTest allocates two physical pages, ask the DMA controller to copy the
+// data from one page to another (with a small offset) and make sure the
+// content is as expected.
+//
+// This should take a fraction of a second and will make sure the driver is
+// usable.
+func smokeTest() error {
+	const size = 4096  // 4kb
+	const holeSize = 1 // Minimum DMA alignment.
+
+	alloc := func(s int) (pmem.Mem, error) {
+		return pmem.Alloc(s)
+	}
+
+	copyMem := func(pDst, pSrc uint64) error {
+		n := dmaMemory.getDedicated()
+		if n == -1 {
+			return errors.New("no channel available")
+		}
+		dmaMemory.irqEn &^= 3 << uint(2*n+16)
+		dmaMemory.irqPendStas = 3 << uint(2*n+16)
+		ch := &dmaMemory.dedicated[n]
+		defer ch.release()
+		ch.set(uint32(pSrc), uint32(pDst)+holeSize, 4096-2*holeSize, false, false, ddmaDstDrqSDRAM|ddmaSrcDrqSDRAM)
+
+		for ch.cfg&ddmaBusy != 0 {
+		}
+		return nil
+	}
+
+	return pmem.CopyTest(size, holeSize, alloc, copyMem)
+}
+
+// driverDMA implements periph.Driver.
+//
+// It implements much more than the DMA controller, it also exposes the clocks,
+// the PWM and PCM controllers.
+type driverDMA struct {
+}
+
+func (d *driverDMA) String() string {
+	return "allwinner-dma"
+}
+
+func (d *driverDMA) Prerequisites() []string {
+	return []string{"allwinner-gpio"}
+}
+
+func (d *driverDMA) Init() (bool, error) {
+	if IsA64() {
+		// Page 198.
+		dmaBaseAddr = 0x1C02000
+		// Page 194.
+		pwmBaseAddr = 0x1C21400
+		// Page 161.
+		timerBaseAddr = 0x1C20C00
+		// Page 81.
+		clockBaseAddr = 0x1C20000
+		// Page Page 545.
+		spiBaseAddr = 0x01C68000
+	} else if IsR8() {
+		// Page 124.
+		dmaBaseAddr = 0x1C02000
+		// Page 83.
+		pwmBaseAddr = 0x1C20C00 + 0x200
+		// Page 85.
+		timerBaseAddr = 0x1C20C00
+		// Page 57.
+		clockBaseAddr = 0x1C20000
+		// Page 151.
+		spiBaseAddr = 0x01C05000
+	} else {
+		// H3
+		// Page 194.
+		//dmaBaseAddr = 0x1C02000
+		// Page 187.
+		//pwmBaseAddr = 0x1C21400
+		// Page 154.
+		//timerBaseAddr = 0x1C20C00
+		return false, errors.New("unsupported CPU architecture")
+	}
+
+	if err := pmem.MapStruct(uint64(dmaBaseAddr), reflect.ValueOf(&dmaMemory)); err != nil {
+		if os.IsPermission(err) {
+			return true, fmt.Errorf("need more access, try as root: %v", err)
+		}
+		return true, err
+	}
+
+	if err := pmem.MapStruct(uint64(pwmBaseAddr), reflect.ValueOf(&pwmMemory)); err != nil {
+		return true, err
+	}
+	if err := pmem.MapStruct(uint64(timerBaseAddr), reflect.ValueOf(&timerMemory)); err != nil {
+		return true, err
+	}
+	if err := pmem.MapStruct(uint64(clockBaseAddr), reflect.ValueOf(&clockMemory)); err != nil {
+		return true, err
+	}
+	if err := pmem.MapStruct(uint64(spiBaseAddr), reflect.ValueOf(&spiMemory)); err != nil {
+		return true, err
+	}
+
+	return true, smokeTest()
+}
+
+func (d *driverDMA) Close() error {
+	// Stop DMA and PWM controllers.
+	return nil
+}
+
+/* TODO(maruel): This is intense, wait to be sure it works.
+func init() {
+	if isArm {
+		periph.MustRegister(&driverDMA{})
+	}
+}
+*/

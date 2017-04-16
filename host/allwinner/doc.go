@@ -8,6 +8,9 @@
 // This driver implements memory-mapped GPIO pin manipulation and leverages
 // sysfs-gpio for edge detection.
 //
+// If you are looking at the actual implementation, open doc.go for further
+// implementation details.
+//
 // Datasheets
 //
 // A64: http://files.pine64.org/doc/datasheet/pine64/Allwinner_A64_User_Manual_V1.0.pdf
@@ -19,5 +22,12 @@
 // Physical overview: http://files.pine64.org/doc/datasheet/pine64/A64_Datasheet_V1.1.pdf
 package allwinner
 
+// Other implementation details
+//
 // The most active kernel branch is
 // https://github.com/linux-sunxi/linux-sunxi/commits/sunxi-next
+//
+// In particular look at
+// https://github.com/linux-sunxi/linux-sunxi/blob/sunxi-next/drivers/dma/sun4i-dma.c
+// and
+// https://github.com/linux-sunxi/linux-sunxi/blob/sunxi-next/drivers/dma/sun6i-dma.c

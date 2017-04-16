@@ -196,6 +196,13 @@ func (p *PinPL) Out(l gpio.Level) error {
 	return nil
 }
 
+// TODO(maruel): PWM support for PL10.
+
+// DefaultPull returns the default pull for the pin.
+func (p *PinPL) DefaultPull() gpio.Pull {
+	return p.defaultPull
+}
+
 //
 
 // function returns the current GPIO pin function.
@@ -372,6 +379,7 @@ func init() {
 	}
 }
 
+var _ gpio.PinDefaultPull = &Pin{}
+var _ gpio.PinIO = &PinPL{}
 var _ gpio.PinIn = &PinPL{}
 var _ gpio.PinOut = &PinPL{}
-var _ gpio.PinIO = &PinPL{}

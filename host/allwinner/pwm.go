@@ -7,6 +7,14 @@ package allwinner
 import (
 	"fmt"
 	"strings"
+	"time"
+)
+
+var (
+	// pwmMemory is the memory map of the CPU PWM registers.
+	pwmMemory *pwmMap
+	// pwmBaseAddr is the physical base address of the PWM registers.
+	pwmBaseAddr uint32
 )
 
 const pwmClock = 24000000
@@ -162,4 +170,35 @@ func toPeriod(total uint32, active uint16) pwmPeriod {
 		total = pwmMaxPeriod
 	}
 	return pwmPeriod(total-1)<<16 | pwmPeriod(active)
+}
+
+// getBestPrescale finds the best prescaler.
+//
+// Cycles must be between 2 and 0x10000/2.
+func getBestPrescale(period time.Duration) pwmPrescale {
+	// TODO(maruel): Rewrite this function, it is incorrect.
+	for _, v := range prescalers {
+		p := time.Second / time.Duration(v.freq)
+		smallest := (period / pwmMaxPeriod)
+		largest := (period / 2)
+		if p > smallest && p < largest {
+			return v.scaler
+		}
+	}
+	// Period is longer than 196s.
+	return pwmPrescale72000
+}
+
+// pwmMap represents the PWM memory mapped CPU registers.
+//
+// The base frequency is 24Mhz.
+//
+// TODO(maruel): Some CPU have 2 PWMs.
+type pwmMap struct {
+	ctl    pwmCtl    // PWM_CTRL_REG
+	period pwmPeriod // PWM_CH0_PERIOD
+}
+
+func (p *pwmMap) String() string {
+	return fmt.Sprintf("pwmMap{%s, %v}", p.ctl, p.period)
 }
