@@ -14,6 +14,7 @@ import (
 	"periph.io/x/periph"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
+	"periph.io/x/periph/conn/gpio/gpiostream"
 	"periph.io/x/periph/host/distro"
 	"periph.io/x/periph/host/pmem"
 	"periph.io/x/periph/host/sysfs"
@@ -381,6 +382,39 @@ func (p *Pin) PWM(duty gpio.Duty, period time.Duration) error {
 	}
 	pwmMemory.ctl |= pwm1Enable << shift
 	p.setFunction(f)
+	return nil
+}
+
+// StreamIn implements gpiostream.PinIn.
+func (p *Pin) StreamIn(pull gpio.Pull, b *gpiostream.BitStream) error {
+	if err := p.In(pull, gpio.NoEdge); err != nil {
+		return err
+	}
+	if err := dmaReadStream(p, b); err != nil {
+		return p.wrap(err)
+	}
+	return nil
+}
+
+// StreamOut implements gpiostream.PinOut.
+func (p *Pin) StreamOut(s gpiostream.Stream) error {
+	if err := p.Out(gpio.Low); err != nil {
+		return err
+	}
+	// If the pin is PCM_DOUT, use PCM for much nicer stream and lower memory
+	// usage.
+	if p.number == 21 || p.number == 31 {
+		alt := alt0
+		if p.number == 31 {
+			alt = alt2
+		}
+		p.setFunction(alt)
+		if err := dmaWriteStreamPCM(p, s); err != nil {
+			return p.wrap(err)
+		}
+	} else if err := dmaWriteStreamEdges(p, s); err != nil {
+		return p.wrap(err)
+	}
 	return nil
 }
 
@@ -825,3 +859,5 @@ var _ gpio.PinIO = &Pin{}
 var _ gpio.PinIn = &Pin{}
 var _ gpio.PinOut = &Pin{}
 var _ gpio.PinPWM = &Pin{}
+var _ gpiostream.PinIn = &Pin{}
+var _ gpiostream.PinOut = &Pin{}
