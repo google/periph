@@ -6,6 +6,14 @@
 
 package bcm283x
 
+import (
+	"errors"
+	"fmt"
+	"time"
+
+	"periph.io/x/periph/conn/gpio/gpiostream"
+)
+
 var pcmMemory *pcmMap
 
 type pcmCS uint32
@@ -134,6 +142,7 @@ const (
 	pcmIntStatTXErr    pcmIntStatus = 1 << 2 // TXERR TX error occurred / clear
 	pcmIntStatRXEnable pcmIntStatus = 1 << 1 // RXR RX Read interrupt occurred / clear
 	pcmIntStatTXEnable pcmIntStatus = 1 << 0 // TXW TX Write interrupt occurred / clear
+	pcmIntStatusClear  pcmIntStatus = 0xF
 )
 
 // pcmGray puts it into a special data/strobe mode that is under 'best effort'
@@ -156,13 +165,83 @@ const (
 
 // Page 119
 type pcmMap struct {
-	controlStatus pcmCS        // CS_A
-	fifo          uint32       // FIFO_A
-	mode          pcmMode      // MODE_A
-	rxc           pcmRX        // RXC_A
-	txc           pcmTX        // TXC_A
-	dreq          pcmDreq      // DREQ_A
-	inten         pcmInterrupt // INTEN_A
-	intstc        pcmIntStatus // INTSTC_A
-	gray          pcmGray      // GRAY
+	cs     pcmCS        // CS_A Control Status
+	fifo   uint32       // FIFO_A FIFO register
+	mode   pcmMode      // MODE_A Operation mode
+	rxc    pcmRX        // RXC_A RX control
+	txc    pcmTX        // TXC_A TX control
+	dreq   pcmDreq      // DREQ_A DMA control
+	inten  pcmInterrupt // INTEN_A Interrupt enable
+	intstc pcmIntStatus // INTSTC_A Interrupt status
+	gray   pcmGray      // GRAY Gray mode input processing
+}
+
+func (p *pcmMap) GoString() string {
+	return fmt.Sprintf(
+		"{\n  cs:     0x%x,\n  mode:   0x%x,\n  rxc:    0x%x,\n  txc:    0x%x,\n  dreq:   0x%x,\n  inten:  0x%x,\n  intstc: 0x%x,\n  gray:   0x%x,\n}",
+		p.cs, p.mode, p.rxc, p.txc, p.dreq, p.inten, p.intstc, p.gray)
+}
+
+func (p *pcmMap) reset() {
+	p.cs = 0
+	// In theory need to wait the equivalent of 2 PCM clocks.
+	// TODO(maruel): Use pcmSync busy loop to synchronize.
+	Nanospin(time.Microsecond)
+	// Hard reset
+	p.fifo = 0
+	p.mode = 0
+	p.rxc = 0
+	p.txc = 0
+	p.dreq = 0
+	p.inten = 0
+	p.intstc = pcmIntStatusClear
+	p.gray = 0
+
+	// Clear pcmStandby / pcm
+}
+
+// set initializes 8 bits stream via DMA with no delay and no FS.
+func (p *pcmMap) set() {
+	p.txc = pcmTX1Enable
+	p.cs = pcmTXClear | pcmRXClear
+	// In theory need to wait the equivalent of 2 PCM clocks.
+	// TODO(maruel): Use pcmSync busy loop to synchronize.
+	Nanospin(time.Microsecond)
+	p.dreq = 16<<pcmDreqTXPanicShift | 30<<pcmDreqTXLevelShift
+	p.cs |= pcmDMAEnable
+	//  pcmTXThresholdOne ?
+	p.cs |= pcmEnable | pcmTXEnable
+}
+
+// setPCMClockSource sets the PCM clock.
+//
+// It may select an higher frequency than the one requested.
+//
+// Other potentially good clock sources are PWM, SPI and UART.
+func setPCMClockSource(hz uint64) (uint64, int, error) {
+	if pcmMemory == nil {
+		return 0, 0, errors.New("subsystem PCM not initialized")
+	}
+	if clockMemory == nil {
+		return 0, 0, errors.New("subsystem Clock not initialized")
+	}
+	actual, divs, err := clockMemory.pcm.set(hz, dmaWaitcyclesMax+1)
+	if err == nil {
+		pcmMemory.cs = 0
+	}
+	// Convert divisor into wait cycles.
+	return actual, divs - 1, err
+}
+
+func pcmWriteStream(p *Pin, w gpiostream.Stream) error {
+	bits, ok := w.(*gpiostream.BitStream)
+	if !ok {
+		return errors.New("TODO(maruel): handle other Stream than BitStream")
+	}
+	if len(bits.Bits) == 0 {
+		return nil
+	}
+	// I²S is always most significant bit first.
+
+	return nil
 }

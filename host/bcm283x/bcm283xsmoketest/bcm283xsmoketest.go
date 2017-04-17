@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/gpio/gpiostream"
 	"periph.io/x/periph/host/bcm283x"
 )
 
@@ -60,7 +61,7 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) error {
 	if err := s.testPWM(pPWM, pClk); err != nil {
 		return err
 	}
-	return nil
+	return s.testDMA(pPWM, pClk)
 }
 
 // waitForEdge returns a channel that will return one bool, true if a edge was
@@ -149,6 +150,38 @@ func (s *SmokeTest) testPWM(p1, p2 *loggingPin) error {
 	if err := p2.PWM(gpio.DutyHalf, period); err != nil {
 		return err
 	}
+	return nil
+}
+
+// testDMA tests gpiostream.PinIn and PinOut.
+func (s *SmokeTest) testDMA(p1, p2 *loggingPin) error {
+	const period = 200 * time.Microsecond
+	fmt.Printf("- Testing StreamRead\n")
+	if err := p2.PWM(gpio.DutyHalf, period); err != nil {
+		return err
+	}
+	// Gather 0.1 second of readings at 10kHz sampling rate.
+	// TODO(maruel): Support >64kb buffer.
+	b := make(gpiostream.BitsLSB, 1000)
+	if err := p1.ReadStream(gpio.PullDown, period/2, b); err != nil {
+		return err
+	}
+
+	// Do debug the trace, uncomment the following line:
+	//fmt.Printf("%s\n", hex.EncodeToString(b))
+
+	// Sum the bits, it should be close to 50%.
+	v := 0
+	for _, x := range b {
+		for j := 0; j < 8; j++ {
+			v += int((x >> uint(j)) & 1)
+		}
+	}
+	fraction := (100 * v) / (8 * len(b))
+	if fraction < 45 || fraction > 55 {
+		return fmt.Errorf("reading clock lead to %d%% bits On, expected 50%%", fraction)
+	}
+	// TODO(maruel): There should be 10 streaks.
 	return nil
 }
 
