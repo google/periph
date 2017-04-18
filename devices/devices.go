@@ -87,7 +87,7 @@ func (c Celsius) ToF() Fahrenheit {
 	return Fahrenheit((c*9+2)/5 + 32000)
 }
 
-// Fahrenheit is a unit used in the United States.
+// Fahrenheit is an unsound unit used in the United States.
 type Fahrenheit Milli
 
 // Float64 returns the value as float64 with 0.001 precision.
