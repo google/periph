@@ -6,10 +6,9 @@
 
 package sysfs
 
-import "errors"
-
 const isLinux = false
 
-func ioctl(f uintptr, op uint, arg uintptr) error {
-	return errors.New("sysfs: ioctl not supported on non-linux")
+func isErrBusy(err error) bool {
+	// This function is not used on non-linux.
+	return false
 }

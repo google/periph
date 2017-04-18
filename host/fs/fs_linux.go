@@ -1,13 +1,19 @@
-// Copyright 2016 The Periph Authors. All rights reserved.
+// Copyright 2017 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-package sysfs
+package fs
 
-import (
-	"os"
-	"syscall"
-)
+import "syscall"
+
+const isLinux = true
+
+func ioctl(f uintptr, op uint, arg uintptr) error {
+	if _, _, errno := syscall.Syscall(syscall.SYS_IOCTL, f, uintptr(op), arg); errno != 0 {
+		return syscall.Errno(errno)
+	}
+	return nil
+}
 
 const (
 	epollET     = 1 << 31
@@ -24,17 +30,6 @@ type event struct {
 }
 
 // makeEvent creates an epoll *edge* triggered event.
-//
-// An edge triggered event is basically an "auto-reset" event, where waiting on
-// the edge resets it. A level triggered event requires manual resetting; this
-// could be done via a Read() call but there's no need to require the user to
-// call Read(). This is particularly useless in the case of gpio.RisingEdge and
-// gpio.FallingEdge.
-//
-// As per the official doc, edge triggers is still remembered even when no
-// epoll_wait() call is running, so no edge is missed. Two edges will be
-// coallesced into one if the user mode process can't keep up. There's no
-// accumulation of edges.
 //
 // References:
 // behavior and flags: http://man7.org/linux/man-pages/man7/epoll.7.html
@@ -59,9 +54,4 @@ func (e *event) makeEvent(fd uintptr) error {
 func (e *event) wait(timeoutms int) (int, error) {
 	// http://man7.org/linux/man-pages/man2/epoll_wait.2.html
 	return syscall.EpollWait(e.epollFd, e.event[:], timeoutms)
-}
-
-func isErrBusy(err error) bool {
-	e, ok := err.(*os.PathError)
-	return ok && e.Err == syscall.EBUSY
 }

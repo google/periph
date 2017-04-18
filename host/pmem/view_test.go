@@ -6,9 +6,12 @@ package pmem
 
 import (
 	"bytes"
+	"errors"
 	"log"
 	"reflect"
 	"testing"
+
+	"periph.io/x/periph/host/fs"
 )
 
 func ExampleMapStruct() {
@@ -103,19 +106,17 @@ func TestMapStruct(t *testing.T) {
 		t.Fatal("pointer is not nil")
 	}
 
-	// TODO(maruel): https://github.com/google/periph/issues/126
-	/*
-		type tmp struct {
-			A int
-		}
-		var v *tmp
-		if MapStruct(0, reflect.ValueOf(&v)) == nil {
-			t.Fatal("not as root")
-		}
-	*/
+	type tmp struct {
+		A int
+	}
+	var v *tmp
+	if MapStruct(0, reflect.ValueOf(&v)) == nil {
+		t.Fatal("not as root")
+	}
 }
 
 func TestView(t *testing.T) {
+	defer reset()
 	v := View{}
 	v.Close()
 	v.PhysAddr()
@@ -127,17 +128,61 @@ type simpleStruct struct {
 	u uint32
 }
 
+type simpleFile struct {
+	data []byte
+}
+
+func (s *simpleFile) Close() error {
+	return nil
+}
+
+func (s *simpleFile) Fd() uintptr {
+	return 0
+}
+
+func (s *simpleFile) Read(b []byte) (int, error) {
+	if s.data == nil {
+		return 0, errors.New("injected")
+	}
+	copy(b, s.data)
+	return len(s.data), nil
+}
+
+func (s *simpleFile) Seek(offset int64, whence int) (int64, error) {
+	return 0, nil
+}
+
+type failFile struct {
+}
+
+func (f *failFile) Close() error {
+	return errors.New("injected error")
+}
+
+func (f *failFile) Fd() uintptr {
+	return 0
+}
+
+func (f *failFile) Read(b []byte) (int, error) {
+	return 0, errors.New("injected error")
+}
+
+func (f *failFile) Seek(offset int64, whence int) (int64, error) {
+	return 0, errors.New("injected error")
+}
+
 func reset() {
 	mu.Lock()
 	defer mu.Unlock()
 	gpioMemErr = nil
-	if gpioMemView != nil {
-		gpioMemView.Close()
-		gpioMemView = nil
-	}
-	if devMem != nil {
-		devMem.Close()
-		devMem = nil
-	}
+	gpioMemView = nil
+	devMem = nil
 	devMemErr = nil
+	openFile = openFileOrig
+	pageMap = nil
+	pageMapErr = nil
+}
+
+func init() {
+	fs.Inhibit()
 }

@@ -6,10 +6,13 @@ package pmem
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"reflect"
 	"sync"
 	"unsafe"
+
+	"periph.io/x/periph/host/fs"
 )
 
 // Slice can be transparently viewed as []byte, []uint32 or a struct.
@@ -118,16 +121,32 @@ var (
 	mu          sync.Mutex
 	gpioMemErr  error
 	gpioMemView *View
-	devMem      *os.File
+	devMem      fileIO
 	devMemErr   error
+	openFile    = openFileOrig
 )
+
+type fileIO interface {
+	io.Closer
+	io.Seeker
+	io.Reader
+	Fd() uintptr
+}
+
+func openFileOrig(path string, flag int) (fileIO, error) {
+	f, err := fs.Open(path, flag)
+	if err != nil {
+		return nil, err
+	}
+	return f, nil
+}
 
 // mapGPIOLinux is purely Raspbian specific.
 func mapGPIOLinux() (*View, error) {
 	mu.Lock()
 	defer mu.Unlock()
 	if gpioMemView == nil && gpioMemErr == nil {
-		if f, err := os.OpenFile("/dev/gpiomem", os.O_RDWR|os.O_SYNC, 0); err == nil {
+		if f, err := openFile("/dev/gpiomem", os.O_RDWR|os.O_SYNC); err == nil {
 			defer f.Close()
 			if i, err := mmap(f.Fd(), 0, pageSize); err == nil {
 				gpioMemView = &View{Slice: i, orig: i, phys: 0}
@@ -156,11 +175,11 @@ func mapLinux(base uint64, size int) (*View, error) {
 	return &View{Slice: i[offset : offset+size], orig: i, phys: base + uint64(offset)}, nil
 }
 
-func openDevMemLinux() (*os.File, error) {
+func openDevMemLinux() (fileIO, error) {
 	mu.Lock()
 	defer mu.Unlock()
 	if devMem == nil && devMemErr == nil {
-		if devMem, devMemErr = os.OpenFile("/dev/mem", os.O_RDWR|os.O_SYNC, 0); devMemErr != nil {
+		if devMem, devMemErr = openFile("/dev/mem", os.O_RDWR|os.O_SYNC); devMemErr != nil {
 			devMemErr = wrapf("failed to open physical memory: %v", devMemErr)
 		}
 	}

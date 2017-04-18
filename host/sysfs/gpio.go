@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -18,6 +17,7 @@ import (
 	"periph.io/x/periph"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
+	"periph.io/x/periph/host/fs"
 )
 
 // Pins is all the pins exported by GPIO sysfs.
@@ -40,10 +40,10 @@ type Pin struct {
 	err        error     // If open() failed
 	direction  direction // Cache of the last known direction
 	edge       gpio.Edge // Cache of the last edge used.
-	fDirection simpleIO  // handle to /sys/class/gpio/gpio*/direction; never closed
-	fEdge      simpleIO  // handle to /sys/class/gpio/gpio*/edge; never closed
-	fValue     simpleIO  // handle to /sys/class/gpio/gpio*/value; never closed
-	event      event     // Initialized once
+	fDirection fileIO    // handle to /sys/class/gpio/gpio*/direction; never closed
+	fEdge      fileIO    // handle to /sys/class/gpio/gpio*/edge; never closed
+	fValue     fileIO    // handle to /sys/class/gpio/gpio*/value; never closed
+	event      fs.Event  // Initialized once
 }
 
 func (p *Pin) String() string {
@@ -70,7 +70,7 @@ func (p *Pin) Function() string {
 		return "ERR"
 	}
 	var buf [4]byte
-	if err := p.fDirection.read(buf[:]); err != nil {
+	if _, err := seekRead(p.fDirection, buf[:]); err != nil {
 		return "ERR"
 	}
 	if buf[0] == 'i' && buf[1] == 'n' {
@@ -97,7 +97,7 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 		if err := p.open(); err != nil {
 			return p.wrap(err)
 		}
-		if err := p.fDirection.write(bIn); err != nil {
+		if err := seekWrite(p.fDirection, bIn); err != nil {
 			return p.wrap(err)
 		}
 		p.direction = dIn
@@ -105,7 +105,7 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	// Always push none to help accumulated flush edges. This is not fool proof
 	// but it seems to help.
 	if p.fEdge != nil {
-		if err := p.fEdge.write(bNone); err != nil {
+		if err := seekWrite(p.fEdge, bNone); err != nil {
 			return p.wrap(err)
 		}
 	}
@@ -113,12 +113,12 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	// triggering was enabled.
 	if edge != gpio.NoEdge {
 		if p.fEdge == nil {
-			fE, err := os.OpenFile(p.root+"edge", os.O_RDWR|os.O_APPEND, 0600)
+			var err error
+			p.fEdge, err = fileIOOpen(p.root+"edge", os.O_RDWR)
 			if err != nil {
 				return p.wrap(err)
 			}
-			p.fEdge = &resetFile{fE}
-			if err = p.event.makeEvent(p.fValue.Fd()); err != nil {
+			if err = p.event.MakeEvent(p.fValue.Fd()); err != nil {
 				p.fEdge.Close()
 				p.fEdge = nil
 				return p.wrap(err)
@@ -134,7 +134,7 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 			case gpio.BothEdges:
 				b = bBoth
 			}
-			if err := p.fEdge.write(b); err != nil {
+			if err := seekWrite(p.fEdge, b); err != nil {
 				return p.wrap(err)
 			}
 		}
@@ -159,7 +159,7 @@ func (p *Pin) Read() gpio.Level {
 		return gpio.Low
 	}
 	var buf [4]byte
-	if err := p.fValue.read(buf[:]); err != nil {
+	if _, err := seekRead(p.fValue, buf[:]); err != nil {
 		// Error.
 		return gpio.Low
 	}
@@ -185,7 +185,7 @@ func (p *Pin) WaitForEdge(timeout time.Duration) bool {
 	}
 	start := time.Now()
 	for {
-		if nr, err := p.event.wait(ms); err != nil {
+		if nr, err := p.event.Wait(ms); err != nil {
 			return false
 		} else if nr == 1 {
 			// TODO(maruel): According to pigpio, the correct way to consume the
@@ -218,7 +218,7 @@ func (p *Pin) Out(l gpio.Level) error {
 		}
 		if p.edge != gpio.NoEdge {
 			p.edge = gpio.NoEdge
-			if err := p.fEdge.write(bNone); err != nil {
+			if err := seekWrite(p.fEdge, bNone); err != nil {
 				return p.wrap(err)
 			}
 			// This is still important to remove an accumulated edge.
@@ -232,7 +232,7 @@ func (p *Pin) Out(l gpio.Level) error {
 		} else {
 			d = bHigh
 		}
-		if err := p.fDirection.write(d); err != nil {
+		if err := seekWrite(p.fDirection, d); err != nil {
 			return p.wrap(err)
 		}
 		p.direction = dOut
@@ -244,7 +244,7 @@ func (p *Pin) Out(l gpio.Level) error {
 	} else {
 		d[0] = '1'
 	}
-	if err := p.fValue.write(d[:]); err != nil {
+	if err := seekWrite(p.fValue, d[:]); err != nil {
 		return p.wrap(err)
 	}
 	return nil
@@ -276,12 +276,12 @@ func (p *Pin) open() error {
 	// It's simpler to just loop a little as if /export is accessible, it doesn't
 	// make sense that gpioN/value doesn't become accessible eventually.
 	timeout := 5 * time.Second
+	var err error
 	for start := time.Now(); time.Since(start) < timeout; {
-		fv, err := os.OpenFile(p.root+"value", os.O_RDWR, 0600)
+		p.fValue, err = fileIOOpen(p.root+"value", os.O_RDWR)
 		// The virtual file creation is synchronous when writing to /export for
 		// udev rule execution is asynchronous.
 		if err == nil {
-			p.fValue = &resetFile{fv}
 			break
 		}
 		if !os.IsPermission(err) {
@@ -292,10 +292,8 @@ func (p *Pin) open() error {
 	if p.err != nil {
 		return p.err
 	}
-	fD, err := os.OpenFile(p.root+"direction", os.O_RDWR, 0600)
-	if err == nil {
-		p.fDirection = &resetFile{fD}
-	} else {
+	p.fDirection, err = fileIOOpen(p.root+"direction", os.O_RDWR)
+	if err != nil {
 		p.err = err
 		p.fValue.Close()
 		p.fValue = nil
@@ -332,42 +330,21 @@ var (
 // readInt reads a pseudo-file (sysfs) that is known to contain an integer and
 // returns the parsed number.
 func readInt(path string) (int, error) {
-	raw, err := ioutil.ReadFile(path)
+	f, err := fileIOOpen(path, os.O_RDONLY)
 	if err != nil {
 		return 0, err
 	}
+	defer f.Close()
+	var b [24]byte
+	n, err := f.Read(b[:])
+	if err != nil {
+		return 0, err
+	}
+	raw := b[:n]
 	if len(raw) == 0 || raw[len(raw)-1] != '\n' {
 		return 0, errors.New("invalid value")
 	}
 	return strconv.Atoi(string(raw[:len(raw)-1]))
-}
-
-type simpleIO interface {
-	io.Closer
-	Fd() uintptr
-	read(b []byte) error
-	write([]byte) error
-}
-
-// resetFile is file where all I/O are done from the start.
-type resetFile struct {
-	*os.File
-}
-
-func (r *resetFile) read(b []byte) error {
-	if _, err := r.Seek(0, 0); err != nil {
-		return err
-	}
-	_, err := r.Read(b)
-	return err
-}
-
-func (r *resetFile) write(b []byte) error {
-	if _, err := r.Seek(0, 0); err != nil {
-		return err
-	}
-	_, err := r.Write(b)
-	return err
 }
 
 // driverGPIO implements periph.Driver.
@@ -409,7 +386,7 @@ func (d *driverGPIO) Init() (bool, error) {
 			return true, err
 		}
 	}
-	exportHandle, err = os.OpenFile("/sys/class/gpio/export", os.O_WRONLY, 0600)
+	exportHandle, err = fileIOOpen("/sys/class/gpio/export", os.O_WRONLY)
 	if os.IsPermission(err) {
 		return true, fmt.Errorf("need more access, try as root or setup udev rules: %v", err)
 	}

@@ -102,6 +102,7 @@ var (
 	mu        sync.Mutex
 	cpuInfo   map[string]string
 	osRelease map[string]string
+	readFile  = ioutil.ReadFile
 )
 
 func splitSemiColon(content string) map[string]string {
@@ -170,7 +171,7 @@ func makeCPUInfoLinux() map[string]string {
 	defer mu.Unlock()
 	if cpuInfo == nil {
 		cpuInfo = map[string]string{}
-		if bytes, err := ioutil.ReadFile("/proc/cpuinfo"); err == nil {
+		if bytes, err := readFile("/proc/cpuinfo"); err == nil {
 			cpuInfo = splitSemiColon(string(bytes))
 		}
 	}
@@ -184,7 +185,7 @@ func makeOSReleaseLinux() map[string]string {
 		// This file may not exist on older distros. Send a PR if you want to have
 		// a specific fallback.
 		osRelease = map[string]string{}
-		if bytes, err := ioutil.ReadFile("/etc/os-release"); err == nil {
+		if bytes, err := readFile("/etc/os-release"); err == nil {
 			osRelease = splitStrict(string(bytes))
 		}
 	}

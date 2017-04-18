@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -19,6 +20,7 @@ import (
 	"periph.io/x/periph/conn/pin/pinreg"
 	"periph.io/x/periph/host/allwinner"
 	"periph.io/x/periph/host/distro"
+	"periph.io/x/periph/host/fs"
 )
 
 // C.H.I.P. hardware pins.
@@ -217,7 +219,12 @@ func findXIOBase() int {
 		return -1
 	}
 	for _, item := range chips {
-		b, err := ioutil.ReadFile(item)
+		f, err := fs.Open(item, os.O_RDONLY)
+		if err != nil {
+			continue
+		}
+		b, err := ioutil.ReadAll(f)
+		f.Close()
 		if err != nil {
 			continue
 		}

@@ -14,6 +14,7 @@ import (
 
 	"periph.io/x/periph"
 	"periph.io/x/periph/devices"
+	"periph.io/x/periph/host/fs"
 )
 
 // ThermalSensors is all the sensors discovered on this host via sysfs.
@@ -41,7 +42,7 @@ type ThermalSensor struct {
 
 	mu       sync.Mutex
 	nameType string
-	fTemp    *os.File
+	f        fileIO
 }
 
 func (t *ThermalSensor) String() string {
@@ -53,7 +54,7 @@ func (t *ThermalSensor) Type() string {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	if t.nameType == "" {
-		f, err := os.OpenFile(t.root+"type", os.O_RDONLY, 0600)
+		f, err := fileIOOpen(t.root+"type", os.O_RDONLY)
 		if err != nil {
 			return err.Error()
 		}
@@ -79,11 +80,8 @@ func (t *ThermalSensor) Sense(env *devices.Environment) error {
 	}
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	if _, err := t.fTemp.Seek(0, 0); err != nil {
-		return err
-	}
-	var buf [64]byte
-	n, err := t.fTemp.Read(buf[:])
+	var buf [24]byte
+	n, err := seekRead(t.f, buf[:])
 	if err != nil {
 		return err
 	}
@@ -106,9 +104,12 @@ func (t *ThermalSensor) Sense(env *devices.Environment) error {
 func (t *ThermalSensor) open() error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	var err error
-	if t.fTemp == nil {
-		t.fTemp, err = os.OpenFile(t.root+"temp", os.O_RDONLY, 0600)
+	if t.f != nil {
+		return nil
+	}
+	f, err := fs.Open(t.root+"temp", os.O_RDONLY)
+	if err == nil {
+		t.f = f
 	}
 	return err
 }

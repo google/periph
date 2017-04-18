@@ -5,8 +5,11 @@
 package distro
 
 import (
+	"errors"
 	"reflect"
 	"testing"
+
+	"periph.io/x/periph/host/fs"
 )
 
 func TestSplitSemiColon(t *testing.T) {
@@ -90,15 +93,63 @@ func TestIsUbuntu(t *testing.T) {
 	IsUbuntu()
 }
 
+func TestCPUInfo_fail(t *testing.T) {
+	defer reset()
+	if c := CPUInfo(); len(c) != 0 {
+		t.Fatal(c)
+	}
+}
+
 func TestCPUInfo(t *testing.T) {
-	c := CPUInfo()
-	if isLinux {
-		if len(c) == 0 {
-			t.Fatal("CPUInfo() is not implemented on non-linux")
+	defer reset()
+	readFile = func(filename string) ([]byte, error) {
+		if filename != "/proc/cpuinfo" {
+			t.Fatal(filename)
 		}
-	} else {
-		if len(c) != 0 {
-			t.Fatal("CPUInfo() is not implemented on non-linux")
+		return []byte("Processor	: AArch64\n"), nil
+	}
+	CPUInfo()
+	expected := map[string]string{"Processor": "AArch64"}
+	if c := makeCPUInfoLinux(); !reflect.DeepEqual(c, expected) {
+		t.Fatal(c)
+	}
+}
+
+func TestOSRelease_fail(t *testing.T) {
+	defer reset()
+	if c := OSRelease(); len(c) != 0 {
+		t.Fatal(c)
+	}
+}
+
+func TestOSRelease(t *testing.T) {
+	defer reset()
+	readFile = func(filename string) ([]byte, error) {
+		if filename != "/etc/os-release" {
+			t.Fatal(filename)
 		}
+		return []byte("VERSION_ID=8\n"), nil
+	}
+	OSRelease()
+	expected := map[string]string{"VERSION_ID": "8"}
+	if c := makeOSReleaseLinux(); !reflect.DeepEqual(c, expected) {
+		t.Fatal(c)
+	}
+}
+
+//
+
+func init() {
+	fs.Inhibit()
+	reset()
+}
+
+func reset() {
+	cpuInfo = nil
+	dtCompatible = nil
+	dtModel = ""
+	osRelease = nil
+	readFile = func(filename string) ([]byte, error) {
+		return nil, errors.New("no file can be opened in unit tests")
 	}
 }

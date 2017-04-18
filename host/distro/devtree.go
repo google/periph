@@ -4,10 +4,6 @@
 
 package distro
 
-import (
-	"io/ioutil"
-)
-
 // DTModel returns platform model info from the Linux device tree (/proc/device-tree/model), and
 // returns "unknown" on non-linux systems or if the file is missing.
 func DTModel() string {
@@ -17,12 +13,7 @@ func DTModel() string {
 	if dtModel == "" {
 		dtModel = "<unknown>"
 		if isLinux {
-			// Read model from device tree.
-			if bytes, err := ioutil.ReadFile("/proc/device-tree/model"); err == nil {
-				if model := splitNull(bytes); len(model) > 0 {
-					dtModel = model[0]
-				}
-			}
+			dtModel = makeDTModelLinux()
 		}
 	}
 	return dtModel
@@ -38,16 +29,33 @@ func DTCompatible() []string {
 	if dtCompatible == nil {
 		dtCompatible = []string{}
 		if isLinux {
-			// Read compatible from device tree.
-			if bytes, err := ioutil.ReadFile("/proc/device-tree/compatible"); err == nil {
-				dtCompatible = splitNull(bytes)
-			}
+			dtCompatible = makeDTCompatible()
 		}
 	}
 	return dtCompatible
 }
 
+//
+
 var (
 	dtModel      string   // cached /proc/device-tree/model
 	dtCompatible []string // cached /proc/device-tree/compatible
 )
+
+func makeDTModelLinux() string {
+	// Read model from device tree.
+	if bytes, err := readFile("/proc/device-tree/model"); err == nil {
+		if model := splitNull(bytes); len(model) > 0 {
+			return model[0]
+		}
+	}
+	return "<unknown>"
+}
+
+func makeDTCompatible() []string {
+	// Read compatible from device tree.
+	if bytes, err := readFile("/proc/device-tree/compatible"); err == nil {
+		return splitNull(bytes)
+	}
+	return []string{}
+}

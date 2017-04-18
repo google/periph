@@ -9,6 +9,7 @@ import (
 	"log"
 	"testing"
 
+	"periph.io/x/periph/host/fs"
 	"periph.io/x/periph/host/pmem"
 )
 
@@ -48,12 +49,9 @@ func TestAlloc_fail(t *testing.T) {
 	}
 	mailboxErr = nil
 	mailbox = &dummy{}
-	// TODO(maruel): https://github.com/google/periph/issues/126
-	/* pmem.Map() may just work fine.
 	if m, err := Alloc(4096); m != nil || err == nil {
 		t.Fatal("can't map arbitrary physical pages")
 	}
-	*/
 	mailbox = &playback{}
 	if m, err := Alloc(4096); m != nil || err == nil {
 		t.Fatal("mailbox failed")
@@ -92,7 +90,6 @@ func TestAlloc_fail(t *testing.T) {
 
 func TestOpenMailbox(t *testing.T) {
 	defer reset()
-	// TODO(maruel): https://github.com/google/periph/issues/126
 	mailbox = &playback{}
 	if err := openMailbox(); err != nil {
 		if mailboxErr != err {
@@ -190,4 +187,8 @@ func reset() {
 	}
 	mailbox = nil
 	mailboxErr = nil
+}
+
+func init() {
+	fs.Inhibit()
 }

@@ -7,7 +7,6 @@ package sysfs
 import (
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -41,8 +40,7 @@ func SetSpeedHook(h func(hz int64) error) error {
 //
 // It can be used to communicate with multiple devices from multiple goroutines.
 type I2C struct {
-	fd        uintptr
-	fc        io.Closer
+	f         ioctlCloser
 	busNumber int
 
 	mu  sync.Mutex // In theory the kernel probably has an internal lock but not taking any chance.
@@ -66,8 +64,8 @@ func NewI2C(busNumber int) (*I2C, error) {
 }
 
 func newI2C(busNumber int) (*I2C, error) {
-	// Use the devfs path for now.
-	f, err := os.OpenFile(fmt.Sprintf("/dev/i2c-%d", busNumber), os.O_RDWR, os.ModeExclusive)
+	// Use the devfs path for now instead of sysfs path.
+	f, err := ioctlOpen(fmt.Sprintf("/dev/i2c-%d", busNumber), os.O_RDWR)
 	if err != nil {
 		// Try to be helpful here. There are generally two cases:
 		// - /dev/i2c-X doesn't exist. In this case, /boot/config.txt has to be
@@ -79,14 +77,14 @@ func newI2C(busNumber int) (*I2C, error) {
 		// TODO(maruel): This is a debianism.
 		return nil, fmt.Errorf("sysfs-i2c: are you member of group 'plugdev'? %v", err)
 	}
-	i := &I2C{fd: f.Fd(), fc: f, busNumber: busNumber}
+	i := &I2C{f: f, busNumber: busNumber}
 
 	// TODO(maruel): Changing the speed is currently doing this for all devices.
 	// https://github.com/raspberrypi/linux/issues/215
 	// Need to access /sys/module/i2c_bcm2708/parameters/baudrate
 
 	// Query to know if 10 bits addresses are supported.
-	if err = i.ioctl(ioctlFuncs, uintptr(unsafe.Pointer(&i.fn))); err != nil {
+	if err = i.f.Ioctl(ioctlFuncs, uintptr(unsafe.Pointer(&i.fn))); err != nil {
 		return nil, err
 	}
 	return i, nil
@@ -97,7 +95,7 @@ func newI2C(busNumber int) (*I2C, error) {
 func (i *I2C) Close() error {
 	i.mu.Lock()
 	defer i.mu.Unlock()
-	return i.fc.Close()
+	return i.f.Close()
 }
 
 func (i *I2C) String() string {
@@ -137,7 +135,7 @@ func (i *I2C) Tx(addr uint16, w, r []byte) error {
 	pp := uintptr(unsafe.Pointer(&p))
 	i.mu.Lock()
 	defer i.mu.Unlock()
-	return i.ioctl(ioctlRdwr, pp)
+	return i.f.Ioctl(ioctlRdwr, pp)
 }
 
 // SetSpeed implements i2c.Bus.
@@ -172,13 +170,6 @@ func (i *I2C) SDA() gpio.PinIO {
 }
 
 // Private details.
-
-func (i *I2C) ioctl(op uint, arg uintptr) error {
-	if err := ioctl(i.fd, op, arg); err != nil {
-		return fmt.Errorf("sysfs-i2c: ioctl: %v", err)
-	}
-	return nil
-}
 
 func (i *I2C) initPins() {
 	i.mu.Lock()

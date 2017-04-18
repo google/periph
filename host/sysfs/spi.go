@@ -23,6 +23,7 @@ import (
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/spi"
 	"periph.io/x/periph/conn/spi/spireg"
+	"periph.io/x/periph/host/fs"
 )
 
 // NewSPI opens a SPI bus via its devfs interface as described at
@@ -43,7 +44,7 @@ func NewSPI(busNumber, chipSelect int) (*SPI, error) {
 // SPI is an open SPI bus.
 type SPI struct {
 	// Immutable
-	f          ioctler
+	f          ioctlCloser
 	busNumber  int
 	chipSelect int
 
@@ -68,11 +69,11 @@ func newSPI(busNumber, chipSelect int) (*SPI, error) {
 		return nil, fmt.Errorf("sysfs-spi: invalid chip select %d", chipSelect)
 	}
 	// Use the devfs path for now.
-	f, err := os.OpenFile(fmt.Sprintf("/dev/spidev%d.%d", busNumber, chipSelect), os.O_RDWR, os.ModeExclusive)
+	f, err := ioctlOpen(fmt.Sprintf("/dev/spidev%d.%d", busNumber, chipSelect), os.O_RDWR)
 	if err != nil {
 		return nil, fmt.Errorf("sysfs-spi: %v", err)
 	}
-	return &SPI{f: &file{f}, busNumber: busNumber, chipSelect: chipSelect}, nil
+	return &SPI{f: f, busNumber: busNumber, chipSelect: chipSelect}, nil
 }
 
 // Close closes the handle to the SPI driver. It is not a requirement to close
@@ -198,8 +199,8 @@ func (s *SPI) TxPackets(p []spi.Packet) error {
 		if lR != 0 {
 			l = lR
 		}
-		if total += l; bufSize != 0 && total > bufSize {
-			return fmt.Errorf("sysfs-spi: maximum TxPackets length is %d, got at least %d bytes", bufSize, total)
+		if total += l; spiBufSize != 0 && total > spiBufSize {
+			return fmt.Errorf("sysfs-spi: maximum TxPackets length is %d, got at least %d bytes", spiBufSize, total)
 		}
 	}
 	if total == 0 {
@@ -239,7 +240,7 @@ func (s *SPI) TxPackets(p []spi.Packet) error {
 			m[i].length = uint32(lR)
 		}
 	}
-	if err := s.f.ioctl(spiIOCTx(len(m)), unsafe.Pointer(&m[0])); err != nil {
+	if err := s.f.Ioctl(spiIOCTx(len(m)), uintptr(unsafe.Pointer(&m[0]))); err != nil {
 		return fmt.Errorf("sysfs-spi: TxPackets(%d) packets failed: %v", len(m), err)
 	}
 	return nil
@@ -259,7 +260,7 @@ func (s *SPI) Duplex() conn.Duplex {
 
 // MaxTxSize implements conn.Limits
 func (s *SPI) MaxTxSize() int {
-	return bufSize
+	return spiBufSize
 }
 
 // CLK implements spi.Pins.
@@ -295,8 +296,8 @@ func (s *SPI) txInternal(w, r []byte) (int, error) {
 	if l == 0 {
 		l = len(r)
 	}
-	if bufSize != 0 && l > bufSize {
-		return 0, fmt.Errorf("sysfs-spi: maximum Tx length is %d, got at least %d bytes", bufSize, l)
+	if spiBufSize != 0 && l > spiBufSize {
+		return 0, fmt.Errorf("sysfs-spi: maximum Tx length is %d, got at least %d bytes", spiBufSize, l)
 	}
 
 	s.Lock()
@@ -322,21 +323,21 @@ func (s *SPI) txInternal(w, r []byte) (int, error) {
 		m.rx = uint64(uintptr(unsafe.Pointer(&r[0])))
 		m.length = uint32(l)
 	}
-	if err := s.f.ioctl(spiIOCTx(1), unsafe.Pointer(&m)); err != nil {
+	if err := s.f.Ioctl(spiIOCTx(1), uintptr(unsafe.Pointer(&m))); err != nil {
 		return 0, fmt.Errorf("sysfs-spi: I/O failed: %v", err)
 	}
 	return l, nil
 }
 
 func (s *SPI) setFlag(op uint, arg uint64) error {
-	if err := s.f.ioctl(op|0x40000000, unsafe.Pointer(&arg)); err != nil {
+	if err := s.f.Ioctl(op|0x40000000, uintptr(unsafe.Pointer(&arg))); err != nil {
 		return err
 	}
 	/*
 		// Verification.
 		actual := uint64(0)
 		// getFlag() equivalent.
-		if err := s.f.ioctl(op|0x80000000, unsafe.Pointer(&actual)); err != nil {
+		if err := s.f.Ioctl(op|0x80000000, unsafe.Pointer(&actual)); err != nil {
 			return err
 		}
 		if actual != arg {
@@ -446,7 +447,8 @@ type spiIOCTransfer struct {
 	pad         uint16
 }
 
-var bufSize = 0
+// spiBufSize is the maximum number of bytes allowed per I/O on the SPI bus.
+var spiBufSize = 0
 
 //
 
@@ -500,12 +502,17 @@ func (d *driverSPI) Init() (bool, error) {
 			return true, err
 		}
 	}
-	b, err := ioutil.ReadFile("/sys/module/spidev/parameters/bufsiz")
+	f, err := fs.Open("/sys/module/spidev/parameters/bufsiz", os.O_RDONLY)
+	if err != nil {
+		return true, err
+	}
+	defer f.Close()
+	b, err := ioutil.ReadAll(f)
 	if err != nil {
 		return true, err
 	}
 	// Update the global value.
-	bufSize, err = strconv.Atoi(strings.TrimSpace(string(b)))
+	spiBufSize, err = strconv.Atoi(strings.TrimSpace(string(b)))
 	if err != nil {
 		return true, err
 	}
@@ -519,19 +526,6 @@ type openerSPI struct {
 
 func (o *openerSPI) Open() (spi.ConnCloser, error) {
 	return NewSPI(o.bus, o.cs)
-}
-
-type ioctler interface {
-	io.Closer
-	ioctl(op uint, arg unsafe.Pointer) error
-}
-
-type file struct {
-	*os.File
-}
-
-func (f *file) ioctl(op uint, arg unsafe.Pointer) error {
-	return ioctl(f.Fd(), op, uintptr(arg))
 }
 
 func init() {

@@ -208,18 +208,26 @@ func (f *fakeGPIOFile) Fd() uintptr {
 	return 0
 }
 
-func (f *fakeGPIOFile) read(b []byte) error {
-	if f.data == nil {
-		return errors.New("injected")
-	}
-	copy(b, f.data)
-	return nil
+func (f *fakeGPIOFile) Ioctl(op uint, data uintptr) error {
+	return errors.New("injected")
 }
 
-func (f *fakeGPIOFile) write(b []byte) error {
+func (f *fakeGPIOFile) Read(b []byte) (int, error) {
 	if f.data == nil {
-		return errors.New("injected")
+		return 0, errors.New("injected")
+	}
+	copy(b, f.data)
+	return len(f.data), nil
+}
+
+func (f *fakeGPIOFile) Write(b []byte) (int, error) {
+	if f.data == nil {
+		return 0, errors.New("injected")
 	}
 	copy(f.data, b)
-	return nil
+	return len(f.data), nil
+}
+
+func (f *fakeGPIOFile) Seek(offset int64, whence int) (int64, error) {
+	return 0, nil
 }

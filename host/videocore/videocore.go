@@ -20,6 +20,7 @@ import (
 	"sync"
 	"unsafe"
 
+	"periph.io/x/periph/host/fs"
 	"periph.io/x/periph/host/pmem"
 )
 
@@ -128,12 +129,11 @@ type messager interface {
 }
 
 type messageBox struct {
-	f  *os.File
-	fd uintptr
+	f *fs.File
 }
 
 func (m *messageBox) sendMessage(b []uint32) error {
-	return ioctl(m.fd, mbIoctl, uintptr(unsafe.Pointer(&b[0])))
+	return m.f.Ioctl(mbIoctl, uintptr(unsafe.Pointer(&b[0])))
 }
 
 func openMailbox() error {
@@ -142,10 +142,10 @@ func openMailbox() error {
 	if mailbox != nil || mailboxErr != nil {
 		return mailboxErr
 	}
-	f, err := os.OpenFile("/dev/vcio", os.O_RDWR|os.O_SYNC, 0)
+	f, err := fs.Open("/dev/vcio", os.O_RDWR|os.O_SYNC)
 	mailboxErr = err
 	if err == nil {
-		mailbox = &messageBox{f, f.Fd()}
+		mailbox = &messageBox{f}
 		mailboxErr = smokeTest()
 	}
 	return mailboxErr

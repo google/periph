@@ -7,7 +7,6 @@ package sysfs
 import (
 	"log"
 	"testing"
-	"unsafe"
 
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio"
@@ -38,7 +37,7 @@ func TestNewSPI(t *testing.T) {
 }
 
 func TestSPI_IO(t *testing.T) {
-	bus := SPI{f: fakeSPIFile(0), busNumber: 24}
+	bus := SPI{f: ioctlClose(0), busNumber: 24}
 	if err := bus.DevParams(1, spi.Mode3, 8); err != nil {
 		t.Fatal(err)
 	}
@@ -57,14 +56,14 @@ func TestSPI_IO(t *testing.T) {
 	if err := bus.Tx([]byte{0}, []byte{0, 1}); err == nil {
 		t.Fatal("different lengths")
 	}
-	if err := bus.Tx(make([]byte, bufSize+1), nil); err == nil {
+	if err := bus.Tx(make([]byte, spiBufSize+1), nil); err == nil {
 		t.Fatal("buffer too long")
 	}
 	if err := bus.TxPackets(nil); err == nil {
 		t.Fatal("empty TxPackets")
 	}
 	p := []spi.Packet{
-		{W: make([]byte, bufSize+1)},
+		{W: make([]byte, spiBufSize+1)},
 	}
 	if err := bus.TxPackets(p); err == nil {
 		t.Fatal("buffer too long")
@@ -102,7 +101,7 @@ func TestSPI_IO(t *testing.T) {
 }
 
 func TestSPI_IO_not_initialized(t *testing.T) {
-	bus := SPI{f: fakeSPIFile(0), busNumber: 24}
+	bus := SPI{f: ioctlClose(0), busNumber: 24}
 	if err := bus.Tx([]byte{0}, []byte{0}); err == nil {
 		t.Fatal("not initialized")
 	}
@@ -112,7 +111,7 @@ func TestSPI_IO_not_initialized(t *testing.T) {
 }
 
 func TestSPI_pins(t *testing.T) {
-	bus := SPI{f: fakeSPIFile(0), busNumber: 24}
+	bus := SPI{f: ioctlClose(0), busNumber: 24}
 	if p := bus.CLK(); p != gpio.INVALID {
 		t.Fatal(p)
 	}
@@ -128,7 +127,7 @@ func TestSPI_pins(t *testing.T) {
 }
 
 func TestSPI_other(t *testing.T) {
-	bus := SPI{f: fakeSPIFile(0), busNumber: 24}
+	bus := SPI{f: ioctlClose(0), busNumber: 24}
 	if s := bus.String(); s != "SPI24.0" {
 		t.Fatal(s)
 	}
@@ -138,14 +137,14 @@ func TestSPI_other(t *testing.T) {
 	if err := bus.LimitSpeed(1); err != nil {
 		t.Fatal(err)
 	}
-	if v := bus.MaxTxSize(); v != bufSize {
-		t.Fatal(v, bufSize)
+	if v := bus.MaxTxSize(); v != spiBufSize {
+		t.Fatal(v, spiBufSize)
 	}
 }
 
 func TestSPI_DevParams(t *testing.T) {
 	// Create a fake SPI to test methods.
-	bus := SPI{f: fakeSPIFile(0), busNumber: 24}
+	bus := SPI{f: ioctlClose(0), busNumber: 24}
 	if err := bus.DevParams(-1, spi.Mode0, 8); err == nil {
 		t.Fatal("invalid speed")
 	}
@@ -186,16 +185,6 @@ func TestSPIIOCTX(t *testing.T) {
 
 //
 
-type fakeSPIFile int
-
-func (f fakeSPIFile) Close() error {
-	return nil
-}
-
-func (f fakeSPIFile) ioctl(op uint, arg unsafe.Pointer) error {
-	return nil
-}
-
 func init() {
-	bufSize = 4096
+	spiBufSize = 4096
 }

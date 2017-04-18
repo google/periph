@@ -15,6 +15,7 @@ import (
 
 	"periph.io/x/periph"
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/host/fs"
 )
 
 // LEDs is all the leds discovered on this host via sysfs.
@@ -46,7 +47,7 @@ type LED struct {
 	root   string
 
 	mu          sync.Mutex
-	fBrightness *os.File // handle to /sys/class/gpio/gpio*/direction; never closed
+	fBrightness *fs.File // handle to /sys/class/gpio/gpio*/direction; never closed
 }
 
 // Name returns the pin name.
@@ -142,9 +143,9 @@ func (l *LED) open() error {
 	var err error
 	if l.fBrightness == nil {
 		p := l.root + "brightness"
-		if l.fBrightness, err = os.OpenFile(p, os.O_RDWR, 0600); err != nil {
+		if l.fBrightness, err = fs.Open(p, os.O_RDWR); err != nil {
 			// Retry with read-only. This is the default setting.
-			l.fBrightness, err = os.OpenFile(p, os.O_RDONLY, 0600)
+			l.fBrightness, err = fs.Open(p, os.O_RDONLY)
 		}
 	}
 	return err

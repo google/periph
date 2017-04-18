@@ -23,6 +23,17 @@ func ReadPageMap(virtAddr uintptr) (uint64, error) {
 	if !isLinux {
 		return 0, errors.New("pmem: pagemap is not supported on this platform")
 	}
+	return readPageMapLinux(virtAddr)
+}
+
+//
+
+var (
+	pageMap    fileIO
+	pageMapErr error
+)
+
+func readPageMapLinux(virtAddr uintptr) (uint64, error) {
 	var b [8]byte
 	mu.Lock()
 	defer mu.Unlock()
@@ -32,7 +43,7 @@ func ReadPageMap(virtAddr uintptr) (uint64, error) {
 		// It is a uint64 array where the index represents the virtual 4Kb page
 		// number and the value represents the physical page properties backing
 		// this virtual page.
-		pageMap, pageMapErr = os.OpenFile("/proc/self/pagemap", os.O_RDONLY|os.O_SYNC, 0)
+		pageMap, pageMapErr = openFile("/proc/self/pagemap", os.O_RDONLY|os.O_SYNC)
 	}
 	if pageMapErr != nil {
 		return 0, pageMapErr
@@ -51,10 +62,3 @@ func ReadPageMap(virtAddr uintptr) (uint64, error) {
 	}
 	return binary.LittleEndian.Uint64(b[:]), nil
 }
-
-//
-
-var (
-	pageMap    *os.File
-	pageMapErr error
-)
