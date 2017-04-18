@@ -32,7 +32,8 @@ func main() {
 }
 ~~~
 
-Show me [more examples](https://periph.io/examples/)!
+Curious? Look at [supported devices](https://periph.io/device/) for more
+examples!
 
 
 ## Authors
