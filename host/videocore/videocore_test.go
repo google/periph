@@ -31,7 +31,7 @@ func TestClose(t *testing.T) {
 	mailbox = &dummy{}
 	m := Mem{View: &pmem.View{}}
 	if m.Close() == nil {
-		t.Fatal("can't close uninitalized pmem.View")
+		t.Fatal("can't close uninitialized pmem.View")
 	}
 }
 

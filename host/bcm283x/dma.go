@@ -480,8 +480,8 @@ func (c *controlBlock) initBlock(srcAddr, dstAddr, l uint32, srcIO, dstIO bool, 
 
 func (c *controlBlock) GoString() string {
 	return fmt.Sprintf(
-		"{\n  transferInfo: %s,\n  srcAddr:      0x%x,\n  dstAddr:      0x%x,\n  txLen:        %d,\n  stride:       %#s,\n  nextCB:       0x%x,\n}",
-		c.transferInfo, c.srcAddr, c.dstAddr, c.txLen, c.stride, c.nextCB)
+		"{\n  transferInfo: %s,\n  srcAddr:      0x%x,\n  dstAddr:      0x%x,\n  txLen:        %d,\n  stride:       %s,\n  nextCB:       0x%x,\n}",
+		&c.transferInfo, c.srcAddr, c.dstAddr, c.txLen, &c.stride, c.nextCB)
 }
 
 // DMAChannel is the memory mapped registers for one DMA channel.

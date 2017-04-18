@@ -19,7 +19,7 @@ type Device interface {
 	// Unlike a connection, a device cannot be closed, only the port can be
 	// closed. On the other hand, a device can be halted. What halting entails
 	// depends on the actual device but it should stop motion, sensing or light
-	// emition.
+	// emission.
 	Halt() error
 }
 

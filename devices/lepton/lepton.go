@@ -95,7 +95,7 @@ type Dev struct {
 //
 // MOSI is not used and should be grounded.
 func New(s spi.Conn, i i2c.Bus, cs gpio.PinOut) (*Dev, error) {
-	// Sadly the Lepton will inconditionally send 27fps, even if the effective
+	// Sadly the Lepton will unconditionally send 27fps, even if the effective
 	// rate is 9fps.
 	mode := spi.Mode3
 	if cs == nil {
