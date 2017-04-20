@@ -128,7 +128,7 @@ func (d *driver) Init() (bool, error) {
 	//
 	// This code is not futureproof, it will error out on a Raspberry Pi 4
 	// whenever it comes out.
-	rev, _ := distro.CPUInfo()["Revision"]
+	rev := distro.CPUInfo()["Revision"]
 	if i, err := strconv.ParseInt(rev, 16, 32); err == nil {
 		// Ignore the overclock bit.
 		i &= 0xFFFFFF

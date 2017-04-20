@@ -39,12 +39,10 @@ func IsArmbian() bool {
 func IsDebian() bool {
 	if isLinux {
 		// http://0pointer.de/public/systemd-man/os-release.html#ID_LIKE=
-		id, _ := OSRelease()["ID"]
-		if id == "debian" {
+		if OSRelease()["ID"] == "debian" {
 			return true
 		}
-		idLike, _ := OSRelease()["ID_LIKE"]
-		for _, part := range strings.Split(idLike, " ") {
+		for _, part := range strings.Split(OSRelease()["ID_LIKE"], " ") {
 			if part == "debian" {
 				return true
 			}
@@ -58,8 +56,7 @@ func IsDebian() bool {
 // https://raspbian.org/
 func IsRaspbian() bool {
 	if isArm && isLinux {
-		id, _ := OSRelease()["ID"]
-		return id == "raspbian"
+		return OSRelease()["ID"] == "raspbian"
 	}
 	return false
 }
@@ -69,8 +66,7 @@ func IsRaspbian() bool {
 // https://ubuntu.com/
 func IsUbuntu() bool {
 	if isLinux {
-		id, _ := OSRelease()["ID"]
-		return id == "ubuntu"
+		return OSRelease()["ID"] == "ubuntu"
 	}
 	return false
 }

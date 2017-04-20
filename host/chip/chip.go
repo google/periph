@@ -340,11 +340,7 @@ func (d *driver) Init() (bool, error) {
 		{gpioreg.ByName("CSID6"), gpioreg.ByName("CSID7")},
 		{U14_39, U14_40},
 	}
-	if err := pinreg.Register("U14", U14); err != nil {
-		return true, err
-	}
-
-	return true, nil
+	return true, pinreg.Register("U14", U14)
 }
 
 func init() {

@@ -600,7 +600,7 @@ func (d *driverGPIO) Init() (bool, error) {
 		return false, errors.New("bcm283x CPU not detected")
 	}
 	model := distro.CPUInfo()["model name"]
-	if strings.Index(model, "ARMv6") != -1 {
+	if strings.Contains(model, "ARMv6") {
 		baseAddr = 0x20000000
 		dramBus = 0x40000000
 	} else {

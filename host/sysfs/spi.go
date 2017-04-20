@@ -513,10 +513,7 @@ func (d *driverSPI) Init() (bool, error) {
 	}
 	// Update the global value.
 	spiBufSize, err = strconv.Atoi(strings.TrimSpace(string(b)))
-	if err != nil {
-		return true, err
-	}
-	return true, nil
+	return true, err
 }
 
 type openerSPI struct {
