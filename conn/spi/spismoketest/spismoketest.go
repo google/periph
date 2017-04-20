@@ -77,11 +77,7 @@ func (s *SmokeTest) Run(args []string) error {
 	log.Printf("%s: random number seed %d", s, *seed)
 
 	// Run the tests.
-	if err := s.eeprom(spiDev, wpPin); err != nil {
-		return err
-	}
-
-	return nil
+	return s.eeprom(spiDev, wpPin)
 }
 
 // eeprom tests a 5080 8Kbit serial EEPROM attached to the SPI bus.
