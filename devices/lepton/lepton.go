@@ -159,7 +159,7 @@ func (d *Dev) ReadImg() (*Frame, error) {
 		if err := d.readFrame(f); err != nil {
 			return nil, err
 		}
-		if f.Metadata.FFCDesired == true {
+		if f.Metadata.FFCDesired {
 			// TODO(maruel): Automatically trigger FFC when applicable, only do if
 			// the camera has a shutter.
 			//go d.RunFFC()
