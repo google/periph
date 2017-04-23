@@ -1,4 +1,4 @@
-// Copyright 2016 The Periph Authors. All rights reserved.
+// Copyright 2017 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -31,17 +31,23 @@ func printPin(fn string, p pin.Pin) {
 	}
 }
 
-func read(e devices.Environmental, loop bool) error {
+func read(e devices.Environmental, interval time.Duration) error {
+	var t *time.Ticker
+	if interval != 0 {
+		t = time.NewTicker(interval)
+	}
+
 	for {
 		var env devices.Environment
 		if err := e.Sense(&env); err != nil {
 			return err
 		}
 		fmt.Printf("%8s %10s %9s\n", env.Temperature, env.Pressure, env.Humidity)
-		if !loop {
+		if t == nil {
 			break
 		}
-		time.Sleep(100 * time.Millisecond)
+
+		<-t.C
 	}
 	return nil
 }
@@ -49,11 +55,11 @@ func read(e devices.Environmental, loop bool) error {
 func mainImpl() error {
 	i2cID := flag.String("i2c", "", "I²C bus to use")
 	hz := flag.Int("hz", 0, "I²C bus speed")
-	sample1x := flag.Bool("s1", false, "sample at 1x")
 	sample2x := flag.Bool("s2", false, "sample at 2x")
 	sample4x := flag.Bool("s4", false, "sample at 4x")
 	sample8x := flag.Bool("s8", false, "sample at 8x")
-	loop := flag.Bool("l", false, "loop every 100ms")
+	loop := flag.Bool("l", false, "read data continously")
+	interval := flag.Duration("i", time.Second, "read data continously with this interval")
 	verbose := flag.Bool("v", false, "verbose mode")
 	flag.Parse()
 	if !*verbose {
@@ -61,15 +67,17 @@ func mainImpl() error {
 	}
 	log.SetFlags(log.Lmicroseconds)
 
-	opts := &bmp180.Opts{}
-	if *sample1x {
-		opts.Pressure = bmp180.No
-	} else if *sample2x {
-		opts.Pressure = bmp180.O2x
+	if !*loop {
+		*interval = 0
+	}
+
+	os := bmp180.No
+	if *sample2x {
+		os = bmp180.O2x
 	} else if *sample4x {
-		opts.Pressure = bmp180.O4x
+		os = bmp180.O4x
 	} else if *sample8x {
-		opts.Pressure = bmp180.O8x
+		os = bmp180.O8x
 	}
 
 	fmt.Printf("initialize host\n")
@@ -98,12 +106,12 @@ func mainImpl() error {
 	var dev *bmp180.Dev
 
 	fmt.Printf("open bmp180\n")
-	if dev, err = bmp180.New(bus, opts); err != nil {
+	if dev, err = bmp180.New(bus, os); err != nil {
 		return err
 	}
 
 	fmt.Printf("read measurement\n")
-	err = read(dev, *loop)
+	err = read(dev, *interval)
 	err2 := dev.Halt()
 	if err != nil {
 		return err
