@@ -18,7 +18,7 @@ import (
 	"periph.io/x/periph/conn/pin"
 	"periph.io/x/periph/conn/pin/pinreg"
 	"periph.io/x/periph/devices"
-	"periph.io/x/periph/devices/bmp180"
+	"periph.io/x/periph/experimental/devices/bmp180"
 	"periph.io/x/periph/host"
 )
 
