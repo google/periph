@@ -60,8 +60,14 @@ func ExampleOpen() {
 		log.Fatal(err)
 	}
 	defer b.Close()
+
+	// Pass b to a device driver, or if using b directly, do:
+	c, err := b.DevParams(1000000, spi.Mode3, 8)
+	if err != nil {
+		log.Fatal(err)
+	}
 	// Use b...
-	b.Tx([]byte("cmd"), nil)
+	c.Tx([]byte("cmd"), nil)
 }
 
 //
@@ -196,7 +202,7 @@ func TestUnregister(t *testing.T) {
 
 //
 
-func fakeBuser() (spi.ConnCloser, error) {
+func fakeBuser() (spi.PortCloser, error) {
 	return &fakeBus{}, nil
 }
 
@@ -223,8 +229,8 @@ func (f *fakeBus) LimitSpeed(maxHz int64) error {
 	return errors.New("not implemented")
 }
 
-func (f *fakeBus) DevParams(maxHz int64, mode spi.Mode, bits int) error {
-	return errors.New("not implemented")
+func (f *fakeBus) DevParams(maxHz int64, mode spi.Mode, bits int) (spi.Conn, error) {
+	return f, errors.New("not implemented")
 }
 
 func (f *fakeBus) TxPackets(p []spi.Packet) error {

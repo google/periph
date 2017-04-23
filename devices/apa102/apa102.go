@@ -293,8 +293,9 @@ func (d *Dev) Halt() error {
 // As per APA102-C spec, the chip's max refresh rate is 400hz.
 // https://en.wikipedia.org/wiki/Flicker_fusion_threshold is a recommended
 // reading.
-func New(s spi.Conn, numLights int, intensity uint8, temperature uint16) (*Dev, error) {
-	if err := s.DevParams(20000000, spi.Mode3, 8); err != nil {
+func New(p spi.Port, numLights int, intensity uint8, temperature uint16) (*Dev, error) {
+	c, err := p.DevParams(20000000, spi.Mode3, 8)
+	if err != nil {
 		return nil, err
 	}
 	// End frames are needed to be able to push enough SPI clock signals due to
@@ -308,7 +309,7 @@ func New(s spi.Conn, numLights int, intensity uint8, temperature uint16) (*Dev, 
 	return &Dev{
 		Intensity:   intensity,
 		Temperature: temperature,
-		s:           s,
+		s:           c,
 		numLights:   numLights,
 		rawBuf:      buf,
 		pixels:      buf[4 : 4+4*numLights],
