@@ -141,7 +141,7 @@ type Opts struct {
 // NewI2C returns an object that communicates over I²C to BME280 environmental
 // sensor.
 //
-// It is recommended to call Stop() when done with the device so it stops
+// It is recommended to call Halt() when done with the device so it stops
 // sampling.
 func NewI2C(b i2c.Bus, opts *Opts) (*Dev, error) {
 	addr := uint16(0x76)
@@ -169,7 +169,7 @@ func NewI2C(b i2c.Bus, opts *Opts) (*Dev, error) {
 // filter if planing to call frequently, else use S500ms to get a bit more than
 // one reading per second.
 //
-// It is recommended to call Stop() when done with the device so it stops
+// It is recommended to call Halt() when done with the device so it stops
 // sampling.
 //
 // When using SPI, the CS line must be used.
