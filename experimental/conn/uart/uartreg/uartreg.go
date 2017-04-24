@@ -56,7 +56,7 @@ type Ref struct {
 // OS revisions.
 //
 // When the UART port is provided by an off board plug and play bus like USB
-// via a FT232R USB device, there can be no associated number.
+// via a FT232R USB peripheral, there can be no associated number.
 func Open(name string) (uart.ConnCloser, error) {
 	var r *Ref
 	var err error
@@ -113,9 +113,9 @@ func All() []*Ref {
 //
 // Registering the same port name twice is an error, e.g. o.Name(). o.Number()
 // can be -1 to signify that the port doesn't have an inherent "port number". A
-// good example is a port provided over a FT232R device connected on an USB bus.
-// In this case, the port name should be created from the serial number of the
-// device for unique identification.
+// good example is a port provided over a FT232R peripheral connected on an USB
+// bus.  In this case, the port name should be created from the serial number
+// of the peripheral for unique identification.
 func Register(name string, aliases []string, number int, o Opener) error {
 	if len(name) == 0 {
 		return wrapf("can't register a port with no name")
@@ -183,8 +183,8 @@ func Register(name string, aliases []string, number int, o Opener) error {
 
 // Unregister removes a previously registered UART port.
 //
-// This can happen when an UART port is exposed via an USB device and the device
-// is unplugged.
+// This can happen when an UART port is exposed via an USB peripheral and the
+// peripheral is unplugged.
 func Unregister(name string) error {
 	mu.Lock()
 	defer mu.Unlock()

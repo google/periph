@@ -54,7 +54,7 @@ type Ref struct {
 // revisions.
 //
 // When the 1-wire bus is provided by an off board plug and play bus like USB
-// via a FT232H USB device, there can be no associated number.
+// via a FT232H USB peripheral, there can be no associated number.
 func Open(name string) (onewire.BusCloser, error) {
 	var r *Ref
 	var err error
@@ -111,9 +111,9 @@ func All() []*Ref {
 //
 // Registering the same bus name twice is an error, e.g. o.Name(). o.Number()
 // can be -1 to signify that the bus doesn't have an inherent "bus number". A
-// good example is a bus provided over a FT232H device connected on an USB bus.
-// In this case, the bus name should be created from the serial number of the
-// device for unique identification.
+// good example is a bus provided over a FT232H peripheral connected on an USB
+// bus.  In this case, the bus name should be created from the serial number of
+// the peripheral for unique identification.
 func Register(name string, aliases []string, number int, o Opener) error {
 	if len(name) == 0 {
 		return wrapf("can't register a bus with no name")
@@ -181,8 +181,8 @@ func Register(name string, aliases []string, number int, o Opener) error {
 
 // Unregister removes a previously registered 1-wire bus.
 //
-// This can happen when an 1-wire bus is exposed via an USB device and the
-// device is unplugged.
+// This can happen when an 1-wire bus is exposed via an USB peripheral and the
+// peripheral is unplugged.
 func Unregister(name string) error {
 	mu.Lock()
 	defer mu.Unlock()

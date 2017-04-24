@@ -11,19 +11,19 @@ import (
 	"io"
 )
 
-// Device is a basic device.
+// Device is a basic peripheral.
 type Device interface {
 	fmt.Stringer
-	// Halt stops the device.
+	// Halt stops the peripheral.
 	//
-	// Unlike a connection, a device cannot be closed, only the port can be
-	// closed. On the other hand, a device can be halted. What halting entails
-	// depends on the actual device but it should stop motion, sensing or light
-	// emission.
+	// Unlike a connection, a peripheral cannot be closed, only the port can be
+	// closed. On the other hand, a peripheral can be halted. What halting entails
+	// depends on the actual peripheral but it should stop motion, sensing or
+	// light emission.
 	Halt() error
 }
 
-// Display represents a pixel output device. It is a write-only interface.
+// Display represents a pixel output peripheral. It is a write-only interface.
 //
 // What Display represents can be as varied as a 1 bit OLED display or a strip
 // of LED lights.
@@ -32,11 +32,11 @@ type Display interface {
 	// write must cover exactly the whole screen as a single packed stream of
 	// pixels.
 	io.Writer
-	// ColorModel returns the device native color model.
+	// ColorModel returns the peripheral native color model.
 	//
 	// It is generally color.NRGBA for a color display.
 	ColorModel() color.Model
-	// Bounds returns the size of the output device.
+	// Bounds returns the size of the output peripheral.
 	//
 	// Generally displays should have Min at {0, 0} but this is not guaranteed in
 	// multiple displays setup or when an instance of this interface represents a

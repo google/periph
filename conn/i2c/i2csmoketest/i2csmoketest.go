@@ -3,9 +3,11 @@
 // that can be found in the LICENSE file.
 
 // Package i2csmoketest is leveraged by periph-smoketest to verify that an I²C
-// EEPROM device and a DS2483 device can be accessed on an I²C bus.
+// EEPROM peripheral and a DS2483 peripheral can be accessed on an I²C bus.
 //
-// This assumes the presence of the periph-tester board, which includes these two devices.
+// This assumes the presence of the periph-tester board, which includes these
+// two peripherals.
+//
 // See https://github.com/tve/periph-tester
 package i2csmoketest
 
@@ -170,7 +172,7 @@ func (s *SmokeTest) eeprom(bus i2c.Bus, wcPin gpio.PinIO) error {
 		if err := d.WriteUint8(addr, v); err != nil {
 			return fmt.Errorf("eeprom: error writing %#x to byte at %#x: %v", v, addr, err)
 		}
-		// Read byte back once the device is ready (takes several ms for the write
+		// Read byte back once the peripheral is ready (takes several ms for the write
 		// to complete).
 		var w byte
 		for start := time.Now(); time.Since(start) <= 100*time.Millisecond; {
@@ -203,7 +205,8 @@ func (s *SmokeTest) eeprom(bus i2c.Bus, wcPin gpio.PinIO) error {
 	for i := 0; i < 16; i++ {
 		onePage[i] = 0
 	}
-	// Read page back once the device is ready (takes several ms for the write to complete).
+	// Read page back once the peripheral is ready (takes several ms for the
+	// write to complete).
 	for start := time.Now(); time.Since(start) <= 100*time.Millisecond; {
 		if err := d.ReadStruct(addr, onePage[:]); err == nil {
 			break

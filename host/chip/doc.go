@@ -17,7 +17,8 @@
 // GPIO edge detection (using interrupts) is only supported on a few of the
 // processor's pins: AP-EINT1, AP-EINT3, CSIPCK, and CSICK. Edge detection is
 // also supported on the XIO pins, but this feature is rather limited due to
-// the device and the driver (for example, the driver interrupts on all edges).
+// the peripheral and the driver (for example, the driver interrupts on all
+// edges).
 //
 // References
 //

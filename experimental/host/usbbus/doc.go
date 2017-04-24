@@ -4,8 +4,8 @@
 
 // Package usbbus implements OS specific functions for conn/usb.
 //
-// This includes handling the connected devices on process startup and handling
-// of the connection events.
+// This includes handling the connected peripherals on process startup and
+// handling of the connection events.
 //
 // This package is only built with the build tag 'usb' because it causes a
 // dependency on https://github.com/kylelemons/gousb. This package uses cgo that

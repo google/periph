@@ -34,7 +34,7 @@ func ExampleInit() {
 		fmt.Printf("- %s: %v\n", failure.D, failure.Err)
 	}
 
-	// Use pins, buses, devices, etc.
+	// Use pins, buses, peripherals, etc.
 }
 
 func TestInitSimple(t *testing.T) {

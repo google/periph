@@ -4,12 +4,12 @@
 
 // Package apa102 drives a strip of APA102 LEDs connected on a SPI bus.
 //
-// These devices are interesting because they have 2 PWMs: one global of 5 bits
-// of resolution and one per channel of 8 bits of resolution. This means that
-// the dynamic range is of 13 bits.
+// These peripherals are interesting because they have 2 PWMs: one global of 5
+// bits of resolution and one per channel of 8 bits of resolution. This means
+// that the dynamic range is of 13 bits.
 //
 // This driver handles color intensity and temperature correction and uses the
-// full near 8000:1 dynamic range as supported by the device.
+// full near 8000:1 dynamic range as supported by the peripheral.
 //
 // Datasheet
 //

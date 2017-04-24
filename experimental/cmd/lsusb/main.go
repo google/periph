@@ -4,7 +4,7 @@
 
 // +build usb
 
-// lsusb prints out information about the USB devices.
+// lsusb prints out information about the USB peripherals.
 package main
 
 import (

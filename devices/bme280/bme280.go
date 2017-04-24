@@ -2,7 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package bme280 controls a Bosch BME280 device over I²C.
+// Package bme280 controls a Bosch BME280 peripheral over I²C.
 //
 // Datasheet
 //
@@ -123,9 +123,9 @@ func (d *Dev) Halt() error {
 // and FOff for filter if planing to call frequently, else use S500ms to get a
 // bit more than one reading per second.
 //
-// Address is only used on creation of an I²C-device. Its default value is 0x76.
-// It can be set to 0x77. Both values depend on HW configuration of the sensor's
-// SDO pin. This has no effect with NewSPI()
+// Address is only used when the peripheral is connected over I²C . Its default
+// value is 0x76.  It can be set to 0x77. Both values depend on HW
+// configuration of the sensor's SDO pin. This has no effect with NewSPI()
 //
 // BUG(maruel): Remove the Standby flag and replace with a
 // WaitForNextSample(time.Duration). Then use the closest value automatically.
@@ -141,7 +141,7 @@ type Opts struct {
 // NewI2C returns an object that communicates over I²C to BME280 environmental
 // sensor.
 //
-// It is recommended to call Stop() when done with the device so it stops
+// It is recommended to call Halt() when done with the peripheral so it stops
 // sampling.
 func NewI2C(b i2c.Bus, opts *Opts) (*Dev, error) {
 	addr := uint16(0x76)
@@ -169,7 +169,7 @@ func NewI2C(b i2c.Bus, opts *Opts) (*Dev, error) {
 // filter if planing to call frequently, else use S500ms to get a bit more than
 // one reading per second.
 //
-// It is recommended to call Stop() when done with the device so it stops
+// It is recommended to call Halt() when done with the device so it stops
 // sampling.
 //
 // When using SPI, the CS line must be used.

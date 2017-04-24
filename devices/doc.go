@@ -2,7 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package devices contains interfaces for classes of devices.
+// Package devices contains interfaces for classes of peripherals.
 //
 // Subpackages contain the concrete implementations. Devices accept bus
 // interface, constructors return concrete type.

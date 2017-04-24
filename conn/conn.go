@@ -53,8 +53,8 @@ func (i Duplex) String() string {
 // - fmt.Stringer which returns something meaningful to the user like "SPI0.1",
 //   "I2C1.76", "COM6", etc.
 // - io.Reader and io.Writer as an way to use io.Copy() on a read-only or
-//   write-only device. For example the FLIR Lepton is a read-only device, the
-//   SSD1306 is a write-only device.
+//   write-only peripheral. For example the FLIR Lepton is a read-only
+//   peripheral, the SSD1306 is a write-only peripheral.
 type Conn interface {
 	// Tx does a single transaction.
 	//

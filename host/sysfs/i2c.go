@@ -38,7 +38,8 @@ func SetSpeedHook(h func(hz int64) error) error {
 
 // I2C is an open I²C bus via sysfs.
 //
-// It can be used to communicate with multiple devices from multiple goroutines.
+// It can be used to communicate with multiple peripherals from multiple
+// goroutines.
 type I2C struct {
 	f         ioctlCloser
 	busNumber int
@@ -69,7 +70,7 @@ func newI2C(busNumber int) (*I2C, error) {
 	if err != nil {
 		// Try to be helpful here. There are generally two cases:
 		// - /dev/i2c-X doesn't exist. In this case, /boot/config.txt has to be
-		//   edited to enable I²C then the device must be rebooted.
+		//   edited to enable I²C then the host must be rebooted.
 		// - permission denied. In this case, the user has to be added to plugdev.
 		if os.IsNotExist(err) {
 			return nil, fmt.Errorf("sysfs-i2c: bus #%d is not configured: %v", busNumber, err)
@@ -79,7 +80,7 @@ func newI2C(busNumber int) (*I2C, error) {
 	}
 	i := &I2C{f: f, busNumber: busNumber}
 
-	// TODO(maruel): Changing the speed is currently doing this for all devices.
+	// TODO(maruel): Changing the speed is currently doing this for all peripherals.
 	// https://github.com/raspberrypi/linux/issues/215
 	// Need to access /sys/module/i2c_bcm2708/parameters/baudrate
 

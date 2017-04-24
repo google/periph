@@ -16,12 +16,12 @@ import (
 // See https://periph.io/x/periph/tree/master/doc/drivers#requirements
 // for the expectations.
 
-// Dev is a handle to the device. FIXME.
+// Dev is a handle to the peripheral. FIXME.
 type Dev struct {
 	c conn.Conn
 }
 
-// New opens a handle to the device. FIXME.
+// New opens a handle to the peripheral. FIXME.
 func New(i i2c.Bus) (*Dev, error) {
 	d := &Dev{&i2c.Dev{Bus: i, Addr: 42}}
 	// FIXME: Simulate a setup dance.
@@ -35,7 +35,7 @@ func New(i i2c.Bus) (*Dev, error) {
 	return d, nil
 }
 
-// Read is a method on your device. FIXME.
+// Read is a method on your peripheral. FIXME.
 func (d *Dev) Read() string {
 	var b [12]byte
 	if err := d.c.Tx([]byte("what"), b[:]); err != nil {
@@ -45,7 +45,7 @@ func (d *Dev) Read() string {
 }
 
 // FIXME: A driver is generally only needed for host drivers. If you implement
-// a device driver, delete the remainder of this file.
+// a peripheral driver, delete the remainder of this file.
 
 // driver implements periph.Driver.
 type driver struct {

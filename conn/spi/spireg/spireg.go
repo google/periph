@@ -57,7 +57,7 @@ type Ref struct {
 // A SPI port is constructed of the bus number and the chip select (CS) number.
 //
 // When the SPI port is provided by an off board plug and play bus like USB via
-// a FT232H USB device, there can be no associated number.
+// a FT232H USB peripheral, there can be no associated number.
 func Open(name string) (spi.ConnCloser, error) {
 	var r *Ref
 	var err error
@@ -114,9 +114,9 @@ func All() []*Ref {
 //
 // Registering the same port name twice is an error, e.g. o.Name(). o.Number()
 // can be -1 to signify that the port doesn't have an inherent "bus number". A
-// good example is a port provided over a FT232H device connected on an USB bus.
-// In this case, the port name should be created from the serial number of the
-// device for unique identification.
+// good example is a port provided over a FT232H peripheral connected on an USB
+// bus.  In this case, the port name should be created from the serial number
+// of the peripheral for unique identification.
 //
 // Only ports with the CS #0 are registered with their number.
 func Register(name string, aliases []string, number int, o Opener) error {
@@ -186,8 +186,8 @@ func Register(name string, aliases []string, number int, o Opener) error {
 
 // Unregister removes a previously registered SPI port.
 //
-// This can happen when a SPI port is exposed via an USB device and the device
-// is unplugged.
+// This can happen when a SPI port is exposed via an USB peripheral and the
+// peripheral is unplugged.
 func Unregister(name string) error {
 	mu.Lock()
 	defer mu.Unlock()

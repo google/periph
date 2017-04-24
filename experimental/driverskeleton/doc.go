@@ -9,7 +9,7 @@
 // instructions! :)
 //
 // FIXME: Include additional information relevant to users, including
-// configuring the device if relevant.
+// configuring the peripheral if relevant.
 //
 // Datasheet
 //
