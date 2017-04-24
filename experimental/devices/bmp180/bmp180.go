@@ -26,6 +26,7 @@ package bmp180
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"time"
 
@@ -175,21 +176,13 @@ func New(b i2c.Bus, os Oversampling) (d *Dev, err error) {
 	time.Sleep(10 * time.Millisecond)
 
 	// read calibration data from internal EEPROM, 11 registers with two bytes each
-	var cal [22]byte
-	if err := d.dev.ReadStruct(regCalibrationStart, cal[:]); err != nil {
+	var cal calibration
+	if err := d.dev.ReadStruct(regCalibrationStart, &cal); err != nil {
 		return nil, err
 	}
 
-	// consistency check as suggested by the datasheet (page 13)
-	for i := 0; i < len(cal)/2; i++ {
-		val := uint16(cal[2*i])<<8 | uint16(cal[2*i+1])
-		if val == 0 || val == 0xffff {
-			return nil, fmt.Errorf("calibration byte %v has invalid value 0x%x", i, val)
-		}
-	}
-
-	if d.cal, err = newCalibration(cal); err != nil {
-		return nil, err
+	if !cal.isValid() {
+		return nil, errors.New("calibration data is invalid")
 	}
 
 	return d, nil
@@ -203,7 +196,20 @@ type calibration struct {
 	MB, MC, MD    int16
 }
 
-// newCalibration parses calibration data from the buf.
+func isValid(i int16) bool {
+	return i != 0 && i != ^int16(0)
+}
+
+func isValidU(i uint16) bool {
+	return i != 0 && i != 0xFFFF
+}
+
+// valid checks whether the calibration data is valid.
+func (c *calibration) isValid() bool {
+	return isValid(c.AC1) && isValid(c.AC2) && isValid(c.AC3) && isValidU(c.AC4) && isValidU(c.AC5) && isValidU(c.AC6) && isValid(c.B1) && isValid(c.B2) && isValid(c.MB) && isValid(c.MC) && isValid(c.MD)
+}
+
+// newCalibration parses calibration data from the buf and checks that it is valid.
 func newCalibration(buf [22]byte) (c calibration, err error) {
 	err = binary.Read(bytes.NewReader(buf[:]), binary.BigEndian, &c)
 	if err != nil {

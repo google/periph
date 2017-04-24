@@ -54,22 +54,16 @@ func read(e devices.Environmental, interval time.Duration) error {
 
 func mainImpl() error {
 	i2cID := flag.String("i2c", "", "I²C bus to use")
-	hz := flag.Int("hz", 0, "I²C bus speed")
 	sample2x := flag.Bool("s2", false, "sample at 2x")
 	sample4x := flag.Bool("s4", false, "sample at 4x")
 	sample8x := flag.Bool("s8", false, "sample at 8x")
-	loop := flag.Bool("l", false, "read data continously")
-	interval := flag.Duration("i", time.Second, "read data continously with this interval")
+	interval := flag.Duration("i", 0, "read data continously with this interval")
 	verbose := flag.Bool("v", false, "verbose mode")
 	flag.Parse()
 	if !*verbose {
 		log.SetOutput(ioutil.Discard)
 	}
 	log.SetFlags(log.Lmicroseconds)
-
-	if !*loop {
-		*interval = 0
-	}
 
 	os := bmp180.No
 	if *sample2x {
@@ -80,37 +74,26 @@ func mainImpl() error {
 		os = bmp180.O8x
 	}
 
-	fmt.Printf("initialize host\n")
 	if _, err := host.Init(); err != nil {
 		return err
 	}
 
-	fmt.Printf("open i2c bus\n")
 	bus, err := i2creg.Open(*i2cID)
 	if err != nil {
 		return err
 	}
 	defer bus.Close()
 
-	fmt.Printf("i2c bus is open\n")
 	if p, ok := bus.(i2c.Pins); ok {
 		printPin("SCL", p.SCL())
 		printPin("SDA", p.SDA())
 	}
-	if *hz != 0 {
-		if err := bus.SetSpeed(int64(*hz)); err != nil {
-			return err
-		}
-	}
 
-	var dev *bmp180.Dev
-
-	fmt.Printf("open bmp180\n")
-	if dev, err = bmp180.New(bus, os); err != nil {
+	dev, err := bmp180.New(bus, os)
+	if err != nil {
 		return err
 	}
 
-	fmt.Printf("read measurement\n")
 	err = read(dev, *interval)
 	err2 := dev.Halt()
 	if err != nil {
