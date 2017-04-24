@@ -254,25 +254,8 @@ func (d *Dev) makeDev(opts *Opts) error {
 		return err
 	}
 
-	d.c.t1 = uint16(tph[0]) | uint16(tph[1])<<8
-	d.c.t2 = int16(tph[2]) | int16(tph[3])<<8
-	d.c.t3 = int16(tph[4]) | int16(tph[5])<<8
-	d.c.p1 = uint16(tph[6]) | uint16(tph[7])<<8
-	d.c.p2 = int16(tph[8]) | int16(tph[9])<<8
-	d.c.p3 = int16(tph[10]) | int16(tph[11])<<8
-	d.c.p4 = int16(tph[12]) | int16(tph[13])<<8
-	d.c.p5 = int16(tph[14]) | int16(tph[15])<<8
-	d.c.p6 = int16(tph[16]) | int16(tph[17])<<8
-	d.c.p7 = int16(tph[18]) | int16(tph[19])<<8
-	d.c.p8 = int16(tph[20]) | int16(tph[21])<<8
-	d.c.p9 = int16(tph[22]) | int16(tph[23])<<8
-	d.c.h1 = uint8(tph[25])
+	d.c = newCalibration(tph[:], h[:])
 
-	d.c.h2 = int16(h[0]) | int16(h[1])<<8
-	d.c.h3 = uint8(h[2])
-	d.c.h4 = int16(h[3])<<4 | int16(h[4])&0xF
-	d.c.h5 = int16(h[4])>>4 | int16(h[5])<<4
-	d.c.h6 = int8(h[6])
 	return nil
 }
 
@@ -331,6 +314,31 @@ func (d *Dev) writeCommands(b []byte) error {
 
 // https://cdn-shop.adafruit.com/datasheets/BST-BME280_DS001-10.pdf
 // Page 23
+
+// newCalibration parses calibration data from both buffers.
+func newCalibration(tph, h []byte) (c calibration) {
+	c.t1 = uint16(tph[0]) | uint16(tph[1])<<8
+	c.t2 = int16(tph[2]) | int16(tph[3])<<8
+	c.t3 = int16(tph[4]) | int16(tph[5])<<8
+	c.p1 = uint16(tph[6]) | uint16(tph[7])<<8
+	c.p2 = int16(tph[8]) | int16(tph[9])<<8
+	c.p3 = int16(tph[10]) | int16(tph[11])<<8
+	c.p4 = int16(tph[12]) | int16(tph[13])<<8
+	c.p5 = int16(tph[14]) | int16(tph[15])<<8
+	c.p6 = int16(tph[16]) | int16(tph[17])<<8
+	c.p7 = int16(tph[18]) | int16(tph[19])<<8
+	c.p8 = int16(tph[20]) | int16(tph[21])<<8
+	c.p9 = int16(tph[22]) | int16(tph[23])<<8
+	c.h1 = uint8(tph[25])
+
+	c.h2 = int16(h[0]) | int16(h[1])<<8
+	c.h3 = uint8(h[2])
+	c.h4 = int16(h[3])<<4 | int16(h[4])&0xF
+	c.h5 = int16(h[4])>>4 | int16(h[5])<<4
+	c.h6 = int8(h[6])
+
+	return c
+}
 
 type calibration struct {
 	t1                             uint16
