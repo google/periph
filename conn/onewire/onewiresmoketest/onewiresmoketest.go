@@ -3,10 +3,12 @@
 // that can be found in the LICENSE file.
 
 // Package onewiresmoketest is leveraged by periph-smoketest to verify that a
-// 1-wire bus search returns two devices, that a ds18b20 temperature sensor can
-// be read, and that a ds2431 eeprom can be written and read.
+// 1-wire bus search returns two peripherals, that a ds18b20 temperature sensor
+// can be read, and that a ds2431 eeprom can be written and read.
 //
-// This assumes the presence of the periph-tester board, which includes these two devices.
+// This assumes the presence of the periph-tester board, which includes these
+// two peripherals.
+//
 // See https://github.com/tve/periph-tester
 package onewiresmoketest
 
@@ -83,8 +85,9 @@ func (s *SmokeTest) Run(args []string) error {
 	return nil
 }
 
-// search performs a search cycle on the bus and verifies that the two expected devices
-// are actually found. It returns the two device addresses, ds18b20 first.
+// search performs a search cycle on the bus and verifies that the two expected
+// peripherals are actually found. It returns the two peripheral addresses,
+// ds18b20 first.
 func (s *SmokeTest) search(bus onewire.Bus) ([]onewire.Address, error) {
 	addrs, err := bus.Search(false)
 	if err != nil {
@@ -92,19 +95,19 @@ func (s *SmokeTest) search(bus onewire.Bus) ([]onewire.Address, error) {
 	}
 
 	if len(addrs) != 2 {
-		return nil, fmt.Errorf("search expected 2 devices, found %d", len(addrs))
+		return nil, fmt.Errorf("search expected 2 peripherals, found %d", len(addrs))
 	}
 
-	// Ensure we found devices with the correct family code and return them.
+	// Ensure we found peripherals with the correct family code and return them.
 	if addrs[1]&0xff == 0x28 && addrs[0]&0xff == 0x2D {
 		// Swap the order so the DS18b20 is first.
 		addrs[0], addrs[1] = addrs[1], addrs[0]
 	}
 	if addrs[0]&0xff == 0x28 && addrs[1]&0xff == 0x2D {
-		log.Printf("%s: found 2 devices %#x %#x", s, addrs[0], addrs[1])
+		log.Printf("%s: found 2 peripherals %#x %#x", s, addrs[0], addrs[1])
 		return addrs, nil
 	}
-	return nil, fmt.Errorf("search expected device families 0x28 and 0x2D, found: %#x %#x", addrs[0], addrs[1])
+	return nil, fmt.Errorf("search expected peripheral families 0x28 and 0x2D, found: %#x %#x", addrs[0], addrs[1])
 }
 
 // ds18b20 tests a Maxim DS18B20 (or MAX31820) 1-wire temperature sensor attached to the

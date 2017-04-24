@@ -2,7 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package mmr defines helpers to interact with devices exposing Memory
+// Package mmr defines helpers to interact with peripherals exposing Memory
 // Mapped Registers protocol.
 //
 // The protocol is defined two supported commands:
@@ -26,7 +26,7 @@ type Dev8 struct {
 	Conn conn.Conn
 	// Order specifies the binary encoding of words. It is expected to be either
 	// binary.BigEndian or binary.LittleEndian or a specialized implemented if
-	// necessary. A good example of such need is devices communicating 32bits
+	// necessary. A good example of such need is peripherals communicating 32bits
 	// little endian values encoded over 16bits big endian words.
 	Order binary.ByteOrder
 }
@@ -157,7 +157,7 @@ type Dev16 struct {
 	Conn conn.Conn
 	// Order specifies the binary encoding of words. It is expected to be either
 	// binary.BigEndian or binary.LittleEndian or a specialized implemented if
-	// necessary. A good example of such need is devices communicating 32bits
+	// necessary. A good example of such need is peripherals communicating 32bits
 	// little endian values encoded over 16bits big endian words.
 	Order binary.ByteOrder
 }

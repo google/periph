@@ -48,7 +48,7 @@
 //
 // Hardware
 //
-// A good device is the VS1838. Then you need device driver for hardware
+// A good peripheral is the VS1838. Then you need peripheral driver for hardware
 // accelerated signal decoding, that lircd will then leverage to decode the
 // keypresses.
 package lirc

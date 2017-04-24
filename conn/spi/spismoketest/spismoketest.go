@@ -3,9 +3,11 @@
 // that can be found in the LICENSE file.
 
 // Package spismoketest is leveraged by periph-smoketest to verify that an
-// EEPROM device can be accessed on an SPI bus.
+// EEPROM peripheral can be accessed on an SPI bus.
 //
-// This assumes the presence of the periph-tester board, which includes these two devices.
+// This assumes the presence of the periph-tester board, which includes these
+// two peripherals.
+//
 // See https://github.com/tve/periph-tester
 package spismoketest
 
@@ -107,8 +109,9 @@ func (s *SmokeTest) eeprom(d spi.Conn, wpPin gpio.PinIO) error {
 	}
 
 	var rBuf [35]byte
-	// Read status register of the EEPROM and expect not to get an error (the device
-	// can't produce an error with SPI, but the driver/OS could act up).
+	// Read status register of the EEPROM and expect not to get an error (the
+	// peripheral can't produce an error with SPI, but the driver/OS could act
+	// up).
 	if err := d.Tx([]byte{cmdReadStatus, 0}, rBuf[:2]); err != nil {
 		return fmt.Errorf("eeprom: error on the first read status access: %v", err)
 	}

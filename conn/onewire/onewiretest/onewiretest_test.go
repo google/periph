@@ -122,7 +122,7 @@ func TestPlayback_searchbit(t *testing.T) {
 func TestPlayback_inactive(t *testing.T) {
 	p := Playback{inactive: []bool{true}, DontPanic: true}
 	if _, err := p.SearchTriplet(0); err == nil {
-		t.Fatal("invalid search inactive devices")
+		t.Fatal("invalid search inactive peripherals")
 	}
 }
 
@@ -197,7 +197,7 @@ func TestSearch(t *testing.T) {
 			0xf100000131856328,
 		},
 	}
-	// Fix-up the CRC byte for each device.
+	// Fix-up the CRC byte for each peripheral.
 	var buf [8]byte
 	for i := range p.Devices {
 		binary.LittleEndian.PutUint64(buf[:], uint64(p.Devices[i]))
@@ -205,7 +205,7 @@ func TestSearch(t *testing.T) {
 		p.Devices[i] = (onewire.Address(crc) << 56) | (p.Devices[i] & 0x00ffffffffffffff)
 	}
 
-	// We're doing one search operation per device, plus a last one.
+	// We're doing one search operation per peripheral, plus a last one.
 	p.Ops = make([]IO, len(p.Devices)+1)
 	for i := 0; i < len(p.Ops); i++ {
 		p.Ops[i] = IO{W: []byte{0xf0}, Pull: onewire.WeakPullup}
@@ -222,9 +222,9 @@ func TestSearch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Verify we got all devices.
+	// Verify we got all peripherals.
 	if len(addrs) != len(p.Devices) {
-		t.Fatalf("expected %d devices, got %d", len(p.Devices), len(addrs))
+		t.Fatalf("expected %d peripherals, got %d", len(p.Devices), len(addrs))
 	}
 match:
 	for _, ai := range p.Devices {

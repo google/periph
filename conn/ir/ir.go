@@ -561,7 +561,7 @@ type Message struct {
 // Conn defines an infrared receiver and emitter.
 type Conn interface {
 	// Channel returns a channel that is used to listen to new messages capted by
-	// the IR receiver. It will be closed when the device is closed.
+	// the IR receiver. It will be closed when the peripheral is closed.
 	Channel() <-chan Message
 	// Emit emits a key press.
 	Emit(remote string, key Key) error

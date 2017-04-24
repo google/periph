@@ -41,7 +41,7 @@ func main() {
 }
 ~~~
 
-Curious? Look at [supported devices](https://periph.io/device/) for more
+Curious? Look at [supported peripherals](https://periph.io/device/) for more
 examples!
 
 

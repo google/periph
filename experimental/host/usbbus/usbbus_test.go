@@ -17,7 +17,7 @@ import (
 
 func Example() {
 	usb.Register(usb.ID{0x1234, 0x5678}, func(dev usb.ConnCloser) error {
-		fmt.Printf("Detected USB device: %s\n", dev)
+		fmt.Printf("Detected USB peripheral: %s\n", dev)
 		return dev.Close()
 	})
 
@@ -25,7 +25,7 @@ func Example() {
 		log.Fatal(err)
 	}
 
-	// TODO(maruel): Check if the device is there.
+	// TODO(maruel): Check if the peripheral is there.
 }
 
 func TestUSBBus(t *testing.T) {

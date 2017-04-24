@@ -2,7 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package usb implements an USB device registry.
+// Package usb implements an USB peripheral registry.
 package usb
 
 import (
@@ -13,22 +13,22 @@ import (
 	"periph.io/x/periph/conn"
 )
 
-// Conn represents a connection to an USB device.
+// Conn represents a connection to an USB peripheral.
 type Conn interface {
 	conn.Conn
 	ID() *ID
 }
 
-// ConnCloser is an USB device handle that can be closed.
+// ConnCloser is an USB peripheral handle that can be closed.
 //
-// This interface is meant to be handled by the USB device driver, not the
+// This interface is meant to be handled by the USB peripheral driver, not the
 // application.
 type ConnCloser interface {
 	io.Closer
 	Conn
 }
 
-// ID represents an USB device by its ID.
+// ID represents an USB peripheral by its ID.
 type ID struct {
 	VenID uint16
 	DevID uint16
@@ -38,17 +38,18 @@ func (i ID) String() string {
 	return fmt.Sprintf("%04x:%04x", i.VenID, i.DevID)
 }
 
-// Opener takes control of an already opened USB device.
+// Opener takes control of an already opened USB peripheral.
 type Opener func(dev ConnCloser) error
 
-// Register registers a driver for an USB device.
+// Register registers a driver for an USB peripheral.
 //
-// When this device is found, the factory will be called with a device handle.
+// When this peripheral is found, the factory will be called with a peripheral
+// handle.
 func Register(id ID, opener Opener) error {
 	mu.Lock()
 	defer mu.Unlock()
 	if _, ok := byID[id]; ok {
-		return fmt.Errorf("usb: registering the same USB device id %s twice", id)
+		return fmt.Errorf("usb: registering the same USB peripheral id %s twice", id)
 	}
 
 	byID[id] = opener

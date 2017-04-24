@@ -2,7 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// i2c-io communicates to an I²C device.
+// i2c-io communicates to an I²C peripheral.
 package main
 
 import (
@@ -20,7 +20,7 @@ import (
 )
 
 func mainImpl() error {
-	addr := flag.Int("a", -1, "I²C device address to query")
+	addr := flag.Int("a", -1, "I²C peripheral address to query")
 	busName := flag.String("b", "", "I²C bus to use")
 	verbose := flag.Bool("v", false, "verbose mode")
 	// TODO(maruel): This is not generic enough.

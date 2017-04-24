@@ -145,7 +145,7 @@ func TestRecordTemp(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	addrs := "1-wire devices found:"
+	addrs := "1-wire peripherals found:"
 	for _, a := range devices {
 		addrs += fmt.Sprintf(" %#016x", a)
 	}

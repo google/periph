@@ -439,7 +439,7 @@ type spiIOCTransfer struct {
 	rx          uint64 // Pointer to byte slice
 	length      uint32 // buffer length of tx and rx in bytes
 	speedHz     uint32 // temporarily override the speed
-	delayUsecs  uint16 // µs to sleep before selecting the device before the next transfer
+	delayUsecs  uint16 // µs to sleep with CS deselected before the next transfer
 	bitsPerWord uint8  // temporarily override the number of bytes per word
 	csChange    uint8  // true to deassert CS before next transfer
 	txNBits     uint8

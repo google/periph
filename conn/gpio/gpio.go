@@ -230,7 +230,7 @@ type PinIO interface {
 
 // PinDefaultPull is optionally implemented to return the default pull at boot
 // time. This is useful to determine if the pin is acceptable for operation
-// with certain devices.
+// with certain peripherals.
 type PinDefaultPull interface {
 	// DefaultPull returns the pull that is initialized on CPU reset.
 	DefaultPull() Pull

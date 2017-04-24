@@ -13,7 +13,7 @@ import (
 )
 
 // TestSearch tests the onewire.Search function using the Playback bus preloaded
-// with a synthetic set of devices.
+// with a synthetic set of peripherals.
 func TestSearch(t *testing.T) {
 	p := playback{
 		Devices: []Address{
@@ -26,7 +26,7 @@ func TestSearch(t *testing.T) {
 			0xf100000131856328,
 		},
 	}
-	// Fix-up the CRC byte for each device.
+	// Fix-up the CRC byte for each peripheral.
 	var buf [8]byte
 	for i := range p.Devices {
 		binary.LittleEndian.PutUint64(buf[:], uint64(p.Devices[i]))
@@ -34,7 +34,7 @@ func TestSearch(t *testing.T) {
 		p.Devices[i] = (Address(crc) << 56) | (p.Devices[i] & 0x00ffffffffffffff)
 	}
 
-	// We're doing one search operation per device, plus a last one.
+	// We're doing one search operation per peripheral, plus a last one.
 	p.Ops = make([]IO, len(p.Devices)+1)
 	for i := 0; i < len(p.Ops); i++ {
 		p.Ops[i] = IO{Write: []byte{0xf0}, Pull: WeakPullup}
@@ -51,9 +51,9 @@ func TestSearch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Verify we got all devices.
+	// Verify we got all peripherals.
 	if len(addrs) != len(p.Devices) {
-		t.Fatalf("expected %d devices, got %d", len(p.Devices), len(addrs))
+		t.Fatalf("expected %d peripherals, got %d", len(p.Devices), len(addrs))
 	}
 match:
 	for _, ai := range p.Devices {
@@ -139,7 +139,7 @@ func (p *playback) SearchTriplet(direction byte) (TripletResult, error) {
 	if len(p.inactive) != len(p.Devices) {
 		return tr, errors.New("onewiretest: Devices must be initialized before starting search")
 	}
-	// Figure out the devices' response.
+	// Figure out the peripherals' response.
 	for i := range p.Devices {
 		if p.inactive[i] {
 			continue
@@ -159,7 +159,7 @@ func (p *playback) SearchTriplet(direction byte) (TripletResult, error) {
 	default:
 		tr.Taken = direction
 	}
-	// Inactivate devices in the direction not taken.
+	// Inactivate peripherals in the direction not taken.
 	for i := range p.Devices {
 		if uint8((p.Devices[i]>>p.searchBit)&1) != tr.Taken {
 			p.inactive[i] = true

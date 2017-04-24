@@ -4,8 +4,8 @@
 
 // Package onewire defines a Dallas Semiconductor / Maxim Integrated 1-wire bus.
 //
-// It includes an adapter to directly address a 1-wire device on a 1-wire bus
-// without having to continuously specify the address when doing I/O. This
+// It includes an adapter to directly address a 1-wire peripheral on a 1-wire
+// bus without having to continuously specify the address when doing I/O. This
 // enables the support of conn.Conn.
 //
 // References
@@ -26,7 +26,7 @@ import (
 
 // Bus defines the function a concrete driver for a 1-wire bus must implement.
 //
-// This interface doesn't implement conn.Conn since a device address must be
+// This interface doesn't implement conn.Conn since a peripheral address must be
 // specified for each transaction. Use onewire.Dev as an adapter to get a
 // conn.Conn compatible object.
 type Bus interface {
@@ -37,23 +37,24 @@ type Bus interface {
 	Tx(w, r []byte, power Pullup) error
 
 	// Search performs a "search" cycle on the 1-wire bus and returns the
-	// addresses of all devices on the bus if alarmOnly is false and of all
-	// devices in alarm state if alarmOnly is true.
+	// addresses of all peripherals on the bus if alarmOnly is false and of all
+	// peripherals in alarm state if alarmOnly is true.
 	//
-	// If an error occurs during the search the already-discovered devices are
+	// If an error occurs during the search the already-discovered peripherals are
 	// returned with the error.
 	//
 	// Bus.Search may be implemented using onewire.Search if the bus implements
 	// the BusSearcher interface or it may have a custom implementation, for
-	// example a Linux sysfs implementation should return the list of devices
+	// example a Linux sysfs implementation should return the list of peripherals
 	// already discovered by the driver.
 	Search(alarmOnly bool) ([]Address, error)
 }
 
-// Address represents a 1-wire device address in little-endian format. This means
-// that the family code ends up in the lower byte, the CRC in the top byte,
-// and the variable address part in the middle 6 bytes. E.g. a DS18B20 device,
-// which has a family code of 0x28, might have address 0x7a00000131825228.
+// Address represents a 1-wire peripheral address in little-endian format. This
+// means that the family code ends up in the lower byte, the CRC in the top
+// byte, and the variable address part in the middle 6 bytes. E.g. a DS18B20
+// peripheral, which has a family code of 0x28, might have address
+// 0x7a00000131825228.
 type Address uint64
 
 // Pullup encodes the type of pull-up used at the end of a bus transaction.
@@ -62,7 +63,7 @@ type Pullup bool
 const (
 	// WeakPullup ends the transaction with weak pull-up
 	WeakPullup Pullup = false
-	// StrongPullup end the transaction with strong pull-up to power devices
+	// StrongPullup end the transaction with strong pull-up to power peripherals
 	StrongPullup Pullup = true
 )
 
@@ -92,9 +93,9 @@ type Pins interface {
 }
 
 // NoDevicesError is an interface that should be implemented by errors that
-// indicate that no devices responded with a presence pulse after a reset.
+// indicate that no peripherals responded with a presence pulse after a reset.
 type NoDevicesError interface {
-	NoDevices() bool // true if no presence pulse from any device has been detected
+	NoDevices() bool // true if no presence pulse from any peripheral has been detected
 }
 
 // noDevicesError implements error and NoDevicesError.
@@ -120,7 +121,7 @@ func (e shortedBusError) BusError() bool  { return true }
 
 // BusError is an interface that should be implemented by errors that
 // indicate that an error occurred on the bus, for example a CRC error
-// or a non-responding device. These errors often indicate an electrical
+// or a non-responding peripheral. These errors often indicate an electrical
 // problem with the bus and may be worth retrying.
 //
 // BusError also helps to differentiate 1-wire errors from errors accessing
@@ -136,29 +137,29 @@ type busError string
 func (e busError) Error() string  { return string(e) }
 func (e busError) BusError() bool { return true }
 
-// Dev is a device on a 1-wire bus.
+// Dev is a peripheral on a 1-wire bus.
 //
 // It implements conn.Conn.
 //
-// Compared to Bus it saves from repeatedly specifying the device address and
-// implements utility functions.
+// Compared to Bus it saves from repeatedly specifying the peripheral address
+// and implements utility functions.
 type Dev struct {
-	Bus  Bus     // the bus to which the device is connected
-	Addr Address // address of the device on the bus
+	Bus  Bus     // the bus to which the peripheral is connected
+	Addr Address // address of the peripheral on the bus
 }
 
-// String prints the bus name followed by the device address in parenthesis.
+// String prints the bus name followed by the peripheral address in parenthesis.
 func (d *Dev) String() string {
 	return fmt.Sprintf("%s(%#016x)", d.Bus, d.Addr)
 }
 
-// Tx performs a "match ROM" command on the bus to select the device
+// Tx performs a "match ROM" command on the bus to select the peripheral
 // and then transmits and receives the specified bytes. It ends by
 // leaving a weak pull-up on the bus.
 //
 // It's a wrapper for Dev.Bus.Tx().
 func (d *Dev) Tx(w, r []byte) error {
-	// Issue ROM match command to select the device followed by the
+	// Issue ROM match command to select the peripheral followed by the
 	// bytes being written.
 	ww := make([]byte, 9, len(w)+9)
 	ww[0] = 0x55 // Match ROM
@@ -172,14 +173,14 @@ func (d *Dev) Duplex() conn.Duplex {
 	return conn.Half
 }
 
-// TxPower performs a "match ROM" command on the bus to select the device
+// TxPower performs a "match ROM" command on the bus to select the peripheral
 // and then transmits and receives the specified bytes. It ends by
-// leaving a strong pull-up on the bus suitable to power devices through
+// leaving a strong pull-up on the bus suitable to power peripherals through
 // an EEPROM write or a temperature conversion.
 //
 // It's a wrapper for Dev.Bus.Tx().
 func (d *Dev) TxPower(w, r []byte) error {
-	// Issue ROM match command to select the device followed by the
+	// Issue ROM match command to select the peripheral followed by the
 	// bytes being written.
 	ww := make([]byte, 9, len(w)+9)
 	ww[0] = 0x55 // Match ROM

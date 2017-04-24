@@ -14,7 +14,7 @@ import (
 	"periph.io/x/periph/devices"
 )
 
-// Dev is a handle to a ds248x device and it implements the onewire.Bus
+// Dev is a handle to a ds248x peripheral and it implements the onewire.Bus
 // interface.
 //
 // Dev implements a persistent error model: if a fatal error is encountered it
@@ -23,17 +23,17 @@ import (
 // created to proceed.
 //
 // A persistent error is only set when there is a problem with the ds248x
-// device itself (or the I²C bus used to access it). Errors on the 1-wire bus
-// do not cause persistent errors and implement the onewire.BusError interface
-// to indicate this fact.
+// peripheral itself (or the I²C bus used to access it). Errors on the 1-wire
+// bus do not cause persistent errors and implement the onewire.BusError
+// interface to indicate this fact.
 type Dev struct {
 	sync.Mutex               // lock for the bus while a transaction is in progress
-	i2c        conn.Conn     // i2c device handle for the ds248x
+	i2c        conn.Conn     // I²C peripheral handle for the ds248x
 	isDS2483   bool          // true: ds2483, false: ds2482-100
 	confReg    byte          // value written to configuration register
 	tReset     time.Duration // time to perform a 1-wire reset
 	tSlot      time.Duration // time to perform a 1-bit 1-wire read/write
-	err        error         // persistent error, device will no longer operate
+	err        error         // persistent error, peripheral will no longer operate
 }
 
 func (d *Dev) String() string {
@@ -62,7 +62,7 @@ func (d *Dev) Tx(w, r []byte, power onewire.Pullup) error {
 	if present, err := d.reset(); err != nil {
 		return err
 	} else if !present {
-		return busError("ds248x: no device present")
+		return busError("ds248x: no peripheral present")
 	}
 
 	// Send bytes onto 1-wire bus.
@@ -90,10 +90,10 @@ func (d *Dev) Tx(w, r []byte, power onewire.Pullup) error {
 }
 
 // Search performs a "search" cycle on the 1-wire bus and returns the addresses
-// of all devices on the bus if alarmOnly is false and of all devices in alarm
-// state if alarmOnly is true.
+// of all peripherals on the bus if alarmOnly is false and of all peripherals
+// in alarm state if alarmOnly is true.
 //
-// If an error occurs during the search the already-discovered devices are
+// If an error occurs during the search the already-discovered peripherals are
 // returned with the error.
 func (d *Dev) Search(alarmOnly bool) ([]onewire.Address, error) {
 	return onewire.Search(d, alarmOnly)
@@ -122,8 +122,8 @@ func (d *Dev) SearchTriplet(direction byte) (onewire.TripletResult, error) {
 
 //
 
-// reset issues a reset signal on the 1-wire bus and returns true if any device
-// responded with a presence pulse.
+// reset issues a reset signal on the 1-wire bus and returns true if any
+// peripheral responded with a presence pulse.
 func (d *Dev) reset() (bool, error) {
 	// Issue reset.
 	d.i2cTx([]byte{cmd1WReset}, nil)
@@ -174,7 +174,7 @@ func (d *Dev) waitIdle(delay time.Duration) byte {
 			return status[0]
 		}
 		// If we're timing out return error. This is an error with the ds248x, not with
-		// devices on the 1-wire bus, hence it is persistent.
+		// peripherals on the 1-wire bus, hence it is persistent.
 		if time.Now().After(tOut) {
 			d.err = fmt.Errorf("ds248x: timeout waiting for bus cycle to finish")
 			return 0

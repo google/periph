@@ -89,7 +89,7 @@ type Playback struct {
 	sync.Mutex
 	Ops       []IO // recorded operations
 	Count     int
-	Devices   []onewire.Address // devices that respond to a search operation
+	Devices   []onewire.Address // peripherals that respond to a search operation
 	QPin      gpio.PinIO
 	DontPanic bool
 
@@ -159,7 +159,7 @@ func (p *Playback) SearchTriplet(direction byte) (onewire.TripletResult, error) 
 	if len(p.inactive) != len(p.Devices) {
 		return tr, errorf(p.DontPanic, "onewiretest: Devices must be initialized before starting search")
 	}
-	// Figure out the devices' response.
+	// Figure out the peripherals' response.
 	for i := range p.Devices {
 		if p.inactive[i] {
 			continue
@@ -179,7 +179,7 @@ func (p *Playback) SearchTriplet(direction byte) (onewire.TripletResult, error) 
 	default:
 		tr.Taken = direction
 	}
-	// Inactivate devices in the direction not taken.
+	// Inactivate peripherals in the direction not taken.
 	for i := range p.Devices {
 		if uint8((p.Devices[i]>>p.searchBit)&1) != tr.Taken {
 			p.inactive[i] = true

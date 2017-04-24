@@ -159,7 +159,7 @@ func New(i i2c.Bus) (*Dev, error) {
 	d := &Dev{
 		c: conn{r: mmr.Dev16{Conn: &i2c.Dev{Bus: i, Addr: 0x2A}, Order: internal.Big16}},
 	}
-	// Wait for the device to be booted.
+	// Wait for the peripheral to be booted.
 	for {
 		if status, err := d.c.waitIdle(); err != nil {
 			return nil, err
@@ -329,7 +329,7 @@ func (c *conn) waitIdle() (StatusBit, error) {
 	}
 }
 
-// get returns an attribute by querying the device.
+// get returns an attribute by querying the peripheral.
 func (c *conn) get(cmd command, data interface{}) error {
 	if data == nil {
 		return errors.New("lepton-cci: get() argument must not be nil")
@@ -384,7 +384,7 @@ func (c *conn) get(cmd command, data interface{}) error {
 	return nil
 }
 
-// set returns an attribute on the device.
+// set returns an attribute on the peripheral.
 func (c *conn) set(cmd command, data interface{}) error {
 	if data == nil {
 		return errors.New("lepton-cci: set() argument must not be nil")
@@ -428,7 +428,7 @@ func (c *conn) set(cmd command, data interface{}) error {
 	return nil
 }
 
-// run runs a command on the device that doesn't need any argument.
+// run runs a command on the peripheral that doesn't need any argument.
 func (c *conn) run(cmd command) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()

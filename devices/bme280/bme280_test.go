@@ -18,7 +18,7 @@ import (
 	"periph.io/x/periph/devices"
 )
 
-// Real data extracted from a device.
+// Real data extracted from a peripheral.
 var calib = calibration{
 	t1: 28176,
 	t2: 26220,
@@ -341,7 +341,7 @@ func TestI2CSense_success(t *testing.T) {
 }
 
 func TestCalibrationFloat(t *testing.T) {
-	// Real data extracted from measurements from this device.
+	// Real data extracted from measurements from this peripheral.
 	tRaw := int32(524112)
 	pRaw := int32(309104)
 	hRaw := int32(30987)
@@ -368,7 +368,7 @@ func TestCalibrationFloat(t *testing.T) {
 }
 
 func TestCalibrationInt(t *testing.T) {
-	// Real data extracted from measurements from this device.
+	// Real data extracted from measurements from this peripheral.
 	tRaw := int32(524112)
 	pRaw := int32(309104)
 	hRaw := int32(30987)

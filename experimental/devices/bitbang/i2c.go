@@ -186,8 +186,8 @@ func (i *I2C) writeByte(b byte) (bool, error) {
 	for x := 0; x < 8; x++ {
 		i.sda.Out(b&byte(1<<byte(7-x)) != 0)
 		i.sleepHalfCycle()
-		// Let the device read SDA.
-		// TODO(maruel): Support clock stretching, the device may keep the line low.
+		// Let the peripheral read SDA.
+		// TODO(maruel): Support clock stretching, the peripheral may keep the line low.
 		i.scl.Out(gpio.High)
 		i.sleepHalfCycle()
 		i.scl.Out(gpio.Low)
@@ -203,7 +203,7 @@ func (i *I2C) writeByte(b byte) (bool, error) {
 	if err := i.sda.In(gpio.PullUp, gpio.NoEdge); err != nil {
 		return false, err
 	}
-	// Implement clock stretching, the device may keep the line low.
+	// Implement clock stretching, the peripheral may keep the line low.
 	for i.scl.Read() == gpio.Low {
 		i.sleepHalfCycle()
 	}
@@ -232,7 +232,7 @@ func (i *I2C) readByte() (byte, error) {
 	}
 	for x := 0; x < 8; x++ {
 		i.sleepHalfCycle()
-		// TODO(maruel): Support clock stretching, the device may keep the line low.
+		// TODO(maruel): Support clock stretching, the peripheral may keep the line low.
 		i.scl.Out(gpio.High)
 		i.sleepHalfCycle()
 		if i.sda.Read() == gpio.High {

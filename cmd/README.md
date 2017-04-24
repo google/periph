@@ -36,10 +36,10 @@ it](https://periph.io/project/contributing/).
 - [headers-list](headers-list): Pinrts the location of the pin on the header to
   connect your GPIO. This is the perfect tool to know where to connect the
   wires.
-- [i2c-io](i2c-io): Reads and/or writes to an I²C device.
+- [i2c-io](i2c-io): Reads and/or writes to an I²C peripheral.
 - [i2c-list](i2c-list): Lists which I²C buses are enabled and where the pins
   are.
-- [spi-io](spi-io): Reads and/or writes to an SPI device.
+- [spi-io](spi-io): Reads and/or writes to an SPI peripheral.
 - [spi-list](spi-list): Lists which SPI buses are enabled and where the pins
   are.
 

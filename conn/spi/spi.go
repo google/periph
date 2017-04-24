@@ -104,13 +104,13 @@ type Packet struct {
 type Conn interface {
 	conn.Conn
 	// DevParams sets the communication parameters of the connection for use by a
-	// device.
+	// peripheral.
 	//
-	// The device driver must calls this function exactly once.
+	// The peripheral driver must calls this function exactly once.
 	//
-	// maxHz must specify the maximum rated speed by the device's spec. The lowest
-	// speed between the bus speed and the device speed is selected. Use 0 for
-	// maxHz if there is no known maximum value for this device.
+	// maxHz must specify the maximum rated speed by the peripheral's spec. The
+	// lowest speed between the bus speed and the peripheral speed is selected.
+	// Use 0 for maxHz if there is no known maximum value for this peripheral.
 	//
 	// mode specifies the clock and signal polarities, if the bus is using half
 	// duplex (shared MISO and MOSI) or if CS is not needed.
@@ -133,13 +133,13 @@ type ConnCloser interface {
 	Conn
 	// LimitSpeed sets the maximum bus speed.
 	//
-	// It lets an application use a device at a lower speed than the maximum
-	// speed as rated by the device driver. This is useful for example when the
-	// wires are long or the connection is of poor quality.
+	// It lets an application use a peripheral at a lower speed than the maximum
+	// speed as rated by the peripheral driver. This is useful for example when
+	// the wires are long or the connection is of poor quality.
 	//
 	// This function can be called multiple times and resets the previous value.
 	// 0 is not a value value for maxHz. The lowest speed between the bus speed
-	// and the device speed is selected.
+	// and the peripheral speed is selected.
 	LimitSpeed(maxHz int64) error
 }
 

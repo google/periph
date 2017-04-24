@@ -4,4 +4,4 @@ Verifies that two BME280, one over I²C, one over SPI, can read roughly the same
 temperature, humidity and pressure.
 
 It can also be leveraged to record the I/O to write playback unit tests. It is a
-good example to reuse to write other device driver unit test.
+good example to reuse to write other peripheral driver unit test.

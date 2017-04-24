@@ -2,7 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package tm1637 controls a TM1637 device over GPIO pins.
+// Package tm1637 controls a TM1637 peripheral over GPIO pins.
 //
 // Datasheet
 //

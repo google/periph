@@ -26,12 +26,12 @@ func Example() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	// Search devices on the bus
+	// Search peripherals on the bus
 	devices, err := owBus.Search(false)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("Found %d 1-wire devices: ", len(devices))
+	fmt.Printf("Found %d 1-wire peripherals: ", len(devices))
 	for _, d := range devices {
 		fmt.Printf(" %#16x", uint64(d))
 	}

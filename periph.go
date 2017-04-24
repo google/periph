@@ -4,7 +4,7 @@
 
 // Package periph is a peripheral I/O library.
 //
-// It contains host and device drivers, and test packages to emulate the
+// It contains host and peripheral drivers, and test packages to emulate the
 // hardware.
 //
 // You will find API documentation in godoc, to learn more about the goals and
@@ -14,28 +14,28 @@
 // high quality host drivers that provide high-speed access to the hardware on
 // the host computer itself.
 //
-// It is less concerned about implementing all possible device drivers that may
-// be attached to the host's I²C, SPI, or other buses and pio pins.
+// It is less concerned about implementing all possible peripheral drivers that
+// may be attached to the host's I²C, SPI, or other buses and pio pins.
 //
-// Every device driver should register itself in its package init() function by
-// calling periph.MustRegister().
+// Every peripheral driver should register itself in its package init()
+// function by calling periph.MustRegister().
 //
 // The user must call periph.Init() on startup to initialize all the registered
 // drivers in the correct order all at once.
 //
-//   - cmd/ contains executables to communicate directly with the devices or the
-//     buses using raw protocols.
+//   - cmd/ contains executables to communicate directly with the peripherals
+//     or the buses using raw protocols.
 //   - conn/ contains interfaces and registries for all the supported protocols
 //     and connections (I²C, SPI, GPIO, etc).
-//   - devices/ contains devices drivers that are connected to a bus (i.e I²C,
-//     SPI, GPIO) that can be controlled by the host, i.e. ssd1306 (display
+//   - devices/ contains peripherals drivers that are connected to a bus (i.e
+//     I²C, SPI, GPIO) that can be controlled by the host, i.e. ssd1306 (display
 //     controller), bm280 (environmental sensor), etc. 'devices' contains the
 //     interfaces and subpackages contain contain concrete types.
 //   - experimental/ contains the drivers that are in the experimental area,
 //     not yet considered stable. See doc/drivers/DESIGN.md for the process to
 //     move drivers out of this area.
 //   - host/ contains all the implementations relating to the host itself, the
-//     CPU and buses that are exposed by the host onto which devices can be
+//     CPU and buses that are exposed by the host onto which peripherals can be
 //     connected, i.e. I²C, SPI, GPIO, etc. 'host' contains the interfaces
 //     and subpackages contain contain concrete types.
 package periph // import "periph.io/x/periph"
@@ -85,7 +85,7 @@ func (d DriverFailure) String() string {
 	return fmt.Sprintf("%s: %v", d.D, d.Err)
 }
 
-// State is the state of loaded device drivers.
+// State is the state of loaded peripheral drivers.
 //
 // Each list is sorted by the driver name.
 type State struct {

@@ -38,7 +38,7 @@ import (
 // 11bits:375ms, 12bits:750ms.
 //
 // A resolution of 10 bits corresponds to 0.25C and tends to be a good compromise between
-// conversion time and the device's inherent accuracy of +/-0.5C.
+// conversion time and the peripheral's inherent accuracy of +/-0.5C.
 func New(o onewire.Bus, addr onewire.Address, resolutionBits int) (*Dev, error) {
 	if resolutionBits < 9 || resolutionBits > 12 {
 		return nil, errors.New("ds18b20: invalid resolutionBits")
@@ -47,7 +47,7 @@ func New(o onewire.Bus, addr onewire.Address, resolutionBits int) (*Dev, error) 
 	d := &Dev{onewire: onewire.Dev{Bus: o, Addr: addr}, resolution: resolutionBits}
 
 	// Start by reading the scratchpad memory, this will tell us whether we can talk to the
-	// device correctly and also how it's configured.
+	// peripheral correctly and also how it's configured.
 	spad, err := d.readScratchpad()
 	if err != nil {
 		return nil, err
@@ -66,12 +66,12 @@ func New(o onewire.Bus, addr onewire.Address, resolutionBits int) (*Dev, error) 
 	return d, nil
 }
 
-// ConvertAll performs a conversion on all DS18B20 devices on the bus.
+// ConvertAll performs a conversion on all DS18B20 peripherals on the bus.
 //
 // During the conversion it places the bus in strong pull-up mode to
-// power parasitic devices and returns when the conversions have
+// power parasitic peripherals and returns when the conversions have
 // completed. This time period is determined by the maximum
-// resolution of all devices on the bus and must be provided.
+// resolution of all peripherals on the bus and must be provided.
 //
 // ConvertAll uses time.Sleep to wait for the conversion to finish,
 // which takes from 94ms to 752ms.
@@ -90,7 +90,7 @@ func ConvertAll(o onewire.Bus, maxResolutionBits int) error {
 
 // Dev is a handle to a Dallas Semi / Maxim DS18B20 temperature sensor on a 1-wire bus.
 type Dev struct {
-	onewire    onewire.Dev // device on 1-wire bus
+	onewire    onewire.Dev // peripheral on 1-wire bus
 	resolution int         // resolution in bits (9..12)
 }
 
@@ -112,7 +112,9 @@ func (d *Dev) Temperature() (devices.Celsius, error) {
 	return d.LastTemp()
 }
 
-// LastTemp reads the temperature resulting from the last conversion from the device.
+// LastTemp reads the temperature resulting from the last conversion from the
+// peripheral.
+//
 // It is useful in combination with ConvertAll.
 func (d *Dev) LastTemp() (devices.Celsius, error) {
 	// Read the scratchpad memory.
@@ -126,10 +128,10 @@ func (d *Dev) LastTemp() (devices.Celsius, error) {
 	// Datasheet p.4.
 	c := (devices.Celsius(int8(spad[1]))<<8 + devices.Celsius(spad[0])) * 1000 / 16
 
-	// The device powers up with a value of 85°C, so if we read that odds are very high
-	// that either no conversion was performed or that the conversion failed due to lack of
-	// power. This prevents reading a temp of exactly 85°C, but that seems like the right
-	// tradeoff.
+	// The peripheral powers up with a value of 85°C, so if we read that odds are
+	// very high that either no conversion was performed or that the conversion
+	// failed due to lack of power. This prevents reading a temp of exactly 85°C,
+	// but that seems like the right tradeoff.
 	if c == 85000 {
 		return 0, busError("ds18b20: has not performed a temperature conversion (insufficient pull-up?)")
 	}
@@ -168,7 +170,7 @@ func (d *Dev) readScratchpad() ([]byte, error) {
 				return nil, busError("ds18b20: incorrect scratchpad CRC")
 			}
 		}
-		return nil, busError("ds18b20: device did not respond")
+		return nil, busError("ds18b20: peripheral did not respond")
 	}
 
 	return spad[:8], nil

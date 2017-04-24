@@ -139,7 +139,7 @@ func mainImpl() error {
 		return err
 	}
 
-	// Open the display device.
+	// Open the display peripheral.
 	bus, err := spireg.Open(*spiName)
 	if err != nil {
 		return err

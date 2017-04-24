@@ -10,7 +10,7 @@
 // when using I²C as the bus default speed (often 100kHz) is slow enough to
 // saturate the bus at less than 10 frames per second.
 //
-// The SSD1306 is a write-only device. It can be driven on either I²C or SPI
+// The SSD1306 is a write-only peripheral. It can be driven on either I²C or SPI
 // with 4 wires. Changing between protocol is likely done through resistor
 // soldering, for boards that support both.
 //
@@ -194,7 +194,7 @@ func getInitCmd(w, h int, rotated bool) []byte {
 	// to avoid tear down. For now default to max frequency.
 	freq := byte(0xF0)
 
-	// Initialize the device by fully resetting all values.
+	// Initialize the peripheral by fully resetting all values.
 	// Page 64 has the full recommended flow.
 	// Page 28 lists all the commands.
 	return []byte{

@@ -16,14 +16,14 @@ import (
 	"periph.io/x/periph/experimental/conn/usb"
 )
 
-// Desc represents the description of an USB device on an USB bus.
+// Desc represents the description of an USB peripheral on an USB bus.
 type Desc struct {
 	ID   usb.ID
 	Bus  uint8
 	Addr uint8
 }
 
-// All returns all the USB devices detected.
+// All returns all the USB peripherals detected.
 func All() []Desc {
 	mu.Lock()
 	defer mu.Unlock()
@@ -63,9 +63,9 @@ func fromDesc(d *gousb.Descriptor) Desc {
 	return Desc{usb.ID{uint16(d.Vendor), uint16(d.Product)}, d.Bus, d.Address}
 }
 
-// dev is an open handle to an USB device.
+// dev is an open handle to an USB peripheral.
 //
-// The device can disappear at any moment.
+// The peripheral can disappear at any moment.
 type dev struct {
 	desc Desc
 	name string
@@ -119,7 +119,7 @@ func onNewDriver() {
 		drivers[d.ID] = d.Opener
 		for _, devices := range all {
 			if d.ID == devices.ID {
-				// Only rescan if the device had been detectd.
+				// Only rescan if the peripheral had been detectd.
 				scanDevices(map[usb.ID]usb.Opener{d.ID: d.Opener})
 				break
 			}
@@ -129,7 +129,7 @@ func onNewDriver() {
 }
 
 func (d *driver) Init() (bool, error) {
-	// Gather all the previously registered device drivers and do one scan
+	// Gather all the previously registered peripheral drivers and do one scan
 	// synchronously.
 	//
 	// Start one loop that will be called during the function call.
@@ -161,8 +161,8 @@ func (d *driver) Init() (bool, error) {
 	// After this initial scan, scan asynchronously when drivers are registered.
 	go onNewDriver()
 
-	// TODO(maruel): Start an event loop when new devices are plugged in without
-	// polling.
+	// TODO(maruel): Start an event loop when new peripherals are plugged in
+	// without polling.
 	// go func() { for { WaitForUSBBusEvents(); usb.OnDevice(...) } }()
 	return true, nil
 }
@@ -174,13 +174,13 @@ func scanDevices(m map[usb.ID]usb.Opener) error {
 	defer ctx.Close()
 	all = nil
 	devs, err := ctx.ListDevices(func(d *gousb.Descriptor) bool {
-		// Return true to keep the device open.
+		// Return true to keep the peripheral open.
 		desc := fromDesc(d)
 		all = append(all, desc)
 		_, ok := m[desc.ID]
 		return ok
 	})
-	// This API is really poor as there can be multiple devices opened and you
+	// This API is really poor as there can be multiple peripherals opened and you
 	// don't know how many failed.
 	// If the user needs root access, LIBUSB_ERROR_ACCESS (-3) will be returned.
 	sort.Sort(all)
@@ -188,8 +188,8 @@ func scanDevices(m map[usb.ID]usb.Opener) error {
 		desc := fromDesc(d.Descriptor)
 		name, err := d.GetStringDescriptor(1)
 		if err != nil {
-			// Sometimes the USB device will return junk, default to the vendor and
-			// device ids.
+			// Sometimes the USB peripheral will return junk, default to the vendor
+			// and peripheral ids.
 			name = desc.ID.String()
 		}
 		// Control, isochronous or bulk?

@@ -161,7 +161,7 @@ func mainImpl() error {
 		return err
 	}
 
-	// Open the device on the right bus.
+	// Open the peripheral on the right bus.
 	var s *ssd1306.Dev
 	if *spiID != "" {
 		bus, err := spireg.Open(*spiID)
