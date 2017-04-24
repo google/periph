@@ -33,17 +33,21 @@ func printPin(fn string, p pin.Pin) {
 	}
 }
 
-func read(e devices.Environmental, loop bool) error {
+func read(e devices.Environmental, interval time.Duration) error {
+	var t *time.Ticker
+	if interval != 0 {
+		t = time.NewTicker(interval)
+	}
 	for {
 		var env devices.Environment
 		if err := e.Sense(&env); err != nil {
 			return err
 		}
 		fmt.Printf("%8s %10s %9s\n", env.Temperature, env.Pressure, env.Humidity)
-		if !loop {
+		if t == nil {
 			break
 		}
-		time.Sleep(100 * time.Millisecond)
+		<-t.C
 	}
 	return nil
 }
@@ -62,7 +66,7 @@ func mainImpl() error {
 	filter4x := flag.Bool("f4", false, "filter IIR at 4x")
 	filter8x := flag.Bool("f8", false, "filter IIR at 8x")
 	filter16x := flag.Bool("f16", false, "filter IIR at 16x")
-	loop := flag.Bool("l", false, "loop every 100ms")
+	interval := flag.Duration("i", 0, "read data continuously with this interval")
 	verbose := flag.Bool("v", false, "verbose mode")
 	flag.Parse()
 	if !*verbose {
@@ -144,7 +148,7 @@ func mainImpl() error {
 		}
 	}
 
-	err := read(dev, *loop)
+	err := read(dev, *interval)
 	err2 := dev.Halt()
 	if err != nil {
 		return err
