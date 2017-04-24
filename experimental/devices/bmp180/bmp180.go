@@ -46,17 +46,6 @@ const (
 	O8x Oversampling = 3
 )
 
-// Dev is a handle to a bmp180.
-type Dev struct {
-	dev *mmr.Dev8
-	cal calibration
-	os  Oversampling
-}
-
-func (d *Dev) String() string {
-	return fmt.Sprintf("BMP180{%s}", d.dev.Conn)
-}
-
 // bit offsets in regCtrlMeas
 const (
 	ctrlMeasurementControlShift = 0
@@ -72,6 +61,35 @@ const (
 const (
 	tempConvTime = 4500 * time.Microsecond // maximum conversion time for temperature
 )
+
+const (
+	chipAddress = 0x77 // the address of a BMP180 is fixed at 0x77
+	chipID      = 0x55 // contents of the ID register, always 0x55
+)
+
+// registers
+const (
+	regChipID           = 0xD0 // register contains the chip id
+	regCalibrationStart = 0xAA // first calibration register address
+	regSoftReset        = 0xE0 // soft reset register
+	regCtrlMeas         = 0xF4 // control measurement
+	regOutMSB           = 0xF6 // MSB of measurement
+	regOutLSB           = 0xF7 // LSB of measurement
+	regOutXLSB          = 0xF8 // extended LSB of measurement
+)
+
+const softResetValue = 0xB6
+
+// Dev is a handle to a bmp180.
+type Dev struct {
+	dev *mmr.Dev8
+	cal calibration
+	os  Oversampling
+}
+
+func (d *Dev) String() string {
+	return fmt.Sprintf("BMP180{%s}", d.dev.Conn)
+}
 
 // maximum conversion time for pressure
 var pressureConvTime = [...]time.Duration{
@@ -127,24 +145,6 @@ func (d *Dev) Sense(env *devices.Environment) error {
 func (d *Dev) Halt() error {
 	return nil
 }
-
-const (
-	chipAddress = 0x77 // the address of a BMP180 is fixed at 0x77
-	chipID      = 0x55 // contents of the ID register, always 0x55
-)
-
-// registers
-const (
-	regChipID           = 0xD0 // register contains the chip id
-	regCalibrationStart = 0xAA // first calibration register address
-	regSoftReset        = 0xE0 // soft reset register
-	regCtrlMeas         = 0xF4 // control measurement
-	regOutMSB           = 0xF6 // MSB of measurement
-	regOutLSB           = 0xF7 // LSB of measurement
-	regOutXLSB          = 0xF8 // extended LSB of measurement
-)
-
-const softResetValue = 0xB6
 
 // New returns an object that communicates over I²C to BMP180 environmental
 // sensor. The frequency for the bus can be up to 3.4MHz.
