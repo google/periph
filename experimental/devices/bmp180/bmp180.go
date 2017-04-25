@@ -164,12 +164,11 @@ func New(b i2c.Bus, os Oversampling) (d *Dev, err error) {
 	time.Sleep(10 * time.Millisecond)
 
 	// read calibration data from internal EEPROM, 11 registers with two bytes each
-	var cal calibration
-	if err := d.dev.ReadStruct(regCalibrationStart, &cal); err != nil {
+	if err := d.dev.ReadStruct(regCalibrationStart, &d.cal); err != nil {
 		return nil, err
 	}
 
-	if !cal.isValid() {
+	if !d.cal.isValid() {
 		return nil, errors.New("calibration data is invalid")
 	}
 
