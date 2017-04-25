@@ -21,13 +21,11 @@ func TestCompensate(t *testing.T) {
 		MD:  2868,
 	}
 
-	temp := c.compensateTemp(27898)
-	if temp != 150 {
+	if temp := c.compensateTemp(27898); temp != 150 {
 		t.Errorf("temperature is wrong, want %v, got %v", 150, temp)
 	}
 
-	pressure := c.compensatePressure(23843, 27898, 0)
-	if pressure != 69964 {
+	if pressure := c.compensatePressure(23843, 27898, 0); pressure != 69964 {
 		t.Errorf("pressure is wrong, want %v, got %v", 69964, pressure)
 	}
 }

@@ -24,7 +24,6 @@
 package bmp180
 
 import (
-	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -38,47 +37,44 @@ import (
 // Oversampling affects how much time is taken to measure pressure.
 type Oversampling uint8
 
-// Possible oversampling values.
 const (
+	// Possible oversampling values
 	No  Oversampling = 0
 	O2x Oversampling = 1
 	O4x Oversampling = 2
 	O8x Oversampling = 3
-)
 
-// bit offsets in regCtrlMeas
-const (
+	// bit offsets in regCtrlMeas
 	ctrlMeasurementControlShift = 0
 	ctrlStartConversionShift    = 5
 	ctrlOversamplingShift       = 6
-)
 
-const (
+	// commands
 	cmdStartTempConv     uint8 = (1 << ctrlStartConversionShift) | (0x0E << ctrlMeasurementControlShift)
 	cmdStartPressureConv uint8 = (1 << ctrlStartConversionShift) | (0x14 << ctrlMeasurementControlShift)
-)
 
-const (
-	tempConvTime = 4500 * time.Microsecond // maximum conversion time for temperature
-)
-
-const (
 	chipAddress = 0x77 // the address of a BMP180 is fixed at 0x77
 	chipID      = 0x55 // contents of the ID register, always 0x55
-)
 
-// registers
-const (
+	// registers
 	regChipID           = 0xD0 // register contains the chip id
 	regCalibrationStart = 0xAA // first calibration register address
 	regSoftReset        = 0xE0 // soft reset register
 	regCtrlMeas         = 0xF4 // control measurement
-	regOutMSB           = 0xF6 // MSB of measurement
-	regOutLSB           = 0xF7 // LSB of measurement
-	regOutXLSB          = 0xF8 // extended LSB of measurement
+	regOut              = 0xF6 // 3 bytes register with measurement data
+
+	softResetValue = 0xB6
+
+	tempConvTime = 4500 * time.Microsecond // maximum conversion time for temperature
 )
 
-const softResetValue = 0xB6
+// maximum conversion time for pressure
+var pressureConvTime = [...]time.Duration{
+	4500 * time.Microsecond,
+	7500 * time.Microsecond,
+	13500 * time.Microsecond,
+	25500 * time.Microsecond,
+}
 
 // Dev is a handle to a bmp180.
 type Dev struct {
@@ -91,14 +87,6 @@ func (d *Dev) String() string {
 	return fmt.Sprintf("BMP180{%s}", d.dev.Conn)
 }
 
-// maximum conversion time for pressure
-var pressureConvTime = [...]time.Duration{
-	4500 * time.Microsecond,
-	7500 * time.Microsecond,
-	13500 * time.Microsecond,
-	25500 * time.Microsecond,
-}
-
 // Sense returns measurements as °C and kPa.
 func (d *Dev) Sense(env *devices.Environment) error {
 	// start conversion for temperature
@@ -109,7 +97,7 @@ func (d *Dev) Sense(env *devices.Environment) error {
 	time.Sleep(tempConvTime)
 
 	// read value
-	ut, err := d.dev.ReadUint16(regOutMSB)
+	ut, err := d.dev.ReadUint16(regOut)
 	if err != nil {
 		return err
 	}
@@ -128,7 +116,7 @@ func (d *Dev) Sense(env *devices.Environment) error {
 
 	// read value
 	var pressureBuf [3]byte
-	if err := d.dev.ReadStruct(regOutMSB, pressureBuf[:]); err != nil {
+	if err := d.dev.ReadStruct(regOut, pressureBuf[:]); err != nil {
 		return err
 	}
 
@@ -207,16 +195,6 @@ func isValidU(i uint16) bool {
 // valid checks whether the calibration data is valid.
 func (c *calibration) isValid() bool {
 	return isValid(c.AC1) && isValid(c.AC2) && isValid(c.AC3) && isValidU(c.AC4) && isValidU(c.AC5) && isValidU(c.AC6) && isValid(c.B1) && isValid(c.B2) && isValid(c.MB) && isValid(c.MC) && isValid(c.MD)
-}
-
-// newCalibration parses calibration data from the buf and checks that it is valid.
-func newCalibration(buf [22]byte) (c calibration, err error) {
-	err = binary.Read(bytes.NewReader(buf[:]), binary.BigEndian, &c)
-	if err != nil {
-		return calibration{}, err
-	}
-
-	return c, nil
 }
 
 // compensateTemp returns temperature in °C, resolution is 0.1 °C.

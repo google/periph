@@ -42,7 +42,7 @@ func read(e devices.Environmental, interval time.Duration) error {
 		if err := e.Sense(&env); err != nil {
 			return err
 		}
-		fmt.Printf("%8s %10s %9s\n", env.Temperature, env.Pressure, env.Humidity)
+		fmt.Printf("%8s %10s\n", env.Temperature, env.Pressure)
 		if t == nil {
 			break
 		}
