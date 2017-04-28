@@ -134,6 +134,19 @@ func (d *Dev) Halt() error {
 	return nil
 }
 
+// Reset issues a soft reset to the device.
+func (d *Dev) Reset() error {
+	// issue soft reset to initialize device
+	if err := d.dev.WriteUint8(regSoftReset, softResetValue); err != nil {
+		return err
+	}
+
+	// wait for restart
+	time.Sleep(10 * time.Millisecond)
+
+	return nil
+}
+
 // New returns an object that communicates over I²C to BMP180 environmental
 // sensor. The frequency for the bus can be up to 3.4MHz.
 func New(b i2c.Bus, os Oversampling) (d *Dev, err error) {
@@ -154,14 +167,6 @@ func New(b i2c.Bus, os Oversampling) (d *Dev, err error) {
 	if id != chipID {
 		return nil, fmt.Errorf("bmp180: unexpected chip id 0x%x; is this a BMP180?", id)
 	}
-
-	// issue soft reset to initialize device
-	if err := d.dev.WriteUint8(regSoftReset, softResetValue); err != nil {
-		return nil, err
-	}
-
-	// wait for restart
-	time.Sleep(10 * time.Millisecond)
 
 	// read calibration data from internal EEPROM, 11 registers with two bytes each
 	if err := d.dev.ReadStruct(regCalibrationStart, &d.cal); err != nil {
