@@ -78,7 +78,7 @@ var pressureConvTime = [...]time.Duration{
 
 // Dev is a handle to a bmp180.
 type Dev struct {
-	dev *mmr.Dev8
+	dev mmr.Dev8
 	cal calibration
 	os  Oversampling
 }
@@ -153,7 +153,7 @@ func New(b i2c.Bus, os Oversampling) (d *Dev, err error) {
 	bus := &i2c.Dev{Bus: b, Addr: chipAddress}
 	d = &Dev{
 		os: os,
-		dev: &mmr.Dev8{
+		dev: mmr.Dev8{
 			Conn:  bus,
 			Order: binary.BigEndian,
 		},
