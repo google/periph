@@ -24,10 +24,13 @@ package ds18b20
 import (
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"periph.io/x/periph/conn/onewire"
 	"periph.io/x/periph/devices"
+	"periph.io/x/periph/host/sysfs"
 )
 
 // New returns an object that communicates over 1-wire to the DS18B20 sensor with the
@@ -175,3 +178,75 @@ func (d *Dev) readScratchpad() ([]byte, error) {
 }
 
 var _ devices.Device = &Dev{}
+
+type DeviceDirect struct {
+	Probe map[string]sysfs.OneWireDevice
+}
+
+// NewDirect sets up OneWire to scan for DS1820 family devices only
+func NewDirect(config sysfs.OneWireConfig) (DeviceDirect, error) {
+	dd := DeviceDirect{}
+	ow, err := sysfs.NewOneWire(&sysfs.OneWireConfig{})
+	if err != nil {
+		return dd, err
+	}
+	dev, err := ow.Scan("28-")
+	if err != nil {
+		return dd, err
+	}
+	dd.Probe = dev
+	return dd, nil
+}
+
+// Temperature returns temperature of requested DS18B20 probe in celsius
+func (dd *DeviceDirect) Temperature(id string) (float32, error) {
+	var temp float32
+	temp, err := dd.parseTemp(id)
+	if err != nil {
+		return temp, errors.New("ds18b20: error reading temperature")
+	}
+	return temp, nil
+}
+
+// Temperature returns temperature of requested DS18B20 probe in fahrenheit
+func (dd *DeviceDirect) TemperatureFahrenheit(id string) (float32, error) {
+	var temp float32
+	temp, err := dd.parseTemp(id)
+	if err != nil {
+		return temp, err
+	}
+	// Convert
+	temp = (temp * 9 / 5) + 32
+	return temp, nil
+}
+
+func (dd *DeviceDirect) parseTemp(id string) (float32, error) {
+	var temp float32
+	_, ok := dd.Probe[id]
+	if !ok {
+		return temp, errors.New("ds18b20: device id not found")
+	}
+
+	// We now have contents of w1_slave for the device, need to parse
+	reader, err := dd.Probe[id].Read()
+	if err != nil {
+		return temp, err
+	}
+
+	// Should be two lines
+	_, _ = reader.ReadString('\n')
+	tempLine, err := reader.ReadString('\n')
+	if err != nil {
+		return temp, errors.New("ds18b20: there was a problem reading temperature")
+	}
+	tempLine = strings.TrimRight(tempLine, "\n")
+	// split at "t="
+	text := strings.Split(tempLine, "t=")
+	data, err := strconv.ParseInt(text[1], 10, 32)
+	if err != nil {
+		return temp, errors.New("ds18b20: there was a problem parsing temperature")
+	}
+	temp = float32(data)
+	temp = temp / 1000.0
+	return temp, nil
+}
