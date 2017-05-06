@@ -198,6 +198,18 @@ func NewDirect(config sysfs.OneWireConfig) (DeviceDirect, error) {
 	return dd, nil
 }
 
+// List returns slice string IDs of connected DS18B20 devices
+func (dd *DeviceDirect) List() ([]string, error) {
+	var list []string
+	for k, _ := range dd.Probe {
+		list = append(list, k)
+	}
+	if len(list) == 0 {
+		return list, errors.New("ds18b20: could not get device list")
+	}
+	return list, nil
+}
+
 // Temperature returns temperature of requested DS18B20 probe in celsius
 func (dd *DeviceDirect) Temperature(id string) (float32, error) {
 	var temp float32
@@ -208,7 +220,7 @@ func (dd *DeviceDirect) Temperature(id string) (float32, error) {
 	return temp, nil
 }
 
-// Temperature returns temperature of requested DS18B20 probe in fahrenheit
+// TemperatureFahrenheit returns temperature of requested DS18B20 probe in fahrenheit
 func (dd *DeviceDirect) TemperatureFahrenheit(id string) (float32, error) {
 	var temp float32
 	temp, err := dd.parseTemp(id)
