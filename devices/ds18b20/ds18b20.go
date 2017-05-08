@@ -180,22 +180,22 @@ func (d *Dev) readScratchpad() ([]byte, error) {
 var _ devices.Device = &Dev{}
 
 type DeviceDirect struct {
-	Probe map[string]sysfs.OneWireDevice
+	Probe map[string]*sysfs.OneWireDevice
 }
 
 // NewDirect sets up OneWire to scan for DS1820 family devices only
-func NewDirect(config sysfs.OneWireConfig) (DeviceDirect, error) {
+func NewDirect(config sysfs.OneWireConfig) (*DeviceDirect, error) {
 	dd := DeviceDirect{}
 	ow, err := sysfs.NewOneWire(&sysfs.OneWireConfig{})
 	if err != nil {
-		return dd, err
+		return &dd, err
 	}
 	dev, err := ow.Scan("28-")
 	if err != nil {
-		return dd, err
+		return &dd, err
 	}
 	dd.Probe = dev
-	return dd, nil
+	return &dd, nil
 }
 
 // List returns slice string IDs of connected DS18B20 devices

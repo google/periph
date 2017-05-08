@@ -1,4 +1,4 @@
-// Copyright 2016 The Periph Authors. All rights reserved.
+// Copyright 2017 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -16,16 +16,42 @@ import (
 	"sync"
 )
 
+// OneWireConfig used to initialise with custom config.
+// With an empty struct the defaults will be used
+type OneWireConfig struct {
+	Path         string
+	ModProbeCmd  string
+	ThermMod     string
+	GPIOMod      string
+	MasterPrefix string
+}
+
+// OneWire is an open OneWire bus
+type oneWire struct {
+	Path         string
+	ModProbeCmd  string
+	ThermMod     string
+	GPIOMod      string
+	MasterPrefix string
+}
+
+// OneWireDevice represents a single OneWire device
+type OneWireDevice struct {
+	ID  string
+	mtx *sync.Mutex
+	f   *os.File
+}
+
 // NewOneWire provides access to OneWire bus on linux devices
-func NewOneWire(config *OneWireConfig) (*OneWire, error) {
+func NewOneWire(config *OneWireConfig) (*oneWire, error) {
 	if isLinux {
 		return newOneWire(config)
 	}
 	return nil, errors.New("sysfs-onewire: not implemented on non-linux OSes")
 }
 
-func newOneWire(config *OneWireConfig) (*OneWire, error) {
-	ow := OneWire{
+func newOneWire(config *OneWireConfig) (*oneWire, error) {
+	ow := oneWire{
 		Path:         "/sys/bus/w1/devices/",
 		ModProbeCmd:  "/sbin/modprobe",
 		ThermMod:     "w1-therm",
@@ -58,51 +84,25 @@ func newOneWire(config *OneWireConfig) (*OneWire, error) {
 	return &ow, nil
 }
 
-// OneWireConfig used to initialise with custom config.
-// With an empty struct the defaults will be used
-type OneWireConfig struct {
-	Path         string
-	ModProbeCmd  string
-	ThermMod     string
-	GPIOMod      string
-	MasterPrefix string
-}
-
-// OneWire is an open OneWire bus
-type OneWire struct {
-	Path         string
-	ModProbeCmd  string
-	ThermMod     string
-	GPIOMod      string
-	MasterPrefix string
-}
-
-// OneWireDevice represents a single OneWire device
-type OneWireDevice struct {
-	ID  string
-	Mtx *sync.Mutex
-	F   *os.File
-}
-
 // Read returns the contents of a OneWire device file as a Reader
 // Assumption is that specific device abstractions will do what they
 // need to with the data
-func (owd OneWireDevice) Read() (bufio.Reader, error) {
-	var reading bufio.Reader
-	owd.Mtx.Lock()
-	defer owd.Mtx.Unlock()
-	if owd.F == nil {
+func (owd *OneWireDevice) Read() (*bufio.Reader, error) {
+	var reading *bufio.Reader
+	owd.mtx.Lock()
+	defer owd.mtx.Unlock()
+	if owd.f == nil {
 		return reading, errors.New("sysfs-onewire: device file handle closed")
 	}
-	if _, err := owd.F.Seek(0, 0); err != nil {
+	if _, err := owd.f.Seek(0, 0); err != nil {
 		return reading, fmt.Errorf("sysfs-onewire: %v", err)
 	}
-	reading = *bufio.NewReader(owd.F)
+	reading = bufio.NewReader(owd.f)
 	return reading, nil
 }
 
 // Checks system requirements are satisfied
-func (ow *OneWire) check() error {
+func (ow *oneWire) check() error {
 	// Check modules available
 	mod := exec.Command(ow.ModProbeCmd, ow.GPIOMod)
 	if err := mod.Run(); err != nil {
@@ -132,9 +132,9 @@ func (ow *OneWire) check() error {
 }
 
 // Scan returns map of discovered OneWire devices, filtered by prefix if required
-func (ow *OneWire) Scan(prefix string) (map[string]OneWireDevice, error) {
-	var devices map[string]OneWireDevice
-	devices = make(map[string]OneWireDevice)
+func (ow *oneWire) Scan(prefix string) (map[string]*OneWireDevice, error) {
+	var devices map[string]*OneWireDevice
+	devices = make(map[string]*OneWireDevice)
 
 	files, err := ioutil.ReadDir(ow.Path)
 	if err != nil {
@@ -148,10 +148,10 @@ func (ow *OneWire) Scan(prefix string) (map[string]OneWireDevice, error) {
 					if err != nil {
 						return nil, fmt.Errorf("sysfs-onewire: %v", err)
 					}
-					device := OneWireDevice{
+					device := &OneWireDevice{
 						ID:  files[i].Name(),
-						Mtx: &sync.Mutex{},
-						F:   f,
+						mtx: &sync.Mutex{},
+						f:   f,
 					}
 					devices[files[i].Name()] = device
 				}
@@ -165,10 +165,10 @@ func (ow *OneWire) Scan(prefix string) (map[string]OneWireDevice, error) {
 					if err != nil {
 						return nil, fmt.Errorf("sysfs-onewire: %v", err)
 					}
-					device := OneWireDevice{
+					device := &OneWireDevice{
 						ID:  files[i].Name(),
-						Mtx: &sync.Mutex{},
-						F:   f,
+						mtx: &sync.Mutex{},
+						f:   f,
 					}
 					devices[files[i].Name()] = device
 				}
