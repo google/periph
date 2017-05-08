@@ -28,11 +28,11 @@ type OneWireConfig struct {
 
 // OneWire is an open OneWire bus
 type oneWire struct {
-	Path         string
-	ModProbeCmd  string
-	ThermMod     string
-	GPIOMod      string
-	MasterPrefix string
+	path         string
+	modProbeCmd  string
+	thermMod     string
+	gpioMod      string
+	masterPrefix string
 }
 
 // OneWireDevice represents a single OneWire device
@@ -51,28 +51,28 @@ func NewOneWire(config *OneWireConfig) (*oneWire, error) {
 
 func newOneWire(config *OneWireConfig) (*oneWire, error) {
 	ow := oneWire{
-		Path:         "/sys/bus/w1/devices/",
-		ModProbeCmd:  "/sbin/modprobe",
-		ThermMod:     "w1-therm",
-		GPIOMod:      "w1-gpio",
-		MasterPrefix: "w1_bus_master",
+		path:         "/sys/bus/w1/devices/",
+		modProbeCmd:  "/sbin/modprobe",
+		thermMod:     "w1-therm",
+		gpioMod:      "w1-gpio",
+		masterPrefix: "w1_bus_master",
 	}
 
 	// Parse any custom config
 	if config.Path != "" {
-		ow.Path = config.Path
+		ow.path = config.Path
 	}
 	if config.ModProbeCmd != "" {
-		ow.ModProbeCmd = config.ModProbeCmd
+		ow.modProbeCmd = config.ModProbeCmd
 	}
 	if config.ThermMod != "" {
-		ow.ThermMod = config.ThermMod
+		ow.thermMod = config.ThermMod
 	}
 	if config.GPIOMod != "" {
-		ow.GPIOMod = config.GPIOMod
+		ow.gpioMod = config.GPIOMod
 	}
 	if config.MasterPrefix != "" {
-		ow.MasterPrefix = config.MasterPrefix
+		ow.masterPrefix = config.MasterPrefix
 	}
 
 	// Check system requirements satisfied
@@ -103,23 +103,23 @@ func (owd *OneWireDevice) Read() (*bufio.Reader, error) {
 // Checks system requirements are satisfied
 func (ow *oneWire) check() error {
 	// Check modules available
-	mod := exec.Command(ow.ModProbeCmd, ow.GPIOMod)
+	mod := exec.Command(ow.modProbeCmd, ow.gpioMod)
 	if err := mod.Run(); err != nil {
-		return fmt.Errorf("sysfs-onewire: %v module not found", ow.GPIOMod)
+		return fmt.Errorf("sysfs-onewire: %v module not found", ow.gpioMod)
 	}
-	mod = exec.Command(ow.ModProbeCmd, ow.ThermMod)
+	mod = exec.Command(ow.modProbeCmd, ow.thermMod)
 	if err := mod.Run(); err != nil {
-		return fmt.Errorf("sysfs-onewire: %v module not found", ow.ThermMod)
+		return fmt.Errorf("sysfs-onewire: %v module not found", ow.thermMod)
 	}
 
 	// Check for OneWire bus
-	bus, err := ioutil.ReadDir(ow.Path)
+	bus, err := ioutil.ReadDir(ow.path)
 	if err != nil {
-		return fmt.Errorf("sysfs-onewire: %v path not found", ow.Path)
+		return fmt.Errorf("sysfs-onewire: %v path not found", ow.path)
 	}
 	master := false
 	for i := range bus {
-		if strings.HasPrefix(bus[i].Name(), ow.MasterPrefix) {
+		if strings.HasPrefix(bus[i].Name(), ow.masterPrefix) {
 			master = true
 			break
 		}
@@ -135,7 +135,7 @@ func (ow *oneWire) Scan(prefix string) (map[string]*OneWireDevice, error) {
 	var devices map[string]*OneWireDevice
 	devices = make(map[string]*OneWireDevice)
 
-	files, err := ioutil.ReadDir(ow.Path)
+	files, err := ioutil.ReadDir(ow.path)
 	if err != nil {
 		return devices, fmt.Errorf("sysfs-onewire: %v", err)
 	}
@@ -143,7 +143,7 @@ func (ow *oneWire) Scan(prefix string) (map[string]*OneWireDevice, error) {
 		for i := range files {
 			if strings.HasPrefix(files[i].Name(), prefix) {
 				if (files[i].Mode() & os.ModeSymlink) == os.ModeSymlink {
-					f, err := os.Open(path.Join(path.Join(ow.Path, files[i].Name()), "w1_slave"))
+					f, err := os.Open(path.Join(path.Join(ow.path, files[i].Name()), "w1_slave"))
 					if err != nil {
 						return nil, fmt.Errorf("sysfs-onewire: %v", err)
 					}
@@ -159,7 +159,7 @@ func (ow *oneWire) Scan(prefix string) (map[string]*OneWireDevice, error) {
 		for i := range files {
 			if strings.Index(files[i].Name(), "-") == 2 {
 				if (files[i].Mode() & os.ModeSymlink) == os.ModeSymlink {
-					f, err := os.Open(path.Join(path.Join(ow.Path, files[i].Name()), "w1_slave"))
+					f, err := os.Open(path.Join(path.Join(ow.path, files[i].Name()), "w1_slave"))
 					if err != nil {
 						return nil, fmt.Errorf("sysfs-onewire: %v", err)
 					}
