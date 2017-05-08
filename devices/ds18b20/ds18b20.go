@@ -211,53 +211,40 @@ func (dd *DeviceDirect) List() ([]string, error) {
 }
 
 // Temperature returns temperature of requested DS18B20 probe in celsius
-func (dd *DeviceDirect) Temperature(id string) (float32, error) {
-	var temp float32
+func (dd *DeviceDirect) Temperature(id string) (devices.Celsius, error) {
 	temp, err := dd.parseTemp(id)
 	if err != nil {
-		return temp, errors.New("ds18b20: error reading temperature")
+		return 0, errors.New("ds18b20: error reading temperature")
 	}
 	return temp, nil
 }
 
-// TemperatureFahrenheit returns temperature of requested DS18B20 probe in fahrenheit
-func (dd *DeviceDirect) TemperatureFahrenheit(id string) (float32, error) {
-	var temp float32
-	temp, err := dd.parseTemp(id)
-	if err != nil {
-		return temp, err
-	}
-	// Convert
-	temp = (temp * 9 / 5) + 32
-	return temp, nil
-}
-
-func (dd *DeviceDirect) parseTemp(id string) (float32, error) {
-	var temp float32
+func (dd *DeviceDirect) parseTemp(id string) (devices.Celsius, error) {
 	_, ok := dd.Probe[id]
 	if !ok {
-		return temp, errors.New("ds18b20: device id not found")
+		return 0, errors.New("ds18b20: device id not found")
 	}
 
 	// We now have contents of w1_slave for the device, need to parse
 	reader, err := dd.Probe[id].Read()
 	if err != nil {
-		return temp, err
+		return 0, err
 	}
 
 	// Should be two lines
 	_, _ = reader.ReadString('\n')
 	tempLine, err := reader.ReadString('\n')
 	if err != nil {
-		return temp, errors.New("ds18b20: there was a problem reading temperature")
+		return 0, errors.New("ds18b20: there was a problem reading temperature")
 	}
 	tempLine = strings.TrimRight(tempLine, "\n")
 	// split at "t="
 	text := strings.Split(tempLine, "t=")
 	data, err := strconv.ParseInt(text[1], 10, 32)
 	if err != nil {
-		return temp, errors.New("ds18b20: there was a problem parsing temperature")
+		return 0, errors.New("ds18b20: there was a problem parsing temperature")
 	}
-	temp = float32(data) / 1000
+
+	temp := devices.Celsius(data)
 	return temp, nil
 }
