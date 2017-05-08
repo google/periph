@@ -258,7 +258,6 @@ func (dd *DeviceDirect) parseTemp(id string) (float32, error) {
 	if err != nil {
 		return temp, errors.New("ds18b20: there was a problem parsing temperature")
 	}
-	temp = float32(data)
-	temp = temp / 1000.0
+	temp = float32(data) / 1000
 	return temp, nil
 }
