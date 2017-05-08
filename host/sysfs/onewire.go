@@ -37,7 +37,7 @@ type oneWire struct {
 
 // OneWireDevice represents a single OneWire device
 type OneWireDevice struct {
-	mtx *sync.Mutex
+	mtx sync.Mutex
 	f   *os.File
 }
 
@@ -148,7 +148,7 @@ func (ow *oneWire) Scan(prefix string) (map[string]*OneWireDevice, error) {
 						return nil, fmt.Errorf("sysfs-onewire: %v", err)
 					}
 					device := &OneWireDevice{
-						mtx: &sync.Mutex{},
+						mtx: sync.Mutex{},
 						f:   f,
 					}
 					devices[files[i].Name()] = device
@@ -164,7 +164,7 @@ func (ow *oneWire) Scan(prefix string) (map[string]*OneWireDevice, error) {
 						return nil, fmt.Errorf("sysfs-onewire: %v", err)
 					}
 					device := &OneWireDevice{
-						mtx: &sync.Mutex{},
+						mtx: sync.Mutex{},
 						f:   f,
 					}
 					devices[files[i].Name()] = device
