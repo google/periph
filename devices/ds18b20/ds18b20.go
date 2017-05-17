@@ -184,18 +184,25 @@ type W1ThermDevice struct {
 	Probe map[string]*sysfs.OneWireDevice
 }
 
-// NewW1Therm sets up OneWire to scan for DSB1820 family devices only
+// NewW1Therm loads kernel drivers and scans for DSB1820 family devices only
 func NewW1Therm() (*W1ThermDevice, error) {
 	dd := W1ThermDevice{}
 	ow, err := sysfs.NewOneWire()
 	if err != nil {
 		return &dd, err
 	}
+	// Load kernel drivers
+	err = ow.LoadDrivers()
+	if err != nil {
+		return &dd, err
+	}
+	// Scan DS18B20 devices
 	dev, err := ow.Scan("28-")
 	if err != nil {
 		return &dd, err
 	}
 	dd.Probe = dev
+
 	return &dd, nil
 }
 

@@ -23,6 +23,7 @@ type oneWire struct {
 	thermMod     string
 	gpioMod      string
 	masterPrefix string
+	initialized  bool
 }
 
 // OneWireDevice represents a single OneWire device
@@ -34,47 +35,32 @@ type OneWireDevice struct {
 // NewOneWire provides access to OneWire bus on linux devices
 func NewOneWire() (*oneWire, error) {
 	if isLinux {
-		return newOneWire()
+		return newOneWire(), nil
 	}
 	return nil, errors.New("sysfs-onewire: not implemented on non-linux OSes")
 }
 
-func newOneWire() (*oneWire, error) {
+func newOneWire() *oneWire {
 	ow := oneWire{
 		path:         "/sys/bus/w1/devices/",
 		modProbeCmd:  "/sbin/modprobe",
 		thermMod:     "w1-therm",
 		gpioMod:      "w1-gpio",
 		masterPrefix: "w1_bus_master",
+		initialized:  false,
 	}
-
-	// Check system requirements satisfied
-	err := ow.check()
-	if err != nil {
-		return &ow, err
-	}
-	return &ow, nil
+	/*
+		// Check system requirements satisfied
+		err := ow.check()
+		if err != nil {
+			return &ow, err
+		}
+	*/
+	return &ow
 }
 
-// Read returns the contents of a OneWire device file as a Reader
-// Assumption is that specific device abstractions will do what they
-// need to with the data
-func (owd *OneWireDevice) Read() (*bufio.Reader, error) {
-	var reading *bufio.Reader
-	owd.mtx.Lock()
-	defer owd.mtx.Unlock()
-	if owd.f == nil {
-		return reading, errors.New("sysfs-onewire: device file handle closed")
-	}
-	if _, err := owd.f.Seek(0, 0); err != nil {
-		return reading, fmt.Errorf("sysfs-onewire: %v", err)
-	}
-	reading = bufio.NewReader(owd.f)
-	return reading, nil
-}
-
-// Checks system requirements are satisfied
-func (ow *oneWire) check() error {
+// LoadDrivers makes calls to kernel drivers w1_therm and w1_gpio
+func (ow *oneWire) LoadDrivers() error {
 	// Check modules available
 	mod := exec.Command(ow.modProbeCmd, ow.gpioMod)
 	if err := mod.Run(); err != nil {
@@ -100,13 +86,38 @@ func (ow *oneWire) check() error {
 	if !master {
 		return errors.New("sysfs-onewire: onewire master bus not found")
 	}
+
+	// Set state, forcing this method to be called explicitly
+	ow.initialized = true
 	return nil
+}
+
+// Read returns the contents of a OneWire device file as a Reader
+// Assumption is that specific device abstractions will do what they
+// need to with the data
+func (owd *OneWireDevice) Read() (*bufio.Reader, error) {
+	var reading *bufio.Reader
+	owd.mtx.Lock()
+	defer owd.mtx.Unlock()
+	if owd.f == nil {
+		return reading, errors.New("sysfs-onewire: device file handle closed")
+	}
+	if _, err := owd.f.Seek(0, 0); err != nil {
+		return reading, fmt.Errorf("sysfs-onewire: %v", err)
+	}
+	reading = bufio.NewReader(owd.f)
+	return reading, nil
 }
 
 // Scan returns map of discovered OneWire devices, filtered by prefix if required
 func (ow *oneWire) Scan(prefix string) (map[string]*OneWireDevice, error) {
 	var devices map[string]*OneWireDevice
 	devices = make(map[string]*OneWireDevice)
+
+	// Check initialized
+	if !ow.initialized {
+		return devices, fmt.Errorf("sysfs-onewire: Onewire kernel drivers must be loaded with LoadDrivers()")
+	}
 
 	files, err := ioutil.ReadDir(ow.path)
 	if err != nil {
