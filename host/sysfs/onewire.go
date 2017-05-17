@@ -16,16 +16,6 @@ import (
 	"sync"
 )
 
-// OneWireConfig used to initialise with custom config.
-// With an empty struct the defaults will be used
-type OneWireConfig struct {
-	Path         string
-	ModProbeCmd  string
-	ThermMod     string
-	GPIOMod      string
-	MasterPrefix string
-}
-
 // OneWire is an open OneWire bus
 type oneWire struct {
 	path         string
@@ -42,37 +32,20 @@ type OneWireDevice struct {
 }
 
 // NewOneWire provides access to OneWire bus on linux devices
-func NewOneWire(config *OneWireConfig) (*oneWire, error) {
+func NewOneWire() (*oneWire, error) {
 	if isLinux {
 		return newOneWire(config)
 	}
 	return nil, errors.New("sysfs-onewire: not implemented on non-linux OSes")
 }
 
-func newOneWire(config *OneWireConfig) (*oneWire, error) {
+func newOneWire() (*oneWire, error) {
 	ow := oneWire{
 		path:         "/sys/bus/w1/devices/",
 		modProbeCmd:  "/sbin/modprobe",
 		thermMod:     "w1-therm",
 		gpioMod:      "w1-gpio",
 		masterPrefix: "w1_bus_master",
-	}
-
-	// Parse any custom config
-	if config.Path != "" {
-		ow.path = config.Path
-	}
-	if config.ModProbeCmd != "" {
-		ow.modProbeCmd = config.ModProbeCmd
-	}
-	if config.ThermMod != "" {
-		ow.thermMod = config.ThermMod
-	}
-	if config.GPIOMod != "" {
-		ow.gpioMod = config.GPIOMod
-	}
-	if config.MasterPrefix != "" {
-		ow.masterPrefix = config.MasterPrefix
 	}
 
 	// Check system requirements satisfied
