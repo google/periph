@@ -179,14 +179,15 @@ func (d *Dev) readScratchpad() ([]byte, error) {
 
 var _ devices.Device = &Dev{}
 
-type DeviceDirect struct {
+// W1ThermDevice provides access to DS18B20 devices found on OneWire bus
+type W1ThermDevice struct {
 	Probe map[string]*sysfs.OneWireDevice
 }
 
-// NewDirect sets up OneWire to scan for DS1820 family devices only
-func NewDirect(config sysfs.OneWireConfig) (*DeviceDirect, error) {
-	dd := DeviceDirect{}
-	ow, err := sysfs.NewOneWire(&sysfs.OneWireConfig{})
+// NewW1Therm sets up OneWire to scan for DSB1820 family devices only
+func NewW1Therm() (*W1ThermDevice, error) {
+	dd := W1ThermDevice{}
+	ow, err := sysfs.NewOneWire()
 	if err != nil {
 		return &dd, err
 	}
@@ -199,7 +200,7 @@ func NewDirect(config sysfs.OneWireConfig) (*DeviceDirect, error) {
 }
 
 // List returns slice string IDs of connected DS18B20 devices
-func (dd *DeviceDirect) List() ([]string, error) {
+func (dd *W1ThermDevice) List() ([]string, error) {
 	var list []string
 	for k := range dd.Probe {
 		list = append(list, k)
@@ -211,7 +212,7 @@ func (dd *DeviceDirect) List() ([]string, error) {
 }
 
 // Temperature returns temperature of requested DS18B20 probe in celsius
-func (dd *DeviceDirect) Temperature(id string) (devices.Celsius, error) {
+func (dd *W1ThermDevice) Temperature(id string) (devices.Celsius, error) {
 	_, ok := dd.Probe[id]
 	if !ok {
 		return 0, errors.New("ds18b20: device id not found")
