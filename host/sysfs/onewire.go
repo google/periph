@@ -34,7 +34,7 @@ type OneWireDevice struct {
 // NewOneWire provides access to OneWire bus on linux devices
 func NewOneWire() (*oneWire, error) {
 	if isLinux {
-		return newOneWire(config)
+		return newOneWire()
 	}
 	return nil, errors.New("sysfs-onewire: not implemented on non-linux OSes")
 }
