@@ -35,12 +35,12 @@ type OneWireDevice struct {
 // NewOneWire provides access to OneWire bus on linux devices
 func NewOneWire() (*oneWire, error) {
 	if isLinux {
-		return newOneWire(), nil
+		return newOneWire()
 	}
 	return nil, errors.New("sysfs-onewire: not implemented on non-linux OSes")
 }
 
-func newOneWire() *oneWire {
+func newOneWire() (*oneWire, error) {
 	ow := oneWire{
 		path:         "/sys/bus/w1/devices/",
 		modProbeCmd:  "/sbin/modprobe",
@@ -49,14 +49,8 @@ func newOneWire() *oneWire {
 		masterPrefix: "w1_bus_master",
 		initialized:  false,
 	}
-	/*
-		// Check system requirements satisfied
-		err := ow.check()
-		if err != nil {
-			return &ow, err
-		}
-	*/
-	return &ow
+
+	return &ow, nil
 }
 
 // LoadDrivers makes calls to kernel drivers w1_therm and w1_gpio
