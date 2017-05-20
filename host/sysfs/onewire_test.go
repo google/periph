@@ -79,7 +79,7 @@ func TestRead(t *testing.T) {
 			}
 
 			// Correct number of devices
-			if len(dev) == devices {
+			if len(dev) != devices {
 				t.Fatalf("Error. %v devices expected but %v found", devices, len(dev))
 			}
 		}
