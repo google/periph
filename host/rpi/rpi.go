@@ -128,17 +128,37 @@ func (d *driver) Init() (bool, error) {
 	//
 	// This code is not futureproof, it will error out on a Raspberry Pi 4
 	// whenever it comes out.
+	// Revision codes from: http://elinux.org/RPi_HardwareHistory
 	rev := distro.CPUInfo()["Revision"]
 	if i, err := strconv.ParseInt(rev, 16, 32); err == nil {
 		// Ignore the overclock bit.
 		i &= 0xFFFFFF
-		if i < 0x20 {
+		switch i {
+		case 0x0002, 0x0003, // B v1.0
+			0x0004, 0x0005, 0x0006, // B v2.0
+			0x0007, 0x0008, 0x0009, // A v2.0
+			0x000d, 0x000e, 0x000f, // B v2.0
+			0x0010,  // B+ v1.0
+			0x0011,  // Compute Module 1
+			0x0012,  // A+ v1.1
+			0x0013,  // B+ v1.2
+			0x0014,  // Compute Module 1
+			0x0015,  // A+ v1.1
+			0x90021, // A+ v1.1
+			0x90032: // B+ v1.2
 			Version = 1
-		} else if i == 0xa01041 || i == 0xa21041 {
+		case 0xa01040, // 2 Model B v1.0
+			0xa01041, 0xa21041, // 2 Model B v1.1
+			0xa22042, // 2 Model B v1.2
+			0x900092, // Zero v1.2
+			0x900093, // Zero v1.3
+			0x920093, // Zero v1.3
+			0x9000c1: // Zero W v1.1
 			Version = 2
-		} else if i == 0xa02082 || i == 0xa22082 {
+		case 0xa02082, 0xa22082, 0xa32082, // 3 Model B v1.2
+			0xa020a0: // Compute Module 3 v1.0
 			Version = 3
-		} else {
+		default:
 			return true, fmt.Errorf("rpi: unknown hardware version: 0x%x", i)
 		}
 	} else {
