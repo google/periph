@@ -575,8 +575,8 @@ type configFail struct {
 	spitest.Record
 }
 
-func (c *configFail) DevParams(maxHz int64, mode spi.Mode, bits int) error {
-	return errors.New("injected error")
+func (c *configFail) DevParams(maxHz int64, mode spi.Mode, bits int) (spi.Conn, error) {
+	return nil, errors.New("injected error")
 }
 
 type failPin struct {

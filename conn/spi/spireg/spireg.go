@@ -18,7 +18,7 @@ import (
 // Opener opens an handle to a port.
 //
 // It is provided by the actual bus driver.
-type Opener func() (spi.ConnCloser, error)
+type Opener func() (spi.PortCloser, error)
 
 // Ref references a SPI port.
 //
@@ -58,7 +58,7 @@ type Ref struct {
 //
 // When the SPI port is provided by an off board plug and play bus like USB via
 // a FT232H USB device, there can be no associated number.
-func Open(name string) (spi.ConnCloser, error) {
+func Open(name string) (spi.PortCloser, error) {
 	var r *Ref
 	var err error
 	func() {

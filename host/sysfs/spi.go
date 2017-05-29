@@ -99,23 +99,23 @@ func (s *SPI) LimitSpeed(maxHz int64) error {
 	return nil
 }
 
-// DevParams implements spi.Conn.
+// DevParams implements spi.Port.
 //
 // It must be called before any I/O.
-func (s *SPI) DevParams(maxHz int64, mode spi.Mode, bits int) error {
+func (s *SPI) DevParams(maxHz int64, mode spi.Mode, bits int) (spi.Conn, error) {
 	if maxHz < 0 || maxHz >= 1<<32 {
-		return fmt.Errorf("sysfs-spi: invalid speed %d", maxHz)
+		return nil, fmt.Errorf("sysfs-spi: invalid speed %d", maxHz)
 	}
 	if mode&^(spi.Mode3|spi.HalfDuplex|spi.NoCS|spi.LSBFirst) != 0 {
-		return fmt.Errorf("sysfs-spi: invalid mode %v", mode)
+		return nil, fmt.Errorf("sysfs-spi: invalid mode %v", mode)
 	}
 	if bits < 1 || bits >= 256 {
-		return fmt.Errorf("sysfs-spi: invalid bits %d", bits)
+		return nil, fmt.Errorf("sysfs-spi: invalid bits %d", bits)
 	}
 	s.Lock()
 	defer s.Unlock()
 	if s.initialized {
-		return errors.New("sysfs-spi: DevParams() can only be called exactly once")
+		return nil, errors.New("sysfs-spi: DevParams() can only be called exactly once")
 	}
 	s.initialized = true
 	s.maxHzDev = uint32(maxHz)
@@ -137,119 +137,12 @@ func (s *SPI) DevParams(maxHz int64, mode spi.Mode, bits int) error {
 	// Only the first 8 bits are used. This only works because the system is
 	// running in little endian.
 	if err := s.setFlag(spiIOCMode, uint64(m)); err != nil {
-		return fmt.Errorf("sysfs-spi: setting mode %v failed: %v", mode, err)
+		return nil, fmt.Errorf("sysfs-spi: setting mode %v failed: %v", mode, err)
 	}
-	return nil
+	return &spiConn{s}, nil
 }
 
-// Read implements io.Reader.
-func (s *SPI) Read(b []byte) (int, error) {
-	if len(b) == 0 {
-		return 0, errors.New("sysfs-spi: Read() with empty buffer")
-	}
-	return s.txInternal(nil, b)
-}
-
-// Write implements io.Writer.
-func (s *SPI) Write(b []byte) (int, error) {
-	if len(b) == 0 {
-		return 0, errors.New("sysfs-spi: Write() with empty buffer")
-	}
-	return s.txInternal(b, nil)
-}
-
-// Tx sends and receives data simultaneously.
-//
-// It is OK if both w and r point to the same underlying byte slice.
-//
-// spidev enforces the maximum limit of transaction size. It can be as low as
-// 4096 bytes. See the platform documentation to learn how to increase the
-// limit.
-func (s *SPI) Tx(w, r []byte) error {
-	if len(w) == 0 {
-		if len(r) == 0 {
-			return errors.New("sysfs-spi: Tx with empty buffers")
-		}
-	} else {
-		if len(r) != 0 && len(w) != len(r) {
-			return errors.New("sysfs-spi: Tx with zero or non-equal length w&r slices")
-		}
-	}
-	_, err := s.txInternal(w, r)
-	return err
-}
-
-// TxPackets sends and receives packets as specified by the user.
-//
-// spidev enforces the maximum limit of transaction size. It can be as low as
-// 4096 bytes. See the platform documentation to learn how to increase the
-// limit.
-func (s *SPI) TxPackets(p []spi.Packet) error {
-	total := 0
-	for i := range p {
-		lW := len(p[i].W)
-		lR := len(p[i].R)
-		if lW != lR && lW != 0 && lR != 0 {
-			return fmt.Errorf("sysfs-spi: when both w and r are used, they must be the same size; got %d and %d bytes", lW, lR)
-		}
-		l := 0
-		if lW != 0 {
-			l = lW
-		}
-		if lR != 0 {
-			l = lR
-		}
-		if total += l; spiBufSize != 0 && total > spiBufSize {
-			return fmt.Errorf("sysfs-spi: maximum TxPackets length is %d, got at least %d bytes", spiBufSize, total)
-		}
-	}
-	if total == 0 {
-		return errors.New("sysfs-spi: empty packets")
-	}
-
-	s.Lock()
-	defer s.Unlock()
-	if !s.initialized {
-		return errors.New("sysfs-spi: DevParams wasn't called")
-	}
-	// Convert the packets.
-	speed := s.maxHzBus
-	if s.maxHzDev != 0 && (s.maxHzBus == 0 || s.maxHzDev < s.maxHzBus) {
-		speed = s.maxHzDev
-	}
-	m := make([]spiIOCTransfer, len(p))
-	for i := range m {
-		m[i].speedHz = speed
-		if m[i].bitsPerWord = p[i].BitsPerWord; m[i].bitsPerWord == 0 {
-			m[i].bitsPerWord = s.bitsPerWord
-		}
-		if !s.noCS && !p[i].KeepCS {
-			m[i].csChange = 1
-		}
-		lW := len(p[i].W)
-		lR := len(p[i].R)
-		if lW != 0 && lR != 0 && s.halfDuplex {
-			return errors.New("sysfs-spi: can only specify one of w or r when in half duplex")
-		}
-		if lW != 0 {
-			m[i].tx = uint64(uintptr(unsafe.Pointer(&p[i].W[0])))
-			m[i].length = uint32(lW)
-		}
-		if lR != 0 {
-			m[i].rx = uint64(uintptr(unsafe.Pointer(&p[i].R[0])))
-			m[i].length = uint32(lR)
-		}
-	}
-	if err := s.f.Ioctl(spiIOCTx(len(m)), uintptr(unsafe.Pointer(&m[0]))); err != nil {
-		return fmt.Errorf("sysfs-spi: TxPackets(%d) packets failed: %v", len(m), err)
-	}
-	return nil
-}
-
-// Duplex implements spi.Conn.
-//
-// Until DevParams() is called, Duplex() defaults to conn.Full.
-func (s *SPI) Duplex() conn.Duplex {
+func (s *SPI) duplex() conn.Duplex {
 	s.Lock()
 	defer s.Unlock()
 	if s.halfDuplex {
@@ -329,6 +222,68 @@ func (s *SPI) txInternal(w, r []byte) (int, error) {
 	return l, nil
 }
 
+func (s *SPI) txPackets(p []spi.Packet) error {
+	total := 0
+	for i := range p {
+		lW := len(p[i].W)
+		lR := len(p[i].R)
+		if lW != lR && lW != 0 && lR != 0 {
+			return fmt.Errorf("sysfs-spi: when both w and r are used, they must be the same size; got %d and %d bytes", lW, lR)
+		}
+		l := 0
+		if lW != 0 {
+			l = lW
+		}
+		if lR != 0 {
+			l = lR
+		}
+		if total += l; spiBufSize != 0 && total > spiBufSize {
+			return fmt.Errorf("sysfs-spi: maximum TxPackets length is %d, got at least %d bytes", spiBufSize, total)
+		}
+	}
+	if total == 0 {
+		return errors.New("sysfs-spi: empty packets")
+	}
+
+	s.Lock()
+	defer s.Unlock()
+	if !s.initialized {
+		return errors.New("sysfs-spi: DevParams wasn't called")
+	}
+	// Convert the packets.
+	speed := s.maxHzBus
+	if s.maxHzDev != 0 && (s.maxHzBus == 0 || s.maxHzDev < s.maxHzBus) {
+		speed = s.maxHzDev
+	}
+	m := make([]spiIOCTransfer, len(p))
+	for i := range m {
+		m[i].speedHz = speed
+		if m[i].bitsPerWord = p[i].BitsPerWord; m[i].bitsPerWord == 0 {
+			m[i].bitsPerWord = s.bitsPerWord
+		}
+		if !s.noCS && !p[i].KeepCS {
+			m[i].csChange = 1
+		}
+		lW := len(p[i].W)
+		lR := len(p[i].R)
+		if lW != 0 && lR != 0 && s.halfDuplex {
+			return errors.New("sysfs-spi: can only specify one of w or r when in half duplex")
+		}
+		if lW != 0 {
+			m[i].tx = uint64(uintptr(unsafe.Pointer(&p[i].W[0])))
+			m[i].length = uint32(lW)
+		}
+		if lR != 0 {
+			m[i].rx = uint64(uintptr(unsafe.Pointer(&p[i].R[0])))
+			m[i].length = uint32(lR)
+		}
+	}
+	if err := s.f.Ioctl(spiIOCTx(len(m)), uintptr(unsafe.Pointer(&m[0]))); err != nil {
+		return fmt.Errorf("sysfs-spi: TxPackets(%d) packets failed: %v", len(m), err)
+	}
+	return nil
+}
+
 func (s *SPI) setFlag(op uint, arg uint64) error {
 	if err := s.f.Ioctl(op|0x40000000, uintptr(unsafe.Pointer(&arg))); err != nil {
 		return err
@@ -377,6 +332,87 @@ func (s *SPI) initPins() {
 		s.cs = cs
 		s.Unlock()
 	}
+}
+
+//
+
+// spiConn implements spi.Conn.
+type spiConn struct {
+	s *SPI
+}
+
+func (s *spiConn) String() string {
+	return s.s.String()
+}
+
+// Read implements io.Reader.
+func (s *spiConn) Read(b []byte) (int, error) {
+	if len(b) == 0 {
+		return 0, errors.New("sysfs-spi: Read() with empty buffer")
+	}
+	return s.s.txInternal(nil, b)
+}
+
+// Write implements io.Writer.
+func (s *spiConn) Write(b []byte) (int, error) {
+	if len(b) == 0 {
+		return 0, errors.New("sysfs-spi: Write() with empty buffer")
+	}
+	return s.s.txInternal(b, nil)
+}
+
+// Tx sends and receives data simultaneously.
+//
+// It is OK if both w and r point to the same underlying byte slice.
+//
+// spidev enforces the maximum limit of transaction size. It can be as low as
+// 4096 bytes. See the platform documentation to learn how to increase the
+// limit.
+func (s *spiConn) Tx(w, r []byte) error {
+	if len(w) == 0 {
+		if len(r) == 0 {
+			return errors.New("sysfs-spi: Tx with empty buffers")
+		}
+	} else {
+		if len(r) != 0 && len(w) != len(r) {
+			return errors.New("sysfs-spi: Tx with zero or non-equal length w&r slices")
+		}
+	}
+	_, err := s.s.txInternal(w, r)
+	return err
+}
+
+// TxPackets sends and receives packets as specified by the user.
+//
+// spidev enforces the maximum limit of transaction size. It can be as low as
+// 4096 bytes. See the platform documentation to learn how to increase the
+// limit.
+func (s *spiConn) TxPackets(p []spi.Packet) error {
+	return s.s.txPackets(p)
+}
+
+func (s *spiConn) Duplex() conn.Duplex {
+	return s.s.duplex()
+}
+
+func (s *spiConn) MaxTxSize() int {
+	return spiBufSize
+}
+
+func (s *spiConn) CLK() gpio.PinOut {
+	return s.s.CLK()
+}
+
+func (s *spiConn) MISO() gpio.PinIn {
+	return s.s.MISO()
+}
+
+func (s *spiConn) MOSI() gpio.PinOut {
+	return s.s.MOSI()
+}
+
+func (s *spiConn) CS() gpio.PinOut {
+	return s.s.CS()
 }
 
 //
@@ -521,7 +557,7 @@ type openerSPI struct {
 	cs  int
 }
 
-func (o *openerSPI) Open() (spi.ConnCloser, error) {
+func (o *openerSPI) Open() (spi.PortCloser, error) {
 	return NewSPI(o.bus, o.cs)
 }
 
@@ -532,6 +568,9 @@ func init() {
 }
 
 var _ conn.Limits = &SPI{}
-var _ io.Reader = &SPI{}
-var _ io.Writer = &SPI{}
-var _ spi.Conn = &SPI{}
+var _ conn.Limits = &spiConn{}
+var _ io.Reader = &spiConn{}
+var _ io.Writer = &spiConn{}
+var _ spi.Conn = &spiConn{}
+var _ spi.Pins = &SPI{}
+var _ spi.Pins = &spiConn{}

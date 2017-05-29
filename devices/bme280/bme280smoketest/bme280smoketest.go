@@ -67,7 +67,7 @@ func (s *SmokeTest) Run(args []string) (err error) {
 	}
 
 	i2cRecorder := i2ctest.Record{Bus: i2cBus}
-	spiRecorder := spitest.Record{Conn: spiBus}
+	spiRecorder := spitest.Record{Port: spiBus}
 	err = run(&i2cRecorder, &spiRecorder)
 	if len(i2cRecorder.Ops) != 0 {
 		fmt.Printf("I²C recorder Addr: 0x%02X\n", i2cRecorder.Ops[0].Addr)
@@ -119,7 +119,7 @@ func (s *SmokeTest) Run(args []string) (err error) {
 	return err
 }
 
-func run(i2cBus i2c.Bus, spiBus spi.ConnCloser) (err error) {
+func run(i2cBus i2c.Bus, spiBus spi.PortCloser) (err error) {
 	opts := &bme280.Opts{
 		Temperature: bme280.O16x,
 		Pressure:    bme280.O16x,

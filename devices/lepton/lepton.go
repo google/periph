@@ -94,17 +94,17 @@ type Dev struct {
 // Maximum I²C speed is 1Mhz.
 //
 // MOSI is not used and should be grounded.
-func New(s spi.Conn, i i2c.Bus, cs gpio.PinOut) (*Dev, error) {
+func New(p spi.Port, i i2c.Bus, cs gpio.PinOut) (*Dev, error) {
 	// Sadly the Lepton will unconditionally send 27fps, even if the effective
 	// rate is 9fps.
 	mode := spi.Mode3
 	if cs == nil {
 		// Query the CS pin before disabling it.
-		p, ok := s.(spi.Pins)
+		pins, ok := p.(spi.Pins)
 		if !ok {
 			return nil, errors.New("lepton: require manual access to the CS pin")
 		}
-		cs = p.CS()
+		cs = pins.CS()
 		if cs == gpio.INVALID {
 			return nil, errors.New("lepton: require manual access to a valid CS pin")
 		}
@@ -112,7 +112,8 @@ func New(s spi.Conn, i i2c.Bus, cs gpio.PinOut) (*Dev, error) {
 	}
 	// TODO(maruel): Switch to 16 bits per word, so that big endian 16 bits word
 	// decoding is done by the SPI driver.
-	if err := s.DevParams(20000000, mode, 8); err != nil {
+	s, err := p.DevParams(20000000, mode, 8)
+	if err != nil {
 		return nil, err
 	}
 	c, err := cci.New(i)

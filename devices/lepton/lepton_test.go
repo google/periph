@@ -370,7 +370,7 @@ type spiStream struct {
 	err    error
 }
 
-func (s *spiStream) DevParams(maxHz int64, mode spi.Mode, bits int) error {
+func (s *spiStream) DevParams(maxHz int64, mode spi.Mode, bits int) (spi.Conn, error) {
 	if maxHz != 20000000 {
 		s.t.Fatal(maxHz)
 	}
@@ -380,7 +380,7 @@ func (s *spiStream) DevParams(maxHz int64, mode spi.Mode, bits int) error {
 	if bits != 8 {
 		s.t.Fatal(bits)
 	}
-	return s.err
+	return s, s.err
 }
 
 func (s *spiStream) Tx(w, r []byte) error {

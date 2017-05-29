@@ -127,15 +127,16 @@ func mainImpl() error {
 		return err
 	}
 	defer bus.Close()
-	if err = bus.DevParams(int64(*hz), m, *bits); err != nil {
+	c, err := bus.DevParams(int64(*hz), m, *bits)
+	if err != nil {
 		return err
 	}
 	if *verbose {
-		if p, ok := bus.(spi.Pins); ok {
+		if p, ok := c.(spi.Pins); ok {
 			log.Printf("Using pins CLK: %s  MOSI: %s  MISO:  %s", p.CLK(), p.MOSI(), p.MISO())
 		}
 	}
-	return runTx(bus, flag.Args())
+	return runTx(c, flag.Args())
 }
 
 func main() {

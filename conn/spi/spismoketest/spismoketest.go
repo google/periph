@@ -57,7 +57,8 @@ func (s *SmokeTest) Run(args []string) error {
 	defer spiDev.Close()
 
 	// Set SPI parameters.
-	if err := spiDev.DevParams(4000000, spi.Mode0, 8); err != nil {
+	c, err := spiDev.DevParams(4000000, spi.Mode0, 8)
+	if err != nil {
 		return fmt.Errorf("error setting bus parameters: %v", err)
 	}
 
@@ -77,7 +78,7 @@ func (s *SmokeTest) Run(args []string) error {
 	log.Printf("%s: random number seed %d", s, *seed)
 
 	// Run the tests.
-	return s.eeprom(spiDev, wpPin)
+	return s.eeprom(c, wpPin)
 }
 
 // eeprom tests a 5080 8Kbit serial EEPROM attached to the SPI bus.

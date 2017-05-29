@@ -545,6 +545,6 @@ type spiFail struct {
 	spitest.Playback
 }
 
-func (s *spiFail) DevParams(maxHz int64, mode spi.Mode, bits int) error {
-	return errors.New("failing")
+func (s *spiFail) DevParams(maxHz int64, mode spi.Mode, bits int) (spi.Conn, error) {
+	return nil, errors.New("failing")
 }
