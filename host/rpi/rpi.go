@@ -45,32 +45,32 @@ func Present() bool {
 // P1 is also known as J8 on A+, B+, 2 and later.
 var (
 	// Rapsberry Pi A and B, 26 pin header:
-	P1_1  = pin.V3_3       // max 30mA
-	P1_2  = pin.V5         // (filtered)
-	P1_3  = bcm283x.GPIO2  // High, I2C1_SDA
-	P1_4  = pin.V5         //
-	P1_5  = bcm283x.GPIO3  // High, I2C1_SCL
-	P1_6  = pin.GROUND     //
-	P1_7  = bcm283x.GPIO4  // High, GPCLK0
-	P1_8  = bcm283x.GPIO14 // Low,  UART0_TXD, UART1_TXD
-	P1_9  = pin.GROUND     //
-	P1_10 = bcm283x.GPIO15 // Low,  UART0_RXD, UART1_RXD
-	P1_11 = bcm283x.GPIO17 // Low,  UART0_RTS, SPI1_CE1, UART1_RTS
-	P1_12 = bcm283x.GPIO18 // Low,  PCM_CLK, SPI1_CE0, PWM0_OUT
-	P1_13 = bcm283x.GPIO27 // Low,
-	P1_14 = pin.GROUND     //
-	P1_15 = bcm283x.GPIO22 // Low,
-	P1_16 = bcm283x.GPIO23 // Low,
-	P1_17 = pin.V3_3       //
-	P1_18 = bcm283x.GPIO24 // Low,
-	P1_19 = bcm283x.GPIO10 // Low, SPI0_MOSI
-	P1_20 = pin.GROUND     //
-	P1_21 = bcm283x.GPIO9  // Low, SPI0_MISO
-	P1_22 = bcm283x.GPIO25 // Low,
-	P1_23 = bcm283x.GPIO11 // Low, SPI0_CLK
-	P1_24 = bcm283x.GPIO8  // High, SPI0_CE0
-	P1_25 = pin.GROUND     //
-	P1_26 = bcm283x.GPIO7  // High, SPI0_CE1
+	P1_1  pin.Pin    = pin.V3_3       // max 30mA
+	P1_2  pin.Pin    = pin.V5         // (filtered)
+	P1_3  gpio.PinIO = bcm283x.GPIO2  // High, I2C1_SDA
+	P1_4  pin.Pin    = pin.V5         //
+	P1_5  gpio.PinIO = bcm283x.GPIO3  // High, I2C1_SCL
+	P1_6  pin.Pin    = pin.GROUND     //
+	P1_7  gpio.PinIO = bcm283x.GPIO4  // High, GPCLK0
+	P1_8  gpio.PinIO = bcm283x.GPIO14 // Low,  UART0_TXD, UART1_TXD
+	P1_9  pin.Pin    = pin.GROUND     //
+	P1_10 gpio.PinIO = bcm283x.GPIO15 // Low,  UART0_RXD, UART1_RXD
+	P1_11 gpio.PinIO = bcm283x.GPIO17 // Low,  UART0_RTS, SPI1_CE1, UART1_RTS
+	P1_12 gpio.PinIO = bcm283x.GPIO18 // Low,  PCM_CLK, SPI1_CE0, PWM0_OUT
+	P1_13 gpio.PinIO = bcm283x.GPIO27 // Low,
+	P1_14 pin.Pin    = pin.GROUND     //
+	P1_15 gpio.PinIO = bcm283x.GPIO22 // Low,
+	P1_16 gpio.PinIO = bcm283x.GPIO23 // Low,
+	P1_17 pin.Pin    = pin.V3_3       //
+	P1_18 gpio.PinIO = bcm283x.GPIO24 // Low,
+	P1_19 gpio.PinIO = bcm283x.GPIO10 // Low, SPI0_MOSI
+	P1_20 pin.Pin    = pin.GROUND     //
+	P1_21 gpio.PinIO = bcm283x.GPIO9  // Low, SPI0_MISO
+	P1_22 gpio.PinIO = bcm283x.GPIO25 // Low,
+	P1_23 gpio.PinIO = bcm283x.GPIO11 // Low, SPI0_CLK
+	P1_24 gpio.PinIO = bcm283x.GPIO8  // High, SPI0_CE0
+	P1_25 pin.Pin    = pin.GROUND     //
+	P1_26 gpio.PinIO = bcm283x.GPIO7  // High, SPI0_CE1
 
 	// Raspberry Pi A+, B+, 2 and later, 40 pin header (also named J8):
 	P1_27 gpio.PinIO = bcm283x.GPIO0  // High, I2C0_SDA used to probe for HAT EEPROM, see https://github.com/raspberrypi/hats
@@ -125,9 +125,10 @@ func (d *driver) Init() (bool, error) {
 	// This code is not futureproof, it will error out on a Raspberry Pi 4
 	// whenever it comes out.
 	// Revision codes from: http://elinux.org/RPi_HardwareHistory
-	var has26PinP1Header bool
-	var hasP5Header bool
-	var hasNewAudio bool
+	has26PinP1Header := false
+	has40PinP1Header := false
+	hasP5Header := false
+	hasNewAudio := false
 	rev := distro.CPUInfo()["Revision"]
 	if i, err := strconv.ParseInt(rev, 16, 32); err == nil {
 		// Ignore the overclock bit.
@@ -154,15 +155,11 @@ func (d *driver) Init() (bool, error) {
 			0x900093, // Zero v1.3
 			0x920093, // Zero v1.3
 			0x9000c1: // Zero W v1.1
-		// Default 40 pin mapping.
+			has40PinP1Header = true
 		case 0x0011, // Compute Module 1
 			0x0014,   // Compute Module 1
 			0xa020a0: // Compute Module 3 v1.0
-		// NOTE: Using the default 40 pin mapping for now.
-		// Should probably have another solution, but will at least map
-		// correctly to the header on dev boards.
-		// NOTE: The compute module has PWM1_OUT on both GPIO 41 and 45, no need
-		// to change the audio mapping.
+			// NOTE: Could define the use of a SODIMM header here.
 		case 0xa02082, 0xa22082, 0xa32082: // 3 Model B v1.2
 			hasNewAudio = true
 		default:
@@ -191,6 +188,27 @@ func (d *driver) Init() (bool, error) {
 			return true, err
 		}
 
+		// Only the A and B v2 PCB has the P5 header.
+		if hasP5Header {
+			if err := pinreg.Register("P5", [][]pin.Pin{
+				{P5_1, P5_2},
+				{P5_3, P5_4},
+				{P5_5, P5_6},
+				{P5_7, P5_8},
+			}); err != nil {
+				return true, err
+			}
+		} else {
+			P5_1 = pin.INVALID
+			P5_2 = pin.INVALID
+			P5_3 = gpio.INVALID
+			P5_4 = gpio.INVALID
+			P5_5 = gpio.INVALID
+			P5_6 = gpio.INVALID
+			P5_7 = pin.INVALID
+			P5_8 = pin.INVALID
+		}
+
 		// TODO(maruel): Models from 2012 and earlier have P1_3=GPIO0, P1_5=GPIO1 and P1_13=GPIO21.
 		// P2 and P3 are not useful.
 		// P6 has a RUN pin for reset but it's not available after Pi version 1.
@@ -208,7 +226,7 @@ func (d *driver) Init() (bool, error) {
 		P1_38 = gpio.INVALID
 		P1_39 = pin.INVALID
 		P1_40 = gpio.INVALID
-	} else {
+	} else if has40PinP1Header {
 		if err := pinreg.Register("P1", [][]pin.Pin{
 			{P1_1, P1_2},
 			{P1_3, P1_4},
@@ -233,26 +251,47 @@ func (d *driver) Init() (bool, error) {
 		}); err != nil {
 			return true, err
 		}
-	}
-
-	if hasP5Header {
-		if err := pinreg.Register("P5", [][]pin.Pin{
-			{P5_1, P5_2},
-			{P5_3, P5_4},
-			{P5_5, P5_6},
-			{P5_7, P5_8},
-		}); err != nil {
-			return true, err
-		}
 	} else {
-		P5_1 = pin.INVALID
-		P5_2 = pin.INVALID
-		P5_3 = gpio.INVALID
-		P5_4 = gpio.INVALID
-		P5_5 = gpio.INVALID
-		P5_6 = gpio.INVALID
-		P5_7 = pin.INVALID
-		P5_8 = pin.INVALID
+		P1_1 = pin.INVALID
+		P1_2 = pin.INVALID
+		P1_3 = gpio.INVALID
+		P1_4 = pin.INVALID
+		P1_5 = gpio.INVALID
+		P1_6 = pin.INVALID
+		P1_7 = gpio.INVALID
+		P1_8 = gpio.INVALID
+		P1_9 = pin.INVALID
+		P1_10 = gpio.INVALID
+		P1_11 = gpio.INVALID
+		P1_12 = gpio.INVALID
+		P1_13 = gpio.INVALID
+		P1_14 = pin.INVALID
+		P1_15 = gpio.INVALID
+		P1_16 = gpio.INVALID
+		P1_17 = pin.INVALID
+		P1_18 = gpio.INVALID
+		P1_19 = gpio.INVALID
+		P1_20 = pin.INVALID
+		P1_21 = gpio.INVALID
+		P1_22 = gpio.INVALID
+		P1_23 = gpio.INVALID
+		P1_24 = gpio.INVALID
+		P1_25 = pin.INVALID
+		P1_26 = gpio.INVALID
+		P1_27 = gpio.INVALID
+		P1_28 = gpio.INVALID
+		P1_29 = gpio.INVALID
+		P1_30 = pin.INVALID
+		P1_31 = gpio.INVALID
+		P1_32 = gpio.INVALID
+		P1_33 = gpio.INVALID
+		P1_34 = pin.INVALID
+		P1_35 = gpio.INVALID
+		P1_36 = gpio.INVALID
+		P1_37 = gpio.INVALID
+		P1_38 = gpio.INVALID
+		P1_39 = pin.INVALID
+		P1_40 = gpio.INVALID
 	}
 
 	if !hasNewAudio {
