@@ -155,13 +155,15 @@ func (d *driver) Init() (bool, error) {
 			0x90032,            // B+ v1.2
 			0xa01040,           // 2 Model B v1.0
 			0xa01041, 0xa21041, // 2 Model B v1.1
-			0xa22042, // 2 Model B v1.2
-			0x900092, // Zero v1.2
+			0xa22042: // 2 Model B v1.2
+			has40PinP1Header = true
+			hasAudio = true
+			hasHDMI = true
+		case 0x900092, // Zero v1.2
 			0x900093, // Zero v1.3
 			0x920093, // Zero v1.3
 			0x9000c1: // Zero W v1.1
 			has40PinP1Header = true
-			hasAudio = true
 			hasHDMI = true
 		case 0x0011, // Compute Module 1
 			0x0014,   // Compute Module 1
