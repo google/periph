@@ -32,11 +32,6 @@ func Present() bool {
 	return false
 }
 
-// Version is the Raspberry Pi version 1, 2 or 3.
-//
-// Is set to 0 when detection (currently primitive) failed.
-var Version int
-
 // Pin as connect on the 40 pins extension header.
 //
 // Schematics are useful to know what is connected to what:
@@ -45,8 +40,11 @@ var Version int
 // The actual pin mapping depends on the board revision! The default values are
 // set as the 40 pins header on Raspberry Pi 2 and Raspberry Pi 3.
 //
-// P1 is also known as J8.
+// Some header info here: http://elinux.org/RPi_Low-level_peripherals
+//
+// P1 is also known as J8 on A+, B+, 2 and later.
 var (
+	// Rapsberry Pi A and B, 26 pin header:
 	P1_1  = pin.V3_3       // max 30mA
 	P1_2  = pin.V5         // (filtered)
 	P1_3  = bcm283x.GPIO2  // High, I2C1_SDA
@@ -74,7 +72,7 @@ var (
 	P1_25 = pin.GROUND     //
 	P1_26 = bcm283x.GPIO7  // High, SPI0_CE1
 
-	// Raspberry Pi 2 and later:
+	// Raspberry Pi A+, B+, 2 and later, 40 pin header (also named J8):
 	P1_27 gpio.PinIO = bcm283x.GPIO0  // High, I2C0_SDA used to probe for HAT EEPROM, see https://github.com/raspberrypi/hats
 	P1_28 gpio.PinIO = bcm283x.GPIO1  // High, I2C0_SCL
 	P1_29 gpio.PinIO = bcm283x.GPIO5  // High, GPCLK1
@@ -90,7 +88,7 @@ var (
 	P1_39 pin.Pin    = pin.GROUND     //
 	P1_40 gpio.PinIO = bcm283x.GPIO21 // Low,  PCM_DOUT, SPI1_CLK, GPCLK1
 
-	// Raspberry Pi 1 header:
+	// P5 header on Raspberry Pi A and B, PCB v2:
 	P5_1 pin.Pin    = pin.V5
 	P5_2 pin.Pin    = pin.V3_3
 	P5_3 gpio.PinIO = bcm283x.GPIO28 // Float, I2C0_SDA, PCM_CLK
@@ -100,12 +98,10 @@ var (
 	P5_7 pin.Pin    = pin.GROUND
 	P5_8 pin.Pin    = pin.GROUND
 
-	AUDIO_LEFT          = bcm283x.GPIO41 // Low,   PWM1_OUT, SPI2_MOSI, UART1_RXD
 	AUDIO_RIGHT         = bcm283x.GPIO40 // Low,   PWM0_OUT, SPI2_MISO, UART1_TXD
+	AUDIO_LEFT          = bcm283x.GPIO41 // Low,   PWM1_OUT, SPI2_MOSI, UART1_RXD
 	HDMI_HOTPLUG_DETECT = bcm283x.GPIO46 // High,
 )
-
-//
 
 // driver implements periph.Driver.
 type driver struct {
@@ -124,40 +120,51 @@ func (d *driver) Init() (bool, error) {
 		return false, errors.New("Raspberry Pi board not detected")
 	}
 
-	// Initialize Version.
+	// Setup headers based on board revision.
 	//
 	// This code is not futureproof, it will error out on a Raspberry Pi 4
 	// whenever it comes out.
 	// Revision codes from: http://elinux.org/RPi_HardwareHistory
+	var has26PinP1Header bool
+	var hasP5Header bool
+	var hasNewAudio bool
 	rev := distro.CPUInfo()["Revision"]
 	if i, err := strconv.ParseInt(rev, 16, 32); err == nil {
 		// Ignore the overclock bit.
 		i &= 0xFFFFFF
 		switch i {
-		case 0x0002, 0x0003, // B v1.0
-			0x0004, 0x0005, 0x0006, // B v2.0
+		case 0x0002, 0x0003: // B v1.0
+			has26PinP1Header = true
+		case 0x0004, 0x0005, 0x0006, // B v2.0
 			0x0007, 0x0008, 0x0009, // A v2.0
-			0x000d, 0x000e, 0x000f, // B v2.0
-			0x0010,  // B+ v1.0
-			0x0011,  // Compute Module 1
-			0x0012,  // A+ v1.1
-			0x0013,  // B+ v1.2
-			0x0014,  // Compute Module 1
-			0x0015,  // A+ v1.1
-			0x90021, // A+ v1.1
-			0x90032: // B+ v1.2
-			Version = 1
-		case 0xa01040, // 2 Model B v1.0
+			0x000d, 0x000e, 0x000f: // B v2.0
+			has26PinP1Header = true
+			// Only the v2 PCB has the P5 header.
+			hasP5Header = true
+		case 0x0010, // B+ v1.0
+			0x0012,             // A+ v1.1
+			0x0013,             // B+ v1.2
+			0x0015,             // A+ v1.1
+			0x90021,            // A+ v1.1
+			0x90032,            // B+ v1.2
+			0xa01040,           // 2 Model B v1.0
 			0xa01041, 0xa21041, // 2 Model B v1.1
 			0xa22042, // 2 Model B v1.2
 			0x900092, // Zero v1.2
 			0x900093, // Zero v1.3
 			0x920093, // Zero v1.3
 			0x9000c1: // Zero W v1.1
-			Version = 2
-		case 0xa02082, 0xa22082, 0xa32082, // 3 Model B v1.2
+		// Default 40 pin mapping.
+		case 0x0011, // Compute Module 1
+			0x0014,   // Compute Module 1
 			0xa020a0: // Compute Module 3 v1.0
-			Version = 3
+		// NOTE: Using the default 40 pin mapping for now.
+		// Should probably have another solution, but will at least map
+		// correctly to the header on dev boards.
+		// NOTE: The compute module has PWM1_OUT on both GPIO 41 and 45, no need
+		// to change the audio mapping.
+		case 0xa02082, 0xa22082, 0xa32082: // 3 Model B v1.2
+			hasNewAudio = true
 		default:
 			return true, fmt.Errorf("rpi: unknown hardware version: 0x%x", i)
 		}
@@ -165,7 +172,7 @@ func (d *driver) Init() (bool, error) {
 		return true, fmt.Errorf("rpi: failed to read cpu_info: %v", err)
 	}
 
-	if Version == 1 {
+	if has26PinP1Header {
 		if err := pinreg.Register("P1", [][]pin.Pin{
 			{P1_1, P1_2},
 			{P1_3, P1_4},
@@ -180,14 +187,6 @@ func (d *driver) Init() (bool, error) {
 			{P1_21, P1_22},
 			{P1_23, P1_24},
 			{P1_25, P1_26},
-		}); err != nil {
-			return true, err
-		}
-		if err := pinreg.Register("P5", [][]pin.Pin{
-			{P5_1, P5_2},
-			{P5_3, P5_4},
-			{P5_5, P5_6},
-			{P5_7, P5_8},
 		}); err != nil {
 			return true, err
 		}
@@ -234,6 +233,18 @@ func (d *driver) Init() (bool, error) {
 		}); err != nil {
 			return true, err
 		}
+	}
+
+	if hasP5Header {
+		if err := pinreg.Register("P5", [][]pin.Pin{
+			{P5_1, P5_2},
+			{P5_3, P5_4},
+			{P5_5, P5_6},
+			{P5_7, P5_8},
+		}); err != nil {
+			return true, err
+		}
+	} else {
 		P5_1 = pin.INVALID
 		P5_2 = pin.INVALID
 		P5_3 = gpio.INVALID
@@ -243,8 +254,9 @@ func (d *driver) Init() (bool, error) {
 		P5_7 = pin.INVALID
 		P5_8 = pin.INVALID
 	}
-	if Version < 3 {
-		AUDIO_LEFT = bcm283x.GPIO45
+
+	if !hasNewAudio {
+		AUDIO_LEFT = bcm283x.GPIO45 // PWM1_OUT
 	}
 	if err := pinreg.Register("AUDIO", [][]pin.Pin{
 		{AUDIO_LEFT},
@@ -252,6 +264,7 @@ func (d *driver) Init() (bool, error) {
 	}); err != nil {
 		return true, err
 	}
+
 	if err := pinreg.Register("HDMI", [][]pin.Pin{{HDMI_HOTPLUG_DETECT}}); err != nil {
 		return true, err
 	}
