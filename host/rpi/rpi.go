@@ -128,7 +128,9 @@ func (d *driver) Init() (bool, error) {
 	has26PinP1Header := false
 	has40PinP1Header := false
 	hasP5Header := false
+	hasAudio := false
 	hasNewAudio := false
+	hasHDMI := false
 	rev := distro.CPUInfo()["Revision"]
 	if i, err := strconv.ParseInt(rev, 16, 32); err == nil {
 		// Ignore the overclock bit.
@@ -136,12 +138,15 @@ func (d *driver) Init() (bool, error) {
 		switch i {
 		case 0x0002, 0x0003: // B v1.0
 			has26PinP1Header = true
+			hasAudio = true
 		case 0x0004, 0x0005, 0x0006, // B v2.0
 			0x0007, 0x0008, 0x0009, // A v2.0
 			0x000d, 0x000e, 0x000f: // B v2.0
 			has26PinP1Header = true
 			// Only the v2 PCB has the P5 header.
 			hasP5Header = true
+			hasAudio = true
+			hasHDMI = true
 		case 0x0010, // B+ v1.0
 			0x0012,             // A+ v1.1
 			0x0013,             // B+ v1.2
@@ -156,12 +161,16 @@ func (d *driver) Init() (bool, error) {
 			0x920093, // Zero v1.3
 			0x9000c1: // Zero W v1.1
 			has40PinP1Header = true
+			hasAudio = true
+			hasHDMI = true
 		case 0x0011, // Compute Module 1
 			0x0014,   // Compute Module 1
 			0xa020a0: // Compute Module 3 v1.0
 			// NOTE: Could define the use of a SODIMM header here.
 		case 0xa02082, 0xa22082, 0xa32082: // 3 Model B v1.2
+			hasAudio = true
 			hasNewAudio = true
+			hasHDMI = true
 		default:
 			return true, fmt.Errorf("rpi: unknown hardware version: 0x%x", i)
 		}
@@ -294,18 +303,22 @@ func (d *driver) Init() (bool, error) {
 		P1_40 = gpio.INVALID
 	}
 
-	if !hasNewAudio {
-		AUDIO_LEFT = bcm283x.GPIO45 // PWM1_OUT
-	}
-	if err := pinreg.Register("AUDIO", [][]pin.Pin{
-		{AUDIO_LEFT},
-		{AUDIO_RIGHT},
-	}); err != nil {
-		return true, err
+	if hasAudio {
+		if !hasNewAudio {
+			AUDIO_LEFT = bcm283x.GPIO45 // PWM1_OUT
+		}
+		if err := pinreg.Register("AUDIO", [][]pin.Pin{
+			{AUDIO_LEFT},
+			{AUDIO_RIGHT},
+		}); err != nil {
+			return true, err
+		}
 	}
 
-	if err := pinreg.Register("HDMI", [][]pin.Pin{{HDMI_HOTPLUG_DETECT}}); err != nil {
-		return true, err
+	if hasHDMI {
+		if err := pinreg.Register("HDMI", [][]pin.Pin{{HDMI_HOTPLUG_DETECT}}); err != nil {
+			return true, err
+		}
 	}
 	return true, nil
 }
