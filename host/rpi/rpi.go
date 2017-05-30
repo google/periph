@@ -197,27 +197,6 @@ func (d *driver) Init() (bool, error) {
 			return true, err
 		}
 
-		// Only the A and B v2 PCB has the P5 header.
-		if hasP5Header {
-			if err := pinreg.Register("P5", [][]pin.Pin{
-				{P5_1, P5_2},
-				{P5_3, P5_4},
-				{P5_5, P5_6},
-				{P5_7, P5_8},
-			}); err != nil {
-				return true, err
-			}
-		} else {
-			P5_1 = pin.INVALID
-			P5_2 = pin.INVALID
-			P5_3 = gpio.INVALID
-			P5_4 = gpio.INVALID
-			P5_5 = gpio.INVALID
-			P5_6 = gpio.INVALID
-			P5_7 = pin.INVALID
-			P5_8 = pin.INVALID
-		}
-
 		// TODO(maruel): Models from 2012 and earlier have P1_3=GPIO0, P1_5=GPIO1 and P1_13=GPIO21.
 		// P2 and P3 are not useful.
 		// P6 has a RUN pin for reset but it's not available after Pi version 1.
@@ -301,6 +280,27 @@ func (d *driver) Init() (bool, error) {
 		P1_38 = gpio.INVALID
 		P1_39 = pin.INVALID
 		P1_40 = gpio.INVALID
+	}
+
+	// Only the A and B v2 PCB has the P5 header.
+	if hasP5Header {
+		if err := pinreg.Register("P5", [][]pin.Pin{
+			{P5_1, P5_2},
+			{P5_3, P5_4},
+			{P5_5, P5_6},
+			{P5_7, P5_8},
+		}); err != nil {
+			return true, err
+		}
+	} else {
+		P5_1 = pin.INVALID
+		P5_2 = pin.INVALID
+		P5_3 = gpio.INVALID
+		P5_4 = gpio.INVALID
+		P5_5 = gpio.INVALID
+		P5_6 = gpio.INVALID
+		P5_7 = pin.INVALID
+		P5_8 = pin.INVALID
 	}
 
 	if hasAudio {
