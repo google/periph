@@ -24,10 +24,13 @@ package ds18b20
 import (
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"periph.io/x/periph/conn/onewire"
 	"periph.io/x/periph/devices"
+	"periph.io/x/periph/host/sysfs"
 )
 
 // New returns an object that communicates over 1-wire to the DS18B20 sensor with the
@@ -175,3 +178,73 @@ func (d *Dev) readScratchpad() ([]byte, error) {
 }
 
 var _ devices.Device = &Dev{}
+
+// W1ThermDevice provides access to DS18B20 devices found on OneWire bus
+type W1ThermDevice struct {
+	Probe map[string]*sysfs.OneWireDevice
+}
+
+// NewW1Therm loads kernel drivers and scans for DSB1820 family devices only
+func NewW1Therm() (*W1ThermDevice, error) {
+	dd := W1ThermDevice{}
+	ow, err := sysfs.NewOneWire()
+	if err != nil {
+		return &dd, err
+	}
+	// Load kernel drivers
+	err = ow.LoadDrivers()
+	if err != nil {
+		return &dd, err
+	}
+	// Scan DS18B20 devices
+	dev, err := ow.Scan("28-")
+	if err != nil {
+		return &dd, err
+	}
+	dd.Probe = dev
+
+	return &dd, nil
+}
+
+// List returns slice string IDs of connected DS18B20 devices
+func (dd *W1ThermDevice) List() ([]string, error) {
+	var list []string
+	for k := range dd.Probe {
+		list = append(list, k)
+	}
+	if len(list) == 0 {
+		return list, errors.New("ds18b20: could not get device list")
+	}
+	return list, nil
+}
+
+// Temperature returns temperature of requested DS18B20 probe in celsius
+func (dd *W1ThermDevice) Temperature(id string) (devices.Celsius, error) {
+	_, ok := dd.Probe[id]
+	if !ok {
+		return 0, errors.New("ds18b20: device id not found")
+	}
+
+	// We now have contents of w1_slave for the device, need to parse
+	reader, err := dd.Probe[id].Read()
+	if err != nil {
+		return 0, err
+	}
+
+	// Should be two lines
+	_, _ = reader.ReadString('\n')
+	tempLine, err := reader.ReadString('\n')
+	if err != nil {
+		return 0, errors.New("ds18b20: there was a problem reading temperature")
+	}
+	tempLine = strings.TrimRight(tempLine, "\n")
+	// split at "t="
+	text := strings.Split(tempLine, "t=")
+	data, err := strconv.ParseInt(text[1], 10, 32)
+	if err != nil {
+		return 0, errors.New("ds18b20: there was a problem parsing temperature")
+	}
+
+	temp := devices.Celsius(data)
+	return temp, nil
+}
