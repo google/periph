@@ -265,7 +265,7 @@ func (p *Pin) open() error {
 	}
 	var err error
 	_, err = exportHandle.Write([]byte(strconv.Itoa(p.number)))
-	if p.err != nil && !isErrBusy(p.err) {
+	if err != nil && !isErrBusy(err) {
 		p.err = err
 		if os.IsPermission(p.err) {
 			return fmt.Errorf("need more access, try as root or setup udev rules: %v", p.err)
