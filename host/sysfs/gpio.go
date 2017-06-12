@@ -263,8 +263,10 @@ func (p *Pin) open() error {
 	if exportHandle == nil {
 		return errors.New("sysfs gpio is not initialized")
 	}
-	_, p.err = exportHandle.Write([]byte(strconv.Itoa(p.number)))
-	if p.err != nil && !isErrBusy(p.err) {
+	var err error
+	_, err = exportHandle.Write([]byte(strconv.Itoa(p.number)))
+	if err != nil && !isErrBusy(err) {
+		p.err = err
 		if os.IsPermission(p.err) {
 			return fmt.Errorf("need more access, try as root or setup udev rules: %v", p.err)
 		}
@@ -276,7 +278,6 @@ func (p *Pin) open() error {
 	// It's simpler to just loop a little as if /export is accessible, it doesn't
 	// make sense that gpioN/value doesn't become accessible eventually.
 	timeout := 5 * time.Second
-	var err error
 	for start := time.Now(); time.Since(start) < timeout; {
 		p.fValue, err = fileIOOpen(p.root+"value", os.O_RDWR)
 		// The virtual file creation is synchronous when writing to /export for
