@@ -3,10 +3,10 @@
 // that can be found in the LICENSE file.
 
 // Package spismoketest is leveraged by periph-smoketest to verify that an
-// EEPROM device can be accessed on an SPI bus.
+// EEPROM device can be accessed on a SPI port.
 //
-// This assumes the presence of the periph-tester board, which includes these two devices.
-// See https://github.com/tve/periph-tester
+// This assumes the presence of the periph-tester board, which includes these
+// two devices. See https://github.com/tve/periph-tester
 package spismoketest
 
 import (
@@ -44,22 +44,22 @@ func (s *SmokeTest) Description() string {
 // Run implements the SmokeTest interface.
 func (s *SmokeTest) Run(args []string) error {
 	f := flag.NewFlagSet("spi", flag.ExitOnError)
-	busName := f.String("spi", "", "SPI bus to use")
+	spiID := f.String("spi", "", "SPI port to use")
 	wp := f.String("wp", "", "gpio pin for EEPROM write-protect")
 	seed := f.Int64("seed", 0, "random number seed, default is to use the time")
 	f.Parse(args)
 
-	// Open the bus.
-	spiDev, err := spireg.Open(*busName)
+	// Open the port.
+	spiDev, err := spireg.Open(*spiID)
 	if err != nil {
-		return fmt.Errorf("error opening %s: %v", *busName, err)
+		return fmt.Errorf("error opening %s: %v", *spiID, err)
 	}
 	defer spiDev.Close()
 
 	// Set SPI parameters.
 	c, err := spiDev.DevParams(4000000, spi.Mode0, 8)
 	if err != nil {
-		return fmt.Errorf("error setting bus parameters: %v", err)
+		return fmt.Errorf("error setting SPI parameters: %v", err)
 	}
 
 	// Open the WC pin.
@@ -81,7 +81,7 @@ func (s *SmokeTest) Run(args []string) error {
 	return s.eeprom(c, wpPin)
 }
 
-// eeprom tests a 5080 8Kbit serial EEPROM attached to the SPI bus.
+// eeprom tests a 5080 8Kbit serial EEPROM attached to the SPI port.
 // Such a chip is included on the periph-tester board.
 //
 // The test performs some longish writes and reads and also tests a

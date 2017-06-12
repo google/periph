@@ -199,7 +199,7 @@ func TestReadImg_fail_Tx(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := d.ReadImg(); err == nil {
-		t.Fatal("spi bus Tx failed")
+		t.Fatal("spi port Tx failed")
 	}
 	if err := i.Close(); err != nil {
 		t.Fatal(err)
@@ -214,7 +214,7 @@ func TestReadImg_fail_OUt(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := d.ReadImg(); err == nil {
-		t.Fatal("spi bus Tx failed")
+		t.Fatal("spi port Tx failed")
 	}
 	if err := i.Close(); err != nil {
 		t.Fatal(err)

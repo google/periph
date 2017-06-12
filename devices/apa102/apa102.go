@@ -210,7 +210,7 @@ func ToRGB(p []color.NRGBA) []byte {
 	return b
 }
 
-// Dev represents a strip of APA-102 LEDs as a strip connected over a SPI bus.
+// Dev represents a strip of APA-102 LEDs as a strip connected over a SPI port.
 // It accepts a stream of raw RGB pixels and converts it to the full dynamic
 // range as supported by APA102 protocol (nearly 8000:1 contrast ratio).
 //
@@ -284,7 +284,7 @@ func (d *Dev) Halt() error {
 
 // New returns a strip that communicates over SPI to APA102 LEDs.
 //
-// The SPI bus speed should be high, at least in the Mhz range, as
+// The SPI port speed should be high, at least in the Mhz range, as
 // there's 32 bits sent per LED, creating a staggered effect. See
 // https://cpldcpu.wordpress.com/2014/11/30/understanding-the-apa102-superled/
 //

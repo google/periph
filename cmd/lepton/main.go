@@ -381,11 +381,11 @@ func grabFrame(dev *lepton.Dev, path string, meta bool) error {
 }
 
 func mainImpl() error {
-	i2cName := flag.String("i2c", "", "I²C bus to use")
-	spiName := flag.String("spi", "", "SPI bus to use")
-	csName := flag.String("cs", "", "SPI CS line to use instead of the default")
+	i2cID := flag.String("i2c", "", "I²C bus to use")
+	spiID := flag.String("spi", "", "SPI port to use")
+	csID := flag.String("cs", "", "SPI CS line to use instead of the default")
 	i2cHz := flag.Int("i2chz", 0, "I²C bus speed")
-	spiHz := flag.Int("spihz", 0, "SPI bus speed")
+	spiHz := flag.Int("spihz", 0, "SPI port speed")
 
 	meta := flag.Bool("meta", false, "print metadata")
 	output := flag.String("o", "", "PNG file to save")
@@ -411,26 +411,26 @@ func mainImpl() error {
 	if _, err := host.Init(); err != nil {
 		return err
 	}
-	spiBus, err := spireg.Open(*spiName)
+	spiPort, err := spireg.Open(*spiID)
 	if err != nil {
 		return err
 	}
-	defer spiBus.Close()
+	defer spiPort.Close()
 	if *spiHz != 0 {
-		if err := spiBus.LimitSpeed(int64(*spiHz)); err != nil {
+		if err := spiPort.LimitSpeed(int64(*spiHz)); err != nil {
 			return err
 		}
 	}
 	var cs gpio.PinOut
-	if len(*csName) != 0 {
-		if p := gpioreg.ByName(*csName); p != nil {
+	if len(*csID) != 0 {
+		if p := gpioreg.ByName(*csID); p != nil {
 			cs = p
 		} else {
-			return fmt.Errorf("%s is not a valid pin", *csName)
+			return fmt.Errorf("%s is not a valid pin", *csID)
 		}
 	}
 
-	i2cBus, err := i2creg.Open(*i2cName)
+	i2cBus, err := i2creg.Open(*i2cID)
 	if err != nil {
 		return err
 	}
@@ -440,7 +440,7 @@ func mainImpl() error {
 			return err
 		}
 	}
-	dev, err := lepton.New(spiBus, i2cBus, cs)
+	dev, err := lepton.New(spiPort, i2cBus, cs)
 	if err != nil {
 		return fmt.Errorf("%s\nIf testing without hardware, use -fake to simulate a camera", err)
 	}

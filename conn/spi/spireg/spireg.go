@@ -17,7 +17,7 @@ import (
 
 // Opener opens an handle to a port.
 //
-// It is provided by the actual bus driver.
+// It is provided by the actual port driver.
 type Opener func() (spi.PortCloser, error)
 
 // Ref references a SPI port.
@@ -34,6 +34,8 @@ type Ref struct {
 	//
 	// Buses provided by the CPU normally have a 0 based number. Buses provided
 	// via an addon (like over USB) generally are not numbered.
+	//
+	// The port is a bus number plus a CS line.
 	Number int
 	// Open is the factory to open an handle to this SPI port.
 	Open Opener

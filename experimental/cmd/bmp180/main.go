@@ -78,18 +78,18 @@ func mainImpl() error {
 		return err
 	}
 
-	bus, err := i2creg.Open(*i2cID)
+	i, err := i2creg.Open(*i2cID)
 	if err != nil {
 		return err
 	}
-	defer bus.Close()
+	defer i.Close()
 
-	if p, ok := bus.(i2c.Pins); ok {
+	if p, ok := i.(i2c.Pins); ok {
 		printPin("SCL", p.SCL())
 		printPin("SDA", p.SDA())
 	}
 
-	dev, err := bmp180.New(bus, os)
+	dev, err := bmp180.New(i, os)
 	if err != nil {
 		return err
 	}

@@ -42,7 +42,7 @@ running **as a user** (not root):
     - bcm283x  : bcm283x CPU not detected
     - rpi      : dependency not loaded: "bcm283x"
     - sysfs-led: no LED found
-    - sysfs-spi: no SPI bus found
+    - sysfs-spi: no SPI port found
     Drivers failed to load and the error:
     - allwinner   : need more access, try as root: open /dev/mem: permission denied
     - allwinner_pl: need more access, try as root: open /dev/mem: permission denied
@@ -63,7 +63,7 @@ root**:
     - bcm283x  : bcm283x CPU not detected
     - rpi      : dependency not loaded: "bcm283x"
     - sysfs-led: no LED found
-    - sysfs-spi: no SPI bus found
+    - sysfs-spi: no SPI port found
     Drivers failed to load and the error:
       <none>
 

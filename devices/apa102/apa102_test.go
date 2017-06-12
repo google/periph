@@ -552,18 +552,18 @@ func TestDrawRGBA(t *testing.T) {
 }
 
 func TestHalt(t *testing.T) {
-	bus := spitest.Playback{
+	s := spitest.Playback{
 		Playback: conntest.Playback{
 			Ops: []conntest.IO{
 				{W: []byte{0x0, 0x0, 0x0, 0x0, 0xe1, 0x0, 0x0, 0x0, 0xe1, 0x0, 0x0, 0x0, 0xe1, 0x0, 0x0, 0x0, 0xe1, 0x0, 0x0, 0x0, 0xff}},
 			},
 		},
 	}
-	d, _ := New(&bus, 4, 250, 5000)
+	d, _ := New(&s, 4, 250, 5000)
 	if err := d.Halt(); err != nil {
 		t.Fatal(err)
 	}
-	if err := bus.Close(); err != nil {
+	if err := s.Close(); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -580,14 +580,14 @@ func TestInit(t *testing.T) {
 //
 
 func Example() {
-	bus, err := spireg.Open("")
+	s, err := spireg.Open("")
 	if err != nil {
 		log.Fatalf("failed to open SPI: %v", err)
 	}
-	defer bus.Close()
+	defer s.Close()
 	// Opens a strip of 150 lights are 50% intensity with color temperature at
 	// 5000 Kelvin.
-	dev, err := New(bus, 150, 127, 5000)
+	dev, err := New(s, 150, 127, 5000)
 	if err != nil {
 		log.Fatalf("failed to open apa102: %v", err)
 	}

@@ -149,8 +149,8 @@ func NewI2C(i i2c.Bus, w, h int, rotated bool) (*Dev, error) {
 	return newDev(&i2c.Dev{Bus: i, Addr: 0x3C}, w, h, rotated, false, nil)
 }
 
-// newDev is the common initialization code that is independent of the bus
-// being used.
+// newDev is the common initialization code that is independent of the
+// communication protocol (I²C or SPI) being used.
 func newDev(c conn.Conn, w, h int, rotated, usingSPI bool, dc gpio.PinOut) (*Dev, error) {
 	if w < 8 || w > 128 || w&7 != 0 {
 		return nil, fmt.Errorf("ssd1306: invalid width %d", w)

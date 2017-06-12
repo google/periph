@@ -88,7 +88,7 @@ type Packet struct {
 	// KeepCS:false, there is a few µs with CS asserted after the clock stops,
 	// then 11.2µs with CS not asserted, then CS is asserted for (roughly) one
 	// clock cycle before the clock starts again for the next packet. This seems
-	// to be independent of the bus clock speed but this wasn't fully verified.
+	// to be independent of the port clock speed but this wasn't fully verified.
 	//
 	// It cannot be expected that the driver will correctly keep CS asserted even
 	// if KeepCS:true on the last packet.
@@ -124,10 +124,10 @@ type Port interface {
 	// The device driver must calls this function exactly once.
 	//
 	// maxHz must specify the maximum rated speed by the device's spec. The lowest
-	// speed between the bus speed and the device speed is selected. Use 0 for
+	// speed between the port speed and the device speed is selected. Use 0 for
 	// maxHz if there is no known maximum value for this device.
 	//
-	// mode specifies the clock and signal polarities, if the bus is using half
+	// mode specifies the clock and signal polarities, if the port is using half
 	// duplex (shared MISO and MOSI) or if CS is not needed.
 	DevParams(maxHz int64, mode Mode, bits int) (Conn, error)
 }
@@ -138,19 +138,19 @@ type Port interface {
 type PortCloser interface {
 	io.Closer
 	Port
-	// LimitSpeed sets the maximum bus speed.
+	// LimitSpeed sets the maximum port speed.
 	//
 	// It lets an application use a device at a lower speed than the maximum
 	// speed as rated by the device driver. This is useful for example when the
 	// wires are long or the connection is of poor quality.
 	//
 	// This function can be called multiple times and resets the previous value.
-	// 0 is not a value value for maxHz. The lowest speed between the bus speed
+	// 0 is not a value value for maxHz. The lowest speed between the port speed
 	// and the device speed is selected.
 	LimitSpeed(maxHz int64) error
 }
 
-// Pins defines the pins that a SPI bus interconnect is using on the host.
+// Pins defines the pins that a SPI port interconnect is using on the host.
 //
 // It is expected that a implementer of ConnCloser or Conn also implement Pins
 // but this is not a requirement.

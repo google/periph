@@ -2,7 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// spi-list lists all SPI buses.
+// spi-list lists all SPI ports.
 package main
 
 import (
@@ -41,18 +41,18 @@ func mainImpl() error {
 				fmt.Printf("    %s\n", a)
 			}
 		}
-		bus, err := ref.Open()
+		s, err := ref.Open()
 		if err != nil {
 			fmt.Printf("  Failed to open: %v\n", err)
 			continue
 		}
-		if p, ok := bus.(spi.Pins); ok {
+		if p, ok := s.(spi.Pins); ok {
 			printPin("CLK", p.CLK())
 			printPin("MOSI", p.MOSI())
 			printPin("MISO", p.MISO())
 			printPin("CS", p.CS())
 		}
-		if err := bus.Close(); err != nil {
+		if err := s.Close(); err != nil {
 			return err
 		}
 	}

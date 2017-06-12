@@ -1,6 +1,6 @@
 # 'spi-testboard' smoke test
 
-Verifies that a EEPROM can be accessed on the bus. Typically used with
+Verifies that a EEPROM can be accessed on the SPI port. Typically used with
 the periph-tester board.
 
 Requires a gpio pin to be tied to the EEPROM's write protect (active low write

@@ -2,7 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package apa102 drives a strip of APA102 LEDs connected on a SPI bus.
+// Package apa102 drives a strip of APA102 LEDs connected on a SPI port.
 //
 // These devices are interesting because they have 2 PWMs: one global of 5 bits
 // of resolution and one per channel of 8 bits of resolution. This means that

@@ -2,7 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package spitest is meant to be used to test drivers over a fake SPI bus.
+// Package spitest is meant to be used to test drivers over a fake SPI port.
 package spitest
 
 import (
@@ -164,7 +164,7 @@ func (r *Record) txInternal(c spi.Conn, w, read []byte) error {
 	defer r.Unlock()
 	if r.Port == nil {
 		if len(read) != 0 {
-			return conntest.Errorf("spitest: read unsupported when no bus is connected")
+			return conntest.Errorf("spitest: read unsupported when no port is connected")
 		}
 	} else {
 		if err := c.Tx(w, read); err != nil {

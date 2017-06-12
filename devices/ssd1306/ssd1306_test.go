@@ -420,12 +420,12 @@ func TestSPI_3wire(t *testing.T) {
 }
 
 func TestSPI_4wire_String(t *testing.T) {
-	bus := spitest.Playback{
+	port := spitest.Playback{
 		Playback: conntest.Playback{
 			Ops: []conntest.IO{{W: getInitCmd(128, 64, false)}},
 		},
 	}
-	dev, err := NewSPI(&bus, &gpiotest.Pin{N: "pin1", Num: 42}, 128, 64, false)
+	dev, err := NewSPI(&port, &gpiotest.Pin{N: "pin1", Num: 42}, 128, 64, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -433,7 +433,7 @@ func TestSPI_4wire_String(t *testing.T) {
 	if s := dev.String(); s != expected {
 		t.Fatalf("%q != %q", expected, s)
 	}
-	if err := bus.Close(); err != nil {
+	if err := port.Close(); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -444,7 +444,7 @@ func TestSPI_4wire_Write_differential(t *testing.T) {
 	buf2 := make([]byte, 128)
 	buf2[130-128] = 1
 	buf2[131-128] = 2
-	bus := spitest.Playback{
+	port := spitest.Playback{
 		Playback: conntest.Playback{
 			Ops: []conntest.IO{
 				{W: getInitCmd(128, 64, false)},
@@ -455,7 +455,7 @@ func TestSPI_4wire_Write_differential(t *testing.T) {
 			},
 		},
 	}
-	dev, err := NewSPI(&bus, &gpiotest.Pin{N: "pin1", Num: 42}, 128, 64, false)
+	dev, err := NewSPI(&port, &gpiotest.Pin{N: "pin1", Num: 42}, 128, 64, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -468,7 +468,7 @@ func TestSPI_4wire_Write_differential(t *testing.T) {
 	if n, err := dev.Write(pix); n != len(pix) || err != nil {
 		t.Fatal(n, err)
 	}
-	if err := bus.Close(); err != nil {
+	if err := port.Close(); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -476,7 +476,7 @@ func TestSPI_4wire_Write_differential(t *testing.T) {
 func TestSPI_4wire_Write_differential_fail(t *testing.T) {
 	buf1 := make([]byte, 1024)
 	buf1[130] = 1
-	bus := spitest.Playback{
+	port := spitest.Playback{
 		Playback: conntest.Playback{
 			Ops: []conntest.IO{
 				{W: getInitCmd(128, 64, false)},
@@ -485,7 +485,7 @@ func TestSPI_4wire_Write_differential_fail(t *testing.T) {
 			DontPanic: true,
 		},
 	}
-	dev, err := NewSPI(&bus, &gpiotest.Pin{N: "pin1", Num: 42}, 128, 64, false)
+	dev, err := NewSPI(&port, &gpiotest.Pin{N: "pin1", Num: 42}, 128, 64, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -498,19 +498,19 @@ func TestSPI_4wire_Write_differential_fail(t *testing.T) {
 	if n, err := dev.Write(pix); n != 0 || !conntest.IsErr(err) {
 		t.Fatalf("expected conntest error: %v", err)
 	}
-	if err := bus.Close(); err != nil {
+	if err := port.Close(); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestSPI_4wire_gpio_fail(t *testing.T) {
-	bus := spitest.Playback{
+	port := spitest.Playback{
 		Playback: conntest.Playback{
 			Ops: []conntest.IO{{W: getInitCmd(128, 64, false)}},
 		},
 	}
 	pin := &failPin{fail: false}
-	dev, err := NewSPI(&bus, pin, 128, 64, false)
+	dev, err := NewSPI(&port, pin, 128, 64, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -522,7 +522,7 @@ func TestSPI_4wire_gpio_fail(t *testing.T) {
 	if err := dev.Halt(); err == nil || err.Error() != "injected error" {
 		t.Fatalf("expected gpio error: %v", err)
 	}
-	if err := bus.Close(); err != nil {
+	if err := port.Close(); err != nil {
 		t.Fatal(err)
 	}
 }

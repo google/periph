@@ -48,7 +48,7 @@ func TestRecord_empty(t *testing.T) {
 		t.Fatal(err)
 	}
 	if c.Tx(nil, []byte{'a'}) == nil {
-		t.Fatal("Bus is nil")
+		t.Fatal("Port is nil")
 	}
 	if err := c.TxPackets(nil); err == nil {
 		t.Fatal("not yet implemented")
@@ -93,7 +93,7 @@ func TestRecord_Tx_empty(t *testing.T) {
 		t.Fatal(r.Ops)
 	}
 	if c.Tx([]byte{'a', 'b'}, []byte{'d'}) == nil {
-		t.Fatal("Bus is nil")
+		t.Fatal("Port is nil")
 	}
 	if len(r.Ops) != 2 {
 		t.Fatal(r.Ops)
