@@ -110,12 +110,12 @@ func showImage(display devices.Display, img image.Image, sleep time.Duration, lo
 
 func mainImpl() error {
 	verbose := flag.Bool("v", false, "verbose mode")
-	spiName := flag.String("spi", "", "SPI bus to use")
+	spiID := flag.String("spi", "", "SPI port to use")
 
 	numLights := flag.Int("n", 150, "number of lights on the strip")
 	intensity := flag.Int("l", 127, "light intensity [1-255]")
 	temperature := flag.Int("t", 5000, "light temperature in °Kelvin [3500-7500]")
-	hz := flag.Int("hz", 0, "SPI bus speed")
+	hz := flag.Int("hz", 0, "SPI port speed")
 	color := flag.String("color", "208020", "hex encoded color to show")
 	imgName := flag.String("img", "", "image to load")
 	lineMs := flag.Int("linems", 2, "number of ms to show each line of the image")
@@ -140,21 +140,21 @@ func mainImpl() error {
 	}
 
 	// Open the display device.
-	bus, err := spireg.Open(*spiName)
+	s, err := spireg.Open(*spiID)
 	if err != nil {
 		return err
 	}
-	defer bus.Close()
+	defer s.Close()
 	if *hz != 0 {
-		if err := bus.LimitSpeed(int64(*hz)); err != nil {
+		if err := s.LimitSpeed(int64(*hz)); err != nil {
 			return err
 		}
 	}
-	if p, ok := bus.(spi.Pins); ok {
+	if p, ok := s.(spi.Pins); ok {
 		// TODO(maruel): Print where the pins are located.
 		log.Printf("Using pins CLK: %s  MOSI: %s  MISO: %s", p.CLK(), p.MOSI(), p.MISO())
 	}
-	display, err := apa102.New(bus, *numLights, uint8(*intensity), uint16(*temperature))
+	display, err := apa102.New(s, *numLights, uint8(*intensity), uint16(*temperature))
 	if err != nil {
 		return err
 	}

@@ -26,7 +26,7 @@ import (
 	"periph.io/x/periph/host/fs"
 )
 
-// NewSPI opens a SPI bus via its devfs interface as described at
+// NewSPI opens a SPI port via its devfs interface as described at
 // https://www.kernel.org/doc/Documentation/spi/spidev and
 // https://www.kernel.org/doc/Documentation/spi/spi-summary
 //
@@ -41,7 +41,7 @@ func NewSPI(busNumber, chipSelect int) (*SPI, error) {
 	return nil, errors.New("sysfs-spi: not implemented on non-linux OSes")
 }
 
-// SPI is an open SPI bus.
+// SPI is an open SPI port.
 type SPI struct {
 	// Immutable
 	f          ioctlCloser
@@ -53,7 +53,7 @@ type SPI struct {
 	bitsPerWord uint8
 	halfDuplex  bool
 	noCS        bool
-	maxHzBus    uint32
+	maxHzPort   uint32
 	maxHzDev    uint32
 	clk         gpio.PinOut
 	mosi        gpio.PinOut
@@ -95,7 +95,7 @@ func (s *SPI) LimitSpeed(maxHz int64) error {
 	}
 	s.Lock()
 	defer s.Unlock()
-	s.maxHzBus = uint32(maxHz)
+	s.maxHzPort = uint32(maxHz)
 	return nil
 }
 
@@ -202,10 +202,10 @@ func (s *SPI) txInternal(w, r []byte) (int, error) {
 		return 0, errors.New("sysfs-spi: can only specify one of w or r when in half duplex")
 	}
 	m := spiIOCTransfer{
-		speedHz:     s.maxHzBus,
+		speedHz:     s.maxHzPort,
 		bitsPerWord: s.bitsPerWord,
 	}
-	if s.maxHzDev != 0 && (s.maxHzBus == 0 || s.maxHzDev < s.maxHzBus) {
+	if s.maxHzDev != 0 && (s.maxHzPort == 0 || s.maxHzDev < s.maxHzPort) {
 		m.speedHz = s.maxHzDev
 	}
 	if l := len(w); l != 0 {
@@ -251,8 +251,8 @@ func (s *SPI) txPackets(p []spi.Packet) error {
 		return errors.New("sysfs-spi: DevParams wasn't called")
 	}
 	// Convert the packets.
-	speed := s.maxHzBus
-	if s.maxHzDev != 0 && (s.maxHzBus == 0 || s.maxHzDev < s.maxHzBus) {
+	speed := s.maxHzPort
+	if s.maxHzDev != 0 && (s.maxHzPort == 0 || s.maxHzDev < s.maxHzPort) {
 		speed = s.maxHzDev
 	}
 	m := make([]spiIOCTransfer, len(p))
@@ -483,7 +483,7 @@ type spiIOCTransfer struct {
 	pad         uint16
 }
 
-// spiBufSize is the maximum number of bytes allowed per I/O on the SPI bus.
+// spiBufSize is the maximum number of bytes allowed per I/O on the SPI port.
 var spiBufSize = 0
 
 //
@@ -512,7 +512,7 @@ func (d *driverSPI) Init() (bool, error) {
 		return true, err
 	}
 	if len(items) == 0 {
-		return false, errors.New("no SPI bus found")
+		return false, errors.New("no SPI port found")
 	}
 	sort.Strings(items)
 	for _, item := range items {

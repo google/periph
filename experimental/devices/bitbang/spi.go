@@ -31,7 +31,7 @@ type SPI struct {
 	csn gpio.PinOut // CS
 
 	mu        sync.Mutex
-	maxHzBus  int64
+	maxHzPort int64
 	maxHzDev  int64
 	mode      spi.Mode
 	bits      int
@@ -60,8 +60,8 @@ func (s *SPI) LimitSpeed(maxHz int64) error {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.maxHzBus = maxHz
-	if s.maxHzDev == 0 || s.maxHzBus < s.maxHzDev {
+	s.maxHzPort = maxHz
+	if s.maxHzDev == 0 || s.maxHzPort < s.maxHzDev {
 		s.halfCycle = time.Second / time.Duration(maxHz) / time.Duration(2)
 	}
 	return nil
@@ -78,7 +78,7 @@ func (s *SPI) DevParams(maxHz int64, mode spi.Mode, bits int) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.maxHzDev = maxHz
-	if s.maxHzDev != 0 && (s.maxHzBus == 0 || s.maxHzDev < s.maxHzBus) {
+	if s.maxHzDev != 0 && (s.maxHzPort == 0 || s.maxHzDev < s.maxHzPort) {
 		s.halfCycle = time.Second / time.Duration(maxHz) / time.Duration(2)
 	}
 	s.mode = mode

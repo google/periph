@@ -136,9 +136,9 @@ func convert(s *ssd1306.Dev, src image.Image) *image1bit.VerticalLSB {
 
 func mainImpl() error {
 	i2cID := flag.String("i2c", "", "I²C bus to use")
-	spiID := flag.String("spi", "", "SPI bus to use")
+	spiID := flag.String("spi", "", "SPI port to use")
 	dcName := flag.String("dc", "", "DC pin to use in 4-wire SPI mode")
-	hz := flag.Int("hz", 0, "I²C/SPI bus speed")
+	hz := flag.Int("hz", 0, "I²C bus/SPI port speed")
 
 	h := flag.Int("h", 64, "display height")
 	w := flag.Int("w", 128, "display width")
@@ -164,17 +164,17 @@ func mainImpl() error {
 	// Open the device on the right bus.
 	var s *ssd1306.Dev
 	if *spiID != "" {
-		bus, err := spireg.Open(*spiID)
+		c, err := spireg.Open(*spiID)
 		if err != nil {
 			return err
 		}
-		defer bus.Close()
+		defer c.Close()
 		if *hz != 0 {
-			if err := bus.LimitSpeed(int64(*hz)); err != nil {
+			if err := c.LimitSpeed(int64(*hz)); err != nil {
 				return err
 			}
 		}
-		if p, ok := bus.(spi.Pins); ok {
+		if p, ok := c.(spi.Pins); ok {
 			// TODO(maruel): Print where the pins are located.
 			log.Printf("Using pins CLK: %s  MOSI: %s  CS: %s", p.CLK(), p.MOSI(), p.CS())
 		}
@@ -182,26 +182,26 @@ func mainImpl() error {
 		if len(*dcName) != 0 {
 			dc = gpioreg.ByName(*dcName)
 		}
-		s, err = ssd1306.NewSPI(bus, dc, *w, *h, *rotated)
+		s, err = ssd1306.NewSPI(c, dc, *w, *h, *rotated)
 		if err != nil {
 			return err
 		}
 	} else {
-		bus, err := i2creg.Open(*i2cID)
+		c, err := i2creg.Open(*i2cID)
 		if err != nil {
 			return err
 		}
-		defer bus.Close()
+		defer c.Close()
 		if *hz != 0 {
-			if err := bus.SetSpeed(int64(*hz)); err != nil {
+			if err := c.SetSpeed(int64(*hz)); err != nil {
 				return err
 			}
 		}
-		if p, ok := bus.(i2c.Pins); ok {
+		if p, ok := c.(i2c.Pins); ok {
 			// TODO(maruel): Print where the pins are located.
 			log.Printf("Using pins SCL: %s  SDA: %s", p.SCL(), p.SDA())
 		}
-		s, err = ssd1306.NewI2C(bus, *w, *h, *rotated)
+		s, err = ssd1306.NewI2C(c, *w, *h, *rotated)
 		if err != nil {
 			return err
 		}

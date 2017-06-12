@@ -40,7 +40,7 @@ it](https://periph.io/project/contributing/).
 - [i2c-list](i2c-list): Lists which I²C buses are enabled and where the pins
   are.
 - [spi-io](spi-io): Reads and/or writes to an SPI device.
-- [spi-list](spi-list): Lists which SPI buses are enabled and where the pins
+- [spi-list](spi-list): Lists which SPI ports are enabled and where the pins
   are.
 
 

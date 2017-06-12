@@ -41,7 +41,7 @@ var calib = calibration{
 }
 
 func TestSPISense_success(t *testing.T) {
-	bus := spitest.Playback{
+	s := spitest.Playback{
 		Playback: conntest.Playback{
 			Ops: []conntest.IO{
 				// Chipd ID detection.
@@ -75,7 +75,7 @@ func TestSPISense_success(t *testing.T) {
 		Standby:     S1s,
 		Filter:      FOff,
 	}
-	dev, err := NewSPI(&bus, &opts)
+	dev, err := NewSPI(&s, &opts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -98,7 +98,7 @@ func TestSPISense_success(t *testing.T) {
 	if env.Humidity != 995 {
 		t.Fatalf("humidity %d", env.Humidity)
 	}
-	if err := bus.Close(); err != nil {
+	if err := s.Close(); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -110,7 +110,7 @@ func TestNewSPI_fail(t *testing.T) {
 }
 
 func TestNewSPI_fail_len(t *testing.T) {
-	bus := spitest.Playback{
+	s := spitest.Playback{
 		Playback: conntest.Playback{
 			Ops: []conntest.IO{
 				{
@@ -122,18 +122,18 @@ func TestNewSPI_fail_len(t *testing.T) {
 			DontPanic: true,
 		},
 	}
-	if dev, err := NewSPI(&bus, nil); dev != nil || err == nil {
+	if dev, err := NewSPI(&s, nil); dev != nil || err == nil {
 		t.Fatal("read failed")
 	}
 	// The I/O didn't occur.
-	bus.Count++
-	if err := bus.Close(); err != nil {
+	s.Count++
+	if err := s.Close(); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestNewSPI_fail_chipid(t *testing.T) {
-	bus := spitest.Playback{
+	s := spitest.Playback{
 		Playback: conntest.Playback{
 			Ops: []conntest.IO{
 				{
@@ -144,10 +144,10 @@ func TestNewSPI_fail_chipid(t *testing.T) {
 			},
 		},
 	}
-	if dev, err := NewSPI(&bus, nil); dev != nil || err == nil {
+	if dev, err := NewSPI(&s, nil); dev != nil || err == nil {
 		t.Fatal("read failed")
 	}
-	if err := bus.Close(); err != nil {
+	if err := s.Close(); err != nil {
 		t.Fatal(err)
 	}
 }

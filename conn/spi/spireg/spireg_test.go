@@ -18,8 +18,8 @@ import (
 )
 
 func ExampleAll() {
-	// Enumerate all SPI buses available and the corresponding pins.
-	fmt.Print("SPI buses available:\n")
+	// Enumerate all SPI ports available and the corresponding pins.
+	fmt.Print("SPI ports available:\n")
 	for _, ref := range All() {
 		fmt.Printf("- %s\n", ref.Name)
 		if ref.Number != -1 {
@@ -46,14 +46,14 @@ func ExampleAll() {
 }
 
 func ExampleOpen() {
-	// On linux, the following calls will likely open the same bus.
+	// On linux, the following calls will likely open the same port.
 	Open("/dev/spidev1.0")
 	Open("SPI1.0")
 	Open("1")
 
-	// How a command line tool may let the user choose an SPI bus, yet default to
-	// the first bus known.
-	name := flag.String("spi", "", "SPI bus to use")
+	// How a command line tool may let the user choose a SPI port, yet
+	// default to the first port known.
+	name := flag.String("spi", "", "SPI port to use")
 	flag.Parse()
 	b, err := Open(*name)
 	if err != nil {
@@ -75,9 +75,9 @@ func ExampleOpen() {
 func TestOpen(t *testing.T) {
 	defer reset()
 	if _, err := Open(""); err == nil {
-		t.Fatal("no bus registered")
+		t.Fatal("no port registered")
 	}
-	if err := Register("a", []string{"x"}, 1, fakeBuser); err != nil {
+	if err := Register("a", []string{"x"}, 1, getFakePort); err != nil {
 		t.Fatal(err)
 	}
 	if o, err := Open(""); o == nil || err != nil {
@@ -96,7 +96,7 @@ func TestOpen(t *testing.T) {
 
 func TestDefault_NoNumber(t *testing.T) {
 	defer reset()
-	if err := Register("a", nil, -1, fakeBuser); err != nil {
+	if err := Register("a", nil, -1, getFakePort); err != nil {
 		t.Fatal(err)
 	}
 	if o, err := Open(""); o == nil || err != nil {
@@ -109,10 +109,10 @@ func TestAll(t *testing.T) {
 	if a := All(); len(a) != 0 {
 		t.Fatal(a)
 	}
-	if err := Register("a", nil, 1, fakeBuser); err != nil {
+	if err := Register("a", nil, 1, getFakePort); err != nil {
 		t.Fatal(err)
 	}
-	if err := Register("b", nil, 2, fakeBuser); err != nil {
+	if err := Register("b", nil, 2, getFakePort); err != nil {
 		t.Fatal(err)
 	}
 	if a := All(); len(a) != 2 {
@@ -130,23 +130,23 @@ func TestRefList(t *testing.T) {
 
 func TestRegister(t *testing.T) {
 	defer reset()
-	if err := Register("a", []string{"b"}, 42, fakeBuser); err != nil {
+	if err := Register("a", []string{"b"}, 42, getFakePort); err != nil {
 		t.Fatal(err)
 	}
-	if Register("a", nil, -1, fakeBuser) == nil {
-		t.Fatal("same bus name")
+	if Register("a", nil, -1, getFakePort) == nil {
+		t.Fatal("same port name")
 	}
-	if Register("b", nil, -1, fakeBuser) == nil {
-		t.Fatal("same bus alias name")
+	if Register("b", nil, -1, getFakePort) == nil {
+		t.Fatal("same port alias name")
 	}
-	if Register("c", nil, 42, fakeBuser) == nil {
-		t.Fatal("same bus number")
+	if Register("c", nil, 42, getFakePort) == nil {
+		t.Fatal("same port number")
 	}
-	if Register("c", []string{"a"}, -1, fakeBuser) == nil {
-		t.Fatal("same bus alias")
+	if Register("c", []string{"a"}, -1, getFakePort) == nil {
+		t.Fatal("same port alias")
 	}
-	if Register("c", []string{"b"}, -1, fakeBuser) == nil {
-		t.Fatal("same bus alias")
+	if Register("c", []string{"b"}, -1, getFakePort) == nil {
+		t.Fatal("same port alias")
 	}
 }
 
@@ -155,28 +155,28 @@ func TestRegister_fail(t *testing.T) {
 	if Register("a", nil, -1, nil) == nil {
 		t.Fatal("missing Opener")
 	}
-	if Register("a", nil, -2, fakeBuser) == nil {
-		t.Fatal("bad bus number")
+	if Register("a", nil, -2, getFakePort) == nil {
+		t.Fatal("bad port number")
 	}
-	if Register("", nil, 42, fakeBuser) == nil {
+	if Register("", nil, 42, getFakePort) == nil {
 		t.Fatal("missing name")
 	}
-	if Register("1", nil, 42, fakeBuser) == nil {
+	if Register("1", nil, 42, getFakePort) == nil {
 		t.Fatal("numeric name")
 	}
-	if Register("a:b", nil, 42, fakeBuser) == nil {
+	if Register("a:b", nil, 42, getFakePort) == nil {
 		t.Fatal("':' in name")
 	}
-	if Register("a", []string{"a"}, 0, fakeBuser) == nil {
+	if Register("a", []string{"a"}, 0, getFakePort) == nil {
 		t.Fatal("\"a\" is already registered")
 	}
-	if Register("a", []string{""}, 0, fakeBuser) == nil {
+	if Register("a", []string{""}, 0, getFakePort) == nil {
 		t.Fatal("empty alias")
 	}
-	if Register("a", []string{"1"}, 0, fakeBuser) == nil {
+	if Register("a", []string{"1"}, 0, getFakePort) == nil {
 		t.Fatal("numeric alias")
 	}
-	if Register("a", []string{"a:b"}, 0, fakeBuser) == nil {
+	if Register("a", []string{"a:b"}, 0, getFakePort) == nil {
 		t.Fatal("':' in alias")
 	}
 	if a := All(); len(a) != 0 {
@@ -192,7 +192,7 @@ func TestUnregister(t *testing.T) {
 	if Unregister("a") == nil {
 		t.Fatal("unregister non-existing")
 	}
-	if err := Register("a", []string{"b"}, 0, fakeBuser); err != nil {
+	if err := Register("a", []string{"b"}, 0, getFakePort); err != nil {
 		t.Fatal(err)
 	}
 	if err := Unregister("a"); err != nil {
@@ -202,38 +202,38 @@ func TestUnregister(t *testing.T) {
 
 //
 
-func fakeBuser() (spi.PortCloser, error) {
-	return &fakeBus{}, nil
+func getFakePort() (spi.PortCloser, error) {
+	return &fakePort{}, nil
 }
 
-type fakeBus struct {
+type fakePort struct {
 }
 
-func (f *fakeBus) String() string {
+func (f *fakePort) String() string {
 	return "fake"
 }
 
-func (f *fakeBus) Close() error {
+func (f *fakePort) Close() error {
 	return errors.New("not implemented")
 }
 
-func (f *fakeBus) Tx(w, r []byte) error {
+func (f *fakePort) Tx(w, r []byte) error {
 	return errors.New("not implemented")
 }
 
-func (f *fakeBus) Duplex() conn.Duplex {
+func (f *fakePort) Duplex() conn.Duplex {
 	return conn.DuplexUnknown
 }
 
-func (f *fakeBus) LimitSpeed(maxHz int64) error {
+func (f *fakePort) LimitSpeed(maxHz int64) error {
 	return errors.New("not implemented")
 }
 
-func (f *fakeBus) DevParams(maxHz int64, mode spi.Mode, bits int) (spi.Conn, error) {
+func (f *fakePort) DevParams(maxHz int64, mode spi.Mode, bits int) (spi.Conn, error) {
 	return f, errors.New("not implemented")
 }
 
-func (f *fakeBus) TxPackets(p []spi.Packet) error {
+func (f *fakePort) TxPackets(p []spi.Packet) error {
 	return errors.New("not implemented")
 }
 

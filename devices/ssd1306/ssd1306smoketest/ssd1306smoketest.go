@@ -57,8 +57,8 @@ func (s *SmokeTest) Run(args []string) (err error) {
 	s.delay = 2 * time.Second
 
 	f := flag.NewFlagSet("buses", flag.ExitOnError)
-	i2cName := f.String("i2c", "", "I²C bus to use")
-	spiName := f.String("spi", "", "SPI bus to use")
+	i2cID := f.String("i2c", "", "I²C bus to use")
+	spiID := f.String("spi", "", "SPI port to use")
 	dcName := f.String("dc", "", "DC pin to use in 4-wire SPI mode")
 
 	w := f.Int("w", 128, "Display width")
@@ -68,7 +68,7 @@ func (s *SmokeTest) Run(args []string) (err error) {
 	record := f.Bool("record", false, "record operation (for playback unit testing)")
 	f.Parse(args)
 
-	i2cBus, err2 := i2creg.Open(*i2cName)
+	i2cBus, err2 := i2creg.Open(*i2cID)
 	if err2 != nil {
 		return err2
 	}
@@ -78,12 +78,12 @@ func (s *SmokeTest) Run(args []string) (err error) {
 		}
 	}()
 
-	spiBus, err2 := spireg.Open(*spiName)
+	spiPort, err2 := spireg.Open(*spiID)
 	if err2 != nil {
 		return err2
 	}
 	defer func() {
-		if err2 := spiBus.Close(); err == nil {
+		if err2 := spiPort.Close(); err == nil {
 			err = err2
 		}
 	}()
@@ -93,11 +93,11 @@ func (s *SmokeTest) Run(args []string) (err error) {
 		dc = gpioreg.ByName(*dcName)
 	}
 	if !*record {
-		return s.run(i2cBus, spiBus, dc, *w, *h, *rotated)
+		return s.run(i2cBus, spiPort, dc, *w, *h, *rotated)
 	}
 
 	i2cRecorder := i2ctest.Record{Bus: i2cBus}
-	spiRecorder := spitest.Record{Port: spiBus}
+	spiRecorder := spitest.Record{Port: spiPort}
 	err = s.run(&i2cRecorder, &spiRecorder, dc, *w, *h, *rotated)
 	if len(i2cRecorder.Ops) != 0 {
 		fmt.Printf("I²C recorder Addr: 0x%02X\n", i2cRecorder.Ops[0].Addr)
@@ -149,7 +149,7 @@ func (s *SmokeTest) Run(args []string) (err error) {
 	return err
 }
 
-func (s *SmokeTest) run(i2cBus i2c.Bus, spiBus spi.PortCloser, dc gpio.PinOut, w, h int, rotated bool) (err error) {
+func (s *SmokeTest) run(i2cBus i2c.Bus, spiPort spi.PortCloser, dc gpio.PinOut, w, h int, rotated bool) (err error) {
 	s.timings = make([]time.Duration, 2)
 	start := time.Now()
 	i2cDev, err2 := ssd1306.NewI2C(i2cBus, w, h, rotated)
@@ -158,7 +158,7 @@ func (s *SmokeTest) run(i2cBus i2c.Bus, spiBus spi.PortCloser, dc gpio.PinOut, w
 		return err2
 	}
 	start = time.Now()
-	spiDev, err2 := ssd1306.NewSPI(spiBus, dc, w, h, rotated)
+	spiDev, err2 := ssd1306.NewSPI(spiPort, dc, w, h, rotated)
 	s.timings[1] = time.Since(start)
 	if err2 != nil {
 		return err2

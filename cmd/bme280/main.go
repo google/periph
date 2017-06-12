@@ -55,8 +55,8 @@ func read(e devices.Environmental, interval time.Duration) error {
 func mainImpl() error {
 	i2cID := flag.String("i2c", "", "I²C bus to use")
 	i2cADDR := flag.Uint("ia", 0, "I²C bus address to use")
-	spiID := flag.String("spi", "", "SPI bus to use")
-	hz := flag.Int("hz", 0, "I²C/SPI bus speed")
+	spiID := flag.String("spi", "", "SPI port to use")
+	hz := flag.Int("hz", 0, "I²C bus/SPI port speed")
 	sample1x := flag.Bool("s1", false, "sample at 1x")
 	sample2x := flag.Bool("s2", false, "sample at 2x")
 	sample4x := flag.Bool("s4", false, "sample at 4x")
@@ -109,41 +109,41 @@ func mainImpl() error {
 
 	var dev *bme280.Dev
 	if *spiID != "" {
-		bus, err := spireg.Open(*spiID)
+		s, err := spireg.Open(*spiID)
 		if err != nil {
 			return err
 		}
-		defer bus.Close()
-		if p, ok := bus.(spi.Pins); ok {
+		defer s.Close()
+		if p, ok := s.(spi.Pins); ok {
 			printPin("CLK", p.CLK())
 			printPin("MOSI", p.MOSI())
 			printPin("MISO", p.MISO())
 			printPin("CS", p.CS())
 		}
 		if *hz != 0 {
-			if err := bus.LimitSpeed(int64(*hz)); err != nil {
+			if err := s.LimitSpeed(int64(*hz)); err != nil {
 				return err
 			}
 		}
-		if dev, err = bme280.NewSPI(bus, &opts); err != nil {
+		if dev, err = bme280.NewSPI(s, &opts); err != nil {
 			return err
 		}
 	} else {
-		bus, err := i2creg.Open(*i2cID)
+		i, err := i2creg.Open(*i2cID)
 		if err != nil {
 			return err
 		}
-		defer bus.Close()
-		if p, ok := bus.(i2c.Pins); ok {
+		defer i.Close()
+		if p, ok := i.(i2c.Pins); ok {
 			printPin("SCL", p.SCL())
 			printPin("SDA", p.SDA())
 		}
 		if *hz != 0 {
-			if err := bus.SetSpeed(int64(*hz)); err != nil {
+			if err := i.SetSpeed(int64(*hz)); err != nil {
 				return err
 			}
 		}
-		if dev, err = bme280.NewI2C(bus, &opts); err != nil {
+		if dev, err = bme280.NewI2C(i, &opts); err != nil {
 			return err
 		}
 	}
