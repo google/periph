@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -608,7 +607,7 @@ func (d *driverGPIO) Init() (bool, error) {
 		return false, errors.New("Allwinner CPU not detected")
 	}
 	gpioBaseAddr = uint32(getBaseAddress())
-	if err := pmem.MapStruct(uint64(gpioBaseAddr), reflect.ValueOf(&gpioMemory)); err != nil {
+	if err := pmem.MapAsPOD(uint64(gpioBaseAddr), &gpioMemory); err != nil {
 		if os.IsPermission(err) {
 			return true, fmt.Errorf("need more access, try as root: %v", err)
 		}

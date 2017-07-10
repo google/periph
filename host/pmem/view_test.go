@@ -6,19 +6,19 @@ package pmem
 
 import (
 	"bytes"
+	"encoding/binary"
 	"errors"
 	"log"
-	"reflect"
 	"testing"
 
 	"periph.io/x/periph/host/fs"
 )
 
-func ExampleMapStruct() {
+func ExampleMapAsPOD() {
 	// Let's say the CPU has 4 x 32 bits memory mapped registers at the address
 	// 0xDEADBEEF.
 	var reg *[4]uint32
-	if err := MapStruct(0xDEADBEAF, reflect.ValueOf(reg)); err != nil {
+	if err := MapAsPOD(0xDEADBEAF, reg); err != nil {
 		log.Fatal(err)
 	}
 	// reg now points to physical memory.
@@ -27,53 +27,142 @@ func ExampleMapStruct() {
 //
 
 func TestSlice(t *testing.T) {
-	// Assumes binary.LittleEndian. Correct if this code is ever run on BigEndian.
 	s := Slice([]byte{4, 3, 2, 1})
-	u32 := s.Uint32()
-	if len(u32) != 1 || u32[0] != 0x01020304 {
-		t.Fatalf("%v", u32)
-	}
-	var v *simpleStruct
-	if err := s.Struct(reflect.ValueOf(&v)); err != nil {
-		t.Fatalf("%v", err)
-	}
-	if v == nil {
-		t.FailNow()
-	}
-	if v.u != 0x01020304 {
-		t.Fatalf("%v", v.u)
-	}
-	var r *[1]uint32
-	if err := s.Struct(reflect.ValueOf(&r)); err != nil {
-		t.Fatalf("%v", err)
-	}
-	if r[0] != u32[0] {
-		t.Fatalf("%x != %x", r[0], u32[0])
-	}
 	if !bytes.Equal([]byte(s), s.Bytes()) {
 		t.Fatal("Slice.Bytes() is the slice")
 	}
+
+	// TODO(maruel): Assumes binary.LittleEndian. Correct if this code is ever
+	// run on BigEndian.
+	expected := binary.LittleEndian.Uint32(s)
+	{
+		v := s.Uint32()
+		if len(v) != 1 || v[0] != expected {
+			t.Fatalf("%v", v)
+		}
+		var a *[1]uint32
+		if err := s.AsPOD(&a); err != nil {
+			t.Fatalf("%v", err)
+		}
+		if a[0] != v[0] {
+			t.Fatalf("%x != %x", a[0], v[0])
+		}
+	}
+
+	{
+		var v *simpleStruct
+		if err := s.AsPOD(&v); err != nil {
+			t.Fatalf("%v", err)
+		}
+		if v == nil {
+			t.Fatal("v is nil")
+		}
+		if v.u != expected {
+			t.Fatalf("%v", v.u)
+		}
+	}
+
+	{
+		var v *uint32
+		if err := s.AsPOD(&v); err != nil {
+			t.Fatalf("%v", err)
+		}
+		if *v != expected {
+			t.Fatalf("%v", v)
+		}
+	}
+
+	{
+		var v []uint32
+		if err := s.AsPOD(&v); err != nil {
+			t.Fatalf("%v", err)
+		}
+	}
 }
 
-func TestSliceErrors(t *testing.T) {
+func TestSlice_Errors4(t *testing.T) {
 	s := Slice([]byte{4, 3, 2, 1})
-	if s.Struct(reflect.ValueOf(nil)) == nil {
-		t.FailNow()
+
+	if s.AsPOD(nil) == nil {
+		t.Fatal("nil is not a valid type")
 	}
-	var v *simpleStruct
-	if s.Struct(reflect.ValueOf(v)) == nil {
-		t.FailNow()
+
+	{
+		var v simpleStruct
+		if s.AsPOD(v) == nil {
+			t.Fatal("must be Ptr to Ptr")
+		}
+		if s.AsPOD(&v) == nil {
+			t.Fatal("must be Ptr to Ptr")
+		}
 	}
-	var p *uint32
-	if s.Struct(reflect.ValueOf(p)) == nil {
-		t.FailNow()
+
+	{
+		var v *uint32
+		if s.AsPOD(v) == nil {
+			t.Fatal("must be Ptr to Ptr")
+		}
 	}
-	if s.Struct(reflect.ValueOf(&p)) == nil {
-		t.FailNow()
+
+	{
+		var v ***[1]uint32
+		if s.AsPOD(v) == nil {
+			t.Fatal("buffer is not large enough")
+		}
 	}
-	s = Slice([]byte{1})
-	if s.Struct(reflect.ValueOf(&v)) == nil {
-		t.FailNow()
+
+	{
+		var v *int
+		if s.AsPOD(&v) == nil {
+			t.Fatal("must be Ptr to sized type")
+		}
+	}
+
+	{
+		v := []uint32{1}
+		if s.AsPOD(&v) == nil {
+			t.Fatal("buffer is not large enough")
+		}
+	}
+
+	{
+		var v []interface{}
+		if s.AsPOD(&v) == nil {
+			t.Fatal("slice of non-POD")
+		}
+	}
+
+	{
+		var v *struct {
+			A interface{}
+		}
+		if s.AsPOD(&v) == nil {
+			t.Fatal("struct of non-POD")
+		}
+	}
+}
+
+func TestSlice_Errors1(t *testing.T) {
+	s := Slice([]byte{1})
+	{
+		var v simpleStruct
+		if s.AsPOD(&v) == nil {
+			t.Fatal("not large enough")
+		}
+	}
+
+	{
+		var v *[1]uint32
+		if s.AsPOD(&v) == nil {
+			t.Fatal("buffer is not large enough")
+		}
+	}
+
+	{
+		var v []uint32
+		if s.AsPOD(&v) == nil {
+			t.Fatal("buffer is not large enough")
+		}
 	}
 }
 
@@ -91,27 +180,24 @@ func TestMap(t *testing.T) {
 	}
 }
 
-func TestMapStruct(t *testing.T) {
+func TestMapAsPOD(t *testing.T) {
 	defer reset()
-	if MapStruct(0, reflect.Value{}) == nil {
+	if MapAsPOD(0, nil) == nil {
 		t.Fatal("0 size")
 	}
 	var i *int
-	if MapStruct(0, reflect.ValueOf(i)) == nil {
+	if MapAsPOD(0, i) == nil {
 		t.Fatal("not pointer to pointer")
 	}
 	x := 0
 	i = &x
-	if MapStruct(0, reflect.ValueOf(&i)) == nil {
+	if MapAsPOD(0, &i) == nil {
 		t.Fatal("pointer is not nil")
 	}
 
-	type tmp struct {
-		A int
-	}
-	var v *tmp
-	if MapStruct(0, reflect.ValueOf(&v)) == nil {
-		t.Fatal("not as root")
+	var v *simpleStruct
+	if MapAsPOD(0, &v) == nil {
+		t.Fatal("file I/O is inhibited; otherwise it would have worked")
 	}
 }
 

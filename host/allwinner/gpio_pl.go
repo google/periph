@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -348,7 +347,7 @@ func (d *driverGPIOPL) Init() (bool, error) {
 		}
 		return true, err
 	}
-	if err := m.Struct(reflect.ValueOf(&gpioMemoryPL)); err != nil {
+	if err := m.AsPOD(&gpioMemoryPL); err != nil {
 		return true, err
 	}
 

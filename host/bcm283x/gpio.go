@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"reflect"
 	"strings"
 	"time"
 
@@ -640,7 +639,7 @@ func (d *driverGPIO) Init() (bool, error) {
 			return true, err
 		}
 	}
-	if err := m.Struct(reflect.ValueOf(&gpioMemory)); err != nil {
+	if err := m.AsPOD(&gpioMemory); err != nil {
 		return true, err
 	}
 
