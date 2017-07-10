@@ -170,6 +170,7 @@ func (d *driver) Init() (bool, error) {
 			0xa020a0: // Compute Module 3 v1.0
 			// NOTE: Could define the use of a SODIMM header here.
 		case 0xa02082, 0xa22082, 0xa32082: // 3 Model B v1.2
+			has40PinP1Header = true
 			hasAudio = true
 			hasNewAudio = true
 			hasHDMI = true
