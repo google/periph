@@ -719,7 +719,7 @@ func smokeTest() error {
 		return runIO(pCB, size-2*holeSize > maxLite)
 	}
 
-	return pmem.CopyTest(size, holeSize, alloc, copyMem)
+	return pmem.TestCopy(size, holeSize, alloc, copyMem)
 }
 
 // driverDMA implements periph.Driver.

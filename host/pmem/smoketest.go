@@ -10,10 +10,12 @@ import (
 	"math/rand"
 )
 
-// CopyTest is used by CPU drivers to verify that the DMA engine works
+// TestCopy is used by CPU drivers to verify that the DMA engine works
 // correctly.
 //
-// CopyTest allocates two buffer via `alloc`, once as the source and one as the
+// It is not meant to be used by end users.
+//
+// TestCopy allocates two buffer via `alloc`, once as the source and one as the
 // destination. It fills the source with random data and the destination with
 // 0x11.
 //
@@ -25,7 +27,7 @@ import (
 //
 // This confirm misaligned DMA copying works.
 // leverage the host's DMA engine.
-func CopyTest(size, holeSize int, alloc func(size int) (Mem, error), copyMem func(pDst, pSrc uint64) error) error {
+func TestCopy(size, holeSize int, alloc func(size int) (Mem, error), copyMem func(pDst, pSrc uint64) error) error {
 	pSrc, err2 := alloc(size)
 	if err2 != nil {
 		return err2

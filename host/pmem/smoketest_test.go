@@ -20,32 +20,32 @@ func TestSmokeTest_fail(t *testing.T) {
 		return allocRAM(size)
 	}
 
-	if CopyTest(1024, 1, alloc, copyOk) == nil {
+	if TestCopy(1024, 1, alloc, copyOk) == nil {
 		t.Fatal("first alloc failed")
 	}
 	count = 1
-	if CopyTest(1024, 1, alloc, copyOk) == nil {
+	if TestCopy(1024, 1, alloc, copyOk) == nil {
 		t.Fatal("second alloc failed")
 	}
 
 	copyFail := func(d, s uint64) error {
 		return errors.New("oops")
 	}
-	if CopyTest(1024, 1, allocRAM, copyFail) == nil {
+	if TestCopy(1024, 1, allocRAM, copyFail) == nil {
 		t.Fatal("copy failed")
 	}
 
 	copyNop := func(d, s uint64) error {
 		return nil
 	}
-	if CopyTest(1024, 1, allocRAM, copyNop) == nil {
+	if TestCopy(1024, 1, allocRAM, copyNop) == nil {
 		t.Fatal("no copy")
 	}
 
 	copyPartial := func(d, s uint64) error {
 		return copyRAM(d, s, 1024, 2)
 	}
-	if CopyTest(1024, 1, allocRAM, copyPartial) == nil {
+	if TestCopy(1024, 1, allocRAM, copyPartial) == nil {
 		t.Fatal("copy corrupted")
 	}
 
@@ -53,7 +53,7 @@ func TestSmokeTest_fail(t *testing.T) {
 		toSlice(d)[0] = 0
 		return nil
 	}
-	if CopyTest(1024, 1, allocRAM, copyHdr) == nil {
+	if TestCopy(1024, 1, allocRAM, copyHdr) == nil {
 		t.Fatal("header corrupted")
 	}
 
@@ -61,7 +61,7 @@ func TestSmokeTest_fail(t *testing.T) {
 		toSlice(d)[1023] = 0
 		return copyRAM(d, s, 1024, 1)
 	}
-	if CopyTest(1024, 1, allocRAM, copyFtr) == nil {
+	if TestCopy(1024, 1, allocRAM, copyFtr) == nil {
 		t.Fatal("footer corrupted")
 	}
 
@@ -70,14 +70,14 @@ func TestSmokeTest_fail(t *testing.T) {
 		toSlice(d)[3] = 0
 		return nil
 	}
-	if CopyTest(1024, 1, allocRAM, copyOffset) == nil {
+	if TestCopy(1024, 1, allocRAM, copyOffset) == nil {
 		t.Fatal("copy corrupted")
 	}
 }
 
 func TestSmokeTest(t *testing.T) {
 	// Successfully copy the memory.
-	if err := CopyTest(1024, 1, allocRAM, copyOk); err != nil {
+	if err := TestCopy(1024, 1, allocRAM, copyOk); err != nil {
 		t.Fatal(err)
 	}
 }
