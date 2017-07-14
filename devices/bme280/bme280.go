@@ -173,9 +173,6 @@ func NewI2C(b i2c.Bus, opts *Opts) (*Dev, error) {
 // sampling.
 //
 // When using SPI, the CS line must be used.
-//
-// BUG(maruel): This code was not tested yet, still waiting for a SPI enabled
-// device in the mail.
 func NewSPI(p spi.Port, opts *Opts) (*Dev, error) {
 	// It works both in Mode0 and Mode3.
 	c, err := p.DevParams(10000000, spi.Mode3, 8)
