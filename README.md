@@ -11,15 +11,6 @@ Documentation is at https://periph.io
 [![Gitter chat](https://badges.gitter.im/google/periph.png)](https://gitter.im/periph-io/Lobby)
 
 
-## WARNING
-
-**This library is unstable. Breaking API changes occur frequently.**
-
-If you want to use `periph.io/x/periph`, please [vendor
-periph](https://github.com/golang/go/wiki/PackageManagementTools) first and
-frequently roll.
-
-
 ## Example
 
 ~~~go
