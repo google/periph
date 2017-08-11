@@ -19,7 +19,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"reflect"
 
 	"github.com/kr/pretty"
 	"periph.io/x/periph/host/pmem"
@@ -417,23 +416,23 @@ func (d *driverDMA) Init() (bool, error) {
 		return false, errors.New("unsupported CPU architecture")
 	}
 
-	if err := pmem.MapStruct(uint64(dmaBaseAddr), reflect.ValueOf(&dmaMemory)); err != nil {
+	if err := pmem.MapAsPOD(uint64(dmaBaseAddr), &dmaMemory); err != nil {
 		if os.IsPermission(err) {
 			return true, fmt.Errorf("need more access, try as root: %v", err)
 		}
 		return true, err
 	}
 
-	if err := pmem.MapStruct(uint64(pwmBaseAddr), reflect.ValueOf(&pwmMemory)); err != nil {
+	if err := pmem.MapAsPOD(uint64(pwmBaseAddr), &pwmMemory); err != nil {
 		return true, err
 	}
-	if err := pmem.MapStruct(uint64(timerBaseAddr), reflect.ValueOf(&timerMemory)); err != nil {
+	if err := pmem.MapAsPOD(uint64(timerBaseAddr), &timerMemory); err != nil {
 		return true, err
 	}
-	if err := pmem.MapStruct(uint64(clockBaseAddr), reflect.ValueOf(&clockMemory)); err != nil {
+	if err := pmem.MapAsPOD(uint64(clockBaseAddr), &clockMemory); err != nil {
 		return true, err
 	}
-	if err := pmem.MapStruct(uint64(spiBaseAddr), reflect.ValueOf(&spiMemory)); err != nil {
+	if err := pmem.MapAsPOD(uint64(spiBaseAddr), &spiMemory); err != nil {
 		return true, err
 	}
 

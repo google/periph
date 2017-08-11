@@ -24,14 +24,23 @@ type Mem interface {
 	//
 	// It is the raw view of the memory from this process.
 	Bytes() []byte
-	// Struct initializes a pointer to a struct or array to point to the memory
-	// mapped region.
+	// AsPOD initializes a pointer to a POD (plain old data) to point to the
+	// memory mapped region.
 	//
-	// pp must be a pointer to a pointer to a struct and the pointer to struct
-	// must be nil. Returns an error otherwise.
+	// pp must be a pointer to:
+	//
+	// - pointer to a base size type (uint8, int64, float32, etc)
+	// - struct
+	// - array of the above
+	// - slice of the above
+	//
+	// and the value must be nil. Returns an error otherwise.
+	//
+	// If a pointer to a slice is passed in, it is initialized to the length and
+	// capacity set to the maximum number of elements this slice can represent.
 	//
 	// The pointer initialized points to the same address as Bytes().
-	Struct(pp reflect.Value) error
+	AsPOD(pp interface{}) error
 	// PhysAddr is the physical address. It can be either 32 bits or 64 bits,
 	// depending on the bitness of the OS kernel, not on the user mode build,
 	// e.g. you could have compiled on a 32 bits Go toolchain but running on a

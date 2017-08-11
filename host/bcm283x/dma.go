@@ -44,7 +44,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"reflect"
 	"strings"
 
 	"periph.io/x/periph/host/pmem"
@@ -661,13 +660,6 @@ func physToBus(p uint32) uint32 {
 // This should take a fraction of a second and will make sure the driver is
 // usable. This ensures there's at least one DMA channel available.
 func smokeTest() error {
-	// Verify internal assumptions.
-	if reflect.TypeOf((*controlBlock)(nil)).Elem().Size() != 256/8 {
-		return errors.New("internal error: controlBlock")
-	}
-	if reflect.TypeOf((*dmaChannel)(nil)).Elem().Size() != 0x100 {
-		return errors.New("internal error: dmaChannel")
-	}
 	// If these are commented out due to a new processor having different
 	// characteristics, the corresponding code needs to be updated.
 	if dmaMemory.channels[6].debug&dmaLite != 0 {
@@ -695,7 +687,7 @@ func smokeTest() error {
 		}
 		defer pCB.Close()
 		var cb *controlBlock
-		if err := pCB.Struct(reflect.ValueOf(&cb)); err != nil {
+		if err := pCB.AsPOD(&cb); err != nil {
 			return err
 		}
 		if false {
@@ -739,7 +731,7 @@ func (d *driverDMA) Prerequisites() []string {
 
 func (d *driverDMA) Init() (bool, error) {
 	// baseAddr is initialized by prerequisite driver bcm283x-gpio.
-	if err := pmem.MapStruct(uint64(baseAddr+0x7000), reflect.ValueOf(&dmaMemory)); err != nil {
+	if err := pmem.MapAsPOD(uint64(baseAddr+0x7000), &dmaMemory); err != nil {
 		if os.IsPermission(err) {
 			return true, fmt.Errorf("need more access, try as root: %v", err)
 		}
@@ -747,19 +739,19 @@ func (d *driverDMA) Init() (bool, error) {
 	}
 	// Channel #15 is "physically removed from the other DMA Channels so it has a
 	// different address base".
-	if err := pmem.MapStruct(uint64(baseAddr+0xE05000), reflect.ValueOf(&dmaChannel15)); err != nil {
+	if err := pmem.MapAsPOD(uint64(baseAddr+0xE05000), &dmaChannel15); err != nil {
 		return true, err
 	}
-	if err := pmem.MapStruct(uint64(baseAddr+0x203000), reflect.ValueOf(&pcmMemory)); err != nil {
+	if err := pmem.MapAsPOD(uint64(baseAddr+0x203000), &pcmMemory); err != nil {
 		return true, err
 	}
-	if err := pmem.MapStruct(uint64(baseAddr+0x20C000), reflect.ValueOf(&pwmMemory)); err != nil {
+	if err := pmem.MapAsPOD(uint64(baseAddr+0x20C000), &pwmMemory); err != nil {
 		return true, err
 	}
-	if err := pmem.MapStruct(uint64(baseAddr+0x101000), reflect.ValueOf(&clockMemory)); err != nil {
+	if err := pmem.MapAsPOD(uint64(baseAddr+0x101000), &clockMemory); err != nil {
 		return true, err
 	}
-	if err := pmem.MapStruct(uint64(baseAddr+0x3000), reflect.ValueOf(&timerMemory)); err != nil {
+	if err := pmem.MapAsPOD(uint64(baseAddr+0x3000), &timerMemory); err != nil {
 		return true, err
 	}
 	return true, smokeTest()

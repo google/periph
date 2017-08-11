@@ -31,13 +31,32 @@ func (s *Slice) Bytes() []byte {
 	return *s
 }
 
-// Struct implements Mem.
-func (s *Slice) Struct(pp reflect.Value) error {
-	size, err := isPP(pp)
+// AsPOD implements Mem.
+func (s *Slice) AsPOD(pp interface{}) error {
+	if pp == nil {
+		return wrapf("require Ptr, got nil")
+	}
+	vpp := reflect.ValueOf(pp)
+	if elemSize, err := isPS(len(*s), vpp); err == nil {
+		p := vpp.Elem()
+		t := p.Type().Elem()
+		if elemSize > len(*s) {
+			return wrapf("can't map slice of struct %s (size %d) on [%d]byte", t, elemSize, len(*s))
+		}
+		nbElems := len(*s) / elemSize
+		// Use casting black magic to set the internal slice headers.
+		hdr := (*reflect.SliceHeader)(unsafe.Pointer(p.UnsafeAddr()))
+		hdr.Data = ((*reflect.SliceHeader)(unsafe.Pointer(s))).Data
+		hdr.Len = nbElems
+		hdr.Cap = nbElems
+		return nil
+	}
+
+	size, err := isPP(vpp)
 	if err != nil {
 		return err
 	}
-	p := pp.Elem()
+	p := vpp.Elem()
 	t := p.Type().Elem()
 	if size > len(*s) {
 		return wrapf("can't map struct %s (size %d) on [%d]byte", t, size, len(*s))
@@ -101,8 +120,19 @@ func Map(base uint64, size int) (*View, error) {
 	return nil, wrapf("physical memory mapping is not supported on this platform")
 }
 
-// MapStruct is a shorthand to call Map(base, sizeof(v)) then Struct(v).
-func MapStruct(base uint64, v reflect.Value) error {
+// MapAsPOD is a leaky shorthand of calling Map(base, sizeof(v)) then AsPOD(v).
+//
+// There is no way to reclaim the memory map.
+//
+// A slice cannot be used, as it does not have inherent size. Use an aray
+// instead.
+func MapAsPOD(base uint64, i interface{}) error {
+	// Automatically determine the necessary size. Because of this, slice of
+	// unspecified length cannot be used here.
+	if i == nil {
+		return wrapf("require Ptr, got nil")
+	}
+	v := reflect.ValueOf(i)
 	size, err := isPP(v)
 	if err != nil {
 		return err
@@ -111,7 +141,7 @@ func MapStruct(base uint64, v reflect.Value) error {
 	if err != nil {
 		return err
 	}
-	return m.Struct(v)
+	return m.AsPOD(i)
 }
 
 //
@@ -186,14 +216,31 @@ func openDevMemLinux() (fileIO, error) {
 	return devMem, devMemErr
 }
 
+func isAcceptableInner(t reflect.Type) error {
+	switch k := t.Kind(); k {
+	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+		reflect.Float32, reflect.Float64:
+		return nil
+	case reflect.Array:
+		return isAcceptableInner(t.Elem())
+	case reflect.Struct:
+		for i := 0; i < t.NumField(); i++ {
+			if err := isAcceptableInner(t.Field(i).Type); err != nil {
+				return err
+			}
+		}
+		return nil
+	default:
+		return wrapf("require Ptr to Ptr to a POD type, got Ptr to Ptr to %s", k)
+	}
+}
+
 // isPP makes sure it is a pointer to a nil-pointer to something. It does
 // sanity checks to reduce likelihood of a panic().
 func isPP(pp reflect.Value) (int, error) {
 	if k := pp.Kind(); k != reflect.Ptr {
-		return 0, wrapf("require Ptr, got %s", k)
-	}
-	if pp.IsNil() {
-		return 0, wrapf("require Ptr to be valid")
+		return 0, wrapf("require Ptr, got %s of %s", k, pp.Type().Name())
 	}
 	p := pp.Elem()
 	if k := p.Kind(); k != reflect.Ptr {
@@ -204,8 +251,29 @@ func isPP(pp reflect.Value) (int, error) {
 	}
 	// p.Elem() can't be used since it's a nil pointer. Use the type instead.
 	t := p.Type().Elem()
-	if k := t.Kind(); k != reflect.Struct && k != reflect.Array {
-		return 0, wrapf("require Ptr to Ptr to a struct or an array, got Ptr to Ptr to %d", k)
+	if err := isAcceptableInner(t); err != nil {
+		return 0, err
+	}
+	return int(t.Size()), nil
+}
+
+// isPS makes sure it is a pointer to a nil-slice of something. It does
+// sanity checks to reduce likelihood of a panic().
+func isPS(bufSize int, ps reflect.Value) (int, error) {
+	if k := ps.Kind(); k != reflect.Ptr {
+		return 0, wrapf("require Ptr, got %s of %s", k, ps.Type().Name())
+	}
+	s := ps.Elem()
+	if k := s.Kind(); k != reflect.Slice {
+		return 0, wrapf("require Ptr to Slice, got %s", k)
+	}
+	if !s.IsNil() {
+		return 0, wrapf("require Ptr to Slice to be nil")
+	}
+	// s.Elem() can't be used since it's a nil slice. Use the type instead.
+	t := s.Type().Elem()
+	if err := isAcceptableInner(t); err != nil {
+		return 0, err
 	}
 	return int(t.Size()), nil
 }

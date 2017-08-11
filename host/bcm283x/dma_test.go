@@ -4,7 +4,10 @@
 
 package bcm283x
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 func TestDmaStatus_String(t *testing.T) {
 	if s := dmaStatus(0).String(); s != "0" {
@@ -128,9 +131,21 @@ func TestDmaChannel_GoString(t *testing.T) {
 	}
 }
 
-func TestDmaMap(t *testing.T) {
+func TestDmaMap_GoString(t *testing.T) {
 	d := dmaMap{}
+	// I have to admit, this is the worst test ever.
 	if s := d.GoString(); len(s) != 3629 {
 		t.Fatal(s, len(s))
 	}
+}
+
+func TestStructSizes(t *testing.T) {
+	// Verify internal assumptions.
+	if s := reflect.TypeOf((*controlBlock)(nil)).Elem().Size(); s != 256/8 {
+		t.Fatalf("controlBlock size: %d", s)
+	}
+	if s := reflect.TypeOf((*dmaChannel)(nil)).Elem().Size(); s != 0x100 {
+		t.Fatalf("dmaChannel size: %d", s)
+	}
+
 }
