@@ -18,9 +18,9 @@ package allwinner
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 
-	"github.com/kr/pretty"
 	"periph.io/x/periph/host/pmem"
 )
 
@@ -127,7 +127,7 @@ func (d *dmaDedicatedGroup) set(srcAddr, dstAddr, l uint32, srcIO, dstIO bool, s
 	for i := 0; d.cfg&ddmaLoad != 0 && i < 100000; i++ {
 	}
 	if d.cfg&ddmaLoad != 0 {
-		pretty.Printf("failed to load DDMA: %# v\n", d)
+		log.Printf("failed to load DDMA: %# v\n", d)
 	}
 }
 

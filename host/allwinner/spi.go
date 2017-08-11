@@ -7,9 +7,8 @@ package allwinner
 import (
 	"errors"
 	"fmt"
+	"log"
 	"time"
-
-	"github.com/kr/pretty"
 )
 
 var (
@@ -184,7 +183,7 @@ func spi2Write(w []byte) error {
 		// TODO(maruel): Access it in 8bit mode.
 		ch.tx = uint32(w[0])
 		for ch.fifoStatus.tx() == 0 {
-			pretty.Printf("Waiting for bit %# v\n", ch)
+			log.Printf("Waiting for bit %# v\n", ch)
 			time.Sleep(time.Second)
 		}
 	}
