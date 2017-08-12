@@ -11,10 +11,6 @@ import (
 	"log"
 	"testing"
 
-	"golang.org/x/image/font"
-	"golang.org/x/image/font/basicfont"
-	"golang.org/x/image/math/fixed"
-
 	"periph.io/x/periph/conn/conntest"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpiotest"
@@ -37,15 +33,20 @@ func Example() {
 	}
 
 	// Draw on it.
-	f := basicfont.Face7x13
 	img := image1bit.NewVerticalLSB(dev.Bounds())
-	drawer := font.Drawer{
-		Dst:  img,
-		Src:  &image.Uniform{image1bit.On},
-		Face: f,
-		Dot:  fixed.P(0, img.Bounds().Dy()-1-f.Descent),
-	}
-	drawer.DrawString("Hello from periph!")
+	// Note: this code is commented out so periph does not depend on:
+	//    "golang.org/x/image/font"
+	//    "golang.org/x/image/font/basicfont"
+	//    "golang.org/x/image/math/fixed"
+	//
+	// f := basicfont.Face7x13
+	// drawer := font.Drawer{
+	// 	Dst:  img,
+	// 	Src:  &image.Uniform{image1bit.On},
+	// 	Face: f,
+	// 	Dot:  fixed.P(0, img.Bounds().Dy()-1-f.Descent),
+	// }
+	// drawer.DrawString("Hello from periph!")
 	dev.Draw(dev.Bounds(), img, image.Point{})
 	if err := dev.Err(); err != nil {
 		log.Fatal(err)

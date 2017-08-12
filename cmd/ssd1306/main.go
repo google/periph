@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+//go:generate go run gen.go
+
 // ssd1306 writes to a display driven by a ssd1306 controler.
 package main
 
@@ -19,10 +21,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-
-	"golang.org/x/image/font"
-	"golang.org/x/image/font/basicfont"
-	"golang.org/x/image/math/fixed"
+	"unicode/utf8"
 
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
@@ -102,23 +101,16 @@ func resize(src image.Image, size image.Point) *image.NRGBA {
 	return dst
 }
 
-// drawText draws text at the bottom right of img.
-func drawText(img draw.Image, text string) {
-	f := basicfont.Face7x13
-	advance := font.MeasureString(f, text).Ceil()
+// drawTextBottomRight draws text at the bottom right of img.
+func drawTextBottomRight(img draw.Image, text string) {
+	advance := utf8.RuneCountInString(text) * 7
 	bounds := img.Bounds()
 	if advance > bounds.Dx() {
 		advance = 0
 	} else {
 		advance = bounds.Dx() - advance
 	}
-	drawer := font.Drawer{
-		Dst:  img,
-		Src:  &image.Uniform{image1bit.On},
-		Face: f,
-		Dot:  fixed.P(advance, bounds.Dy()-1-f.Descent),
-	}
-	drawer.DrawString(text)
+	drawText(img, image.Point{advance, bounds.Dy() - 1 - 13}, text)
 }
 
 // convert resizes and converts to black and white an image while keeping
@@ -218,7 +210,7 @@ func mainImpl() error {
 		imgs := make([]*image1bit.VerticalLSB, len(g.Image))
 		for i := range g.Image {
 			imgs[i] = convert(s, g.Image[i])
-			drawText(imgs[i], *text)
+			drawTextBottomRight(imgs[i], *text)
 		}
 		for i := 0; g.LoopCount <= 0 || i < g.LoopCount*len(g.Image); i++ {
 			index := i % len(g.Image)
@@ -236,7 +228,7 @@ func mainImpl() error {
 	}
 
 	img := convert(s, src)
-	drawText(img, *text)
+	drawTextBottomRight(img, *text)
 	s.Draw(img.Bounds(), img, image.Point{})
 	return s.Halt()
 }
