@@ -6,11 +6,13 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
+	"os/signal"
 	"time"
 
 	"periph.io/x/periph/conn/i2c"
@@ -33,28 +35,45 @@ func printPin(fn string, p pin.Pin) {
 	}
 }
 
-func read(e devices.Environmental, interval time.Duration) error {
-	var t *time.Ticker
-	if interval != 0 {
-		t = time.NewTicker(interval)
-	}
-	for {
-		var env devices.Environment
-		if err := e.Sense(&env); err != nil {
+func printEnv(env *devices.Environment) {
+	fmt.Printf("%8s %10s %9s\n", env.Temperature, env.Pressure, env.Humidity)
+}
+
+func run(dev *bme280.Dev, interval time.Duration, f bme280.Filter) (err error) {
+	defer func() {
+		if err2 := dev.Halt(); err == nil {
+			err = err2
+		}
+	}()
+
+	if interval == 0 {
+		e := devices.Environment{}
+		if err = dev.Sense(&e); err != nil {
 			return err
 		}
-		fmt.Printf("%8s %10s %9s\n", env.Temperature, env.Pressure, env.Humidity)
-		if t == nil {
-			break
-		}
-		<-t.C
+		printEnv(&e)
+		return nil
 	}
-	return nil
+
+	c, err2 := dev.SenseContinuous(interval, f)
+	if err2 != nil {
+		return err2
+	}
+	chanSignal := make(chan os.Signal)
+	signal.Notify(chanSignal, os.Interrupt)
+	for {
+		select {
+		case <-chanSignal:
+			return nil
+		case e := <-c:
+			printEnv(&e)
+		}
+	}
 }
 
 func mainImpl() error {
-	i2cID := flag.String("i2c", "", "I²C bus to use")
-	i2cADDR := flag.Uint("ia", 0, "I²C bus address to use")
+	i2cID := flag.String("i2c", "", "I²C bus to use (default)")
+	i2cADDR := flag.Uint("ia", 0x76, "I²C bus address to use; either 0x76 or 0x77")
 	spiID := flag.String("spi", "", "SPI port to use")
 	hz := flag.Int("hz", 0, "I²C bus/SPI port speed")
 	sample1x := flag.Bool("s1", false, "sample at 1x")
@@ -74,7 +93,7 @@ func mainImpl() error {
 	}
 	log.SetFlags(log.Lmicroseconds)
 
-	opts := bme280.Opts{Standby: bme280.S20ms}
+	opts := bme280.Opts{}
 	s := bme280.O4x
 	if *sample1x {
 		s = bme280.O1x
@@ -90,18 +109,32 @@ func mainImpl() error {
 	opts.Temperature = s
 	opts.Pressure = s
 	opts.Humidity = s
+	f := bme280.NoFilter
 	if *filter2x {
-		opts.Filter = bme280.F2
+		if *interval == 0 {
+			return errors.New("-f2 only makes sense with -i")
+		}
+		f = bme280.F2
 	} else if *filter4x {
-		opts.Filter = bme280.F4
+		if *interval == 0 {
+			return errors.New("-f4 only makes sense with -i")
+		}
+		f = bme280.F4
 	} else if *filter8x {
-		opts.Filter = bme280.F8
+		if *interval == 0 {
+			return errors.New("-f8 only makes sense with -i")
+		}
+		f = bme280.F8
 	} else if *filter16x {
-		opts.Filter = bme280.F16
+		if *interval == 0 {
+			return errors.New("-f16 only makes sense with -i")
+		}
+		f = bme280.F16
 	}
-	if *i2cADDR != 0 {
-		opts.Address = uint16(*i2cADDR)
+	if *i2cADDR != 0x76 && *i2cADDR > 0x77 {
+		return errors.New("-ia must be either 0x76 or 0x77")
 	}
+	opts.Address = uint16(*i2cADDR)
 
 	if _, err := host.Init(); err != nil {
 		return err
@@ -147,13 +180,7 @@ func mainImpl() error {
 			return err
 		}
 	}
-
-	err := read(dev, *interval)
-	err2 := dev.Halt()
-	if err != nil {
-		return err
-	}
-	return err2
+	return run(dev, *interval, f)
 }
 
 func main() {
