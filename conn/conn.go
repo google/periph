@@ -54,7 +54,7 @@ func (i Duplex) String() string {
 // - fmt.Stringer which returns something meaningful to the user like "SPI0.1",
 // "I2C1.76", "COM6", etc.
 //
-// - io.Reader and io.Writer as an way to use io.Copy() for half duplex
+// - io.Reader and io.Writer as a way to use io.Copy() for half duplex
 // operation.
 //
 // - io.Closer for the owner of the communication channel.
