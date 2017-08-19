@@ -175,7 +175,7 @@ func NewI2C(b i2c.Bus, opts *Opts) (*Dev, error) {
 // When using SPI, the CS line must be used.
 func NewSPI(p spi.Port, opts *Opts) (*Dev, error) {
 	// It works both in Mode0 and Mode3.
-	c, err := p.DevParams(10000000, spi.Mode3, 8)
+	c, err := p.Connect(10000000, spi.Mode3, 8)
 	if err != nil {
 		return nil, err
 	}

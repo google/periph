@@ -76,9 +76,9 @@ func (m Mode) String() string {
 // Packet represents one packet when sending multiple packets as a transaction.
 type Packet struct {
 	// W and R are the output and input data. When HalfDuplex is specified to
-	// DevParams, only one of the two can be set.
+	// Connect, only one of the two can be set.
 	W, R []byte
-	// BitsPerWord overrides the default bits per word value set in DevParams.
+	// BitsPerWord overrides the default bits per word value set in Connect.
 	BitsPerWord uint8
 	// KeepCS tells the driver to keep CS asserted after this packet is
 	// completed. This can be leveraged to create long transaction as multiple
@@ -93,7 +93,7 @@ type Packet struct {
 	// It cannot be expected that the driver will correctly keep CS asserted even
 	// if KeepCS:true on the last packet.
 	//
-	// KeepCS is ignored when NoCS was specified to DevParams.
+	// KeepCS is ignored when NoCS was specified to Connect.
 	KeepCS bool
 }
 
@@ -116,12 +116,12 @@ type Conn interface {
 // Port is the interface to be provided to device drivers.
 //
 // The device driver, that is the driver for the peripheral connected over
-// this port, calls DevParams() to retrieve a configured connection as Conn.
+// this port, calls Connect() to retrieve a configured connection as Conn.
 type Port interface {
-	// DevParams sets the communication parameters of the connection for use by a
+	// Connect sets the communication parameters of the connection for use by a
 	// device.
 	//
-	// The device driver must calls this function exactly once.
+	// The device driver must call this function exactly once.
 	//
 	// maxHz must specify the maximum rated speed by the device's spec. The lowest
 	// speed between the port speed and the device speed is selected. Use 0 for
@@ -129,7 +129,9 @@ type Port interface {
 	//
 	// mode specifies the clock and signal polarities, if the port is using half
 	// duplex (shared MISO and MOSI) or if CS is not needed.
-	DevParams(maxHz int64, mode Mode, bits int) (Conn, error)
+	//
+	// bits is the number of bits per word. Generally you should use 8.
+	Connect(maxHz int64, mode Mode, bits int) (Conn, error)
 }
 
 // PortCloser is a SPI port that can be closed.

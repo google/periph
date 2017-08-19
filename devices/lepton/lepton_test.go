@@ -144,11 +144,11 @@ func TestNew_fail_no_Pins(t *testing.T) {
 	}
 }
 
-func TestNew_DevParams(t *testing.T) {
+func TestNew_Connect(t *testing.T) {
 	i := i2ctest.Record{}
 	s := spiStream{err: errors.New("injected")}
 	if _, err := New(&s, &i, &gpiotest.Pin{N: "CS"}); err == nil {
-		t.Fatal("DevParams failed")
+		t.Fatal("Connect failed")
 	}
 }
 
@@ -370,7 +370,7 @@ type spiStream struct {
 	err    error
 }
 
-func (s *spiStream) DevParams(maxHz int64, mode spi.Mode, bits int) (spi.Conn, error) {
+func (s *spiStream) Connect(maxHz int64, mode spi.Mode, bits int) (spi.Conn, error) {
 	if maxHz != 20000000 {
 		s.t.Fatal(maxHz)
 	}

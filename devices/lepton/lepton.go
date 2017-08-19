@@ -84,7 +84,7 @@ type Dev struct {
 // New returns an initialized connection to the FLIR Lepton.
 //
 // The CS line is manually managed by using mode spi.NoCS when calling
-// DevParams(). In this case pass nil for the cs parameter. Some spidev drivers
+// Connect(). In this case pass nil for the cs parameter. Some spidev drivers
 // refuse spi.NoCS, they do not implement proper support to not trigger the CS
 // line so a manual CS (really, any GPIO pin) must be used instead.
 //
@@ -112,7 +112,7 @@ func New(p spi.Port, i i2c.Bus, cs gpio.PinOut) (*Dev, error) {
 	}
 	// TODO(maruel): Switch to 16 bits per word, so that big endian 16 bits word
 	// decoding is done by the SPI driver.
-	s, err := p.DevParams(20000000, mode, 8)
+	s, err := p.Connect(20000000, mode, 8)
 	if err != nil {
 		return nil, err
 	}

@@ -105,7 +105,7 @@ func TestSPISense_success(t *testing.T) {
 
 func TestNewSPI_fail(t *testing.T) {
 	if d, err := NewSPI(&spiFail{}, nil); d != nil || err == nil {
-		t.Fatal("DevParams() have failed")
+		t.Fatal("Connect() have failed")
 	}
 }
 
@@ -545,6 +545,6 @@ type spiFail struct {
 	spitest.Playback
 }
 
-func (s *spiFail) DevParams(maxHz int64, mode spi.Mode, bits int) (spi.Conn, error) {
+func (s *spiFail) Connect(maxHz int64, mode spi.Mode, bits int) (spi.Conn, error) {
 	return nil, errors.New("failing")
 }
