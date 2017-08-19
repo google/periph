@@ -24,7 +24,7 @@ const (
 	// Full means that communication occurs simultaneously both ways in a
 	// synchronized manner.
 	//
-	// Examples include SPI (except rare variants).
+	// Examples include SPI (except 3-wire variant).
 	Full Duplex = 2
 )
 
@@ -43,18 +43,21 @@ func (i Duplex) String() string {
 // communication channel.
 //
 // The connection can either be unidirectional (read-only, write-only) or
-// bidirectional (read-write). The connection can either be half-duplex or full
-// duplex.
+// bidirectional (read-write). It can either be half-duplex or full duplex.
 //
 // This is the lowest common denominator for all point-to-point communication
 // channels.
 //
-// Implementation are expected to also implement the following interfaces:
+// Implementation are expected but not required to also implement the following
+// interfaces:
+//
 // - fmt.Stringer which returns something meaningful to the user like "SPI0.1",
-//   "I2C1.76", "COM6", etc.
-// - io.Reader and io.Writer as an way to use io.Copy() on a read-only or
-//   write-only device. For example the FLIR Lepton is a read-only device, the
-//   SSD1306 is a write-only device.
+// "I2C1.76", "COM6", etc.
+//
+// - io.Reader and io.Writer as a way to use io.Copy() for half duplex
+// operation.
+//
+// - io.Closer for the owner of the communication channel.
 type Conn interface {
 	// Tx does a single transaction.
 	//
