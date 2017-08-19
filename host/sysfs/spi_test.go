@@ -21,7 +21,7 @@ func ExampleNewSPI() {
 	}
 	defer b.Close()
 
-	c, err := b.DevParams(1000000, spi.Mode3, 8)
+	c, err := b.Connect(1000000, spi.Mode3, 8)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -44,7 +44,7 @@ func TestNewSPI(t *testing.T) {
 
 func TestSPI_IO(t *testing.T) {
 	port := SPI{f: ioctlClose(0), busNumber: 24}
-	c, err := port.DevParams(1, spi.Mode3, 8)
+	c, err := port.Connect(1, spi.Mode3, 8)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -149,23 +149,23 @@ func TestSPI_other(t *testing.T) {
 	}
 }
 
-func TestSPI_DevParams(t *testing.T) {
+func TestSPI_Connect(t *testing.T) {
 	// Create a fake SPI to test methods.
 	port := SPI{f: ioctlClose(0), busNumber: 24}
-	if _, err := port.DevParams(-1, spi.Mode0, 8); err == nil {
+	if _, err := port.Connect(-1, spi.Mode0, 8); err == nil {
 		t.Fatal("invalid speed")
 	}
-	if _, err := port.DevParams(1, -1, 8); err == nil {
+	if _, err := port.Connect(1, -1, 8); err == nil {
 		t.Fatal("invalid mode")
 	}
-	if _, err := port.DevParams(1, spi.Mode0, 0); err == nil {
+	if _, err := port.Connect(1, spi.Mode0, 0); err == nil {
 		t.Fatal("invalid bit")
 	}
-	c, err := port.DevParams(1, spi.Mode0|spi.HalfDuplex|spi.NoCS|spi.LSBFirst, 8)
+	c, err := port.Connect(1, spi.Mode0|spi.HalfDuplex|spi.NoCS|spi.LSBFirst, 8)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := port.DevParams(1, spi.Mode0, 8); err == nil {
+	if _, err := port.Connect(1, spi.Mode0, 8); err == nil {
 		t.Fatal("double initialization")
 	}
 	if d := c.Duplex(); d != conn.Half {

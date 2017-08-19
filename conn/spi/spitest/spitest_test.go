@@ -23,7 +23,7 @@ func TestRecordRaw(t *testing.T) {
 	if err := r.LimitSpeed(-100); err != nil {
 		t.Fatal(err)
 	}
-	c, err := r.DevParams(0, spi.Mode0, 0)
+	c, err := r.Connect(0, spi.Mode0, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,7 +43,7 @@ func TestRecord_empty(t *testing.T) {
 	if err := r.LimitSpeed(-100); err != nil {
 		t.Fatal(err)
 	}
-	c, err := r.DevParams(0, spi.Mode0, 0)
+	c, err := r.Connect(0, spi.Mode0, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,7 +76,7 @@ func TestRecord_empty(t *testing.T) {
 
 func TestRecord_Tx_empty(t *testing.T) {
 	r := Record{}
-	c, err := r.DevParams(0, spi.Mode0, 8)
+	c, err := r.Connect(0, spi.Mode0, 8)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -108,7 +108,7 @@ func TestPlayback(t *testing.T) {
 	if err := p.LimitSpeed(-100); err != nil {
 		t.Fatal(err)
 	}
-	c, err := p.DevParams(0, spi.Mode0, 0)
+	c, err := p.Connect(0, spi.Mode0, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,7 +127,7 @@ func TestPlayback_Tx_err(t *testing.T) {
 			DontPanic: true,
 		},
 	}
-	c, err := p.DevParams(0, spi.Mode0, 8)
+	c, err := p.Connect(0, spi.Mode0, 8)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,7 +144,7 @@ func TestPlayback_Tx_err(t *testing.T) {
 
 func TestPlayback_Tx_empty(t *testing.T) {
 	p := Playback{Playback: conntest.Playback{DontPanic: true}}
-	c, err := p.DevParams(0, spi.Mode0, 8)
+	c, err := p.Connect(0, spi.Mode0, 8)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,7 +159,7 @@ func TestPlayback_Tx(t *testing.T) {
 			Ops: []conntest.IO{{W: []byte{10}, R: []byte{12}}},
 		},
 	}
-	c, err := p.DevParams(0, spi.Mode0, 8)
+	c, err := p.Connect(0, spi.Mode0, 8)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -192,7 +192,7 @@ func TestRecord_Playback(t *testing.T) {
 	if err := r.LimitSpeed(-100); err != nil {
 		t.Fatal(err)
 	}
-	c, err := r.DevParams(0, spi.Mode0, 8)
+	c, err := r.Connect(0, spi.Mode0, 8)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -245,7 +245,7 @@ func TestLog_Playback(t *testing.T) {
 	if err := r.LimitSpeed(-100); err != nil {
 		t.Fatal(err)
 	}
-	c, err := r.DevParams(0, spi.Mode0, 0)
+	c, err := r.Connect(0, spi.Mode0, 0)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -62,7 +62,7 @@ func ExampleOpen() {
 	defer b.Close()
 
 	// Pass b to a device driver, or if using b directly, do:
-	c, err := b.DevParams(1000000, spi.Mode3, 8)
+	c, err := b.Connect(1000000, spi.Mode3, 8)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -229,7 +229,7 @@ func (f *fakePort) LimitSpeed(maxHz int64) error {
 	return errors.New("not implemented")
 }
 
-func (f *fakePort) DevParams(maxHz int64, mode spi.Mode, bits int) (spi.Conn, error) {
+func (f *fakePort) Connect(maxHz int64, mode spi.Mode, bits int) (spi.Conn, error) {
 	return f, errors.New("not implemented")
 }
 

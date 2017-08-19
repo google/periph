@@ -340,9 +340,9 @@ func TestDevEmpty(t *testing.T) {
 	}
 }
 
-func TestDevParamsFail(t *testing.T) {
+func TestConnectFail(t *testing.T) {
 	if d, err := New(&configFail{}, 150, 255, 6500); d != nil || err == nil {
-		t.Fatal("DevParams() call have failed")
+		t.Fatal("Connect() call have failed")
 	}
 }
 
@@ -703,7 +703,7 @@ type configFail struct {
 	spitest.Record
 }
 
-func (c *configFail) DevParams(maxHz int64, mode spi.Mode, bits int) (spi.Conn, error) {
+func (c *configFail) Connect(maxHz int64, mode spi.Mode, bits int) (spi.Conn, error) {
 	return nil, errors.New("injected error")
 }
 

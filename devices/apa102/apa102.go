@@ -294,7 +294,7 @@ func (d *Dev) Halt() error {
 // https://en.wikipedia.org/wiki/Flicker_fusion_threshold is a recommended
 // reading.
 func New(p spi.Port, numLights int, intensity uint8, temperature uint16) (*Dev, error) {
-	c, err := p.DevParams(20000000, spi.Mode3, 8)
+	c, err := p.Connect(20000000, spi.Mode3, 8)
 	if err != nil {
 		return nil, err
 	}

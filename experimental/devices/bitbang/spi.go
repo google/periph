@@ -67,8 +67,8 @@ func (s *SPI) LimitSpeed(maxHz int64) error {
 	return nil
 }
 
-// DevParams implements spi.Conn.
-func (s *SPI) DevParams(maxHz int64, mode spi.Mode, bits int) error {
+// Connect implements spi.Conn.
+func (s *SPI) Connect(maxHz int64, mode spi.Mode, bits int) error {
 	if maxHz < 0 {
 		return errors.New("bitbang-spi: invalid maxHz")
 	}

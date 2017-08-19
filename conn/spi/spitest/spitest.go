@@ -41,12 +41,12 @@ func (r *RecordRaw) LimitSpeed(maxHz int64) error {
 	return nil
 }
 
-// DevParams is a no-op.
-func (r *RecordRaw) DevParams(maxHz int64, mode spi.Mode, bits int) (spi.Conn, error) {
+// Connect is a no-op.
+func (r *RecordRaw) Connect(maxHz int64, mode spi.Mode, bits int) (spi.Conn, error) {
 	r.Lock()
 	defer r.Unlock()
 	if r.Initialized {
-		return nil, conntest.Errorf("spitest: DevParams cannot be called twice")
+		return nil, conntest.Errorf("spitest: Connect cannot be called twice")
 	}
 	r.Initialized = true
 	return &recordRawConn{r}, nil
@@ -104,16 +104,16 @@ func (r *Record) LimitSpeed(maxHz int64) error {
 	return nil
 }
 
-// DevParams implements spi.PortCloser.
-func (r *Record) DevParams(maxHz int64, mode spi.Mode, bits int) (spi.Conn, error) {
+// Connect implements spi.PortCloser.
+func (r *Record) Connect(maxHz int64, mode spi.Mode, bits int) (spi.Conn, error) {
 	r.Lock()
 	defer r.Unlock()
 	if r.Initialized {
-		return nil, conntest.Errorf("spitest: DevParams cannot be called twice")
+		return nil, conntest.Errorf("spitest: Connect cannot be called twice")
 	}
 	r.Initialized = true
 	if r.Port != nil {
-		c, err := r.Port.DevParams(maxHz, mode, bits)
+		c, err := r.Port.Connect(maxHz, mode, bits)
 		if err != nil {
 			return nil, err
 		}
@@ -253,10 +253,10 @@ func (p *Playback) LimitSpeed(maxHz int64) error {
 	return nil
 }
 
-// DevParams implements spi.PortCloser.
-func (p *Playback) DevParams(maxHz int64, mode spi.Mode, bits int) (spi.Conn, error) {
+// Connect implements spi.PortCloser.
+func (p *Playback) Connect(maxHz int64, mode spi.Mode, bits int) (spi.Conn, error) {
 	if p.Initialized {
-		return nil, conntest.Errorf("spitest: DevParams cannot be called twice")
+		return nil, conntest.Errorf("spitest: Connect cannot be called twice")
 	}
 	p.Initialized = true
 	return &playbackConn{p}, nil
@@ -339,10 +339,10 @@ func (l *Log) LimitSpeed(maxHz int64) error {
 	return err
 }
 
-// DevParams implements spi.PortCloser.
-func (l *Log) DevParams(maxHz int64, mode spi.Mode, bits int) (spi.Conn, error) {
-	c, err := l.Port.DevParams(maxHz, mode, bits)
-	log.Printf("%s.DevParams(%d, %d, %d) = %v", l.Port, maxHz, mode, bits, err)
+// Connect implements spi.PortCloser.
+func (l *Log) Connect(maxHz int64, mode spi.Mode, bits int) (spi.Conn, error) {
+	c, err := l.Port.Connect(maxHz, mode, bits)
+	log.Printf("%s.Connect(%d, %d, %d) = %v", l.Port, maxHz, mode, bits, err)
 	return &LogConn{c}, err
 }
 
