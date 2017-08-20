@@ -92,6 +92,8 @@ type Opts struct {
 	// AlertPin is the pin receiving the interrupt when a touch event is detected
 	// and optionally if a release event is detected.
 	AlertPin gpio.PinIn
+	// ResetPin is the pin used to reset the device.
+	ResetPin gpio.PinOut
 
 	// InterruptOnRelease indicates if the device should also trigger an
 	// interrupt on the AlertPin when a release event is detected.

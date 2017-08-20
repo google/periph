@@ -26,7 +26,7 @@ import (
 )
 
 var (
-	inputStatuses [8]byte
+	inputStatuses [8]bool
 )
 
 // Dev is a handle to a cap1198.
@@ -78,8 +78,12 @@ func (d *Dev) DeepSleep() error {
 
 // InputStatus reads and returns the status of the 8 inputs as an array where
 // each entry indicates a touch event or not.
-func (d *Dev) InputStatus() [8]byte {
-	d.readReg(0x3, inputStatuses[:])
+func (d *Dev) InputStatus() [8]bool {
+	status := make([]byte, 1)
+	d.readReg(0x3, status)
+	for i := uint8(0); i < 8; i++ {
+		inputStatuses[i] = isBitSet(status[0], 7-i)
+	}
 	return inputStatuses
 }
 
@@ -96,7 +100,7 @@ func NewI2C(b i2c.Bus, opts *Opts) (*Dev, error) {
 			return nil, errors.New("cap1198: given address not supported by device")
 		}
 	}
-	d := &Dev{d: &i2c.Dev{Bus: b, Addr: addr}, isSPI: false}
+	d := &Dev{d: &i2c.Dev{Bus: b, Addr: addr}, opts: opts, isSPI: false}
 	if err := d.makeDev(opts); err != nil {
 		return nil, err
 	}
@@ -119,7 +123,7 @@ func (d *Dev) makeDev(opts *Opts) error {
 	var productID [1]byte
 	// Read register 0xFD to read the product id.
 	if err := d.readReg(0xFD, productID[:]); err != nil {
-		return err
+		return fmt.Errorf("failed to read product id - %s", err)
 	}
 	if productID[0] != 0x50 {
 		return fmt.Errorf("cap1198: unexpected chip id %x; is this a CAP1198?", productID[0])
@@ -246,6 +250,12 @@ func (d *Dev) writeCommands(b []byte) error {
 		return fmt.Errorf("SPI isn't implemented yet")
 	}
 	return d.d.Tx(b, nil)
+}
+
+// b is the byte to check and position is the bit position
+// index 0 where 7 is the "most left bit".
+func isBitSet(b byte, pos uint8) bool {
+	return (b>>pos)&1 == 1
 }
 
 var _ devices.Device = &Dev{}
