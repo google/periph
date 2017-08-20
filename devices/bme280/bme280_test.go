@@ -47,7 +47,7 @@ func TestSPISense_success(t *testing.T) {
 	s := spitest.Playback{
 		Playback: conntest.Playback{
 			Ops: []conntest.IO{
-				// Chipd ID detection.
+				// Chip ID detection.
 				{
 					W: []byte{0xD0, 0x00},
 					R: []byte{0x00, 0x60},
@@ -123,7 +123,7 @@ func TestNewSPI_fail_len(t *testing.T) {
 		Playback: conntest.Playback{
 			Ops: []conntest.IO{
 				{
-					// Chipd ID detection.
+					// Chip ID detection.
 					W: []byte{0xD0, 0x00},
 					R: []byte{0x00},
 				},
@@ -146,7 +146,7 @@ func TestNewSPI_fail_chipid(t *testing.T) {
 		Playback: conntest.Playback{
 			Ops: []conntest.IO{
 				{
-					// Chipd ID detection.
+					// Chip ID detection.
 					W: []byte{0xD0, 0x00},
 					R: []byte{0x00, 0xFF},
 				},
@@ -164,7 +164,7 @@ func TestNewSPI_fail_chipid(t *testing.T) {
 func TestNewI2C_fail_io(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
-			// Chipd ID detection.
+			// Chip ID detection.
 			{Addr: 0x76, W: []byte{0xd0}},
 		},
 		DontPanic: true,
@@ -182,7 +182,7 @@ func TestNewI2C_fail_io(t *testing.T) {
 func TestNewI2C_fail_chipid(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
-			// Chipd ID detection.
+			// Chip ID detection.
 			{Addr: 0x76, W: []byte{0xd0}, R: []byte{0x60}},
 		},
 		DontPanic: true,
@@ -198,7 +198,7 @@ func TestNewI2C_fail_chipid(t *testing.T) {
 func TestNewI2C_calib1(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
-			// Chipd ID detection.
+			// Chip ID detection.
 			{Addr: 0x76, W: []byte{0xd0}, R: []byte{0x60}},
 			// Calibration data.
 			{
@@ -221,7 +221,7 @@ func TestNewI2C_calib1(t *testing.T) {
 func TestNewI2C_calib2(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
-			// Chipd ID detection.
+			// Chip ID detection.
 			{Addr: 0x76, W: []byte{0xd0}, R: []byte{0x60}},
 			// Calibration data.
 			{
@@ -267,7 +267,7 @@ func TestI2COpts(t *testing.T) {
 func TestI2CSense_fail(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
-			// Chipd ID detection.
+			// Chip ID detection.
 			{Addr: 0x76, W: []byte{0xd0}, R: []byte{0x60}},
 			// Calibration data.
 			{
@@ -302,7 +302,7 @@ func TestI2CSense_fail(t *testing.T) {
 func TestI2CSense_success(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
-			// Chipd ID detection.
+			// Chip ID detection.
 			{Addr: 0x76, W: []byte{0xd0}, R: []byte{0x60}},
 			// Calibration data.
 			{
@@ -355,7 +355,7 @@ func TestI2CSense_success(t *testing.T) {
 func TestI2CSense_idle_fail(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
-			// Chipd ID detection.
+			// Chip ID detection.
 			{Addr: 0x76, W: []byte{0xd0}, R: []byte{0x60}},
 			// Calibration data.
 			{
@@ -389,7 +389,7 @@ func TestI2CSense_idle_fail(t *testing.T) {
 func TestI2CSense_command_fail(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
-			// Chipd ID detection.
+			// Chip ID detection.
 			{Addr: 0x76, W: []byte{0xd0}, R: []byte{0x60}},
 			// Calibration data.
 			{
@@ -425,7 +425,7 @@ func TestI2CSense_command_fail(t *testing.T) {
 func TestI2CSenseContinuous_success(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
-			// Chipd ID detection.
+			// Chip ID detection.
 			{Addr: 0x76, W: []byte{0xd0}, R: []byte{0x60}},
 			// Calibration data.
 			{
@@ -524,6 +524,9 @@ func TestI2CSenseContinuous_success(t *testing.T) {
 	if err := dev.Halt(); err != nil {
 		t.Fatal(err)
 	}
+	if _, ok := <-c2; ok {
+		t.Fatal("c2 should be closed")
+	}
 	if err := bus.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -532,7 +535,7 @@ func TestI2CSenseContinuous_success(t *testing.T) {
 func TestI2CSenseContinuous_command_fail(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
-			// Chipd ID detection.
+			// Chip ID detection.
 			{Addr: 0x76, W: []byte{0xd0}, R: []byte{0x60}},
 			// Calibration data.
 			{
@@ -564,7 +567,7 @@ func TestI2CSenseContinuous_sense_fail(t *testing.T) {
 	}
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
-			// Chipd ID detection.
+			// Chip ID detection.
 			{Addr: 0x76, W: []byte{0xd0}, R: []byte{0x60}},
 			// Calibration data.
 			{

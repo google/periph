@@ -39,25 +39,19 @@ func printEnv(env *devices.Environment) {
 	fmt.Printf("%8s %10s %9s\n", env.Temperature, env.Pressure, env.Humidity)
 }
 
-func run(dev devices.Environmental, interval time.Duration) (err error) {
-	defer func() {
-		if err2 := dev.Halt(); err == nil {
-			err = err2
-		}
-	}()
-
+func run(dev devices.Environmental, interval time.Duration) error {
 	if interval == 0 {
 		e := devices.Environment{}
-		if err = dev.Sense(&e); err != nil {
+		if err := dev.Sense(&e); err != nil {
 			return err
 		}
 		printEnv(&e)
 		return nil
 	}
 
-	c, err2 := dev.SenseContinuous(interval)
-	if err2 != nil {
-		return err2
+	c, err := dev.SenseContinuous(interval)
+	if err != nil {
+		return err
 	}
 	chanSignal := make(chan os.Signal)
 	signal.Notify(chanSignal, os.Interrupt)
@@ -69,6 +63,7 @@ func run(dev devices.Environmental, interval time.Duration) (err error) {
 			printEnv(&e)
 		}
 	}
+	return nil
 }
 
 func mainImpl() error {
@@ -176,7 +171,11 @@ func mainImpl() error {
 			return err
 		}
 	}
-	return run(dev, *interval)
+	err := run(dev, *interval)
+	if err2 := dev.Halt(); err == nil {
+		err = err2
+	}
+	return err
 }
 
 func main() {
