@@ -81,7 +81,9 @@ func newSPI(busNumber, chipSelect int) (*SPI, error) {
 func (s *SPI) Close() error {
 	s.Lock()
 	defer s.Unlock()
-	return s.f.Close()
+	if err := s.f.Close(); err != nil {
+		return fmt.Errorf("sysfs-spi: %v", err)
+	}
 }
 
 func (s *SPI) String() string {
