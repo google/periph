@@ -198,3 +198,4 @@ func init() {
 var _ gpio.PinIn = &LED{}
 var _ gpio.PinOut = &LED{}
 var _ gpio.PinIO = &LED{}
+var _ fmt.Stringer = &LED{}

@@ -6,11 +6,13 @@ package sysfs
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"sync"
+	"time"
 
 	"periph.io/x/periph"
 	"periph.io/x/periph/devices"
@@ -47,6 +49,10 @@ type ThermalSensor struct {
 
 func (t *ThermalSensor) String() string {
 	return t.name
+}
+
+func (t *ThermalSensor) Halt() error {
+	return nil
 }
 
 // Type returns the type of sensor as exported by sysfs.
@@ -97,6 +103,12 @@ func (t *ThermalSensor) Sense(env *devices.Environment) error {
 	}
 	env.Temperature = devices.Celsius(i)
 	return nil
+}
+
+// SenseContinuous implements devices.Environmental.
+func (t *ThermalSensor) SenseContinuous(interval time.Duration) (<-chan devices.Environment, error) {
+	// TODO(maruel): Manually poll in a loop via time.NewTicker.
+	return nil, errors.New("not implemented")
 }
 
 //
@@ -160,3 +172,4 @@ func init() {
 }
 
 var _ devices.Environmental = &ThermalSensor{}
+var _ fmt.Stringer = &ThermalSensor{}

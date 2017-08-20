@@ -6,6 +6,7 @@ package devicestest
 
 import (
 	"errors"
+	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
@@ -16,6 +17,14 @@ import (
 // Display is a fake devices.Display.
 type Display struct {
 	Img *image.NRGBA
+}
+
+func (d *Display) String() string {
+	return "Display"
+}
+
+func (d *Display) Halt() error {
+	return nil
 }
 
 // Write implements devices.Display.
@@ -43,3 +52,5 @@ func (d *Display) Draw(r image.Rectangle, src image.Image, sp image.Point) {
 }
 
 var _ devices.Display = &Display{}
+var _ devices.Device = &Display{}
+var _ fmt.Stringer = &Display{}

@@ -44,6 +44,10 @@ func New() (*Conn, error) {
 	return c, nil
 }
 
+func (c *Conn) String() string {
+	return "lirc"
+}
+
 // Close closes the socket to lirc. It is not a requirement to close before
 // process termination.
 func (c *Conn) Close() error {
@@ -260,3 +264,4 @@ func getPins() (int, int) {
 }
 
 var _ ir.Conn = &Conn{}
+var _ fmt.Stringer = &Conn{}

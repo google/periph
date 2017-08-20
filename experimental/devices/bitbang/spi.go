@@ -195,3 +195,4 @@ func (s *SPI) sleepHalfCycle() {
 }
 
 var _ spi.Conn = &SPI{}
+var _ fmt.Stringer = &SPI{}

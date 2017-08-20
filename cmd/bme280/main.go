@@ -39,7 +39,7 @@ func printEnv(env *devices.Environment) {
 	fmt.Printf("%8s %10s %9s\n", env.Temperature, env.Pressure, env.Humidity)
 }
 
-func run(dev *bme280.Dev, interval time.Duration, f bme280.Filter) (err error) {
+func run(dev devices.Environmental, interval time.Duration) (err error) {
 	defer func() {
 		if err2 := dev.Halt(); err == nil {
 			err = err2
@@ -55,7 +55,7 @@ func run(dev *bme280.Dev, interval time.Duration, f bme280.Filter) (err error) {
 		return nil
 	}
 
-	c, err2 := dev.SenseContinuous(interval, f)
+	c, err2 := dev.SenseContinuous(interval)
 	if err2 != nil {
 		return err2
 	}
@@ -93,7 +93,6 @@ func mainImpl() error {
 	}
 	log.SetFlags(log.Lmicroseconds)
 
-	opts := bme280.Opts{}
 	s := bme280.O4x
 	if *sample1x {
 		s = bme280.O1x
@@ -106,30 +105,27 @@ func mainImpl() error {
 	} else if *sample16x {
 		s = bme280.O16x
 	}
-	opts.Temperature = s
-	opts.Pressure = s
-	opts.Humidity = s
-	f := bme280.NoFilter
+	opts := bme280.Opts{Temperature: s, Pressure: s, Humidity: s}
 	if *filter2x {
 		if *interval == 0 {
 			return errors.New("-f2 only makes sense with -i")
 		}
-		f = bme280.F2
+		opts.Filter = bme280.F2
 	} else if *filter4x {
 		if *interval == 0 {
 			return errors.New("-f4 only makes sense with -i")
 		}
-		f = bme280.F4
+		opts.Filter = bme280.F4
 	} else if *filter8x {
 		if *interval == 0 {
 			return errors.New("-f8 only makes sense with -i")
 		}
-		f = bme280.F8
+		opts.Filter = bme280.F8
 	} else if *filter16x {
 		if *interval == 0 {
 			return errors.New("-f16 only makes sense with -i")
 		}
-		f = bme280.F16
+		opts.Filter = bme280.F16
 	}
 	if *i2cADDR != 0x76 && *i2cADDR > 0x77 {
 		return errors.New("-ia must be either 0x76 or 0x77")
@@ -180,7 +176,7 @@ func mainImpl() error {
 			return err
 		}
 	}
-	return run(dev, *interval, f)
+	return run(dev, *interval)
 }
 
 func main() {

@@ -201,3 +201,4 @@ func (d *Dev) sleepHalfCycle() {
 }
 
 var _ devices.Device = &Dev{}
+var _ fmt.Stringer = &Dev{}

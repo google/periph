@@ -9,11 +9,13 @@ import (
 	"image"
 	"image/color"
 	"io"
+	"time"
 )
 
 // Device is a basic device.
+//
+// It is expected to implement fmt.Stringer.
 type Device interface {
-	fmt.Stringer
 	// Halt stops the device.
 	//
 	// Unlike a connection, a device cannot be closed, only the port can be
@@ -28,6 +30,8 @@ type Device interface {
 // What Display represents can be as varied as a 1 bit OLED display or a strip
 // of LED lights.
 type Display interface {
+	Device
+
 	// Writer can be used when the native display pixel format is known. Each
 	// write must cover exactly the whole screen as a single packed stream of
 	// pixels.
@@ -137,7 +141,14 @@ type Environment struct {
 
 // Environmental represents an environmental sensor.
 type Environmental interface {
+	Device
+
 	// Sense returns the value read from the sensor. Unsupported metrics are not
 	// modified.
 	Sense(env *Environment) error
+	// SenseContinuous initiates a continuous sensing at the specified interval.
+	//
+	// It is important to call Halt() once done with the sensing, which will turn
+	// the device off and will close the channel.
+	SenseContinuous(interval time.Duration) (<-chan Environment, error)
 }

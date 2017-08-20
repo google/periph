@@ -150,6 +150,10 @@ func New(p spi.Port, i i2c.Bus, cs gpio.PinOut) (*Dev, error) {
 	return d, nil
 }
 
+func (d *Dev) String() string {
+	return fmt.Sprintf("Lepton(%s/%s/%s)", d.Dev, d.s, d.cs)
+}
+
 // ReadImg reads an image.
 //
 // It is ok to call other functions concurrently to send commands to the
@@ -449,3 +453,6 @@ func verifyCRC(d []byte) bool {
 	tmp[3] = 0
 	return internal.CRC16(tmp) == internal.Big16.Uint16(d[2:])
 }
+
+var _ devices.Device = &Dev{}
+var _ fmt.Stringer = &Dev{}

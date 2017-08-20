@@ -124,8 +124,7 @@ func run(i2cBus i2c.Bus, spiPort spi.PortCloser) (err error) {
 		Temperature: bme280.O16x,
 		Pressure:    bme280.O16x,
 		Humidity:    bme280.O16x,
-		Standby:     bme280.S1s,
-		Filter:      bme280.FOff,
+		Filter:      bme280.NoFilter,
 	}
 
 	i2cDev, err2 := bme280.NewI2C(i2cBus, opts)

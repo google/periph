@@ -574,3 +574,5 @@ var _ io.Writer = &spiConn{}
 var _ spi.Conn = &spiConn{}
 var _ spi.Pins = &SPI{}
 var _ spi.Pins = &spiConn{}
+var _ fmt.Stringer = &SPI{}
+var _ fmt.Stringer = &spiConn{}

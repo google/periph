@@ -93,7 +93,7 @@ const (
 	F16      Filter = 4
 )
 
-// Dev is an handle to an initialized bme280.
+// Dev is a handle to an initialized bme280.
 type Dev struct {
 	d         conn.Conn
 	isSPI     bool
@@ -109,8 +109,7 @@ func (d *Dev) String() string {
 	return fmt.Sprintf("BME280{%s}", d.d)
 }
 
-// Sense request a single one time measurement as °C, kPa and % of relative
-// humidity.
+// Sense requests a one time measurement as °C, kPa and % of relative humidity.
 //
 // The very first measurements may be of poor quality.
 func (d *Dev) Sense(env *devices.Environment) error {
@@ -138,11 +137,12 @@ func (d *Dev) Sense(env *devices.Environment) error {
 // SenseContinuous returns measurements as °C, kPa and % of relative humidity
 // on a continuous basis.
 //
-// Call Halt() to stop the sensing, which will close the channel.
+// The application must call Halt() to stop the sensing when done to stop the
+// sensor and close the channel.
 //
 // It's the responsibility of the caller to retrieve the values from the
-// channel as fast as possible.
-func (d *Dev) SenseContinuous(interval time.Duration, f Filter) (<-chan devices.Environment, error) {
+// channel as fast as possible, otherwise the interval may not be respected.
+func (d *Dev) SenseContinuous(interval time.Duration) (<-chan devices.Environment, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	if d.stop != nil {
@@ -153,7 +153,7 @@ func (d *Dev) SenseContinuous(interval time.Duration, f Filter) (<-chan devices.
 	s := chooseStandby(interval - d.measDelay)
 	err := d.writeCommands([]byte{
 		// config
-		0xF5, byte(s)<<5 | byte(f)<<2,
+		0xF5, byte(s)<<5 | byte(d.opts.Filter)<<2,
 		// ctrl_meas
 		0xF4, byte(d.opts.Temperature)<<5 | byte(d.opts.Pressure)<<2 | byte(normal),
 	})
@@ -164,7 +164,7 @@ func (d *Dev) SenseContinuous(interval time.Duration, f Filter) (<-chan devices.
 	d.stop = make(chan struct{})
 	go func() {
 		defer close(sensing)
-		d.senseContinuous(interval, sensing, d.stop)
+		d.sensingContinuous(interval, sensing, d.stop)
 	}()
 	return sensing, nil
 }
@@ -198,27 +198,30 @@ func (d *Dev) Halt() error {
 // 0x76. It can be set to 0x77. Both values depend on HW configuration of the
 // sensor's SDO pin.
 //
+// Filter is only used while using SenseContinuous().
+//
 // Recommended sensing settings as per the datasheet:
 //
 // → Weather monitoring: manual sampling once per minute, all sensors O1x.
-// Power consumption: 0.16µA. RMS noise: 3.3Pa / 30cm, 0.07%RH.
+// Power consumption: 0.16µA, filter NoFilter. RMS noise: 3.3Pa / 30cm, 0.07%RH.
 //
 // → Humidity sensing: manual sampling once per second, pressure Off, humidity
-// and temperature O1X. Power consumption: 2.9µA, 0.07%RH.
+// and temperature O1X, filter NoFilter. Power consumption: 2.9µA, 0.07%RH.
 //
 // → Indoor navigation: continuous sampling at 40ms with filter F16, pressure
-// O16x, temperature O2x, humidity O1x. Power consumption 633µA. RMS noise:
-// 0.2Pa / 1.7cm.
+// O16x, temperature O2x, humidity O1x, filter F16. Power consumption 633µA.
+// RMS noise: 0.2Pa / 1.7cm.
 //
 // → Gaming: continuous sampling at 40ms with filter F16, pressure O4x,
-// temperature O1x, humidity Off. Power consumption 581µA. RMS noise: 0.3Pa /
-// 2.5cm.
+// temperature O1x, humidity Off, filter F16. Power consumption 581µA. RMS
+// noise: 0.3Pa / 2.5cm.
 //
 // See the datasheet for more details about the trade offs.
 type Opts struct {
 	Temperature Oversampling
 	Pressure    Oversampling
 	Humidity    Oversampling
+	Filter      Filter
 	Address     uint16
 }
 
@@ -340,6 +343,9 @@ func (d *Dev) makeDev(opts *Opts) error {
 	return nil
 }
 
+// sense reads the device's registers.
+//
+// It must be called with d.mu lock held.
 func (d *Dev) sense(env *devices.Environment) error {
 	// All registers must be read in a single pass, as noted at page 21, section
 	// 4.1.
@@ -367,7 +373,7 @@ func (d *Dev) sense(env *devices.Environment) error {
 	return nil
 }
 
-func (d *Dev) senseContinuous(interval time.Duration, sensing chan<- devices.Environment, stop <-chan struct{}) {
+func (d *Dev) sensingContinuous(interval time.Duration, sensing chan<- devices.Environment, stop <-chan struct{}) {
 	t := time.NewTicker(interval)
 	defer t.Stop()
 
@@ -616,3 +622,4 @@ func (c *calibration) compensateHumidityInt(raw, tFine int32) uint32 {
 
 var _ devices.Environmental = &Dev{}
 var _ devices.Device = &Dev{}
+var _ fmt.Stringer = &Dev{}

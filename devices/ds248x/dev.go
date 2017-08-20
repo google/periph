@@ -198,3 +198,4 @@ func (e busError) Error() string  { return string(e) }
 func (e busError) BusError() bool { return true }
 
 var _ devices.Device = &Dev{}
+var _ fmt.Stringer = &Dev{}

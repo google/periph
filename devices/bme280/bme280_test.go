@@ -457,7 +457,7 @@ func TestI2CSenseContinuous_success(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	c, err := dev.SenseContinuous(time.Minute, NoFilter)
+	c, err := dev.SenseContinuous(time.Minute)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -478,7 +478,7 @@ func TestI2CSenseContinuous_success(t *testing.T) {
 	}
 
 	// This cancels the previous channel and resets the interval.
-	c2, err := dev.SenseContinuous(time.Nanosecond, NoFilter)
+	c2, err := dev.SenseContinuous(time.Nanosecond)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -552,7 +552,7 @@ func TestI2CSenseContinuous_command_fail(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := dev.SenseContinuous(time.Minute, NoFilter); err == nil {
+	if _, err := dev.SenseContinuous(time.Minute); err == nil {
 		t.Fatal("send command should have failed")
 	}
 }
@@ -586,7 +586,7 @@ func TestI2CSenseContinuous_sense_fail(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	c, err := dev.SenseContinuous(time.Minute, NoFilter)
+	c, err := dev.SenseContinuous(time.Minute)
 	if err != nil {
 		t.Fatal(err)
 	}
