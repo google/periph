@@ -73,7 +73,7 @@ func run(dev devices.Environmental, interval time.Duration) (err error) {
 
 func mainImpl() error {
 	i2cID := flag.String("i2c", "", "I²C bus to use (default)")
-	i2cADDR := flag.Uint("ia", 0x76, "I²C bus address to use; either 0x76 or 0x77")
+	i2cADDR := flag.Uint("ia", 0, "I²C bus address to use; either 0x76 or 0x77")
 	spiID := flag.String("spi", "", "SPI port to use")
 	hz := flag.Int("hz", 0, "I²C bus/SPI port speed")
 	sample1x := flag.Bool("s1", false, "sample at 1x")
