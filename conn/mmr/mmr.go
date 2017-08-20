@@ -31,6 +31,10 @@ type Dev8 struct {
 	Order binary.ByteOrder
 }
 
+func (d *Dev8) String() string {
+	return fmt.Sprintf("%s", d.Conn)
+}
+
 // ReadUint8 reads a 8 bit register.
 func (d *Dev8) ReadUint8(reg uint8) (uint8, error) {
 	if err := d.check(); err != nil {
@@ -160,6 +164,10 @@ type Dev16 struct {
 	// necessary. A good example of such need is devices communicating 32bits
 	// little endian values encoded over 16bits big endian words.
 	Order binary.ByteOrder
+}
+
+func (d *Dev16) String() string {
+	return fmt.Sprintf("%s", d.Conn)
 }
 
 // ReadUint8 reads a 8 bit register.
@@ -392,3 +400,6 @@ func isAcceptableInner(t reflect.Type) bool {
 		return false
 	}
 }
+
+var _ fmt.Stringer = &Dev8{}
+var _ fmt.Stringer = &Dev16{}
