@@ -226,7 +226,16 @@ func (d *Dev) makeDev(opts *Opts) error {
 		// customize multi touch (TODO)
 		// 0x2a, TODO
 		// customize sensitivity (TODO)
-		// 0x1F, TODO
+		0x1F, (byte(0)<<7 |
+			// Controls the sensitivity of a touch detection. The sensitivity settings act
+			// to scale the relative delta count value higher or lower based on the system parameters. A setting of
+			// 000b is the most sensitive while a setting of 111b is the least sensitive. At the more sensitive settings,
+			// touches are detected for a smaller delta capacitance corresponding to a “lighter” touch. These settings
+			// are more sensitive to noise, however, and a noisy environment may flag more false touches with higher
+			// sensitivity levels.
+			// Set to 2x: TODO: make that configurable.
+			byte(1)<<6 | byte(1)<<5 | byte(0)<<4 |
+			byte(1)<<3 | byte(1)<<2 | byte(1)<<1 | byte(1)<<0),
 		// TODO: Averaging and Sampling Config
 	}
 

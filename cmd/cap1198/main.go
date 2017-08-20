@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/i2c/i2creg"
@@ -60,6 +61,10 @@ func mainImpl() error {
 	if alertPin == nil {
 		return errors.New("invalid alert GPIO pin number")
 	}
+	if err := alertPin.In(gpio.PullUp, gpio.BothEdges); err != nil {
+		return err
+	}
+
 	resetPin := gpioreg.ByName("GPIO21")
 	if resetPin == nil {
 		return errors.New("invalid reset GPIO pin number")
