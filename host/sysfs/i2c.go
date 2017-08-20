@@ -141,6 +141,7 @@ func (i *I2C) Tx(addr uint16, w, r []byte) error {
 	if err := i.f.Ioctl(ioctlRdwr, pp); err != nil {
 		return fmt.Errorf("sysfs-i2c: %v", err)
 	}
+	return nil
 }
 
 // SetSpeed implements i2c.Bus.

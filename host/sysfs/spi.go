@@ -84,6 +84,7 @@ func (s *SPI) Close() error {
 	if err := s.f.Close(); err != nil {
 		return fmt.Errorf("sysfs-spi: %v", err)
 	}
+	return nil
 }
 
 func (s *SPI) String() string {
