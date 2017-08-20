@@ -43,6 +43,8 @@ const (
 	C140ms
 )
 
+// MaxDur is the maximum duration of a touch event before it triggers a
+// recalibration.
 type MaxDur uint8
 
 // possible touch duration values. (written as 4 bits)
@@ -83,6 +85,9 @@ type Opts struct {
 	// a recalibration can be forced when a touch is held on a button for longer
 	// than the duration specified.
 	MaxTouchDuration MaxDur
+	// EnableRecalibration is used to force the recalibration if a touch event lasts
+	// longer than MaxTouchDuration.
+	EnableRecalibration bool
 
 	// AlertPin is the pin receiving the interrupt when a touch event is detected
 	// and optionally if a release event is detected.
@@ -117,7 +122,8 @@ func DefaultOpts() *Opts {
 	return &Opts{
 		LinkedLEDs:            true,
 		MaxTouchDuration:      MaxDur5600ms,
-		InterruptOnRelease:    false,
+		EnableRecalibration:   false,
+		InterruptOnRelease:    true,
 		SamplesPerMeasurement: Avg8,
 		SamplingTime:          S1_28ms,
 		CycleTime:             C70ms,
