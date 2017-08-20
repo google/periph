@@ -9,6 +9,7 @@ package odroidc1smoketest
 import (
 	"fmt"
 	"sort"
+	"strconv"
 
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
@@ -61,7 +62,7 @@ func testOdroidC1GpioNumbers() error {
 	must := map[int]string{74: "I2CA_SDA", 75: "I2CA_SCL", 76: "I2CB_SDA", 77: "I2C_SCL",
 		107: "SPI0_MOSI", 106: "SPI0_MISO", 105: "SPI0_SCLK", 117: "SPI0_CS0"}
 	for number, name := range must {
-		pin := gpioreg.ByNumber(number)
+		pin := gpioreg.ByName(strconv.Itoa(number))
 		if pin == nil {
 			return fmt.Errorf("could not get gpio pin %d (should be %s)", number, name)
 		}

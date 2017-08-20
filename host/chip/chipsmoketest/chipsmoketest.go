@@ -9,6 +9,7 @@ package chipsmoketest
 import (
 	"fmt"
 	"sort"
+	"strconv"
 
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
@@ -77,7 +78,7 @@ func testChipHeaders() error {
 func testChipGpioNumbers() error {
 	must := map[int]string{34: "PB2", 108: "PD12", 139: "PE11", 1022: "GPIO1022"}
 	for number, name := range must {
-		pin := gpioreg.ByNumber(number)
+		pin := gpioreg.ByName(strconv.Itoa(number))
 		if pin == nil {
 			return fmt.Errorf("could not get gpio pin %d (should be %s)", number, name)
 		}
@@ -236,7 +237,7 @@ func pinByName(name string) (gpio.PinIO, error) {
 
 // pinByNumber gets a *sysfs* pin by number and calls Fatal if it fails
 func pinByNumber(n int) (gpio.PinIO, error) {
-	p, err := sysfs.PinByNumber(n)
+	p := sysfs.Pins[n]
 	if p == nil {
 		return nil, fmt.Errorf("Failed to open sysfs(%d): %s", n, err)
 	}
