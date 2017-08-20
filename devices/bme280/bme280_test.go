@@ -7,8 +7,11 @@ package bme280
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"os"
 	"testing"
+	"time"
 
 	"periph.io/x/periph/conn/conntest"
 	"periph.io/x/periph/conn/i2c/i2creg"
@@ -59,8 +62,13 @@ func TestSPISense_success(t *testing.T) {
 					W: []byte{0xE1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 					R: []byte{0x00, 0x5C, 0x01, 0x00, 0x15, 0x0F, 0x00, 0x1E},
 				},
-				{W: []byte{0x74, 0xB4, 0x72, 0x05, 0x75, 0xA0, 0x74, 0xB7}},
-				// R.
+				// Config.
+				{W: []byte{0x74, 0xB4, 0x72, 0x05, 0x75, 0xA0, 0x74, 0xB4}},
+				// Forced mode.
+				{W: []byte{0x74, 0xB5}},
+				// Check if idle.
+				{W: []byte{0xF3, 0x00}, R: []byte{0, 0}},
+				// Read measurement data.
 				{
 					W: []byte{0xF7, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 					R: []byte{0x00, 0x51, 0x9F, 0xC0, 0x9E, 0x3A, 0x50, 0x5E, 0x5B},
@@ -72,8 +80,6 @@ func TestSPISense_success(t *testing.T) {
 		Temperature: O16x,
 		Pressure:    O16x,
 		Humidity:    O16x,
-		Standby:     S1s,
-		Filter:      FOff,
 	}
 	dev, err := NewSPI(&s, &opts)
 	if err != nil {
@@ -106,6 +112,9 @@ func TestSPISense_success(t *testing.T) {
 func TestNewSPI_fail(t *testing.T) {
 	if d, err := NewSPI(&spiFail{}, nil); d != nil || err == nil {
 		t.Fatal("Connect() have failed")
+	}
+	if d, err := NewSPI(&spiFail{}, &Opts{Address: 1}); d != nil || err == nil {
+		t.Fatal("Address can't be used with SPI")
 	}
 }
 
@@ -200,7 +209,7 @@ func TestNewI2C_calib1(t *testing.T) {
 		},
 		DontPanic: true,
 	}
-	opts := Opts{Address: 0}
+	opts := Opts{Temperature: O1x, Address: 0}
 	if dev, err := NewI2C(&bus, &opts); dev != nil || err == nil {
 		t.Fatal("2nd calib read failed")
 	}
@@ -256,7 +265,6 @@ func TestI2COpts(t *testing.T) {
 }
 
 func TestI2CSense_fail(t *testing.T) {
-	// This data was generated with "bme280 -r"
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Chipd ID detection.
@@ -270,9 +278,10 @@ func TestI2CSense_fail(t *testing.T) {
 			// Calibration data.
 			{Addr: 0x76, W: []byte{0xe1}, R: []byte{0x6e, 0x1, 0x0, 0x13, 0x5, 0x0, 0x1e}},
 			// Configuration.
-			{Addr: 0x76, W: []byte{0xf4, 0x6c, 0xf2, 0x3, 0xf5, 0xe0, 0xf4, 0x6f}, R: nil},
-			// Read.
-			{Addr: 0x76, W: []byte{0xf7}},
+			{Addr: 0x76, W: []byte{0xf4, 0x6c, 0xf2, 0x3, 0xf5, 0xa0, 0xf4, 0x6c}, R: nil},
+			// Forced mode.
+			{Addr: 0x76, W: []byte{0xF4, 0xB5}},
+			// Check if idle fails.
 		},
 		DontPanic: true,
 	}
@@ -291,7 +300,6 @@ func TestI2CSense_fail(t *testing.T) {
 }
 
 func TestI2CSense_success(t *testing.T) {
-	// This data was generated with "bme280 -r"
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Chipd ID detection.
@@ -305,11 +313,15 @@ func TestI2CSense_success(t *testing.T) {
 			// Calibration data.
 			{Addr: 0x76, W: []byte{0xe1}, R: []byte{0x6e, 0x1, 0x0, 0x13, 0x5, 0x0, 0x1e}},
 			// Configuration.
-			{Addr: 0x76, W: []byte{0xf4, 0x6c, 0xf2, 0x3, 0xf5, 0xe0, 0xf4, 0x6f}, R: nil},
+			{Addr: 0x76, W: []byte{0xf4, 0x6c, 0xf2, 0x3, 0xf5, 0xa0, 0xf4, 0x6c}, R: nil},
+			// Forced mode.
+			{Addr: 0x76, W: []byte{0xF4, 0x6d}},
+			// Check if idle; not idle.
+			{Addr: 0x76, W: []byte{0xF3}, R: []byte{8}},
+			// Check if idle.
+			{Addr: 0x76, W: []byte{0xF3}, R: []byte{0}},
 			// Read.
 			{Addr: 0x76, W: []byte{0xf7}, R: []byte{0x4a, 0x52, 0xc0, 0x80, 0x96, 0xc0, 0x7a, 0x76}},
-			// Halt.
-			{Addr: 0x76, W: []byte{0xf4, 0x0}},
 		},
 	}
 	dev, err := NewI2C(&bus, nil)
@@ -337,6 +349,254 @@ func TestI2CSense_success(t *testing.T) {
 	}
 	if err := bus.Close(); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestI2CSense_idle_fail(t *testing.T) {
+	bus := i2ctest.Playback{
+		Ops: []i2ctest.IO{
+			// Chipd ID detection.
+			{Addr: 0x76, W: []byte{0xd0}, R: []byte{0x60}},
+			// Calibration data.
+			{
+				Addr: 0x76,
+				W:    []byte{0x88},
+				R:    []byte{0x10, 0x6e, 0x6c, 0x66, 0x32, 0x0, 0x5d, 0x95, 0xb8, 0xd5, 0xd0, 0xb, 0x77, 0x1e, 0x9d, 0xff, 0xf9, 0xff, 0xac, 0x26, 0xa, 0xd8, 0xbd, 0x10, 0x0, 0x4b},
+			},
+			// Calibration data.
+			{Addr: 0x76, W: []byte{0xe1}, R: []byte{0x6e, 0x1, 0x0, 0x13, 0x5, 0x0, 0x1e}},
+			// Configuration.
+			{Addr: 0x76, W: []byte{0xf4, 0x6c, 0xf2, 0x3, 0xf5, 0xa0, 0xf4, 0x6c}, R: nil},
+			// Forced mode.
+			{Addr: 0x76, W: []byte{0xF4, 0x6d}},
+			// Check if idle fails.
+		},
+		DontPanic: true,
+	}
+	dev, err := NewI2C(&bus, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s := dev.String(); s != "BME280{playback(118)}" {
+		t.Fatal(s)
+	}
+	env := devices.Environment{}
+	if dev.Sense(&env) == nil {
+		t.Fatal("isIdle() should have failed")
+	}
+}
+
+func TestI2CSense_command_fail(t *testing.T) {
+	bus := i2ctest.Playback{
+		Ops: []i2ctest.IO{
+			// Chipd ID detection.
+			{Addr: 0x76, W: []byte{0xd0}, R: []byte{0x60}},
+			// Calibration data.
+			{
+				Addr: 0x76,
+				W:    []byte{0x88},
+				R:    []byte{0x10, 0x6e, 0x6c, 0x66, 0x32, 0x0, 0x5d, 0x95, 0xb8, 0xd5, 0xd0, 0xb, 0x77, 0x1e, 0x9d, 0xff, 0xf9, 0xff, 0xac, 0x26, 0xa, 0xd8, 0xbd, 0x10, 0x0, 0x4b},
+			},
+			// Calibration data.
+			{Addr: 0x76, W: []byte{0xe1}, R: []byte{0x6e, 0x1, 0x0, 0x13, 0x5, 0x0, 0x1e}},
+			// Configuration.
+			{Addr: 0x76, W: []byte{0xf4, 0x6c, 0xf2, 0x3, 0xf5, 0xa0, 0xf4, 0x6c}, R: nil},
+			// Forced mode.
+			{Addr: 0x76, W: []byte{0xF4, 0x6d}},
+			// Check if idle.
+			{Addr: 0x76, W: []byte{0xF3}, R: []byte{0}},
+			// Read fail.
+		},
+		DontPanic: true,
+	}
+	dev, err := NewI2C(&bus, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s := dev.String(); s != "BME280{playback(118)}" {
+		t.Fatal(s)
+	}
+	env := devices.Environment{}
+	if dev.Sense(&env) == nil {
+		t.Fatal("isIdle() should have failed")
+	}
+}
+
+func TestI2CSenseContinuous_success(t *testing.T) {
+	bus := i2ctest.Playback{
+		Ops: []i2ctest.IO{
+			// Chipd ID detection.
+			{Addr: 0x76, W: []byte{0xd0}, R: []byte{0x60}},
+			// Calibration data.
+			{
+				Addr: 0x76,
+				W:    []byte{0x88},
+				R:    []byte{0x10, 0x6e, 0x6c, 0x66, 0x32, 0x0, 0x5d, 0x95, 0xb8, 0xd5, 0xd0, 0xb, 0x77, 0x1e, 0x9d, 0xff, 0xf9, 0xff, 0xac, 0x26, 0xa, 0xd8, 0xbd, 0x10, 0x0, 0x4b},
+			},
+			// Calibration data.
+			{Addr: 0x76, W: []byte{0xe1}, R: []byte{0x6e, 0x1, 0x0, 0x13, 0x5, 0x0, 0x1e}},
+			// Configuration.
+			{Addr: 0x76, W: []byte{0xf4, 0x6c, 0xf2, 0x3, 0xf5, 0xa0, 0xf4, 0x6c}, R: nil},
+			// Normal mode.
+			{Addr: 0x76, W: []byte{0xF5, 0xa0, 0xf4, 0x6f}},
+			// Read.
+			{Addr: 0x76, W: []byte{0xf7}, R: []byte{0x4a, 0x52, 0xc0, 0x80, 0x96, 0xc0, 0x7a, 0x76}},
+			// Normal mode.
+			{Addr: 0x76, W: []byte{0xF5, 0, 0xf4, 0x6f}},
+			// Read.
+			{Addr: 0x76, W: []byte{0xf7}, R: []byte{0x4a, 0x52, 0xc0, 0x80, 0x96, 0xc0, 0x7a, 0x76}},
+			// Read.
+			{Addr: 0x76, W: []byte{0xf7}, R: []byte{0x4a, 0x52, 0xc0, 0x80, 0x96, 0xc0, 0x7a, 0x76}},
+			// Read.
+			{Addr: 0x76, W: []byte{0xf7}, R: []byte{0x4a, 0x52, 0xc0, 0x80, 0x96, 0xc0, 0x7a, 0x76}},
+			// Forced mode.
+			{Addr: 0x76, W: []byte{0xF5, 0xa0, 0xf4, 0x6c}},
+		},
+	}
+	dev, err := NewI2C(&bus, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c, err := dev.SenseContinuous(time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	env := devices.Environment{}
+	select {
+	case env = <-c:
+	case <-time.After(2 * time.Second):
+		t.Fatal("failed")
+	}
+	if env.Temperature != 23720 {
+		t.Fatalf("temp %d", env.Temperature)
+	}
+	if env.Pressure != 100943 {
+		t.Fatalf("pressure %d", env.Pressure)
+	}
+	if env.Humidity != 6531 {
+		t.Fatalf("humidity %d", env.Humidity)
+	}
+
+	// This cancels the previous channel and resets the interval.
+	c2, err := dev.SenseContinuous(time.Nanosecond)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, ok := <-c; ok {
+		t.Fatal("c should be closed")
+	}
+	select {
+	case env = <-c2:
+	case <-time.After(2 * time.Second):
+		t.Fatal("failed")
+	}
+	select {
+	case env = <-c2:
+	case <-time.After(2 * time.Second):
+		t.Fatal("failed")
+	}
+	if env.Temperature != 23720 {
+		t.Fatalf("temp %d", env.Temperature)
+	}
+	if env.Pressure != 100943 {
+		t.Fatalf("pressure %d", env.Pressure)
+	}
+	if env.Humidity != 6531 {
+		t.Fatalf("humidity %d", env.Humidity)
+	}
+
+	if dev.Sense(&env) == nil {
+		t.Fatal("can't Sense() during SenseContinously")
+	}
+
+	// Inspect to make sure senseContinuous() had the time to do its things. This
+	// is a bit sad but it is the simplest way to make this test deterministic.
+	for {
+		bus.Lock()
+		count := bus.Count
+		bus.Unlock()
+		if count == 10 {
+			break
+		}
+	}
+
+	if err := dev.Halt(); err != nil {
+		t.Fatal(err)
+	}
+	if err := bus.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestI2CSenseContinuous_command_fail(t *testing.T) {
+	bus := i2ctest.Playback{
+		Ops: []i2ctest.IO{
+			// Chipd ID detection.
+			{Addr: 0x76, W: []byte{0xd0}, R: []byte{0x60}},
+			// Calibration data.
+			{
+				Addr: 0x76,
+				W:    []byte{0x88},
+				R:    []byte{0x10, 0x6e, 0x6c, 0x66, 0x32, 0x0, 0x5d, 0x95, 0xb8, 0xd5, 0xd0, 0xb, 0x77, 0x1e, 0x9d, 0xff, 0xf9, 0xff, 0xac, 0x26, 0xa, 0xd8, 0xbd, 0x10, 0x0, 0x4b},
+			},
+			// Calibration data.
+			{Addr: 0x76, W: []byte{0xe1}, R: []byte{0x6e, 0x1, 0x0, 0x13, 0x5, 0x0, 0x1e}},
+			// Configuration.
+			{Addr: 0x76, W: []byte{0xf4, 0x6c, 0xf2, 0x3, 0xf5, 0xa0, 0xf4, 0x6c}, R: nil},
+			// Normal mode fails.
+		},
+		DontPanic: true,
+	}
+	dev, err := NewI2C(&bus, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := dev.SenseContinuous(time.Minute); err == nil {
+		t.Fatal("send command should have failed")
+	}
+}
+
+func TestI2CSenseContinuous_sense_fail(t *testing.T) {
+	if !testing.Verbose() {
+		log.SetOutput(ioutil.Discard)
+		defer log.SetOutput(os.Stderr)
+	}
+	bus := i2ctest.Playback{
+		Ops: []i2ctest.IO{
+			// Chipd ID detection.
+			{Addr: 0x76, W: []byte{0xd0}, R: []byte{0x60}},
+			// Calibration data.
+			{
+				Addr: 0x76,
+				W:    []byte{0x88},
+				R:    []byte{0x10, 0x6e, 0x6c, 0x66, 0x32, 0x0, 0x5d, 0x95, 0xb8, 0xd5, 0xd0, 0xb, 0x77, 0x1e, 0x9d, 0xff, 0xf9, 0xff, 0xac, 0x26, 0xa, 0xd8, 0xbd, 0x10, 0x0, 0x4b},
+			},
+			// Calibration data.
+			{Addr: 0x76, W: []byte{0xe1}, R: []byte{0x6e, 0x1, 0x0, 0x13, 0x5, 0x0, 0x1e}},
+			// Configuration.
+			{Addr: 0x76, W: []byte{0xf4, 0x6c, 0xf2, 0x3, 0xf5, 0xa0, 0xf4, 0x6c}, R: nil},
+			// Normal mode.
+			{Addr: 0x76, W: []byte{0xF5, 0xa0, 0xf4, 0x6f}},
+			// Read fail.
+		},
+		DontPanic: true,
+	}
+	dev, err := NewI2C(&bus, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c, err := dev.SenseContinuous(time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case _, ok := <-c:
+		if ok {
+			t.Fatal("expecting channel to be closed")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("failed")
 	}
 }
 
@@ -430,6 +690,53 @@ func Example() {
 		log.Fatal(err)
 	}
 	fmt.Printf("%8s %10s %9s\n", env.Temperature, env.Pressure, env.Humidity)
+}
+
+func TestOversampling(t *testing.T) {
+	data := []struct {
+		o Oversampling
+		v int
+		s string
+	}{
+		{Off, 0, "Off"},
+		{O1x, 1, "1x"},
+		{O2x, 2, "2x"},
+		{O4x, 4, "4x"},
+		{O8x, 8, "8x"},
+		{O16x, 16, "16x"},
+		{Oversampling(100), 0, "Oversampling(100)"},
+	}
+	for i, line := range data {
+		if v := line.o.asValue(); v != line.v {
+			t.Fatalf("#%d %d != %d", i, v, line.v)
+		}
+		if s := line.o.String(); s != line.s {
+			t.Fatalf("#%d %s != %s", i, s, line.s)
+		}
+	}
+}
+
+func TestStandby(t *testing.T) {
+	data := []struct {
+		d time.Duration
+		s standby
+	}{
+		{0, s500us},
+		{time.Millisecond, s500us},
+		{10 * time.Millisecond, s10ms},
+		{20 * time.Millisecond, s20ms},
+		{62500 * time.Microsecond, s62ms},
+		{125 * time.Millisecond, s125ms},
+		{250 * time.Millisecond, s250ms},
+		{500 * time.Millisecond, s500ms},
+		{time.Second, s1s},
+		{time.Minute, s1s},
+	}
+	for i, line := range data {
+		if s := chooseStandby(line.d); s != line.s {
+			t.Fatalf("#%d chooseStandby(%s) = %d != %d", i, line.d, s, line.s)
+		}
+	}
 }
 
 func TestCalibration_compensatePressureInt64(t *testing.T) {

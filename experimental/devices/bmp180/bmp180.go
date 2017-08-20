@@ -129,6 +129,12 @@ func (d *Dev) Sense(env *devices.Environment) error {
 	return nil
 }
 
+// SenseContinuous implements devices.Environmental.
+func (d *Dev) SenseContinuous(interval time.Duration) (<-chan devices.Environment, error) {
+	// TODO(maruel): Manually poll in a loop via time.NewTicker.
+	return nil, errors.New("not implemented")
+}
+
 // Halt is a noop for the BMP180.
 func (d *Dev) Halt() error {
 	return nil
@@ -245,3 +251,4 @@ func (c *calibration) compensatePressure(up, ut int32, os Oversampling) uint32 {
 
 var _ devices.Environmental = &Dev{}
 var _ devices.Device = &Dev{}
+var _ fmt.Stringer = &Dev{}

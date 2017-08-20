@@ -432,3 +432,4 @@ func init() {
 var _ gpio.PinIn = &Pin{}
 var _ gpio.PinOut = &Pin{}
 var _ gpio.PinIO = &Pin{}
+var _ fmt.Stringer = &Pin{}

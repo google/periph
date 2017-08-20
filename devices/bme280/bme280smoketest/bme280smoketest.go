@@ -124,8 +124,7 @@ func run(i2cBus i2c.Bus, spiPort spi.PortCloser) (err error) {
 		Temperature: bme280.O16x,
 		Pressure:    bme280.O16x,
 		Humidity:    bme280.O16x,
-		Standby:     bme280.S1s,
-		Filter:      bme280.FOff,
+		Filter:      bme280.NoFilter,
 	}
 
 	i2cDev, err2 := bme280.NewI2C(i2cBus, opts)
@@ -148,25 +147,38 @@ func run(i2cBus i2c.Bus, spiPort spi.PortCloser) (err error) {
 		}
 	}()
 
-	// TODO(maruel): Generally the first measurement is way off.
 	i2cEnv := devices.Environment{}
 	spiEnv := devices.Environment{}
 	if err2 := i2cDev.Sense(&i2cEnv); err2 != nil {
 		return err2
 	}
+	printEnv(i2cDev, &i2cEnv)
 	if err2 = spiDev.Sense(&spiEnv); err2 != nil {
 		return err2
 	}
+	printEnv(spiDev, &spiEnv)
+	delta := devices.Environment{
+		Temperature: i2cEnv.Temperature - spiEnv.Temperature,
+		Pressure:    i2cEnv.Pressure - spiEnv.Pressure,
+		Humidity:    i2cEnv.Humidity - spiEnv.Humidity,
+	}
+	printEnv("Delta", &delta)
 
-	// TODO(maruel): Determine acceptable threshold.
-	if d := i2cEnv.Temperature - spiEnv.Temperature; d > 1000 || d < -1000 {
-		return fmt.Errorf("Temperature delta higher than expected (%s): I²C got %s; SPI got %s", d, i2cEnv.Temperature, spiEnv.Temperature)
+	// 1°C
+	if delta.Temperature > 1000 || delta.Temperature < -1000 {
+		return fmt.Errorf("Temperature delta higher than expected (%s): I²C got %s; SPI got %s", delta.Temperature, i2cEnv.Temperature, spiEnv.Temperature)
 	}
-	if d := i2cEnv.Pressure - spiEnv.Pressure; d > 100 || d < -100 {
-		return fmt.Errorf("Pressure delta higher than expected (%s): I²C got %s; SPI got %s", d, i2cEnv.Pressure, spiEnv.Pressure)
+	// 0.1KPa
+	if delta.Pressure > 100 || delta.Pressure < -100 {
+		return fmt.Errorf("Pressure delta higher than expected (%s): I²C got %s; SPI got %s", delta.Pressure, i2cEnv.Pressure, spiEnv.Pressure)
 	}
-	if d := i2cEnv.Humidity - spiEnv.Humidity; d > 100 || d < -100 {
-		return fmt.Errorf("Humidity delta higher than expected (%s): I²C got %s; SPI got %s", d, i2cEnv.Humidity, spiEnv.Humidity)
+	// 4%rH
+	if delta.Humidity > 400 || delta.Humidity < -400 {
+		return fmt.Errorf("Humidity delta higher than expected (%s): I²C got %s; SPI got %s", delta.Humidity, i2cEnv.Humidity, spiEnv.Humidity)
 	}
 	return nil
+}
+
+func printEnv(dev interface{}, env *devices.Environment) {
+	fmt.Printf("%-18s: %8s %10s %9s\n", dev, env.Temperature, env.Pressure, env.Humidity)
 }

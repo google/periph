@@ -175,3 +175,4 @@ func (d *Dev) readScratchpad() ([]byte, error) {
 }
 
 var _ devices.Device = &Dev{}
+var _ fmt.Stringer = &Dev{}

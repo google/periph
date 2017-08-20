@@ -12,6 +12,9 @@ package bme280
 import (
 	"errors"
 	"fmt"
+	"log"
+	"sync"
+	"time"
 
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/i2c"
@@ -31,8 +34,12 @@ import (
 type Oversampling uint8
 
 // Possible oversampling values.
+//
+// The higher the more time and power it takes to take a measurement. Even at
+// 16x for all 3 sensor, it is less than 100ms albeit increased power
+// consumption may increase the temperature reading.
 const (
-	No   Oversampling = 0
+	Off  Oversampling = 0
 	O1x  Oversampling = 1
 	O2x  Oversampling = 2
 	O4x  Oversampling = 3
@@ -40,102 +47,197 @@ const (
 	O16x Oversampling = 5
 )
 
-// Standby is the time the BME280 waits idle between measurements. This reduces
-// power consumption when the host won't read the values as fast as the
-// measurements are done.
-type Standby uint8
+const oversamplingName = "Off1x2x4x8x16x"
 
-// Possible standby values, these determines the refresh rate.
-const (
-	S500us Standby = 0
-	S10ms  Standby = 6
-	S20ms  Standby = 7
-	S62ms  Standby = 1
-	S125ms Standby = 2
-	S250ms Standby = 3
-	S500ms Standby = 4
-	S1s    Standby = 5
-)
+var oversamplingIndex = [...]uint8{0, 3, 5, 7, 9, 11, 14}
 
-// Filter specifies the internal IIR filter to get steady measurements without
-// using oversampling. This is mainly used to reduce power consumption.
+func (i Oversampling) String() string {
+	if i >= Oversampling(len(oversamplingIndex)-1) {
+		return fmt.Sprintf("Oversampling(%d)", i)
+	}
+	return oversamplingName[oversamplingIndex[i]:oversamplingIndex[i+1]]
+}
+
+func (o Oversampling) asValue() int {
+	switch o {
+	case O1x:
+		return 1
+	case O2x:
+		return 2
+	case O4x:
+		return 4
+	case O8x:
+		return 8
+	case O16x:
+		return 16
+	default:
+		return 0
+	}
+}
+
+// Filter specifies the internal IIR filter to get steadier measurements.
+//
+// Oversampling will get better measurements than filtering but at a larger
+// power consumption cost, which may slightly affect temperature measurement.
 type Filter uint8
 
 // Possible filtering values.
+//
+// The higher the filter, the slower the value converges but the more stable
+// the measurement is.
 const (
-	FOff Filter = 0
-	F2   Filter = 1
-	F4   Filter = 2
-	F8   Filter = 3
-	F16  Filter = 4
+	NoFilter Filter = 0
+	F2       Filter = 1
+	F4       Filter = 2
+	F8       Filter = 3
+	F16      Filter = 4
 )
 
-// Dev is an handle to a bme280.
+// Dev is a handle to an initialized bme280.
 type Dev struct {
-	d     conn.Conn
-	isSPI bool
-	c     calibration
+	d         conn.Conn
+	isSPI     bool
+	opts      Opts
+	measDelay time.Duration
+	c         calibration
+
+	mu   sync.Mutex
+	stop chan struct{}
 }
 
 func (d *Dev) String() string {
 	return fmt.Sprintf("BME280{%s}", d.d)
 }
 
-// Sense returns measurements as °C, kPa and % of relative humidity.
+// Sense requests a one time measurement as °C, kPa and % of relative humidity.
+//
+// The very first measurements may be of poor quality.
 func (d *Dev) Sense(env *devices.Environment) error {
-	// All registers must be read in a single pass, as noted at page 21, section
-	// 4.1.
-	// Pressure: 0xF7~0xF9
-	// Temperature: 0xFA~0xFC
-	// Humidity: 0xFD~0xFE
-	buf := [0xFF - 0xF7]byte{}
-	if err := d.readReg(0xF7, buf[:]); err != nil {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.stop != nil {
+		return errors.New("bme280: already sensing continuously")
+	}
+	err := d.writeCommands([]byte{
+		// ctrl_meas
+		0xF4, byte(d.opts.Temperature)<<5 | byte(d.opts.Pressure)<<2 | byte(forced),
+	})
+	if err != nil {
 		return err
 	}
-	// These values are 20 bits as per doc.
-	pRaw := int32(buf[0])<<12 | int32(buf[1])<<4 | int32(buf[2])>>4
-	tRaw := int32(buf[3])<<12 | int32(buf[4])<<4 | int32(buf[5])>>4
-	// This value is 16 bits as per doc.
-	hRaw := int32(buf[6])<<8 | int32(buf[7])
-
-	t, tFine := d.c.compensateTempInt(tRaw)
-	env.Temperature = devices.Celsius(t * 10)
-
-	p := d.c.compensatePressureInt64(pRaw, tFine)
-	env.Pressure = devices.KPascal((int32(p) + 127) / 256)
-
-	h := d.c.compensateHumidityInt(hRaw, tFine)
-	env.Humidity = devices.RelativeHumidity((int32(h)*100 + 511) / 1024)
-	return nil
+	time.Sleep(d.measDelay)
+	for idle := false; !idle; {
+		if idle, err = d.isIdle(); err != nil {
+			return err
+		}
+	}
+	return d.sense(env)
 }
 
-// Halt stops the bme280 from acquiring measurements.
+// SenseContinuous returns measurements as °C, kPa and % of relative humidity
+// on a continuous basis.
 //
-// It is recommended to call to reduce idle power usage.
+// The application must call Halt() to stop the sensing when done to stop the
+// sensor and close the channel.
+//
+// It's the responsibility of the caller to retrieve the values from the
+// channel as fast as possible, otherwise the interval may not be respected.
+func (d *Dev) SenseContinuous(interval time.Duration) (<-chan devices.Environment, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.stop != nil {
+		// Don't send the stop command to the device.
+		close(d.stop)
+		d.stop = nil
+	}
+	s := chooseStandby(interval - d.measDelay)
+	err := d.writeCommands([]byte{
+		// config
+		0xF5, byte(s)<<5 | byte(d.opts.Filter)<<2,
+		// ctrl_meas
+		0xF4, byte(d.opts.Temperature)<<5 | byte(d.opts.Pressure)<<2 | byte(normal),
+	})
+	if err != nil {
+		return nil, err
+	}
+	sensing := make(chan devices.Environment)
+	d.stop = make(chan struct{})
+	go func() {
+		defer close(sensing)
+		d.sensingContinuous(interval, sensing, d.stop)
+	}()
+	return sensing, nil
+}
+
+// Halt stops the bme280 from acquiring measurements as initiated by Sense().
+//
+// It is recommended to call this function before terminating the process to
+// reduce idle power usage.
 func (d *Dev) Halt() error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.stop == nil {
+		return nil
+	}
+	close(d.stop)
+	d.stop = nil
 	// Page 27 (for register) and 12~13 section 3.3.
-	return d.writeCommands([]byte{0xF4, byte(sleep)})
+	return d.writeCommands([]byte{
+		// config
+		0xF5, byte(s1s)<<5 | byte(NoFilter)<<2,
+		// ctrl_meas
+		0xF4, byte(d.opts.Temperature)<<5 | byte(d.opts.Pressure)<<2 | byte(sleep),
+	})
 }
 
 // Opts is optional options to pass to the constructor.
 //
-// Recommended (and default) values are O4x for oversampling, S20ms for standby
-// and FOff for filter if planing to call frequently, else use S500ms to get a
-// bit more than one reading per second.
+// Recommended (and default) values are O4x for oversampling.
 //
-// Address is only used on creation of an I²C-device. Its default value is 0x76.
-// It can be set to 0x77. Both values depend on HW configuration of the sensor's
-// SDO pin. This has no effect with NewSPI()
+// Address can only used on creation of an I²C-device. Its default value is
+// 0x76. It can be set to 0x77. Both values depend on HW configuration of the
+// sensor's SDO pin.
 //
-// BUG(maruel): Remove the Standby flag and replace with a
-// WaitForNextSample(time.Duration). Then use the closest value automatically.
+// Filter is only used while using SenseContinuous().
+//
+// Recommended sensing settings as per the datasheet:
+//
+// → Weather monitoring: manual sampling once per minute, all sensors O1x.
+// Power consumption: 0.16µA, filter NoFilter. RMS noise: 3.3Pa / 30cm, 0.07%RH.
+//
+// → Humidity sensing: manual sampling once per second, pressure Off, humidity
+// and temperature O1X, filter NoFilter. Power consumption: 2.9µA, 0.07%RH.
+//
+// → Indoor navigation: continuous sampling at 40ms with filter F16, pressure
+// O16x, temperature O2x, humidity O1x, filter F16. Power consumption 633µA.
+// RMS noise: 0.2Pa / 1.7cm.
+//
+// → Gaming: continuous sampling at 40ms with filter F16, pressure O4x,
+// temperature O1x, humidity Off, filter F16. Power consumption 581µA. RMS
+// noise: 0.3Pa / 2.5cm.
+//
+// See the datasheet for more details about the trade offs.
 type Opts struct {
 	Temperature Oversampling
 	Pressure    Oversampling
 	Humidity    Oversampling
-	Standby     Standby
 	Filter      Filter
 	Address     uint16
+}
+
+func (o *Opts) delayTypical() time.Duration {
+	// Page 51.
+	µs := 1000
+	if o.Temperature != Off {
+		µs += 2000 * o.Temperature.asValue()
+	}
+	if o.Pressure != Off {
+		µs += 2000*o.Pressure.asValue() + 500
+	}
+	if o.Humidity != Off {
+		µs += 2000*o.Humidity.asValue() + 500
+	}
+	return time.Microsecond * time.Duration(µs)
 }
 
 // NewI2C returns an object that communicates over I²C to BME280 environmental
@@ -165,15 +267,14 @@ func NewI2C(b i2c.Bus, opts *Opts) (*Dev, error) {
 // NewSPI returns an object that communicates over SPI to BME280 environmental
 // sensor.
 //
-// Recommended values are O4x for oversampling, S20ms for standby and FOff for
-// filter if planing to call frequently, else use S500ms to get a bit more than
-// one reading per second.
-//
 // It is recommended to call Halt() when done with the device so it stops
 // sampling.
 //
 // When using SPI, the CS line must be used.
 func NewSPI(p spi.Port, opts *Opts) (*Dev, error) {
+	if opts != nil && opts.Address != 0 {
+		return nil, errors.New("bme280: do not use Address in SPI")
+	}
 	// It works both in Mode0 and Mode3.
 	c, err := p.Connect(10000000, spi.Mode3, 8)
 	if err != nil {
@@ -188,44 +289,15 @@ func NewSPI(p spi.Port, opts *Opts) (*Dev, error) {
 
 //
 
-// mode is stored in config
-type mode byte
-
-const (
-	sleep  mode = 0 // no operation, all registers accessible, lowest power, selected after startup
-	forced mode = 1 // perform one measurement, store results and return to sleep mode
-	normal mode = 3 // perpetual cycling of measurements and inactive periods
-)
-
-type status byte
-
-const (
-	measuring status = 8 // set when conversion is running
-	imUpdate  status = 1 // set when NVM data are being copied to image registers
-)
-
-var defaults = Opts{
-	Temperature: O4x,
-	Pressure:    O4x,
-	Humidity:    O4x,
-	Standby:     S20ms,
-	Filter:      FOff,
-}
-
 func (d *Dev) makeDev(opts *Opts) error {
 	if opts == nil {
 		opts = &defaults
 	}
-	config := []byte{
-		// ctrl_meas; put it to sleep otherwise the config update may be ignored.
-		0xF4, byte(opts.Temperature)<<5 | byte(opts.Pressure)<<2 | byte(sleep),
-		// ctrl_hum
-		0xF2, byte(opts.Humidity),
-		// config
-		0xF5, byte(opts.Standby)<<5 | byte(opts.Filter)<<2,
-		// ctrl_meas
-		0xF4, byte(opts.Temperature)<<5 | byte(opts.Pressure)<<2 | byte(normal),
+	if opts.Temperature == Off {
+		return errors.New("temperature measurement is required, use at least O1x")
 	}
+	d.opts = *opts
+	d.measDelay = d.opts.delayTypical()
 
 	// The device starts in 2ms as per datasheet. No need to wait for boot to be
 	// finished.
@@ -238,6 +310,8 @@ func (d *Dev) makeDev(opts *Opts) error {
 	if chipID[0] != 0x60 {
 		return fmt.Errorf("bme280: unexpected chip id %x; is this a BME280?", chipID[0])
 	}
+
+	// TODO(maruel): We may want to wait for isIdle().
 	// Read calibration data t1~3, p1~9, 8bits padding, h1.
 	var tph [0xA2 - 0x88]byte
 	if err := d.readReg(0x88, tph[:]); err != nil {
@@ -248,13 +322,89 @@ func (d *Dev) makeDev(opts *Opts) error {
 	if err := d.readReg(0xE1, h[:]); err != nil {
 		return err
 	}
+	d.c = newCalibration(tph[:], h[:])
+
+	config := []byte{
+		// ctrl_meas; put it to sleep otherwise the config update may be ignored.
+		// This is really just in case the device was somehow put into normal but
+		// was not Halt'ed.
+		0xF4, byte(d.opts.Temperature)<<5 | byte(d.opts.Pressure)<<2 | byte(sleep),
+		// ctrl_hum
+		0xF2, byte(opts.Humidity),
+		// config
+		0xF5, byte(s1s)<<5 | byte(NoFilter)<<2,
+		// As per page 25, ctrl_meas must be re-written last.
+		// ctrl_meas
+		0xF4, byte(d.opts.Temperature)<<5 | byte(d.opts.Pressure)<<2 | byte(sleep),
+	}
 	if err := d.writeCommands(config[:]); err != nil {
 		return err
 	}
-
-	d.c = newCalibration(tph[:], h[:])
-
 	return nil
+}
+
+// sense reads the device's registers.
+//
+// It must be called with d.mu lock held.
+func (d *Dev) sense(env *devices.Environment) error {
+	// All registers must be read in a single pass, as noted at page 21, section
+	// 4.1.
+	// Pressure: 0xF7~0xF9
+	// Temperature: 0xFA~0xFC
+	// Humidity: 0xFD~0xFE
+	buf := [0xFF - 0xF7]byte{}
+	if err := d.readReg(0xF7, buf[:]); err != nil {
+		return err
+	}
+	// These values are 20 bits as per doc.
+	pRaw := int32(buf[0])<<12 | int32(buf[1])<<4 | int32(buf[2])>>4
+	tRaw := int32(buf[3])<<12 | int32(buf[4])<<4 | int32(buf[5])>>4
+	// This value is 16 bits as per doc.
+	hRaw := int32(buf[6])<<8 | int32(buf[7])
+
+	t, tFine := d.c.compensateTempInt(tRaw)
+	env.Temperature = devices.Celsius(t * 10)
+
+	p := d.c.compensatePressureInt64(pRaw, tFine)
+	env.Pressure = devices.KPascal((int32(p) + 127) / 256)
+
+	h := d.c.compensateHumidityInt(hRaw, tFine)
+	env.Humidity = devices.RelativeHumidity((int32(h)*100 + 511) / 1024)
+	return nil
+}
+
+func (d *Dev) sensingContinuous(interval time.Duration, sensing chan<- devices.Environment, stop <-chan struct{}) {
+	t := time.NewTicker(interval)
+	defer t.Stop()
+
+	for {
+		// Do one initial sensing right away.
+		var e devices.Environment
+		d.mu.Lock()
+		err := d.sense(&e)
+		d.mu.Unlock()
+		if err != nil {
+			log.Printf("bme280: failed to sense: %v", err)
+			return
+		}
+		sensing <- e
+
+		select {
+		case <-stop:
+			return
+		case <-t.C:
+		}
+	}
+}
+
+func (d *Dev) isIdle() (bool, error) {
+	// status
+	v := [1]byte{}
+	if err := d.readReg(0xF3, v[:]); err != nil {
+		return false, err
+	}
+	// Make sure bit 3 is cleared. Bit 0 is only important at device boot up.
+	return v[0]&8 == 0, nil
 }
 
 func (d *Dev) readReg(reg uint8, b []byte) error {
@@ -285,6 +435,69 @@ func (d *Dev) writeCommands(b []byte) error {
 		}
 	}
 	return d.d.Tx(b, nil)
+}
+
+//
+
+// mode is the operating mode.
+type mode byte
+
+const (
+	sleep  mode = 0 // no operation, all registers accessible, lowest power, selected after startup
+	forced mode = 1 // perform one measurement, store results and return to sleep mode
+	normal mode = 3 // perpetual cycling of measurements and inactive periods
+)
+
+type status byte
+
+const (
+	measuring status = 8 // set when conversion is running
+	imUpdate  status = 1 // set when NVM data are being copied to image registers
+)
+
+var defaults = Opts{
+	Temperature: O4x,
+	Pressure:    O4x,
+	Humidity:    O4x,
+	Address:     0x76,
+}
+
+// standby is the time the BME280 waits idle between measurements. This reduces
+// power consumption when the host won't read the values as fast as the
+// measurements are done.
+type standby uint8
+
+// Possible standby values, these determines the refresh rate.
+const (
+	s500us standby = 0
+	s10ms  standby = 6
+	s20ms  standby = 7
+	s62ms  standby = 1
+	s125ms standby = 2
+	s250ms standby = 3
+	s500ms standby = 4
+	s1s    standby = 5
+)
+
+func chooseStandby(d time.Duration) standby {
+	switch {
+	case d < 10*time.Millisecond:
+		return s500us
+	case d < 20*time.Millisecond:
+		return s10ms
+	case d < 62500*time.Microsecond:
+		return s20ms
+	case d < 125*time.Millisecond:
+		return s62ms
+	case d < 250*time.Millisecond:
+		return s125ms
+	case d < 500*time.Millisecond:
+		return s250ms
+	case d < time.Second:
+		return s500ms
+	default:
+		return s1s
+	}
 }
 
 // Register table:
@@ -409,3 +622,4 @@ func (c *calibration) compensateHumidityInt(raw, tFine int32) uint32 {
 
 var _ devices.Environmental = &Dev{}
 var _ devices.Device = &Dev{}
+var _ fmt.Stringer = &Dev{}

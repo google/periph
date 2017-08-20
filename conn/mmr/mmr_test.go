@@ -84,6 +84,13 @@ func ExampleDev8_WriteStruct() {
 
 //
 
+func TestDev8_String(t *testing.T) {
+	d := Dev8{Conn: &conntest.Discard{D: conn.Full}, Order: nil}
+	if s := d.String(); s != "discard" {
+		t.Fatal(s)
+	}
+}
+
 func TestDev8_ReadUint_Duplex(t *testing.T) {
 	d := Dev8{Conn: &conntest.Discard{D: conn.Full}, Order: nil}
 	if v, err := d.ReadUint8(34); err == nil || v != 0 {
@@ -322,6 +329,13 @@ func TestDev8_WriteStruct_uint16(t *testing.T) {
 }
 
 //
+
+func TestDev16_String(t *testing.T) {
+	d := Dev16{Conn: &conntest.Discard{D: conn.Full}, Order: nil}
+	if s := d.String(); s != "discard" {
+		t.Fatal(s)
+	}
+}
 
 func TestDev16_ReadUint_Duplex(t *testing.T) {
 	d := Dev16{Conn: &conntest.Discard{D: conn.Full}, Order: nil}

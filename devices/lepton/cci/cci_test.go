@@ -38,9 +38,12 @@ func TestNew_WaitIdle(t *testing.T) {
 			{Addr: 42, W: []byte{0x00, 0x02}, R: []byte{0x00, 0x06}},
 		},
 	}
-	_, err := New(&bus)
+	c, err := New(&bus)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if s := c.String(); s != "playback(42)" {
+		t.Fatal(s)
 	}
 	if err := bus.Close(); err != nil {
 		t.Fatal(err)

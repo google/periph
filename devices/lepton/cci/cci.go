@@ -172,6 +172,10 @@ func New(i i2c.Bus) (*Dev, error) {
 	}
 }
 
+func (d *Dev) String() string {
+	return d.c.String()
+}
+
 // Init initializes the FLIR Lepton in raw 14 bits mode, enables telemetry as
 // header.
 func (d *Dev) Init() error {
@@ -316,6 +320,10 @@ func (d *Dev) RunFFC() error {
 type conn struct {
 	mu sync.Mutex
 	r  mmr.Dev16
+}
+
+func (c *conn) String() string {
+	return fmt.Sprintf("%s", &c.r)
 }
 
 // waitIdle waits for the busy bit to clear.
@@ -548,3 +556,7 @@ const (
 )
 
 // TODO(maruel): Enable RadXXX commands.
+
+var _ devices.Device = &Dev{}
+var _ fmt.Stringer = &Dev{}
+var _ fmt.Stringer = &conn{}
