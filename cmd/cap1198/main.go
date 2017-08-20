@@ -27,6 +27,8 @@ func mainImpl() error {
 	flag.Parse()
 	if !*verbose {
 		log.SetOutput(ioutil.Discard)
+	} else {
+		cap1198.Debug = true
 	}
 	log.SetFlags(log.Lmicroseconds)
 
@@ -64,6 +66,9 @@ func mainImpl() error {
 	if err := alertPin.In(gpio.PullUp, gpio.BothEdges); err != nil {
 		return err
 	}
+	if *verbose {
+		fmt.Printf("cap1198: alert pin: %#v\n", alertPin)
+	}
 
 	resetPin := gpioreg.ByName("GPIO21")
 	if resetPin == nil {
@@ -77,12 +82,15 @@ func mainImpl() error {
 	}
 
 	time.Sleep(200 * time.Millisecond)
-	fmt.Println(dev.InputStatus())
 
 	if alertPin != nil {
+		fmt.Println("Monitoring for interrupt")
 		for {
 			alertPin.WaitForEdge(-1)
 			fmt.Println(dev.InputStatus())
+			if err := dev.ClearInterrupt(); err != nil {
+				fmt.Println(err, "while clearing the interrupt")
+			}
 		}
 	}
 	// TODO: wait for an interrupt

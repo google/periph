@@ -124,10 +124,10 @@ func DefaultOpts() *Opts {
 	return &Opts{
 		LinkedLEDs:            true,
 		MaxTouchDuration:      MaxDur5600ms,
-		EnableRecalibration:   false,
-		InterruptOnRelease:    true,
-		SamplesPerMeasurement: Avg8,
+		EnableRecalibration:   true,
+		InterruptOnRelease:    false,
+		SamplesPerMeasurement: Avg1,
 		SamplingTime:          S1_28ms,
-		CycleTime:             C70ms,
+		CycleTime:             C35ms,
 	}
 }
