@@ -2,7 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package cap1198 controls a Microchip cap1198 device over I²C.
+// Package cap1188 controls a Microchip cap1188 device over I²C.
 
 // The device is a 8 Channel Capacitive Touch Sensor with 8 LED Drivers
 //
@@ -12,7 +12,7 @@
 //
 // http://ww1.microchip.com/downloads/en/DeviceDoc/CAP1188%20.pdf
 //
-package cap1198
+package cap1188
 
 import (
 	"encoding/binary"
@@ -46,7 +46,7 @@ const (
 	reg_LEDOutputControl = 0x74
 )
 
-// Dev is a handle to a cap1198.
+// Dev is a handle to a cap1188.
 type Dev struct {
 	d          conn.Conn
 	regWrapper mmr.Dev8
@@ -56,10 +56,10 @@ type Dev struct {
 }
 
 func (d *Dev) String() string {
-	return fmt.Sprintf("CAP1198{%s}", d.d)
+	return fmt.Sprintf("cap1188{%s}", d.d)
 }
 
-// Halt is a noop for the CAP1198.
+// Halt is a noop for the cap1188.
 func (d *Dev) Halt() error {
 	return nil
 }
@@ -138,7 +138,7 @@ func (d *Dev) SetLed(idx int, state bool) error {
 func (d *Dev) Reset() (err error) {
 	if d != nil && d.opts != nil && d.opts.ResetPin != nil {
 		if Debug {
-			fmt.Println("cap1198: Reseting the device using the reset pin")
+			fmt.Println("cap1188: Reseting the device using the reset pin")
 		}
 		if err = d.opts.ResetPin.Out(gpio.Low); err != nil {
 			return err
@@ -184,7 +184,7 @@ func (d *Dev) DeepSleep() error {
 	panic("not implemented")
 }
 
-// NewI2C returns a new device that communicates over I²C to CAP1198.
+// NewI2C returns a new device that communicates over I²C to cap1188.
 func NewI2C(b i2c.Bus, opts *Opts) (*Dev, error) {
 	addr := uint16(0x28)
 	if opts != nil {
@@ -194,11 +194,11 @@ func NewI2C(b i2c.Bus, opts *Opts) (*Dev, error) {
 		case 0x00:
 			// do not do anything
 		default:
-			return nil, errors.New("cap1198: given address not supported by device")
+			return nil, errors.New("cap1188: given address not supported by device")
 		}
 	}
 	if Debug {
-		fmt.Printf("cap1198: Connecting via I2C address: %#X\n", addr)
+		fmt.Printf("cap1188: Connecting via I2C address: %#X\n", addr)
 	}
 	d := &Dev{d: &i2c.Dev{Bus: b, Addr: addr}, opts: opts, isSPI: false}
 	if err := d.makeDev(opts); err != nil {
@@ -207,7 +207,7 @@ func NewI2C(b i2c.Bus, opts *Opts) (*Dev, error) {
 	return d, nil
 }
 
-// NewSPI returns an object that communicates over SPI to CAP1198 environmental
+// NewSPI returns an object that communicates over SPI to cap1188 environmental
 // sensor.
 func NewSPI(p spi.Port, opts *Opts) (*Dev, error) {
 	panic("not implemented")
@@ -228,7 +228,7 @@ func (d *Dev) makeDev(opts *Opts) error {
 		return fmt.Errorf("failed to read product id - %s", err)
 	}
 	if productID != 0x50 {
-		return fmt.Errorf("cap1198: unexpected chip id %x; is this a CAP1198?", productID)
+		return fmt.Errorf("cap1188: unexpected chip id %x; is this a cap1188?", productID)
 	}
 	// manufacturer ID on 0xFE, should be 0x5D
 	// revision ID on 0xFF, should be 0x83
@@ -268,8 +268,8 @@ func (d *Dev) makeDev(opts *Opts) error {
 		// number of samples taken per measurement
 		// TODO: use opts.SamplesPerMeasurement
 		byte(0)<<6 |
-		byte(0)<<5 |
-		byte(0)<<4 |
+		byte(1)<<5 |
+		byte(1)<<4 |
 		// sample time
 		// TODO: use opts.SamplingTime
 		byte(1)<<3 |
@@ -279,7 +279,7 @@ func (d *Dev) makeDev(opts *Opts) error {
 		byte(0)<<1 |
 		byte(0)<<0)
 	if Debug {
-		fmt.Printf("cap1198: Sampling config mask: %08b\n", samplingConfig)
+		fmt.Printf("cap1188: Sampling config mask: %08b\n", samplingConfig)
 	}
 	if err = d.regWrapper.WriteUint8(0x24, samplingConfig); err != nil {
 		return fmt.Errorf("failed to enable multitouch - %s", err)
@@ -297,7 +297,7 @@ func (d *Dev) makeDev(opts *Opts) error {
 	// 	byte(1)<<6 | byte(1)<<5 | byte(0)<<4 |
 	// 	byte(0)<<3 | byte(0)<<2 | byte(0)<<1 | byte(0)<<0)
 	// if Debug {
-	// 	fmt.Printf("cap1198: Sensitivity mask: %08b\n", sensitivity)
+	// 	fmt.Printf("cap1188: Sensitivity mask: %08b\n", sensitivity)
 	// }
 	// if err = d.regWrapper.WriteUint8(0x1F, sensitivity); err != nil {
 	// 	return fmt.Errorf("failed to set sensitivity - %s", err)
@@ -348,7 +348,7 @@ func (d *Dev) makeDev(opts *Opts) error {
 		byte(0)<<1 |
 		byte(0)<<0)
 	if Debug {
-		fmt.Printf("cap1198: Config mask: %08b\n", config)
+		fmt.Printf("cap1188: Config mask: %08b\n", config)
 	}
 	if err = d.regWrapper.WriteUint8(0x20, config); err != nil {
 		return fmt.Errorf("failed to set the device configuration - %s", err)
@@ -398,7 +398,7 @@ func (d *Dev) makeDev(opts *Opts) error {
 		// at the repeat rate but not when a release is detected.
 		intOnRel<<0)
 	if Debug {
-		fmt.Printf("cap1198: Config2 mask: %08b\n", config2)
+		fmt.Printf("cap1188: Config2 mask: %08b\n", config2)
 	}
 	if err = d.regWrapper.WriteUint8(0x44, config2); err != nil {
 		return fmt.Errorf("failed to set the device configuration 2 - %s", err)

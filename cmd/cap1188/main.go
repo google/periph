@@ -15,7 +15,7 @@ import (
 	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/conn/pin"
 	"periph.io/x/periph/conn/pin/pinreg"
-	"periph.io/x/periph/experimental/devices/cap1198"
+	"periph.io/x/periph/experimental/devices/cap1188"
 	"periph.io/x/periph/host"
 )
 
@@ -28,11 +28,11 @@ func mainImpl() error {
 	if !*verbose {
 		log.SetOutput(ioutil.Discard)
 	} else {
-		cap1198.Debug = true
+		cap1188.Debug = true
 	}
 	log.SetFlags(log.Lmicroseconds)
 
-	opts := cap1198.DefaultOpts()
+	opts := cap1188.DefaultOpts()
 	if *i2cADDR != 0 {
 		opts.Address = uint16(*i2cADDR)
 	}
@@ -41,7 +41,7 @@ func mainImpl() error {
 		return fmt.Errorf("couldn't init the host - %s", err)
 	}
 
-	var dev *cap1198.Dev
+	var dev *cap1188.Dev
 	i, err := i2creg.Open(*i2cID)
 	if err != nil {
 		return fmt.Errorf("couldn't open the i2c bus - %s", err)
@@ -67,7 +67,7 @@ func mainImpl() error {
 		return err
 	}
 	if *verbose {
-		fmt.Printf("cap1198: alert pin: %#v\n", alertPin)
+		fmt.Printf("cap1188: alert pin: %#v\n", alertPin)
 	}
 
 	resetPin := gpioreg.ByName("GPIO21")
@@ -77,8 +77,8 @@ func mainImpl() error {
 	opts.AlertPin = alertPin
 	opts.ResetPin = resetPin
 
-	if dev, err = cap1198.NewI2C(i, opts); err != nil {
-		return fmt.Errorf("couldn't open cap1198 - %s", err)
+	if dev, err = cap1188.NewI2C(i, opts); err != nil {
+		return fmt.Errorf("couldn't open cap1188 - %s", err)
 	}
 	time.Sleep(200 * time.Millisecond)
 
@@ -123,7 +123,7 @@ func mainImpl() error {
 
 func main() {
 	if err := mainImpl(); err != nil {
-		fmt.Fprintf(os.Stderr, "cap1198: %s.\n", err)
+		fmt.Fprintf(os.Stderr, "cap1188: %s.\n", err)
 		os.Exit(1)
 	}
 }

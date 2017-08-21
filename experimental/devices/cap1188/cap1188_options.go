@@ -1,4 +1,4 @@
-package cap1198
+package cap1188
 
 import "periph.io/x/periph/conn/gpio"
 
