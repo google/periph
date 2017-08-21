@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/signal"
 	"time"
 
 	"periph.io/x/periph/conn/i2c"
@@ -18,7 +19,7 @@ import (
 	"periph.io/x/periph/conn/pin"
 	"periph.io/x/periph/conn/pin/pinreg"
 	"periph.io/x/periph/devices"
-	"periph.io/x/periph/experimental/devices/bmp180"
+	"periph.io/x/periph/devices/bmp180"
 	"periph.io/x/periph/host"
 )
 
@@ -31,23 +32,33 @@ func printPin(fn string, p pin.Pin) {
 	}
 }
 
-func read(e devices.Environmental, interval time.Duration) error {
-	var t *time.Ticker
-	if interval != 0 {
-		t = time.NewTicker(interval)
-	}
+func printEnv(env *devices.Environment) {
+	fmt.Printf("%8s %10s\n", env.Temperature, env.Pressure)
+}
 
-	for {
-		var env devices.Environment
-		if err := e.Sense(&env); err != nil {
+func run(dev devices.Environmental, interval time.Duration) error {
+	if interval == 0 {
+		e := devices.Environment{}
+		if err := dev.Sense(&e); err != nil {
 			return err
 		}
-		fmt.Printf("%8s %10s\n", env.Temperature, env.Pressure)
-		if t == nil {
-			break
-		}
+		printEnv(&e)
+		return nil
+	}
 
-		<-t.C
+	c, err := dev.SenseContinuous(interval)
+	if err != nil {
+		return err
+	}
+	chanSignal := make(chan os.Signal)
+	signal.Notify(chanSignal, os.Interrupt)
+	for {
+		select {
+		case <-chanSignal:
+			return nil
+		case e := <-c:
+			printEnv(&e)
+		}
 	}
 	return nil
 }
@@ -65,7 +76,7 @@ func mainImpl() error {
 	}
 	log.SetFlags(log.Lmicroseconds)
 
-	os := bmp180.No
+	os := bmp180.O1x
 	if *sample2x {
 		os = bmp180.O2x
 	} else if *sample4x {
@@ -94,7 +105,7 @@ func mainImpl() error {
 		return err
 	}
 
-	err = read(dev, *interval)
+	err = run(dev, *interval)
 	err2 := dev.Halt()
 	if err != nil {
 		return err

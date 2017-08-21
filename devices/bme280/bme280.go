@@ -36,7 +36,7 @@ type Oversampling uint8
 // Possible oversampling values.
 //
 // The higher the more time and power it takes to take a measurement. Even at
-// 16x for all 3 sensor, it is less than 100ms albeit increased power
+// 16x for all 3 sensors, it is less than 100ms albeit increased power
 // consumption may increase the temperature reading.
 const (
 	Off  Oversampling = 0
@@ -103,6 +103,7 @@ type Dev struct {
 
 	mu   sync.Mutex
 	stop chan struct{}
+	wg   sync.WaitGroup
 }
 
 func (d *Dev) String() string {
@@ -116,19 +117,19 @@ func (d *Dev) Sense(env *devices.Environment) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	if d.stop != nil {
-		return errors.New("bme280: already sensing continuously")
+		return wrap(errors.New("already sensing continuously"))
 	}
 	err := d.writeCommands([]byte{
 		// ctrl_meas
 		0xF4, byte(d.opts.Temperature)<<5 | byte(d.opts.Pressure)<<2 | byte(forced),
 	})
 	if err != nil {
-		return err
+		return wrap(err)
 	}
 	time.Sleep(d.measDelay)
 	for idle := false; !idle; {
 		if idle, err = d.isIdle(); err != nil {
-			return err
+			return wrap(err)
 		}
 	}
 	return d.sense(env)
@@ -149,6 +150,7 @@ func (d *Dev) SenseContinuous(interval time.Duration) (<-chan devices.Environmen
 		// Don't send the stop command to the device.
 		close(d.stop)
 		d.stop = nil
+		d.wg.Wait()
 	}
 	s := chooseStandby(interval - d.measDelay)
 	err := d.writeCommands([]byte{
@@ -158,18 +160,21 @@ func (d *Dev) SenseContinuous(interval time.Duration) (<-chan devices.Environmen
 		0xF4, byte(d.opts.Temperature)<<5 | byte(d.opts.Pressure)<<2 | byte(normal),
 	})
 	if err != nil {
-		return nil, err
+		return nil, wrap(err)
 	}
 	sensing := make(chan devices.Environment)
 	d.stop = make(chan struct{})
+	d.wg.Add(1)
 	go func() {
+		defer d.wg.Done()
 		defer close(sensing)
 		d.sensingContinuous(interval, sensing, d.stop)
 	}()
 	return sensing, nil
 }
 
-// Halt stops the bme280 from acquiring measurements as initiated by Sense().
+// Halt stops the bme280 from acquiring measurements as initiated by
+// SenseContinuous().
 //
 // It is recommended to call this function before terminating the process to
 // reduce idle power usage.
@@ -181,6 +186,7 @@ func (d *Dev) Halt() error {
 	}
 	close(d.stop)
 	d.stop = nil
+	d.wg.Wait()
 	// Page 27 (for register) and 12~13 section 3.3.
 	return d.writeCommands([]byte{
 		// config
@@ -254,7 +260,7 @@ func NewI2C(b i2c.Bus, opts *Opts) (*Dev, error) {
 		case 0x00:
 			// do not do anything
 		default:
-			return nil, errors.New("bme280: given address not supported by device")
+			return nil, wrap(errors.New("given address not supported by device"))
 		}
 	}
 	d := &Dev{d: &i2c.Dev{Bus: b, Addr: addr}, isSPI: false}
@@ -273,12 +279,12 @@ func NewI2C(b i2c.Bus, opts *Opts) (*Dev, error) {
 // When using SPI, the CS line must be used.
 func NewSPI(p spi.Port, opts *Opts) (*Dev, error) {
 	if opts != nil && opts.Address != 0 {
-		return nil, errors.New("bme280: do not use Address in SPI")
+		return nil, wrap(errors.New("do not use Address in SPI"))
 	}
 	// It works both in Mode0 and Mode3.
 	c, err := p.Connect(10000000, spi.Mode3, 8)
 	if err != nil {
-		return nil, err
+		return nil, wrap(err)
 	}
 	d := &Dev{d: c, isSPI: true}
 	if err := d.makeDev(opts); err != nil {
@@ -294,7 +300,7 @@ func (d *Dev) makeDev(opts *Opts) error {
 		opts = &defaults
 	}
 	if opts.Temperature == Off {
-		return errors.New("temperature measurement is required, use at least O1x")
+		return wrap(errors.New("temperature measurement is required, use at least O1x"))
 	}
 	d.opts = *opts
 	d.measDelay = d.opts.delayTypical()
@@ -308,7 +314,7 @@ func (d *Dev) makeDev(opts *Opts) error {
 		return err
 	}
 	if chipID[0] != 0x60 {
-		return fmt.Errorf("bme280: unexpected chip id %x; is this a BME280?", chipID[0])
+		return wrap(fmt.Errorf("unexpected chip id %x; is this a BME280?", chipID[0]))
 	}
 
 	// TODO(maruel): We may want to wait for isIdle().
@@ -387,8 +393,11 @@ func (d *Dev) sensingContinuous(interval time.Duration, sensing chan<- devices.E
 			log.Printf("bme280: failed to sense: %v", err)
 			return
 		}
-		sensing <- e
-
+		select {
+		case sensing <- e:
+		case <-stop:
+			return
+		}
 		select {
 		case <-stop:
 			return
@@ -416,12 +425,15 @@ func (d *Dev) readReg(reg uint8, b []byte) error {
 		// Rest of the write buffer is ignored.
 		write[0] = reg
 		if err := d.d.Tx(write, read); err != nil {
-			return err
+			return wrap(err)
 		}
 		copy(b, read[1:])
 		return nil
 	}
-	return d.d.Tx([]byte{reg}, b)
+	if err := d.d.Tx([]byte{reg}, b); err != nil {
+		return wrap(err)
+	}
+	return nil
 }
 
 // writeCommands writes a command to the bme280.
@@ -434,7 +446,10 @@ func (d *Dev) writeCommands(b []byte) error {
 			b[i] &^= 0x80
 		}
 	}
-	return d.d.Tx(b, nil)
+	if err := d.d.Tx(b, nil); err != nil {
+		return wrap(err)
+	}
+	return nil
 }
 
 //
@@ -618,6 +633,10 @@ func (c *calibration) compensateHumidityInt(raw, tFine int32) uint32 {
 		return 419430400 >> 12
 	}
 	return uint32(x >> 12)
+}
+
+func wrap(err error) error {
+	return fmt.Errorf("bme280: %v", err)
 }
 
 var _ devices.Environmental = &Dev{}
