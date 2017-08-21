@@ -82,24 +82,26 @@ func mainImpl() error {
 	}
 	time.Sleep(200 * time.Millisecond)
 
+	userAskedToLinkLeds := opts.LinkedLEDs
 	// unlinked LED demo
-	// if err := dev.UnlinkLeds(); err != nil {
-	// 	log.Println("Failed to unlink leds", err)
-	// }
-	// for i := 0; i < 8; i++ {
-	// 	dev.SetLed(i, true)
-	// 	time.Sleep(100 * time.Millisecond)
-	// }
-	// time.Sleep(500 * time.Millisecond)
-	// dev.AllLedsOff()
-	// time.Sleep(100 * time.Millisecond)
-	// dev.AllLedsOn()
-	// time.Sleep(100 * time.Millisecond)
-	// dev.AllLedsOff()
-
-	// if err := dev.LinkLeds(); err != nil {
-	// 	log.Println("Failed to relink leds", err)
-	// }
+	if err := dev.UnlinkLeds(); err != nil {
+		log.Println("Failed to unlink leds", err)
+	}
+	for i := 0; i < 8; i++ {
+		dev.SetLed(i, true)
+		time.Sleep(75 * time.Millisecond)
+	}
+	time.Sleep(200 * time.Millisecond)
+	dev.AllLedsOff()
+	time.Sleep(100 * time.Millisecond)
+	dev.AllLedsOn()
+	time.Sleep(100 * time.Millisecond)
+	dev.AllLedsOff()
+	if userAskedToLinkLeds {
+		if err := dev.LinkLeds(); err != nil {
+			log.Println("Failed to relink leds", err)
+		}
+	}
 
 	if alertPin != nil {
 		fmt.Println("Monitoring for touch events")
@@ -109,7 +111,7 @@ func mainImpl() error {
 				if err != nil {
 					fmt.Printf("Error reading inputs: %s\n", err)
 				}
-				fmt.Printf("Statuses: %+v\n", status)
+				printSensorsStatus(status)
 				// we need to clear the interrupt so it can be triggered again
 				if err := dev.ClearInterrupt(); err != nil {
 					fmt.Println(err, "while clearing the interrupt")
@@ -139,4 +141,11 @@ func printPin(fn string, p pin.Pin) {
 	} else {
 		log.Printf("  %-4s: %-10s\n", fn, p)
 	}
+}
+
+func printSensorsStatus(statuses []cap1188.TouchStatus) {
+	for i, st := range statuses {
+		fmt.Printf("#%d: %s\t", i, st)
+	}
+	fmt.Println()
 }

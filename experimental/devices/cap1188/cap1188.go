@@ -128,22 +128,33 @@ func (d *Dev) InputStatus() ([]TouchStatus, error) {
 	for i := uint8(0); i < nbrOfLEDs; i++ {
 		touched = isBitSet(status, 7-i)
 
-		if touched {
-			// check that we passed the threshold
-			if deltas[i] > int(thresholds[i]) {
-				if inputStatuses[i] == PressedStatus {
-					inputStatuses[i] = HeldStatus
-				} else {
-					inputStatuses[i] = PressedStatus
-				}
-			} else {
-				// the button is still touched but below the threshold so probably getting released
-				inputStatuses[i] = ReleasedStatus
-			}
-			continue
-		}
+		// if touched {
+		// check that we passed the threshold
+		// if deltas[i] == 127 && Debug {
+		// 	fmt.Println("sensitivity settings are too sensitive")
+		// }
+		// else {
+		// 	if deltas[i] > int(thresholds[i]) {
+		// 		if inputStatuses[i] == PressedStatus {
+		// 			inputStatuses[i] = HeldStatus
+		// 		} else {
+		// 			inputStatuses[i] = PressedStatus
+		// 		}
+		// 		continue
+		// 	}
+		// }
 
-		inputStatuses[i] = OffStatus
+		if touched {
+			if inputStatuses[i] == PressedStatus {
+				if d.opts.RetriggerOnHold {
+					inputStatuses[i] = HeldStatus
+				}
+				continue
+			}
+			inputStatuses[i] = PressedStatus
+		} else {
+			inputStatuses[i] = OffStatus
+		}
 	}
 
 	return inputStatuses, nil
@@ -208,6 +219,7 @@ func (d *Dev) SetLed(idx int, state bool) error {
 // Reset issues a soft reset to the device using the reset pin
 // if available.
 func (d *Dev) Reset() (err error) {
+	d.ClearInterrupt()
 	if d != nil && d.opts != nil && d.opts.ResetPin != nil {
 		if Debug {
 			fmt.Println("cap1188: Resetting the device using the reset pin")
@@ -215,7 +227,6 @@ func (d *Dev) Reset() (err error) {
 		if err = d.opts.ResetPin.Out(gpio.Low); err != nil {
 			return err
 		}
-		time.Sleep(10 * time.Millisecond)
 		if err = d.opts.ResetPin.Out(gpio.High); err != nil {
 			return err
 		}
@@ -317,8 +328,8 @@ func (d *Dev) makeDev(opts *Opts) error {
 		recalFlag = 1
 	}
 	var intOnRel byte
-	if opts.InterruptOnRelease {
-		intOnRel = 1
+	if !opts.InterruptOnRelease {
+		intOnRel = 1 // 0 = trigger on release
 	}
 
 	// enable all inputs
@@ -329,12 +340,30 @@ func (d *Dev) makeDev(opts *Opts) error {
 	if err = d.regWrapper.WriteUint8(0x27, 0xff); err != nil {
 		return wrap(fmt.Errorf("failed to enable interrupts - %s", err))
 	}
-	// disable repeats (TODO: make it an option)
-	// if err = d.regWrapper.WriteUint8(0x28, 0); err != nil {
-	// 	return fmt.Errorf("failed to disable repeats - %s", err)
-	// }
+	// enable/disable repeats (TODO: make it an option)
+	if err = d.regWrapper.WriteUint8(0x28, 0xff); err != nil {
+		return fmt.Errorf("failed to disable repeats - %s", err)
+	}
 	// enable multitouch
-	if err = d.regWrapper.WriteUint8(0x2a, 0x80); err != nil {
+	multitouchConfig := (
+	// Enables the multiple button blocking circuitry.
+	//  ‘0’ - The multiple touch circuitry is disabled. The device will not
+	// block multiple touches.
+	//  ‘1’ (default) - The multiple touch circuitry is enabled. The device
+	// will flag the number of touches equal to programmed multiple touch
+	// threshold and block all others. It will remember which sensor inputs
+	// are valid and block all others until that sensor pad has been
+	// released. Once a sensor pad has been released, the N detected touches
+	// (determined via the cycle order of CS1 - CS8) will be flagged and all
+	// others blocked.
+	byte(0)<<7 |
+		byte(0)<<6 | byte(0)<<5 | byte(0)<<4 |
+		// Determines the number of simultaneous touches on all sensor pads
+		// before a Multiple Touch Event is detected and sensor inputs are blocked.
+		// set to 2
+		byte(0)<<3 | byte(1)<<2 |
+		byte(0)<<1 | byte(0)<<0)
+	if err = d.regWrapper.WriteUint8(0x2a, multitouchConfig); err != nil {
 		return wrap(fmt.Errorf("failed to enable multitouch - %s", err))
 	}
 	// Averaging and Sampling Config
@@ -367,8 +396,8 @@ func (d *Dev) makeDev(opts *Opts) error {
 		// touches are detected for a smaller delta capacitance corresponding to a “lighter” touch. These settings
 		// are more sensitive to noise, however, and a noisy environment may flag more false touches with higher
 		// sensitivity levels.
-		// Set to 2x: TODO: make that configurable.
-		byte(1)<<6 | byte(1)<<5 | byte(0)<<4 |
+		// Set to 4x: TODO: make that configurable.
+		byte(1)<<6 | byte(0)<<5 | byte(1)<<4 |
 		byte(0)<<3 | byte(0)<<2 | byte(0)<<1 | byte(0)<<0)
 	if Debug {
 		fmt.Printf("cap1188: Sensitivity mask: %08b\n", sensitivity)
@@ -380,6 +409,16 @@ func (d *Dev) makeDev(opts *Opts) error {
 	if opts.LinkedLEDs {
 		if err = d.LinkLeds(); err != nil {
 			return err
+		}
+	}
+
+	if opts.RetriggerOnHold {
+		if err = d.regWrapper.WriteUint8(0x28, 0xff); err != nil {
+			return fmt.Errorf("failed to set retrigger on hold - %s", err)
+		}
+	} else {
+		if err = d.regWrapper.WriteUint8(0x28, 0x00); err != nil {
+			return fmt.Errorf("failed to turn off retrigger on hold - %s", err)
 		}
 	}
 

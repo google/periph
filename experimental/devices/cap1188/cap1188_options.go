@@ -99,6 +99,10 @@ type Opts struct {
 	// interrupt on the AlertPin when a release event is detected.
 	InterruptOnRelease bool
 
+	// RetriggerOnHold forces a retrigger of the interrupt when a sensor is pressed
+	// for longer than MaxTouchDuration
+	RetriggerOnHold bool
+
 	// Averaging and Sampling Configuration Register
 
 	// SamplesPerMeasurement is the number of samples taken per measurement. All
@@ -124,6 +128,7 @@ func DefaultOpts() *Opts {
 	return &Opts{
 		LinkedLEDs:            true,
 		MaxTouchDuration:      MaxDur5600ms,
+		RetriggerOnHold:       false,
 		EnableRecalibration:   true,
 		InterruptOnRelease:    false,
 		SamplesPerMeasurement: Avg1,
