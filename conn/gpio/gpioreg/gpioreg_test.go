@@ -112,8 +112,11 @@ func TestRegisterAlias(t *testing.T) {
 	if err := RegisterAlias("alias0", "GPIO0"); err != nil {
 		t.Fatal(err)
 	}
-	if err := RegisterAlias("alias0", "GPIO0"); err == nil {
+	if err := RegisterAlias("alias0", "GPIO0"); err != nil {
 		t.Fatal(err)
+	}
+	if RegisterAlias("alias0", "GPIO1") == nil {
+		t.Fatal("can't register an alias to a different gpio")
 	}
 	if p := ByName("alias0"); p != nil {
 		t.Fatalf("unexpected alias0: %v", p)
