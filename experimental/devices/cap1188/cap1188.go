@@ -30,8 +30,42 @@ import (
 )
 
 var (
+	// Debug is a debugging flag to turn on extra logging
 	Debug         bool
-	inputStatuses [8]bool
+	inputStatuses []TouchStatus
+)
+
+// TouchStatus is the status of an input sensor
+type TouchStatus int8
+
+func (t TouchStatus) String() string {
+	switch t {
+	case OffStatus:
+		return "Off"
+	case PressedStatus:
+		return "Pressed"
+	case HeldStatus:
+		return "Held"
+	case ReleasedStatus:
+		return "Released"
+	default:
+		return "Unknown"
+	}
+}
+
+const (
+	// OffStatus indicates that the input sensor isn't being activated
+	OffStatus TouchStatus = iota
+	// PressedStatus indicates that the input sensor is currently pressed
+	PressedStatus
+	// HeldStatus indicates that the input sensor was pressed and is still held pressed
+	HeldStatus
+	// ReleasedStatus indicates that the input sensor was pressed and is being released
+	ReleasedStatus
+)
+
+const (
+	nbrOfLEDs = 8
 )
 
 const (
@@ -66,14 +100,52 @@ func (d *Dev) Halt() error {
 
 // InputStatus reads and returns the status of the 8 inputs as an array where
 // each entry indicates a touch event or not.
-func (d *Dev) InputStatus() ([8]bool, error) {
+func (d *Dev) InputStatus() ([]TouchStatus, error) {
+	// read inputs
 	status, err := d.regWrapper.ReadUint8(0x3)
 	if err != nil {
-		return inputStatuses, err
+		return inputStatuses, wrap(fmt.Errorf("failed to read the input values - %s", err))
 	}
-	for i := uint8(0); i < 8; i++ {
-		inputStatuses[i] = isBitSet(status, 7-i)
+
+	// read deltas (in two's complement, capped at -128 to 127)
+	deltasB := [nbrOfLEDs]byte{}
+	if err = d.regWrapper.ReadStruct(0x10, &deltasB); err != nil {
+		return inputStatuses, wrap(fmt.Errorf("failed to read the delta values - %s", err))
 	}
+	deltas := [nbrOfLEDs]int{}
+	for i, b := range deltasB {
+		deltas[i] = twoComplementsToInt(b)
+	}
+
+	// read threshold
+	thresholds := [nbrOfLEDs]byte{}
+	if err = d.regWrapper.ReadStruct(0x30, &thresholds); err != nil {
+		return inputStatuses, wrap(fmt.Errorf("failed to read the threshold values - %s", err))
+	}
+
+	// convert the data into a sensor state
+	var touched bool
+	for i := uint8(0); i < nbrOfLEDs; i++ {
+		touched = isBitSet(status, 7-i)
+
+		if touched {
+			// check that we passed the threshold
+			if deltas[i] > int(thresholds[i]) {
+				if inputStatuses[i] == PressedStatus {
+					inputStatuses[i] = HeldStatus
+				} else {
+					inputStatuses[i] = PressedStatus
+				}
+			} else {
+				// the button is still touched but below the threshold so probably getting released
+				inputStatuses[i] = ReleasedStatus
+			}
+			continue
+		}
+
+		inputStatuses[i] = OffStatus
+	}
+
 	return inputStatuses, nil
 }
 
@@ -81,7 +153,7 @@ func (d *Dev) InputStatus() ([8]bool, error) {
 // Doing so, disabled the option for the host to set specific LEDs on/off.
 func (d *Dev) LinkLeds() error {
 	if err := d.regWrapper.WriteUint8(reg_LEDLinking, 0xff); err != nil {
-		return fmt.Errorf("failed to link LEDs - %s", err)
+		return wrap(fmt.Errorf("failed to link LEDs - %s", err))
 	}
 	d.opts.LinkedLEDs = true
 	return nil
@@ -91,7 +163,7 @@ func (d *Dev) LinkLeds() error {
 // control the LEDs.
 func (d *Dev) UnlinkLeds() error {
 	if err := d.regWrapper.WriteUint8(reg_LEDLinking, 0x00); err != nil {
-		return fmt.Errorf("failed to unlink LEDs - %s", err)
+		return wrap(fmt.Errorf("failed to unlink LEDs - %s", err))
 	}
 	d.opts.LinkedLEDs = false
 	return nil
@@ -101,7 +173,7 @@ func (d *Dev) UnlinkLeds() error {
 // This is quite more efficient than looping through each led and turn them on.
 func (d *Dev) AllLedsOn() error {
 	if d.opts.LinkedLEDs {
-		return fmt.Errorf("can't manually set LEDs when they are linked to sensors")
+		return wrap(fmt.Errorf("can't manually set LEDs when they are linked to sensors"))
 	}
 	return d.regWrapper.WriteUint8(reg_LEDOutputControl, 0xff)
 }
@@ -110,7 +182,7 @@ func (d *Dev) AllLedsOn() error {
 // This is quite more efficient than looping through each led and turn them off.
 func (d *Dev) AllLedsOff() error {
 	if d.opts.LinkedLEDs {
-		return fmt.Errorf("can't manually set LEDs when they are linked to sensors")
+		return wrap(fmt.Errorf("can't manually set LEDs when they are linked to sensors"))
 	}
 	return d.regWrapper.WriteUint8(reg_LEDOutputControl, 0x00)
 }
@@ -119,10 +191,10 @@ func (d *Dev) AllLedsOff() error {
 // Only works if the LEDs are not linked to the sensors
 func (d *Dev) SetLed(idx int, state bool) error {
 	if d.opts.LinkedLEDs {
-		return fmt.Errorf("can't manually set LEDs when they are linked to sensors")
+		return wrap(fmt.Errorf("can't manually set LEDs when they are linked to sensors"))
 	}
 	if idx > 7 || idx < 0 {
-		return fmt.Errorf("invalid led idx %d", idx)
+		return wrap(fmt.Errorf("invalid led idx %d", idx))
 	}
 	if Debug {
 		fmt.Printf("Set LED state %d - %t\n", idx, state)
@@ -138,11 +210,12 @@ func (d *Dev) SetLed(idx int, state bool) error {
 func (d *Dev) Reset() (err error) {
 	if d != nil && d.opts != nil && d.opts.ResetPin != nil {
 		if Debug {
-			fmt.Println("cap1188: Reseting the device using the reset pin")
+			fmt.Println("cap1188: Resetting the device using the reset pin")
 		}
 		if err = d.opts.ResetPin.Out(gpio.Low); err != nil {
 			return err
 		}
+		time.Sleep(10 * time.Millisecond)
 		if err = d.opts.ResetPin.Out(gpio.High); err != nil {
 			return err
 		}
@@ -186,7 +259,7 @@ func (d *Dev) DeepSleep() error {
 
 // NewI2C returns a new device that communicates over I²C to cap1188.
 func NewI2C(b i2c.Bus, opts *Opts) (*Dev, error) {
-	addr := uint16(0x28)
+	addr := uint16(0x28) // default address
 	if opts != nil {
 		switch opts.Address {
 		case 0x28, 0x29, 0x2a, 0x2b, 0x2c:
@@ -194,13 +267,14 @@ func NewI2C(b i2c.Bus, opts *Opts) (*Dev, error) {
 		case 0x00:
 			// do not do anything
 		default:
-			return nil, errors.New("cap1188: given address not supported by device")
+			return nil, wrap(errors.New("given address not supported by device"))
 		}
 	}
 	if Debug {
 		fmt.Printf("cap1188: Connecting via I2C address: %#X\n", addr)
 	}
 	d := &Dev{d: &i2c.Dev{Bus: b, Addr: addr}, opts: opts, isSPI: false}
+	resetMemInputStatus()
 	if err := d.makeDev(opts); err != nil {
 		return nil, err
 	}
@@ -249,11 +323,11 @@ func (d *Dev) makeDev(opts *Opts) error {
 
 	// enable all inputs
 	if err = d.regWrapper.WriteUint8(0x21, 0xff); err != nil {
-		return fmt.Errorf("failed to enable all inputs - %s", err)
+		return wrap(fmt.Errorf("failed to enable all inputs - %s", err))
 	}
 	// enable interrupts
 	if err = d.regWrapper.WriteUint8(0x27, 0xff); err != nil {
-		return fmt.Errorf("failed to enable interrupts - %s", err)
+		return wrap(fmt.Errorf("failed to enable interrupts - %s", err))
 	}
 	// disable repeats (TODO: make it an option)
 	// if err = d.regWrapper.WriteUint8(0x28, 0); err != nil {
@@ -261,15 +335,15 @@ func (d *Dev) makeDev(opts *Opts) error {
 	// }
 	// enable multitouch
 	if err = d.regWrapper.WriteUint8(0x2a, 0x80); err != nil {
-		return fmt.Errorf("failed to enable multitouch - %s", err)
+		return wrap(fmt.Errorf("failed to enable multitouch - %s", err))
 	}
 	// Averaging and Sampling Config
 	samplingConfig := (byte(0)<<7 |
 		// number of samples taken per measurement
 		// TODO: use opts.SamplesPerMeasurement
 		byte(0)<<6 |
-		byte(1)<<5 |
-		byte(1)<<4 |
+		byte(0)<<5 |
+		byte(0)<<4 |
 		// sample time
 		// TODO: use opts.SamplingTime
 		byte(1)<<3 |
@@ -286,22 +360,22 @@ func (d *Dev) makeDev(opts *Opts) error {
 	}
 
 	// customize sensitivity (TODO)
-	// sensitivity := (byte(0)<<7 |
-	// 	// Controls the sensitivity of a touch detection. The sensitivity settings act
-	// 	// to scale the relative delta count value higher or lower based on the system parameters. A setting of
-	// 	// 000b is the most sensitive while a setting of 111b is the least sensitive. At the more sensitive settings,
-	// 	// touches are detected for a smaller delta capacitance corresponding to a “lighter” touch. These settings
-	// 	// are more sensitive to noise, however, and a noisy environment may flag more false touches with higher
-	// 	// sensitivity levels.
-	// 	// Set to 2x: TODO: make that configurable.
-	// 	byte(1)<<6 | byte(1)<<5 | byte(0)<<4 |
-	// 	byte(0)<<3 | byte(0)<<2 | byte(0)<<1 | byte(0)<<0)
-	// if Debug {
-	// 	fmt.Printf("cap1188: Sensitivity mask: %08b\n", sensitivity)
-	// }
-	// if err = d.regWrapper.WriteUint8(0x1F, sensitivity); err != nil {
-	// 	return fmt.Errorf("failed to set sensitivity - %s", err)
-	// }
+	sensitivity := (byte(0)<<7 |
+		// Controls the sensitivity of a touch detection. The sensitivity settings act
+		// to scale the relative delta count value higher or lower based on the system parameters. A setting of
+		// 000b is the most sensitive while a setting of 111b is the least sensitive. At the more sensitive settings,
+		// touches are detected for a smaller delta capacitance corresponding to a “lighter” touch. These settings
+		// are more sensitive to noise, however, and a noisy environment may flag more false touches with higher
+		// sensitivity levels.
+		// Set to 2x: TODO: make that configurable.
+		byte(1)<<6 | byte(1)<<5 | byte(0)<<4 |
+		byte(0)<<3 | byte(0)<<2 | byte(0)<<1 | byte(0)<<0)
+	if Debug {
+		fmt.Printf("cap1188: Sensitivity mask: %08b\n", sensitivity)
+	}
+	if err = d.regWrapper.WriteUint8(0x1F, sensitivity); err != nil {
+		return fmt.Errorf("failed to set sensitivity - %s", err)
+	}
 
 	if opts.LinkedLEDs {
 		if err = d.LinkLeds(); err != nil {
@@ -331,7 +405,7 @@ func (d *Dev) makeDev(opts *Opts) error {
 		// analog noise filter
 		// default 0: Determines whether the analog noise filter is enabled. Setting this
 		// bit disables the feature.
-		byte(0)<<4 |
+		byte(1)<<4 |
 		// maximum duration recalibration
 		// Determines whether the maximum duration recalibration is enabled.
 		//
@@ -429,10 +503,28 @@ func (d *Dev) clearBit(regID uint8, idx int) error {
 	return d.regWrapper.WriteUint8(regID, v)
 }
 
+// resetMemInputStatus resets the in memory slice containing the state of the
+// inputs.
+func resetMemInputStatus() {
+	inputStatuses = make([]TouchStatus, nbrOfLEDs)
+}
+
 // b is the byte to check and position is the bit position
 // index 0 where 7 is the "most left bit".
 func isBitSet(b byte, pos uint8) bool {
 	return (b>>pos)&1 == 1
+}
+
+// twoComplementsToInt returns the int value of a standard 2’s complement number
+func twoComplementsToInt(v byte) int {
+	if (v & (1 << (8 - 1))) == 0 {
+		return int(v)
+	}
+	return int(v) - (1 << 8)
+}
+
+func wrap(err error) error {
+	return fmt.Errorf("cap1188: %v", err)
 }
 
 var _ devices.Device = &Dev{}
