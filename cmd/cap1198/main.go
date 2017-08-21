@@ -80,20 +80,39 @@ func mainImpl() error {
 	if dev, err = cap1198.NewI2C(i, opts); err != nil {
 		return fmt.Errorf("couldn't open cap1198 - %s", err)
 	}
-
 	time.Sleep(200 * time.Millisecond)
 
+	// unlinked LED demo
+	if err := dev.UnlinkLeds(); err != nil {
+		log.Println("Failed to unlink leds", err)
+	}
+	for i := 0; i < 8; i++ {
+		dev.SetLed(i, true)
+		time.Sleep(100 * time.Millisecond)
+	}
+	time.Sleep(500 * time.Millisecond)
+	dev.AllLedsOff()
+	time.Sleep(100 * time.Millisecond)
+	dev.AllLedsOn()
+	time.Sleep(100 * time.Millisecond)
+	dev.AllLedsOff()
+
+	if err := dev.LinkLeds(); err != nil {
+		log.Println("Failed to relink leds", err)
+	}
+
 	if alertPin != nil {
-		fmt.Println("Monitoring for interrupt")
+		fmt.Println("Monitoring for interrupts")
 		for {
-			alertPin.WaitForEdge(-1)
-			fmt.Println(dev.InputStatus())
-			if err := dev.ClearInterrupt(); err != nil {
-				fmt.Println(err, "while clearing the interrupt")
+			if alertPin.WaitForEdge(-1) {
+				fmt.Println(dev.InputStatus())
+				// we need to clear the interrupt so it can be triggered again
+				if err := dev.ClearInterrupt(); err != nil {
+					fmt.Println(err, "while clearing the interrupt")
+				}
 			}
 		}
 	}
-	// TODO: wait for an interrupt
 
 	err2 := dev.Halt()
 	if err != nil {

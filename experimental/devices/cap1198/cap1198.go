@@ -34,6 +34,18 @@ var (
 	inputStatuses [8]bool
 )
 
+const (
+	// reg_LEDLinking - The Sensor Input LED Linking register controls whether a
+	// capacitive touch sensor input is linked to an LED output. If the
+	// corresponding bit is set, then the appropriate LED output will change
+	// states defined by the LED Behavior controls in response to the capacitive
+	// touch sensor input.
+	reg_LEDLinking = 0x72
+	// reg_LEDOutputControl - The LED Output Control Register controls the output
+	// state of the LED pins that are not linked to sensor inputs.
+	reg_LEDOutputControl = 0x74
+)
+
 // Dev is a handle to a cap1198.
 type Dev struct {
 	d          conn.Conn
@@ -50,6 +62,75 @@ func (d *Dev) String() string {
 // Halt is a noop for the CAP1198.
 func (d *Dev) Halt() error {
 	return nil
+}
+
+// InputStatus reads and returns the status of the 8 inputs as an array where
+// each entry indicates a touch event or not.
+func (d *Dev) InputStatus() ([8]bool, error) {
+	status, err := d.regWrapper.ReadUint8(0x3)
+	if err != nil {
+		return inputStatuses, err
+	}
+	for i := uint8(0); i < 8; i++ {
+		inputStatuses[i] = isBitSet(status, 7-i)
+	}
+	return inputStatuses, nil
+}
+
+// LinkLeds() link the behavior of the LEDs to the touch sensors.
+// Doing so, disabled the option for the host to set specific LEDs on/off.
+func (d *Dev) LinkLeds() error {
+	if err := d.regWrapper.WriteUint8(reg_LEDLinking, 0xff); err != nil {
+		return fmt.Errorf("failed to link LEDs - %s", err)
+	}
+	d.opts.LinkedLEDs = true
+	return nil
+}
+
+// UnlinkLeds disassociate the LEDs from the input sensors allowing the host to
+// control the LEDs.
+func (d *Dev) UnlinkLeds() error {
+	if err := d.regWrapper.WriteUint8(reg_LEDLinking, 0x00); err != nil {
+		return fmt.Errorf("failed to unlink LEDs - %s", err)
+	}
+	d.opts.LinkedLEDs = false
+	return nil
+}
+
+// AllLedsOn turns all the LEDs on.
+// This is quite more efficient than looping through each led and turn them on.
+func (d *Dev) AllLedsOn() error {
+	if d.opts.LinkedLEDs {
+		return fmt.Errorf("can't manually set LEDs when they are linked to sensors")
+	}
+	return d.regWrapper.WriteUint8(reg_LEDOutputControl, 0xff)
+}
+
+// AllLedsOff turns all the LEDs off.
+// This is quite more efficient than looping through each led and turn them off.
+func (d *Dev) AllLedsOff() error {
+	if d.opts.LinkedLEDs {
+		return fmt.Errorf("can't manually set LEDs when they are linked to sensors")
+	}
+	return d.regWrapper.WriteUint8(reg_LEDOutputControl, 0x00)
+}
+
+// SetLed sets the state of a LED as on or off
+// Only works if the LEDs are not linked to the sensors
+func (d *Dev) SetLed(idx int, state bool) error {
+	if d.opts.LinkedLEDs {
+		return fmt.Errorf("can't manually set LEDs when they are linked to sensors")
+	}
+	if idx > 7 || idx < 0 {
+		return fmt.Errorf("invalid led idx %d", idx)
+	}
+	if Debug {
+		fmt.Printf("Set LED state %d - %t\n", idx, state)
+	}
+	if state {
+		return d.setBit(reg_LEDOutputControl, idx)
+	}
+	return d.clearBit(reg_LEDOutputControl, idx)
 }
 
 // Reset issues a soft reset to the device using the reset pin
@@ -74,6 +155,12 @@ func (d *Dev) Reset() (err error) {
 	return nil
 }
 
+// ClearInterrupt resets the interrupt flag
+func (d *Dev) ClearInterrupt() error {
+	// clear the main control bit
+	return d.clearBit(0x0, 0)
+}
+
 // Standby turns off the capacitive touch sensor inputs. The status registers will
 // not be cleared until read. LEDs that are linked to capacitive touch sensor
 // inputs will remain linked and active. Sensor inputs that are no longer
@@ -95,19 +182,6 @@ func (d *Dev) WakeUp() error {
 // state and no PWM operations will be done.
 func (d *Dev) DeepSleep() error {
 	panic("not implemented")
-}
-
-// InputStatus reads and returns the status of the 8 inputs as an array where
-// each entry indicates a touch event or not.
-func (d *Dev) InputStatus() ([8]bool, error) {
-	status, err := d.regWrapper.ReadUint8(0x3)
-	if err != nil {
-		return inputStatuses, err
-	}
-	for i := uint8(0); i < 8; i++ {
-		inputStatuses[i] = isBitSet(status, 7-i)
-	}
-	return inputStatuses, nil
 }
 
 // NewI2C returns a new device that communicates over I²C to CAP1198.
@@ -137,20 +211,6 @@ func NewI2C(b i2c.Bus, opts *Opts) (*Dev, error) {
 // sensor.
 func NewSPI(p spi.Port, opts *Opts) (*Dev, error) {
 	panic("not implemented")
-}
-
-// ClearInterrupt resets the interrupt flag
-func (d *Dev) ClearInterrupt() error {
-	status, err := d.regWrapper.ReadUint8(0x0)
-	if err != nil {
-		return err
-	}
-	// clear the main control bit
-	status &= ^(uint8(1) << 0)
-	if Debug {
-		fmt.Printf("Clearing interrupt status with mast %08b\n", status)
-	}
-	return d.regWrapper.WriteUint8(0x0, status)
 }
 
 func (d *Dev) makeDev(opts *Opts) error {
@@ -188,17 +248,17 @@ func (d *Dev) makeDev(opts *Opts) error {
 	}
 
 	// enable all inputs
-	if err = d.regWrapper.WriteUint8(0x21, 255); err != nil {
+	if err = d.regWrapper.WriteUint8(0x21, 0xff); err != nil {
 		return fmt.Errorf("failed to enable all inputs - %s", err)
 	}
 	// enable interrupts
-	if err = d.regWrapper.WriteUint8(0x27, 255); err != nil {
+	if err = d.regWrapper.WriteUint8(0x27, 0xff); err != nil {
 		return fmt.Errorf("failed to enable interrupts - %s", err)
 	}
 	// disable repeats (TODO: make it an option)
-	if err = d.regWrapper.WriteUint8(0x28, 0); err != nil {
-		return fmt.Errorf("failed to disable repeats - %s", err)
-	}
+	// if err = d.regWrapper.WriteUint8(0x28, 0); err != nil {
+	// 	return fmt.Errorf("failed to disable repeats - %s", err)
+	// }
 	// enable multitouch
 	if err = d.regWrapper.WriteUint8(0x2a, 0x80); err != nil {
 		return fmt.Errorf("failed to enable multitouch - %s", err)
@@ -225,6 +285,30 @@ func (d *Dev) makeDev(opts *Opts) error {
 		return fmt.Errorf("failed to enable multitouch - %s", err)
 	}
 
+	// customize sensitivity (TODO)
+	// sensitivity := (byte(0)<<7 |
+	// 	// Controls the sensitivity of a touch detection. The sensitivity settings act
+	// 	// to scale the relative delta count value higher or lower based on the system parameters. A setting of
+	// 	// 000b is the most sensitive while a setting of 111b is the least sensitive. At the more sensitive settings,
+	// 	// touches are detected for a smaller delta capacitance corresponding to a “lighter” touch. These settings
+	// 	// are more sensitive to noise, however, and a noisy environment may flag more false touches with higher
+	// 	// sensitivity levels.
+	// 	// Set to 2x: TODO: make that configurable.
+	// 	byte(1)<<6 | byte(1)<<5 | byte(0)<<4 |
+	// 	byte(0)<<3 | byte(0)<<2 | byte(0)<<1 | byte(0)<<0)
+	// if Debug {
+	// 	fmt.Printf("cap1198: Sensitivity mask: %08b\n", sensitivity)
+	// }
+	// if err = d.regWrapper.WriteUint8(0x1F, sensitivity); err != nil {
+	// 	return fmt.Errorf("failed to set sensitivity - %s", err)
+	// }
+
+	if opts.LinkedLEDs {
+		if err = d.LinkLeds(); err != nil {
+			return err
+		}
+	}
+
 	// page 47 - configuration registers
 	config := (
 	// Timeout: Enables the timeout and idle functionality of the SMBus protocol.
@@ -247,7 +331,7 @@ func (d *Dev) makeDev(opts *Opts) error {
 		// analog noise filter
 		// default 0: Determines whether the analog noise filter is enabled. Setting this
 		// bit disables the feature.
-		byte(1)<<4 |
+		byte(0)<<4 |
 		// maximum duration recalibration
 		// Determines whether the maximum duration recalibration is enabled.
 		//
@@ -320,25 +404,29 @@ func (d *Dev) makeDev(opts *Opts) error {
 		return fmt.Errorf("failed to set the device configuration 2 - %s", err)
 	}
 
-	// customize sensitivity (TODO)
-	sensitivity := (byte(0)<<7 |
-		// Controls the sensitivity of a touch detection. The sensitivity settings act
-		// to scale the relative delta count value higher or lower based on the system parameters. A setting of
-		// 000b is the most sensitive while a setting of 111b is the least sensitive. At the more sensitive settings,
-		// touches are detected for a smaller delta capacitance corresponding to a “lighter” touch. These settings
-		// are more sensitive to noise, however, and a noisy environment may flag more false touches with higher
-		// sensitivity levels.
-		// Set to 2x: TODO: make that configurable.
-		byte(1)<<6 | byte(1)<<5 | byte(0)<<4 |
-		byte(0)<<3 | byte(0)<<2 | byte(0)<<1 | byte(0)<<0)
-	if Debug {
-		fmt.Printf("cap1198: Sensitivity mask: %08b\n", sensitivity)
-	}
-	if err = d.regWrapper.WriteUint8(0x1F, sensitivity); err != nil {
-		return fmt.Errorf("failed to set sensitivity - %s", err)
-	}
-
 	return nil
+}
+
+// setBit sets a specific bit on a register
+// TODO: avoid reading before writing, keep states in memory
+func (d *Dev) setBit(regID uint8, idx int) error {
+	v, err := d.regWrapper.ReadUint8(regID)
+	if err != nil {
+		return err
+	}
+	v |= (1 << uint8(idx))
+	return d.regWrapper.WriteUint8(regID, v)
+}
+
+// clearBit clears a specific bit on a register
+// TODO: avoid reading before writing, keep states in memory
+func (d *Dev) clearBit(regID uint8, idx int) error {
+	v, err := d.regWrapper.ReadUint8(regID)
+	if err != nil {
+		return err
+	}
+	v &= ^(1 << uint8(idx))
+	return d.regWrapper.WriteUint8(regID, v)
 }
 
 // b is the byte to check and position is the bit position
