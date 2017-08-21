@@ -20,7 +20,7 @@ func Example() {
 	if _, err := host.Init(); err != nil {
 		log.Fatalf("failed to initialize periph: %v", err)
 	}
-	dev, err := New(gpioreg.ByNumber(6), gpioreg.ByNumber(12))
+	dev, err := New(gpioreg.ByName("GPIO6"), gpioreg.ByName("GPIO12"))
 	if err != nil {
 		log.Fatalf("failed to initialize tm1637: %v", err)
 	}

@@ -12,7 +12,7 @@ import (
 )
 
 func ExamplePinIn() {
-	//p := gpioreg.ByNumber(6)
+	//p := gpioreg.ByName("GPIO6")
 	var p PinIn
 	if err := p.In(PullDown, RisingEdge); err != nil {
 		log.Fatal(err)
@@ -24,7 +24,7 @@ func ExamplePinIn() {
 }
 
 func ExamplePinOut() {
-	//p := gpioreg.ByNumber(6)
+	//p := gpioreg.ByName("GPIO6")
 	var p PinOut
 	if err := p.Out(High); err != nil {
 		log.Fatal(err)

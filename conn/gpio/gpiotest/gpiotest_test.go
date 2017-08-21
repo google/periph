@@ -71,21 +71,18 @@ func TestAll(t *testing.T) {
 	}
 }
 
-func TestByNumber(t *testing.T) {
-	if gpioreg.ByNumber(1) != nil {
-		t.Fatal("1 exist")
-	}
-	if gpioreg.ByNumber(2) != gpio2 {
-		t.Fatal("2 missing")
-	}
-}
-
 func TestByName(t *testing.T) {
 	if gpioreg.ByName("GPIO0") != nil {
 		t.Fatal("GPIO0 doesn't exist")
 	}
 	if gpioreg.ByName("GPIO2") != gpio2 {
 		t.Fatal("GPIO2 should have been found")
+	}
+	if gpioreg.ByName("1") != nil {
+		t.Fatal("1 exist")
+	}
+	if gpioreg.ByName("2") != gpio2 {
+		t.Fatal("2 missing")
 	}
 }
 

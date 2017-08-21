@@ -14,23 +14,13 @@ import (
 	"periph.io/x/periph/conn/gpio"
 )
 
-// ByNumber returns a GPIO pin from its number.
+// ByName returns a GPIO pin from its name, gpio number or one of its aliases.
 //
-// Returns nil in case the pin is not present.
-func ByNumber(number int) gpio.PinIO {
-	mu.Lock()
-	defer mu.Unlock()
-	return getByNumber(number)
-}
-
-// ByName returns a GPIO pin from its name.
+// For example on a Raspberry Pi, the following values will return the same
+// GPIO: the gpio as a number "2", the chipset name "GPIO2", the board pin
+// position "P1_3", it's function name "I2C1_SDA".
 //
-// This can be strings like GPIO2, PB8, etc.
-//
-// This function parses string representation of numbers, calling with "6"
-// returns the pin registered as number 6.
-//
-// Returns nil in case the pin is not present.
+// Returns nil if the gpio pin is not present.
 func ByName(name string) gpio.PinIO {
 	mu.Lock()
 	defer mu.Unlock()
@@ -43,7 +33,8 @@ func ByName(name string) gpio.PinIO {
 //
 // This list excludes aliases.
 //
-// This list excludes non-GPIO pins like GROUND, V3_3, etc.
+// This list excludes non-GPIO pins like GROUND, V3_3, etc, since they are not
+// GPIO.
 func All() []gpio.PinIO {
 	mu.Lock()
 	defer mu.Unlock()
