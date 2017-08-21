@@ -51,11 +51,11 @@ const oversamplingName = "Off1x2x4x8x16x"
 
 var oversamplingIndex = [...]uint8{0, 3, 5, 7, 9, 11, 14}
 
-func (i Oversampling) String() string {
-	if i >= Oversampling(len(oversamplingIndex)-1) {
-		return fmt.Sprintf("Oversampling(%d)", i)
+func (o Oversampling) String() string {
+	if o >= Oversampling(len(oversamplingIndex)-1) {
+		return fmt.Sprintf("Oversampling(%d)", o)
 	}
-	return oversamplingName[oversamplingIndex[i]:oversamplingIndex[i+1]]
+	return oversamplingName[oversamplingIndex[o]:oversamplingIndex[o+1]]
 }
 
 func (o Oversampling) asValue() int {

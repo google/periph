@@ -113,7 +113,7 @@ func (d *Dev) makeDev(opts *Opts) error {
 		return fmt.Errorf("ds248x: error while reading status register: %s", err)
 	}
 	if stat[0] != 0x18 {
-		return fmt.Errorf("ds248x: invalid status register value: %#x, expected 0x18\n", stat[0])
+		return fmt.Errorf("ds248x: invalid status register value: %#x, expected 0x18", stat[0])
 	}
 
 	// Write the device configuration register to get the chip out of reset state, immediately

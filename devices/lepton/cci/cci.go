@@ -117,15 +117,15 @@ const (
 type FFCState uint8
 
 const (
-	// No FFC was requested.
+	// FFCNever means no FFC was requested.
 	FFCNever FFCState = 0
-	// FFC is in progress. It lasts 23 frames (at 27fps) so it lasts less than a second.
+	// FFCInProgress means a FFC is in progress. It lasts 23 frames (at 27fps) so it lasts less than a second.
 	FFCInProgress FFCState = 1
-	// FFC was completed successfully.
+	// FFCComplete means FFC was completed successfully.
 	FFCComplete FFCState = 2
 )
 
-// FFCMode
+// FFCMode describes the various self-calibration settings and state.
 type FFCMode struct {
 	FFCShutterMode          FFCShutterMode          // Default: FFCShutterModeExternal
 	ShutterTempLockoutState ShutterTempLockoutState // Default: ShutterTempLockoutStateInactive

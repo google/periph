@@ -157,7 +157,7 @@ func (s *SmokeTest) eeprom(bus onewire.Bus, addr onewire.Address) error {
 	}
 	for i := range data {
 		if data[i] != buf[i+3] {
-			return fmt.Errorf("eeprom: scratchpad data byte %d mismatch, expected %#x got %#x\n",
+			return fmt.Errorf("eeprom: scratchpad data byte %d mismatch, expected %#x got %#x",
 				i, data[i], buf[i+3])
 		}
 	}

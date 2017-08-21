@@ -98,7 +98,7 @@ func (p *playback) String() string {
 
 func (p *playback) Close() error {
 	if len(p.Ops) != 0 {
-		return fmt.Errorf("onewiretest: expected playback to be empty:\n%#v", p.Ops)
+		return fmt.Errorf("onewiretest: expected playback to be empty: %#v", p.Ops)
 	}
 	return nil
 }

@@ -104,7 +104,7 @@ func (s *SmokeTest) ds248x(bus i2c.Bus) error {
 		return fmt.Errorf("ds248x: error while reading status register: %s", err)
 	}
 	if stat[0] != 0x18 {
-		return fmt.Errorf("ds248x: invalid status register value: %#x, expected 0x18\n", stat[0])
+		return fmt.Errorf("ds248x: invalid status register value: %#x, expected 0x18", stat[0])
 	}
 
 	return nil

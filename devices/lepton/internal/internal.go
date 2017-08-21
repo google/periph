@@ -25,6 +25,7 @@ const (
 // It is an implementation detail of the protocol.
 type DurationMS uint32
 
+// ToD converts a millisecond based timing to time.Duration.
 func (d DurationMS) ToD() time.Duration {
 	return time.Duration(d) * time.Millisecond
 }
@@ -34,6 +35,7 @@ func (d DurationMS) ToD() time.Duration {
 // It is an implementation detail of the protocol.
 type CentiK uint16
 
+// ToC converts a Kelvin measurement to Celsius.
 func (c CentiK) ToC() devices.Celsius {
 	v := (int(c) - 27315) * 10
 	return devices.Celsius(v)
@@ -46,7 +48,7 @@ type Status struct {
 	Reserved     uint16
 }
 
-// FFCMode
+// FFCMode describes the various self-calibration settings and state.
 type FFCMode struct {
 	FFCShutterMode          uint32     // Default: FFCShutterModeExternal
 	ShutterTempLockoutState uint32     // Default: ShutterTempLockoutStateInactive

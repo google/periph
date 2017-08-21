@@ -23,6 +23,7 @@ func (d *Display) String() string {
 	return "Display"
 }
 
+// Halt implements devices.Device. It is a noop.
 func (d *Display) Halt() error {
 	return nil
 }

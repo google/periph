@@ -315,7 +315,7 @@ func (m *Metadata) parseTelemetry(data []byte) error {
 	m.FFCTemp = rowA.FPATempLastFFC.ToC()
 	m.FFCTempHousing = rowA.HousingTempLastFFC.ToC()
 	if rowA.StatusBits&statusMaskNil != 0 {
-		return fmt.Errorf("\n(Status: 0x%08X) & (Mask: 0x%08X) = (Extra: 0x%08X) in 0x%08X\n", rowA.StatusBits, statusMask, rowA.StatusBits&statusMaskNil, statusMaskNil)
+		return fmt.Errorf("lepton: (Status: 0x%08X) & (Mask: 0x%08X) = (Extra: 0x%08X) in 0x%08X", rowA.StatusBits, statusMask, rowA.StatusBits&statusMaskNil, statusMaskNil)
 	}
 	m.FFCDesired = rowA.StatusBits&statusFFCDesired != 0
 	m.Overtemp = rowA.StatusBits&statusOvertemp != 0
