@@ -132,7 +132,8 @@ func Register(p gpio.PinIO, preferred bool) error {
 //
 // It is possible to register an alias for a pin that itself has not been
 // registered yet. It is valid to register an alias to another alias or to a
-// number.
+// number. It is valid to register the same alias to the same dest multiple
+// times.
 func RegisterAlias(alias string, dest string) error {
 	if len(alias) == 0 {
 		return wrapf("can't register an alias with no name")
@@ -147,6 +148,11 @@ func RegisterAlias(alias string, dest string) error {
 	mu.Lock()
 	defer mu.Unlock()
 	if orig := byAlias[alias]; orig != nil {
+		if orig.dest == dest {
+			// It is fine to register the same alias twice. This simplifies unit
+			// tests as there is no way to clear the registry (yet).
+			return nil
+		}
 		return wrapf("can't register alias %q twice; it is already an alias: %v", alias, orig)
 	}
 	byAlias[alias] = &pinAlias{name: alias, dest: dest}

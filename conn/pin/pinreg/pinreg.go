@@ -6,9 +6,11 @@ package pinreg
 
 import (
 	"fmt"
+	"strconv"
 	"sync"
 
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/pin"
 )
 
@@ -52,16 +54,18 @@ func IsConnected(p pin.Pin) bool {
 }
 
 // Register registers a physical header.
+//
+// It automatically registers all gpio pins to gpioreg.
 func Register(name string, allPins [][]pin.Pin) error {
 	mu.Lock()
 	defer mu.Unlock()
 	if _, ok := allHeaders[name]; ok {
-		return fmt.Errorf("headers: header %q was already registered", name)
+		return fmt.Errorf("pinreg: header %q was already registered", name)
 	}
 	for i, line := range allPins {
 		for j, pin := range line {
 			if pin == nil || len(pin.Name()) == 0 {
-				return fmt.Errorf("headers: invalid pin on header %s[%d][%d]", name, i+1, j+1)
+				return fmt.Errorf("pinreg: invalid pin on header %s[%d][%d]", name, i+1, j+1)
 			}
 		}
 	}
@@ -73,6 +77,19 @@ func Register(name string, allPins [][]pin.Pin) error {
 			number++
 		}
 	}
+
+	count := 0
+	for _, row := range allPins {
+		for _, p := range row {
+			count++
+			if _, ok := p.(gpio.PinIO); ok {
+				if err := gpioreg.RegisterAlias(name+"_"+strconv.Itoa(count), p.Name()); err != nil {
+					return fmt.Errorf("pinreg: %v", err)
+				}
+			}
+		}
+	}
+
 	return nil
 }
 
