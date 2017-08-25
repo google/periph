@@ -67,7 +67,7 @@ func ExampleDev8_WriteStruct() {
 		log.Fatal(err)
 	}
 	defer bus.Close()
-	c := &onewire.Dev{bus, 0xD0}
+	c := &onewire.Dev{Bus: bus, Addr: 0xD0}
 
 	dev := Dev8{c, binary.LittleEndian}
 	flags := struct {
