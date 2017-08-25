@@ -2,10 +2,10 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package bme280smoketest is leveraged by periph-smoketest to verify that two
-// BME280, one over I²C, one over SPI, read roughly the same temperature,
+// Package bmx280smoketest is leveraged by periph-smoketest to verify that two
+// BME280/BMP280, one over I²C, one over SPI, read roughly the same temperature,
 // humidity and pressure.
-package bme280smoketest
+package bmx280smoketest
 
 import (
 	"flag"
@@ -18,7 +18,7 @@ import (
 	"periph.io/x/periph/conn/spi/spireg"
 	"periph.io/x/periph/conn/spi/spitest"
 	"periph.io/x/periph/devices"
-	"periph.io/x/periph/devices/bme280"
+	"periph.io/x/periph/devices/bmxx80"
 )
 
 // SmokeTest is imported by periph-smoketest.
@@ -27,18 +27,19 @@ type SmokeTest struct {
 
 // Name implements the SmokeTest interface.
 func (s *SmokeTest) Name() string {
-	return "bme280"
+	return "bmx280"
 }
 
 // Description implements the SmokeTest interface.
 func (s *SmokeTest) Description() string {
-	return "Tests BME280 over I²C and SPI"
+	return "Tests BMx280 over I²C and SPI"
 }
 
 // Run implements the SmokeTest interface.
 func (s *SmokeTest) Run(args []string) (err error) {
 	f := flag.NewFlagSet("buses", flag.ExitOnError)
 	i2cID := f.String("i2c", "", "I²C bus to use")
+	i2cAddr := f.Uint("ia", 0x76, "I²C bus address to use; either 0x76 (BMx280, the default) or 0x77 (BMP180)")
 	spiID := f.String("spi", "", "SPI port to use")
 	record := f.Bool("r", false, "record operation (for playback unit testing)")
 	f.Parse(args)
@@ -63,12 +64,12 @@ func (s *SmokeTest) Run(args []string) (err error) {
 		}
 	}()
 	if !*record {
-		return run(i2cBus, spiPort)
+		return run(i2cBus, uint16(*i2cAddr), spiPort)
 	}
 
 	i2cRecorder := i2ctest.Record{Bus: i2cBus}
 	spiRecorder := spitest.Record{Port: spiPort}
-	err = run(&i2cRecorder, &spiRecorder)
+	err = run(&i2cRecorder, uint16(*i2cAddr), &spiRecorder)
 	if len(i2cRecorder.Ops) != 0 {
 		fmt.Printf("I²C recorder Addr: 0x%02X\n", i2cRecorder.Ops[0].Addr)
 	} else {
@@ -119,15 +120,15 @@ func (s *SmokeTest) Run(args []string) (err error) {
 	return err
 }
 
-func run(i2cBus i2c.Bus, spiPort spi.PortCloser) (err error) {
-	opts := &bme280.Opts{
-		Temperature: bme280.O16x,
-		Pressure:    bme280.O16x,
-		Humidity:    bme280.O16x,
-		Filter:      bme280.NoFilter,
+func run(i2cBus i2c.Bus, i2cAddr uint16, spiPort spi.PortCloser) (err error) {
+	opts := &bmxx80.Opts{
+		Temperature: bmxx80.O16x,
+		Pressure:    bmxx80.O16x,
+		Humidity:    bmxx80.O16x,
+		Filter:      bmxx80.NoFilter,
 	}
 
-	i2cDev, err2 := bme280.NewI2C(i2cBus, opts)
+	i2cDev, err2 := bmxx80.NewI2C(i2cBus, i2cAddr, opts)
 	if err2 != nil {
 		return err2
 	}
@@ -137,7 +138,7 @@ func run(i2cBus i2c.Bus, spiPort spi.PortCloser) (err error) {
 		}
 	}()
 
-	spiDev, err2 := bme280.NewSPI(spiPort, opts)
+	spiDev, err2 := bmxx80.NewSPI(spiPort, opts)
 	if err2 != nil {
 		return err2
 	}

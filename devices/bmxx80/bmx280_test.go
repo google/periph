@@ -2,7 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-package bme280
+package bmxx80
 
 import (
 	"errors"
@@ -22,7 +22,7 @@ import (
 )
 
 // Real data extracted from a device.
-var calib = calibration{
+var calib280 = calibration280{
 	t1: 28176,
 	t2: 26220,
 	t3: 350,
@@ -43,7 +43,7 @@ var calib = calibration{
 	h6: 30,
 }
 
-func TestSPISense_success(t *testing.T) {
+func TestSPISenseBME280_success(t *testing.T) {
 	s := spitest.Playback{
 		Playback: conntest.Playback{
 			Ops: []conntest.IO{
@@ -57,7 +57,7 @@ func TestSPISense_success(t *testing.T) {
 					W: []byte{0x88, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 					R: []byte{0x00, 0xC9, 0x6C, 0x63, 0x65, 0x32, 0x00, 0x77, 0x93, 0x98, 0xD5, 0xD0, 0x0B, 0x67, 0x23, 0xBA, 0x00, 0xF9, 0xFF, 0xAC, 0x26, 0x0A, 0xD8, 0xBD, 0x10, 0x00, 0x4B},
 				},
-				// Calibration data.
+				// Calibration data humidity.
 				{
 					W: []byte{0xE1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 					R: []byte{0x00, 0x5C, 0x01, 0x00, 0x15, 0x0F, 0x00, 0x1E},
@@ -109,16 +109,13 @@ func TestSPISense_success(t *testing.T) {
 	}
 }
 
-func TestNewSPI_fail(t *testing.T) {
-	if d, err := NewSPI(&spiFail{}, nil); d != nil || err == nil {
-		t.Fatal("Connect() have failed")
-	}
-	if d, err := NewSPI(&spiFail{}, &Opts{Address: 1}); d != nil || err == nil {
-		t.Fatal("Address can't be used with SPI")
+func TestNewSPIBME280_fail_Connect(t *testing.T) {
+	if dev, err := NewSPI(&spiFail{}, nil); dev != nil || err == nil {
+		t.Fatal("read failed")
 	}
 }
 
-func TestNewSPI_fail_len(t *testing.T) {
+func TestNewSPIBME280_fail_len(t *testing.T) {
 	s := spitest.Playback{
 		Playback: conntest.Playback{
 			Ops: []conntest.IO{
@@ -141,7 +138,7 @@ func TestNewSPI_fail_len(t *testing.T) {
 	}
 }
 
-func TestNewSPI_fail_chipid(t *testing.T) {
+func TestNewSPIBME280_fail_chipid(t *testing.T) {
 	s := spitest.Playback{
 		Playback: conntest.Playback{
 			Ops: []conntest.IO{
@@ -161,7 +158,7 @@ func TestNewSPI_fail_chipid(t *testing.T) {
 	}
 }
 
-func TestNewI2C_fail_io(t *testing.T) {
+func TestNewI2CBME280_fail_io(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Chip ID detection.
@@ -169,7 +166,7 @@ func TestNewI2C_fail_io(t *testing.T) {
 		},
 		DontPanic: true,
 	}
-	if dev, err := NewI2C(&bus, nil); dev != nil || err == nil {
+	if dev, err := NewI2C(&bus, 0x76, nil); dev != nil || err == nil {
 		t.Fatal("read failed")
 	}
 	// The I/O didn't occur.
@@ -179,7 +176,7 @@ func TestNewI2C_fail_io(t *testing.T) {
 	}
 }
 
-func TestNewI2C_fail_chipid(t *testing.T) {
+func TestNewI2CBME280_fail_read_calib1(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Chip ID detection.
@@ -187,7 +184,7 @@ func TestNewI2C_fail_chipid(t *testing.T) {
 		},
 		DontPanic: true,
 	}
-	if dev, err := NewI2C(&bus, nil); dev != nil || err == nil {
+	if dev, err := NewI2C(&bus, 0x76, nil); dev != nil || err == nil {
 		t.Fatal("invalid chip id")
 	}
 	if err := bus.Close(); err != nil {
@@ -195,7 +192,7 @@ func TestNewI2C_fail_chipid(t *testing.T) {
 	}
 }
 
-func TestNewI2C_calib1(t *testing.T) {
+func TestNewI2CBME280_read_calib2(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Chip ID detection.
@@ -209,8 +206,8 @@ func TestNewI2C_calib1(t *testing.T) {
 		},
 		DontPanic: true,
 	}
-	opts := Opts{Temperature: O1x, Address: 0}
-	if dev, err := NewI2C(&bus, &opts); dev != nil || err == nil {
+	opts := Opts{Temperature: O1x}
+	if dev, err := NewI2C(&bus, 0x76, &opts); dev != nil || err == nil {
 		t.Fatal("2nd calib read failed")
 	}
 	if err := bus.Close(); err != nil {
@@ -218,7 +215,7 @@ func TestNewI2C_calib1(t *testing.T) {
 	}
 }
 
-func TestNewI2C_calib2(t *testing.T) {
+func TestNewI2C280_write_config(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Chip ID detection.
@@ -229,12 +226,12 @@ func TestNewI2C_calib2(t *testing.T) {
 				W:    []byte{0x88},
 				R:    []byte{0x10, 0x6e, 0x6c, 0x66, 0x32, 0x0, 0x5d, 0x95, 0xb8, 0xd5, 0xd0, 0xb, 0x77, 0x1e, 0x9d, 0xff, 0xf9, 0xff, 0xac, 0x26, 0xa, 0xd8, 0xbd, 0x10, 0x0, 0x4b},
 			},
-			// Calibration data.
+			// Calibration data humidity.
 			{Addr: 0x76, W: []byte{0xe1}, R: []byte{0x6e, 0x1, 0x0, 0x13, 0x5, 0x0, 0x1e}},
 		},
 		DontPanic: true,
 	}
-	if dev, err := NewI2C(&bus, nil); dev != nil || err == nil {
+	if dev, err := NewI2C(&bus, 0x76, nil); dev != nil || err == nil {
 		t.Fatal("3rd calib read failed")
 	}
 	if err := bus.Close(); err != nil {
@@ -242,10 +239,14 @@ func TestNewI2C_calib2(t *testing.T) {
 	}
 }
 
-func TestI2COpts_bad_addr(t *testing.T) {
-	bus := i2ctest.Playback{}
-	opts := Opts{Address: 1}
-	if dev, err := NewI2C(&bus, &opts); dev != nil || err == nil {
+func TestNewI2C280Opts_temperature(t *testing.T) {
+	bus := i2ctest.Playback{
+		Ops: []i2ctest.IO{
+			// Chip ID detection.
+			{Addr: 0x76, W: []byte{0xd0}, R: []byte{0x60}},
+		},
+	}
+	if dev, err := NewI2C(&bus, 0x76, &Opts{}); dev != nil || err == nil {
 		t.Fatal("bad addr")
 	}
 	if err := bus.Close(); err != nil {
@@ -253,18 +254,17 @@ func TestI2COpts_bad_addr(t *testing.T) {
 	}
 }
 
-func TestI2COpts(t *testing.T) {
-	bus := i2ctest.Playback{DontPanic: true}
-	opts := Opts{Address: 0x76}
-	if dev, err := NewI2C(&bus, &opts); dev != nil || err == nil {
-		t.Fatal("write fails")
+func TestNewI2C280_bad_addr(t *testing.T) {
+	bus := i2ctest.Playback{}
+	if dev, err := NewI2C(&bus, 1, nil); dev != nil || err == nil {
+		t.Fatal("bad addr")
 	}
 	if err := bus.Close(); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func TestI2CSense_fail(t *testing.T) {
+func TestI2CSenseBME280_fail(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Chip ID detection.
@@ -275,7 +275,7 @@ func TestI2CSense_fail(t *testing.T) {
 				W:    []byte{0x88},
 				R:    []byte{0x10, 0x6e, 0x6c, 0x66, 0x32, 0x0, 0x5d, 0x95, 0xb8, 0xd5, 0xd0, 0xb, 0x77, 0x1e, 0x9d, 0xff, 0xf9, 0xff, 0xac, 0x26, 0xa, 0xd8, 0xbd, 0x10, 0x0, 0x4b},
 			},
-			// Calibration data.
+			// Calibration data humidity.
 			{Addr: 0x76, W: []byte{0xe1}, R: []byte{0x6e, 0x1, 0x0, 0x13, 0x5, 0x0, 0x1e}},
 			// Configuration.
 			{Addr: 0x76, W: []byte{0xf4, 0x6c, 0xf2, 0x3, 0xf5, 0xa0, 0xf4, 0x6c}, R: nil},
@@ -285,7 +285,7 @@ func TestI2CSense_fail(t *testing.T) {
 		},
 		DontPanic: true,
 	}
-	dev, err := NewI2C(&bus, nil)
+	dev, err := NewI2C(&bus, 0x76, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -299,7 +299,58 @@ func TestI2CSense_fail(t *testing.T) {
 	}
 }
 
-func TestI2CSense_success(t *testing.T) {
+func TestI2CSenseBMP280_success(t *testing.T) {
+	bus := i2ctest.Playback{
+		Ops: []i2ctest.IO{
+			// Chip ID detection.
+			{Addr: 0x76, W: []byte{0xd0}, R: []byte{0x58}},
+			// Calibration data.
+			{
+				Addr: 0x76,
+				W:    []byte{0x88},
+				R:    []byte{0x10, 0x6e, 0x6c, 0x66, 0x32, 0x0, 0x5d, 0x95, 0xb8, 0xd5, 0xd0, 0xb, 0x77, 0x1e, 0x9d, 0xff, 0xf9, 0xff, 0xac, 0x26, 0xa, 0xd8, 0xbd, 0x10, 0x0, 0x4b},
+			},
+			// Configuration.
+			{Addr: 0x76, W: []byte{0xf4, 0x6c, 0xf5, 0xa0, 0xf4, 0x6c}, R: nil},
+			// Forced mode.
+			{Addr: 0x76, W: []byte{0xF4, 0x6d}},
+			// Check if idle; not idle.
+			{Addr: 0x76, W: []byte{0xF3}, R: []byte{8}},
+			// Check if idle.
+			{Addr: 0x76, W: []byte{0xF3}, R: []byte{0}},
+			// Read.
+			{Addr: 0x76, W: []byte{0xf7}, R: []byte{0x4a, 0x52, 0xc0, 0x80, 0x96, 0xc0}},
+		},
+	}
+	dev, err := NewI2C(&bus, 0x76, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s := dev.String(); s != "BMP280{playback(118)}" {
+		t.Fatal(s)
+	}
+	env := devices.Environment{}
+	if err := dev.Sense(&env); err != nil {
+		t.Fatal(err)
+	}
+	if env.Temperature != 23720 {
+		t.Fatalf("temp %d", env.Temperature)
+	}
+	if env.Pressure != 100943 {
+		t.Fatalf("pressure %d", env.Pressure)
+	}
+	if env.Humidity != 0 {
+		t.Fatalf("humidity %d", env.Humidity)
+	}
+	if err := dev.Halt(); err != nil {
+		t.Fatal(err)
+	}
+	if err := bus.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestI2CSenseBME280_success(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Chip ID detection.
@@ -310,7 +361,7 @@ func TestI2CSense_success(t *testing.T) {
 				W:    []byte{0x88},
 				R:    []byte{0x10, 0x6e, 0x6c, 0x66, 0x32, 0x0, 0x5d, 0x95, 0xb8, 0xd5, 0xd0, 0xb, 0x77, 0x1e, 0x9d, 0xff, 0xf9, 0xff, 0xac, 0x26, 0xa, 0xd8, 0xbd, 0x10, 0x0, 0x4b},
 			},
-			// Calibration data.
+			// Calibration data humidity.
 			{Addr: 0x76, W: []byte{0xe1}, R: []byte{0x6e, 0x1, 0x0, 0x13, 0x5, 0x0, 0x1e}},
 			// Configuration.
 			{Addr: 0x76, W: []byte{0xf4, 0x6c, 0xf2, 0x3, 0xf5, 0xa0, 0xf4, 0x6c}, R: nil},
@@ -324,7 +375,7 @@ func TestI2CSense_success(t *testing.T) {
 			{Addr: 0x76, W: []byte{0xf7}, R: []byte{0x4a, 0x52, 0xc0, 0x80, 0x96, 0xc0, 0x7a, 0x76}},
 		},
 	}
-	dev, err := NewI2C(&bus, nil)
+	dev, err := NewI2C(&bus, 0x76, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -352,7 +403,7 @@ func TestI2CSense_success(t *testing.T) {
 	}
 }
 
-func TestI2CSense_idle_fail(t *testing.T) {
+func TestI2CSense280_idle_fail(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Chip ID detection.
@@ -363,7 +414,7 @@ func TestI2CSense_idle_fail(t *testing.T) {
 				W:    []byte{0x88},
 				R:    []byte{0x10, 0x6e, 0x6c, 0x66, 0x32, 0x0, 0x5d, 0x95, 0xb8, 0xd5, 0xd0, 0xb, 0x77, 0x1e, 0x9d, 0xff, 0xf9, 0xff, 0xac, 0x26, 0xa, 0xd8, 0xbd, 0x10, 0x0, 0x4b},
 			},
-			// Calibration data.
+			// Calibration data humidity.
 			{Addr: 0x76, W: []byte{0xe1}, R: []byte{0x6e, 0x1, 0x0, 0x13, 0x5, 0x0, 0x1e}},
 			// Configuration.
 			{Addr: 0x76, W: []byte{0xf4, 0x6c, 0xf2, 0x3, 0xf5, 0xa0, 0xf4, 0x6c}, R: nil},
@@ -373,7 +424,7 @@ func TestI2CSense_idle_fail(t *testing.T) {
 		},
 		DontPanic: true,
 	}
-	dev, err := NewI2C(&bus, nil)
+	dev, err := NewI2C(&bus, 0x76, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -386,7 +437,7 @@ func TestI2CSense_idle_fail(t *testing.T) {
 	}
 }
 
-func TestI2CSense_command_fail(t *testing.T) {
+func TestI2CSense280_command_fail(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Chip ID detection.
@@ -397,7 +448,7 @@ func TestI2CSense_command_fail(t *testing.T) {
 				W:    []byte{0x88},
 				R:    []byte{0x10, 0x6e, 0x6c, 0x66, 0x32, 0x0, 0x5d, 0x95, 0xb8, 0xd5, 0xd0, 0xb, 0x77, 0x1e, 0x9d, 0xff, 0xf9, 0xff, 0xac, 0x26, 0xa, 0xd8, 0xbd, 0x10, 0x0, 0x4b},
 			},
-			// Calibration data.
+			// Calibration data humidity.
 			{Addr: 0x76, W: []byte{0xe1}, R: []byte{0x6e, 0x1, 0x0, 0x13, 0x5, 0x0, 0x1e}},
 			// Configuration.
 			{Addr: 0x76, W: []byte{0xf4, 0x6c, 0xf2, 0x3, 0xf5, 0xa0, 0xf4, 0x6c}, R: nil},
@@ -409,7 +460,7 @@ func TestI2CSense_command_fail(t *testing.T) {
 		},
 		DontPanic: true,
 	}
-	dev, err := NewI2C(&bus, nil)
+	dev, err := NewI2C(&bus, 0x76, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -422,7 +473,7 @@ func TestI2CSense_command_fail(t *testing.T) {
 	}
 }
 
-func TestI2CSenseContinuous_success(t *testing.T) {
+func TestI2CSenseContinuous280_success(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Chip ID detection.
@@ -433,7 +484,7 @@ func TestI2CSenseContinuous_success(t *testing.T) {
 				W:    []byte{0x88},
 				R:    []byte{0x10, 0x6e, 0x6c, 0x66, 0x32, 0x0, 0x5d, 0x95, 0xb8, 0xd5, 0xd0, 0xb, 0x77, 0x1e, 0x9d, 0xff, 0xf9, 0xff, 0xac, 0x26, 0xa, 0xd8, 0xbd, 0x10, 0x0, 0x4b},
 			},
-			// Calibration data.
+			// Calibration data humidity.
 			{Addr: 0x76, W: []byte{0xe1}, R: []byte{0x6e, 0x1, 0x0, 0x13, 0x5, 0x0, 0x1e}},
 			// Configuration.
 			{Addr: 0x76, W: []byte{0xf4, 0x6c, 0xf2, 0x3, 0xf5, 0xa0, 0xf4, 0x6c}, R: nil},
@@ -453,7 +504,7 @@ func TestI2CSenseContinuous_success(t *testing.T) {
 			{Addr: 0x76, W: []byte{0xF5, 0xa0, 0xf4, 0x6c}},
 		},
 	}
-	dev, err := NewI2C(&bus, nil)
+	dev, err := NewI2C(&bus, 0x76, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -532,7 +583,7 @@ func TestI2CSenseContinuous_success(t *testing.T) {
 	}
 }
 
-func TestI2CSenseContinuous_command_fail(t *testing.T) {
+func TestI2CSenseContinuous280_command_fail(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Chip ID detection.
@@ -543,7 +594,7 @@ func TestI2CSenseContinuous_command_fail(t *testing.T) {
 				W:    []byte{0x88},
 				R:    []byte{0x10, 0x6e, 0x6c, 0x66, 0x32, 0x0, 0x5d, 0x95, 0xb8, 0xd5, 0xd0, 0xb, 0x77, 0x1e, 0x9d, 0xff, 0xf9, 0xff, 0xac, 0x26, 0xa, 0xd8, 0xbd, 0x10, 0x0, 0x4b},
 			},
-			// Calibration data.
+			// Calibration data humidity.
 			{Addr: 0x76, W: []byte{0xe1}, R: []byte{0x6e, 0x1, 0x0, 0x13, 0x5, 0x0, 0x1e}},
 			// Configuration.
 			{Addr: 0x76, W: []byte{0xf4, 0x6c, 0xf2, 0x3, 0xf5, 0xa0, 0xf4, 0x6c}, R: nil},
@@ -551,7 +602,7 @@ func TestI2CSenseContinuous_command_fail(t *testing.T) {
 		},
 		DontPanic: true,
 	}
-	dev, err := NewI2C(&bus, nil)
+	dev, err := NewI2C(&bus, 0x76, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -560,7 +611,7 @@ func TestI2CSenseContinuous_command_fail(t *testing.T) {
 	}
 }
 
-func TestI2CSenseContinuous_sense_fail(t *testing.T) {
+func TestI2CSenseContinuous280_sense_fail(t *testing.T) {
 	if !testing.Verbose() {
 		log.SetOutput(ioutil.Discard)
 		defer log.SetOutput(os.Stderr)
@@ -575,7 +626,7 @@ func TestI2CSenseContinuous_sense_fail(t *testing.T) {
 				W:    []byte{0x88},
 				R:    []byte{0x10, 0x6e, 0x6c, 0x66, 0x32, 0x0, 0x5d, 0x95, 0xb8, 0xd5, 0xd0, 0xb, 0x77, 0x1e, 0x9d, 0xff, 0xf9, 0xff, 0xac, 0x26, 0xa, 0xd8, 0xbd, 0x10, 0x0, 0x4b},
 			},
-			// Calibration data.
+			// Calibration data humidity.
 			{Addr: 0x76, W: []byte{0xe1}, R: []byte{0x6e, 0x1, 0x0, 0x13, 0x5, 0x0, 0x1e}},
 			// Configuration.
 			{Addr: 0x76, W: []byte{0xf4, 0x6c, 0xf2, 0x3, 0xf5, 0xa0, 0xf4, 0x6c}, R: nil},
@@ -585,7 +636,7 @@ func TestI2CSenseContinuous_sense_fail(t *testing.T) {
 		},
 		DontPanic: true,
 	}
-	dev, err := NewI2C(&bus, nil)
+	dev, err := NewI2C(&bus, 0x76, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -603,16 +654,16 @@ func TestI2CSenseContinuous_sense_fail(t *testing.T) {
 	}
 }
 
-func TestCalibrationFloat(t *testing.T) {
+func TestCalibration280Float(t *testing.T) {
 	// Real data extracted from measurements from this device.
 	tRaw := int32(524112)
 	pRaw := int32(309104)
 	hRaw := int32(30987)
 
 	// Compare the values with the 3 algorithms.
-	temp, tFine := calib.compensateTempFloat(tRaw)
-	pres := calib.compensatePressureFloat(pRaw, tFine)
-	humi := calib.compensateHumidityFloat(hRaw, tFine)
+	temp, tFine := calib280.compensateTempFloat(tRaw)
+	pres := calib280.compensatePressureFloat(pRaw, tFine)
+	humi := calib280.compensateHumidityFloat(hRaw, tFine)
 	if tFine != 117494 {
 		t.Fatalf("tFine %d", tFine)
 	}
@@ -630,16 +681,16 @@ func TestCalibrationFloat(t *testing.T) {
 	}
 }
 
-func TestCalibrationInt(t *testing.T) {
+func TestCalibration280Int(t *testing.T) {
 	// Real data extracted from measurements from this device.
 	tRaw := int32(524112)
 	pRaw := int32(309104)
 	hRaw := int32(30987)
 
-	temp, tFine := calib.compensateTempInt(tRaw)
-	pres64 := calib.compensatePressureInt64(pRaw, tFine)
-	pres32 := calib.compensatePressureInt32(pRaw, tFine)
-	humi := calib.compensateHumidityInt(hRaw, tFine)
+	temp, tFine := calib280.compensateTempInt(tRaw)
+	pres64 := calib280.compensatePressureInt64(pRaw, tFine)
+	pres32 := calib280.compensatePressureInt32(pRaw, tFine)
+	humi := calib280.compensateHumidityInt(hRaw, tFine)
 	if tFine != 117407 {
 		t.Fatalf("tFine %d", tFine)
 	}
@@ -665,14 +716,14 @@ func TestCalibrationInt(t *testing.T) {
 	}
 }
 
-func TestCalibration_limits_0(t *testing.T) {
-	c := calibration{h1: 0xFF, h2: 1, h3: 1, h6: 1}
+func TestCalibration280_limits_0(t *testing.T) {
+	c := calibration280{h1: 0xFF, h2: 1, h3: 1, h6: 1}
 	if v := c.compensateHumidityInt(0x7FFFFFFF>>14, 0xFFFFFFF); v != 0 {
 		t.Fatal(v)
 	}
 }
 
-func TestCalibration_limits_419430400(t *testing.T) {
+func TestCalibration280_limits_419430400(t *testing.T) {
 	// TODO(maruel): Reverse the equation to overflow  419430400
 }
 
@@ -684,7 +735,7 @@ func Example() {
 		log.Fatalf("failed to open I²C: %v", err)
 	}
 	defer bus.Close()
-	dev, err := NewI2C(bus, nil)
+	dev, err := NewI2C(bus, 0x76, nil)
 	if err != nil {
 		log.Fatalf("failed to initialize bme280: %v", err)
 	}
@@ -721,36 +772,51 @@ func TestOversampling(t *testing.T) {
 
 func TestStandby(t *testing.T) {
 	data := []struct {
-		d time.Duration
-		s standby
+		isBME bool
+		d     time.Duration
+		s     standby
 	}{
-		{0, s500us},
-		{time.Millisecond, s500us},
-		{10 * time.Millisecond, s10ms},
-		{20 * time.Millisecond, s20ms},
-		{62500 * time.Microsecond, s62ms},
-		{125 * time.Millisecond, s125ms},
-		{250 * time.Millisecond, s250ms},
-		{500 * time.Millisecond, s500ms},
-		{time.Second, s1s},
-		{time.Minute, s1s},
+		{true, 0, s500us},
+		{true, time.Millisecond, s500us},
+		{true, 10 * time.Millisecond, s10msBME},
+		{true, 20 * time.Millisecond, s20msBME},
+		{true, 62500 * time.Microsecond, s62ms},
+		{true, 125 * time.Millisecond, s125ms},
+		{true, 250 * time.Millisecond, s250ms},
+		{true, 500 * time.Millisecond, s500ms},
+		{true, time.Second, s1s},
+		{true, 2 * time.Second, s1s},
+		{true, 4 * time.Second, s1s},
+		{true, time.Minute, s1s},
+		{false, 0, s500us},
+		{false, time.Millisecond, s500us},
+		{false, 10 * time.Millisecond, s62ms},
+		{false, 20 * time.Millisecond, s62ms},
+		{false, 62500 * time.Microsecond, s62ms},
+		{false, 125 * time.Millisecond, s125ms},
+		{false, 250 * time.Millisecond, s250ms},
+		{false, 500 * time.Millisecond, s500ms},
+		{false, time.Second, s1s},
+		{false, 2 * time.Second, s2sBMP},
+		{false, 4 * time.Second, s4sBMP},
+		{false, time.Minute, s4sBMP},
 	}
 	for i, line := range data {
-		if s := chooseStandby(line.d); s != line.s {
+		if s := chooseStandby(line.isBME, line.d); s != line.s {
 			t.Fatalf("#%d chooseStandby(%s) = %d != %d", i, line.d, s, line.s)
 		}
 	}
 }
 
-func TestCalibration_compensatePressureInt64(t *testing.T) {
-	c := calibration{}
+func TestCalibration280_compensatePressureInt64(t *testing.T) {
+	c := calibration280{}
 	if x := c.compensatePressureInt64(0, 0); x != 0 {
 		t.Fatal(x)
 	}
 }
 
-func TestCalibration_compensateHumidityInt(t *testing.T) {
-	c := calibration{
+func TestCalibration280_compensateHumidityInt(t *testing.T) {
+	c := calibration280{
 		h1: 0xFF,
 	}
 	if x := c.compensateHumidityInt(0, 0); x != 0 {
@@ -777,7 +843,7 @@ func floatEqual(a, b float32) bool {
 // raw has 20 bits of resolution.
 //
 // BUG(maruel): Output is incorrect.
-func (c *calibration) compensatePressureInt32(raw, tFine int32) uint32 {
+func (c *calibration280) compensatePressureInt32(raw, tFine int32) uint32 {
 	x := tFine>>1 - 64000
 	y := (((x >> 2) * (x >> 2)) >> 11) * int32(c.p6)
 	y += (x * int32(c.p5)) << 1
@@ -798,15 +864,13 @@ func (c *calibration) compensatePressureInt32(raw, tFine int32) uint32 {
 	return uint32(int32(p) + ((x + y + int32(c.p7)) >> 4))
 }
 
-var _ devices.Environmental = &Dev{}
-
 // Page 49
 
 // compensateTempFloat returns temperature in °C. Output value of "51.23"
 // equals 51.23 °C.
 //
 // raw has 20 bits of resolution.
-func (c *calibration) compensateTempFloat(raw int32) (float32, int32) {
+func (c *calibration280) compensateTempFloat(raw int32) (float32, int32) {
 	x := (float64(raw)/16384. - float64(c.t1)/1024.) * float64(c.t2)
 	y := (float64(raw)/131072. - float64(c.t1)/8192.) * float64(c.t3)
 	tFine := int32(x + y)
@@ -817,7 +881,7 @@ func (c *calibration) compensateTempFloat(raw int32) (float32, int32) {
 // equals 96386.2 Pa = 963.862 hPa.
 //
 // raw has 20 bits of resolution.
-func (c *calibration) compensatePressureFloat(raw, tFine int32) float32 {
+func (c *calibration280) compensatePressureFloat(raw, tFine int32) float32 {
 	x := float64(tFine)*0.5 - 64000.
 	y := x * x * float64(c.p6) / 32768.
 	y += x * float64(c.p5) * 2.
@@ -838,7 +902,7 @@ func (c *calibration) compensatePressureFloat(raw, tFine int32) float32 {
 // represents 46.332 %rH.
 //
 // raw has 16 bits of resolution.
-func (c *calibration) compensateHumidityFloat(raw, tFine int32) float32 {
+func (c *calibration280) compensateHumidityFloat(raw, tFine int32) float32 {
 	h := float64(tFine - 76800)
 	h = (float64(raw) - float64(c.h4)*64. + float64(c.h5)/16384.*h) * float64(c.h2) / 65536. * (1. + float64(c.h6)/67108864.*h*(1.+float64(c.h3)/67108864.*h))
 	h *= 1. - float64(c.h1)*h/524288.

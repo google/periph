@@ -2,7 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// bme280 reads environmental data from a BME280.
+// bmxx80 reads environmental data from a BMP180/BME280/BMP280.
 package main
 
 import (
@@ -22,7 +22,7 @@ import (
 	"periph.io/x/periph/conn/spi"
 	"periph.io/x/periph/conn/spi/spireg"
 	"periph.io/x/periph/devices"
-	"periph.io/x/periph/devices/bme280"
+	"periph.io/x/periph/devices/bmxx80"
 	"periph.io/x/periph/host"
 )
 
@@ -36,7 +36,11 @@ func printPin(fn string, p pin.Pin) {
 }
 
 func printEnv(env *devices.Environment) {
-	fmt.Printf("%8s %10s %9s\n", env.Temperature, env.Pressure, env.Humidity)
+	if env.Humidity == 0 {
+		fmt.Printf("%8s %10s\n", env.Temperature, env.Pressure)
+	} else {
+		fmt.Printf("%8s %10s %9s\n", env.Temperature, env.Pressure, env.Humidity)
+	}
 }
 
 func run(dev devices.Environmental, interval time.Duration) error {
@@ -63,12 +67,11 @@ func run(dev devices.Environmental, interval time.Duration) error {
 			printEnv(&e)
 		}
 	}
-	return nil
 }
 
 func mainImpl() error {
-	i2cID := flag.String("i2c", "", "I²C bus to use (default)")
-	i2cADDR := flag.Uint("ia", 0, "I²C bus address to use; either 0x76 or 0x77")
+	i2cID := flag.String("i2c", "", "I²C bus to use (default, uses the first I²C found)")
+	i2cAddr := flag.Uint("ia", 0x76, "I²C bus address to use; either 0x76 (BMx280, the default) or 0x77 (BMP180)")
 	spiID := flag.String("spi", "", "SPI port to use")
 	hz := flag.Int("hz", 0, "I²C bus/SPI port speed")
 	sample1x := flag.Bool("s1", false, "sample at 1x")
@@ -88,50 +91,46 @@ func mainImpl() error {
 	}
 	log.SetFlags(log.Lmicroseconds)
 
-	s := bme280.O4x
+	s := bmxx80.O4x
 	if *sample1x {
-		s = bme280.O1x
+		s = bmxx80.O1x
 	} else if *sample2x {
-		s = bme280.O2x
+		s = bmxx80.O2x
 	} else if *sample4x {
-		s = bme280.O4x
+		s = bmxx80.O4x
 	} else if *sample8x {
-		s = bme280.O8x
+		s = bmxx80.O8x
 	} else if *sample16x {
-		s = bme280.O16x
+		s = bmxx80.O16x
 	}
-	opts := bme280.Opts{Temperature: s, Pressure: s, Humidity: s}
+	opts := bmxx80.Opts{Temperature: s, Pressure: s, Humidity: s}
 	if *filter2x {
 		if *interval == 0 {
 			return errors.New("-f2 only makes sense with -i")
 		}
-		opts.Filter = bme280.F2
+		opts.Filter = bmxx80.F2
 	} else if *filter4x {
 		if *interval == 0 {
 			return errors.New("-f4 only makes sense with -i")
 		}
-		opts.Filter = bme280.F4
+		opts.Filter = bmxx80.F4
 	} else if *filter8x {
 		if *interval == 0 {
 			return errors.New("-f8 only makes sense with -i")
 		}
-		opts.Filter = bme280.F8
+		opts.Filter = bmxx80.F8
 	} else if *filter16x {
 		if *interval == 0 {
 			return errors.New("-f16 only makes sense with -i")
 		}
-		opts.Filter = bme280.F16
+		opts.Filter = bmxx80.F16
 	}
-	if *i2cADDR != 0x76 && *i2cADDR > 0x77 {
-		return errors.New("-ia must be either 0x76 or 0x77")
-	}
-	opts.Address = uint16(*i2cADDR)
 
 	if _, err := host.Init(); err != nil {
 		return err
 	}
 
-	var dev *bme280.Dev
+	var dev *bmxx80.Dev
 	if *spiID != "" {
 		s, err := spireg.Open(*spiID)
 		if err != nil {
@@ -149,7 +148,7 @@ func mainImpl() error {
 				return err
 			}
 		}
-		if dev, err = bme280.NewSPI(s, &opts); err != nil {
+		if dev, err = bmxx80.NewSPI(s, &opts); err != nil {
 			return err
 		}
 	} else {
@@ -167,10 +166,11 @@ func mainImpl() error {
 				return err
 			}
 		}
-		if dev, err = bme280.NewI2C(i, &opts); err != nil {
+		if dev, err = bmxx80.NewI2C(i, uint16(*i2cAddr), &opts); err != nil {
 			return err
 		}
 	}
+	log.Printf("Found %s", dev)
 	err := run(dev, *interval)
 	if err2 := dev.Halt(); err == nil {
 		err = err2
@@ -180,7 +180,7 @@ func mainImpl() error {
 
 func main() {
 	if err := mainImpl(); err != nil {
-		fmt.Fprintf(os.Stderr, "bme280: %s.\n", err)
+		fmt.Fprintf(os.Stderr, "bmxx80: %s.\n", err)
 		os.Exit(1)
 	}
 }
