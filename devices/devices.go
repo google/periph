@@ -129,7 +129,11 @@ func (r RelativeHumidity) Float64() float64 {
 
 // String returns the humidity formatted as a string.
 func (r RelativeHumidity) String() string {
-	return fmt.Sprintf("%d.%02d%%rH", r/100, r%100)
+	m := r % 100
+	if m < 0 {
+		m = -m
+	}
+	return fmt.Sprintf("%d.%02d%%rH", r/100, m)
 }
 
 // Environment represents measurements from an environmental sensor.

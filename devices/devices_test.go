@@ -68,3 +68,13 @@ func TestRelativeHumidity(t *testing.T) {
 		t.Fatalf("%f", f)
 	}
 }
+
+func TestRelativeHumidity_neg(t *testing.T) {
+	o := RelativeHumidity(-5010)
+	if s := o.String(); s != "-50.10%rH" {
+		t.Fatalf("%#v", s)
+	}
+	if f := o.Float64(); f < -50.11 || f > -50.09 {
+		t.Fatalf("%f", f)
+	}
+}
