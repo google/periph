@@ -55,12 +55,12 @@
 //
 // Most connection-type specific subpackages include subpackages:
 //
-// - XXXreg: registry as that is populated by the host drivers and that can be
+// → XXXreg: registry as that is populated by the host drivers and that can be
 // leveraged by applications.
 //
-// - XXXtest: fake implementation that can be leveraged when writting device
+// → XXXtest: fake implementation that can be leveraged when writing device
 // driver unit test.
 //
-// - XXXsmoketest: smoke test that tests against real hardware to ensure the
+// → XXXsmoketest: smoke test that tests against real hardware to ensure the
 // whole stack work correctly, including the OS supplied drivers.
 package conn

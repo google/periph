@@ -16,7 +16,6 @@ import (
 
 	"periph.io/x/periph"
 	"periph.io/x/periph/devices"
-	"periph.io/x/periph/host/fs"
 )
 
 // ThermalSensors is all the sensors discovered on this host via sysfs.
@@ -63,13 +62,13 @@ func (t *ThermalSensor) Type() string {
 	if t.nameType == "" {
 		f, err := fileIOOpen(t.root+"type", os.O_RDONLY)
 		if err != nil {
-			return err.Error()
+			return fmt.Sprintf("sysfs-thermal: %v", err)
 		}
 		defer f.Close()
 		var buf [256]byte
 		n, err := f.Read(buf[:])
 		if err != nil {
-			return err.Error()
+			return fmt.Sprintf("sysfs-thermal: %v", err)
 		}
 		if n < 2 {
 			t.nameType = "<unknown>"
@@ -90,14 +89,14 @@ func (t *ThermalSensor) Sense(env *devices.Environment) error {
 	var buf [24]byte
 	n, err := seekRead(t.f, buf[:])
 	if err != nil {
-		return err
+		return fmt.Errorf("sysfs-thermal: %v", err)
 	}
 	if n < 2 {
 		return errors.New("sysfs-thermal: failed to read temperature")
 	}
 	i, err := strconv.Atoi(string(buf[:n-1]))
 	if err != nil {
-		return err
+		return fmt.Errorf("sysfs-thermal: %v", err)
 	}
 	if i < 100 {
 		i *= 1000
@@ -109,7 +108,7 @@ func (t *ThermalSensor) Sense(env *devices.Environment) error {
 // SenseContinuous implements devices.Environmental.
 func (t *ThermalSensor) SenseContinuous(interval time.Duration) (<-chan devices.Environment, error) {
 	// TODO(maruel): Manually poll in a loop via time.NewTicker.
-	return nil, errors.New("not implemented")
+	return nil, errors.New("sysfs-thermal: not implemented")
 }
 
 //
@@ -120,11 +119,12 @@ func (t *ThermalSensor) open() error {
 	if t.f != nil {
 		return nil
 	}
-	f, err := fs.Open(t.root+"temp", os.O_RDONLY)
-	if err == nil {
-		t.f = f
+	f, err := fileIOOpen(t.root+"temp", os.O_RDONLY)
+	if err != nil {
+		return fmt.Errorf("sysfs-thermal: %v", err)
 	}
-	return err
+	t.f = f
+	return nil
 }
 
 // driverThermalSensor implements periph.Driver.

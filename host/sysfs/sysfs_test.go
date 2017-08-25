@@ -4,18 +4,63 @@
 
 package sysfs
 
-import "periph.io/x/periph/host/fs"
+import (
+	"errors"
+	"io"
+
+	"periph.io/x/periph/host/fs"
+)
 
 func init() {
 	fs.Inhibit()
+	reset()
 }
 
-type ioctlClose int
+func reset() {
+	fileIOOpen = fileIOOpenDefault
+	ioctlOpen = ioctlOpenDefault
+	// Soon.
+	//fileIOOpen = fileIOOpenPanic
+	//ioctlOpen = ioctlOpenPanic
+}
 
-func (i ioctlClose) Ioctl(op uint, data uintptr) error {
+func ioctlOpenPanic(path string, flag int) (ioctlCloser, error) {
+	panic("don't forget to override fileIOOpen")
+}
+
+func fileIOOpenPanic(path string, flag int) (fileIO, error) {
+	panic("don't forget to override fileIOOpen")
+}
+
+type ioctlClose struct{}
+
+func (i *ioctlClose) Ioctl(op uint, data uintptr) error {
 	return nil
 }
 
-func (i ioctlClose) Close() error {
+func (i *ioctlClose) Close() error {
 	return nil
+}
+
+type file struct {
+	ioctlClose
+}
+
+func (f *file) Fd() uintptr {
+	return 0xFFFFFFFF
+}
+
+func (f *file) Read(p []byte) (int, error) {
+	return 0, errors.New("not implemented")
+}
+
+func (f *file) Seek(offset int64, whence int) (int64, error) {
+	if offset == 0 && whence == io.SeekStart {
+		return 0, nil
+	}
+	return 0, errors.New("not implemented")
+}
+
+func (f *file) Write(p []byte) (int, error) {
+	return 0, errors.New("not implemented")
 }

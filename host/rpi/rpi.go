@@ -44,7 +44,7 @@ func Present() bool {
 //
 // P1 is also known as J8 on A+, B+, 2 and later.
 var (
-	// Rapsberry Pi A and B, 26 pin header:
+	// Raspberry Pi A and B, 26 pin header:
 	P1_1  pin.Pin    = pin.V3_3       // max 30mA
 	P1_2  pin.Pin    = pin.V5         // (filtered)
 	P1_3  gpio.PinIO = bcm283x.GPIO2  // High, I2C1_SDA

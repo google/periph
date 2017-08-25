@@ -33,7 +33,7 @@ func TestNewI2C(t *testing.T) {
 
 func TestI2C_faked(t *testing.T) {
 	// Create a fake I2C to test methods.
-	bus := I2C{f: ioctlClose(0), busNumber: 24}
+	bus := I2C{f: &ioctlClose{}, busNumber: 24}
 	if s := bus.String(); s != "I2C24" {
 		t.Fatal(s)
 	}

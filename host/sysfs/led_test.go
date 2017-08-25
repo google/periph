@@ -76,3 +76,9 @@ func TestLED_not_supported(t *testing.T) {
 		t.Fatal(pull)
 	}
 }
+
+func TestLEDDriver(t *testing.T) {
+	if len((&driverLED{}).Prerequisites()) != 0 {
+		t.Fatal("unexpected LED prerequisites")
+	}
+}

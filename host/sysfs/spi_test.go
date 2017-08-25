@@ -43,7 +43,7 @@ func TestNewSPI(t *testing.T) {
 }
 
 func TestSPI_IO(t *testing.T) {
-	port := SPI{f: ioctlClose(0), busNumber: 24}
+	port := SPI{f: &ioctlClose{}, busNumber: 24}
 	c, err := port.Connect(1, spi.Mode3, 8)
 	if err != nil {
 		t.Fatal(err)
@@ -108,7 +108,7 @@ func TestSPI_IO(t *testing.T) {
 }
 
 func TestSPI_IO_not_initialized(t *testing.T) {
-	port := SPI{f: ioctlClose(0), busNumber: 24}
+	port := SPI{f: &ioctlClose{}, busNumber: 24}
 	if _, err := port.txInternal([]byte{0}, []byte{0}); err == nil {
 		t.Fatal("not initialized")
 	}
@@ -118,7 +118,7 @@ func TestSPI_IO_not_initialized(t *testing.T) {
 }
 
 func TestSPI_pins(t *testing.T) {
-	port := SPI{f: ioctlClose(0), busNumber: 24}
+	port := SPI{f: &ioctlClose{}, busNumber: 24}
 	if p := port.CLK(); p != gpio.INVALID {
 		t.Fatal(p)
 	}
@@ -134,7 +134,7 @@ func TestSPI_pins(t *testing.T) {
 }
 
 func TestSPI_other(t *testing.T) {
-	port := SPI{f: ioctlClose(0), busNumber: 24}
+	port := SPI{f: &ioctlClose{}, busNumber: 24}
 	if s := port.String(); s != "SPI24.0" {
 		t.Fatal(s)
 	}
@@ -151,7 +151,7 @@ func TestSPI_other(t *testing.T) {
 
 func TestSPI_Connect(t *testing.T) {
 	// Create a fake SPI to test methods.
-	port := SPI{f: ioctlClose(0), busNumber: 24}
+	port := SPI{f: &ioctlClose{}, busNumber: 24}
 	if _, err := port.Connect(-1, spi.Mode0, 8); err == nil {
 		t.Fatal("invalid speed")
 	}
@@ -188,6 +188,12 @@ func TestSPIIOCTX(t *testing.T) {
 	}
 	if v := spiIOCTx(9); v != 0x41206B00 {
 		t.Fatalf("Expected 0x41206B00, got 0x%08X", v)
+	}
+}
+
+func TestSPIDriver(t *testing.T) {
+	if len((&driverSPI{}).Prerequisites()) != 0 {
+		t.Fatal("unexpected SPI prerequisites")
 	}
 }
 

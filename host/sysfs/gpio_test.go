@@ -194,6 +194,12 @@ func TestPin_readInt(t *testing.T) {
 	}
 }
 
+func TestGPIODriver(t *testing.T) {
+	if len((&driverGPIO{}).Prerequisites()) != 0 {
+		t.Fatal("unexpected GPIO prerequisites")
+	}
+}
+
 //
 
 type fakeGPIOFile struct {

@@ -15,7 +15,7 @@ import (
 //
 // It must be called with d.mu lock held.
 func (d *Dev) sense180(env *devices.Environment) error {
-	// Request temperature convertion and read measurement.
+	// Request temperature conversion and read measurement.
 	if err := d.writeCommands([]byte{0xF4, 0x20 | 0x0E}); err != nil {
 		return d.wrap(err)
 	}

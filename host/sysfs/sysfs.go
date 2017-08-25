@@ -10,7 +10,9 @@ import (
 	"periph.io/x/periph/host/fs"
 )
 
-var ioctlOpen = func(path string, flag int) (ioctlCloser, error) {
+var ioctlOpen = ioctlOpenDefault
+
+func ioctlOpenDefault(path string, flag int) (ioctlCloser, error) {
 	f, err := fs.Open(path, flag)
 	if err != nil {
 		return nil, err
@@ -18,7 +20,9 @@ var ioctlOpen = func(path string, flag int) (ioctlCloser, error) {
 	return f, nil
 }
 
-var fileIOOpen = func(path string, flag int) (fileIO, error) {
+var fileIOOpen = fileIOOpenDefault
+
+func fileIOOpenDefault(path string, flag int) (fileIO, error) {
 	f, err := fs.Open(path, flag)
 	if err != nil {
 		return nil, err
