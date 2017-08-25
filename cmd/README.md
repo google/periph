@@ -18,7 +18,8 @@ it](https://periph.io/project/contributing/).
 
 - [apa102](apa102): Writes to a LED strip of APA-102 (sometimes called Dotstar).
   Can show an image animating on the Y axis.
-- [bme280](bme280): Reads the temperature, pressure and humidity off a bme280.
+- [bmxx80](bmxx80): Reads the temperature, pressure and humidity off a
+  bmp180/bme280/bmp280. Humidity sensing is only supported on bme280.
 - [ir](ir): Reads codes (button presses) on an InfraRed remote sensor.
 - [led](led): Reads the state of on-board LEDs.
 - [ssd1306](ssd1306): Writes text, an image or an animated GIF to an OLED
