@@ -320,8 +320,8 @@ func NewI2C(b i2c.Bus, addr uint16, opts *Opts) (*Dev, error) {
 	return d, nil
 }
 
-// NewSPI returns an object that communicates over SPI to BME280 environmental
-// sensor.
+// NewSPI returns an object that communicates over SPI to either a BME280 or
+// BMP280 environmental sensor.
 //
 // It is recommended to call Halt() when done with the device so it stops
 // sampling.
