@@ -8,6 +8,8 @@ package gpiostream
 import (
 	"sort"
 	"time"
+
+	"periph.io/x/periph/conn/gpio"
 )
 
 // Stream is the interface to define a generic stream
@@ -53,7 +55,7 @@ func (b *BitStream) Duration() time.Duration {
 //
 // This struct is more efficient than BitStream for repetitive pulses, like
 // controlling a servo. A PWM can be created by specifying a slice of twice the
-// same resolution and make it looping.
+// same resolution and make it looping via a Program.
 type EdgeStream struct {
 	// Edges is the list of Level change. It is assumed that the signal starts
 	// with gpio.High. Use a duration of 0 to start with a Low.
@@ -135,6 +137,32 @@ func (p *Program) Duration() time.Duration {
 	}
 	return d
 }
+
+//
+
+// PinIn allows to read a bit stream from a pin.
+//
+// Caveat: This interface doesn't enable sampling multiple pins in a
+// synchronized way or reading in a continuous uninterrupted way. As such, it
+// should be considered experimental.
+type PinIn interface {
+	StreamIn(p gpio.Pull, b *BitStream) error
+}
+
+// PinOut allows to stream to a pin.
+//
+// The Stream may be a Program, a BitStream or an EdgeStream. If it is a
+// Program that is an infinite loop, a separate goroutine can be used to cancel
+// the program. In this case StreamOut() returns without an error.
+//
+// Caveat: This interface doesn't enable streaming to multiple pins in a
+// synchronized way or reading in a continuous uninterrupted way. As such, it
+// should be considered experimental.
+type PinOut interface {
+	StreamOut(s Stream) error
+}
+
+//
 
 var _ Stream = &BitStream{}
 var _ Stream = &EdgeStream{}
