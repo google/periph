@@ -112,7 +112,7 @@ func mainImpl() error {
 	verbose := flag.Bool("v", false, "verbose mode")
 	spiID := flag.String("spi", "", "SPI port to use")
 
-	numLights := flag.Int("n", 150, "number of lights on the strip")
+	numPixels := flag.Int("n", 150, "number of pixels on the strip")
 	intensity := flag.Int("l", 127, "light intensity [1-255]")
 	temperature := flag.Int("t", 5000, "light temperature in °Kelvin [3500-7500]")
 	hz := flag.Int("hz", 0, "SPI port speed")
@@ -154,7 +154,7 @@ func mainImpl() error {
 		// TODO(maruel): Print where the pins are located.
 		log.Printf("Using pins CLK: %s  MOSI: %s  MISO: %s", p.CLK(), p.MOSI(), p.MISO())
 	}
-	display, err := apa102.New(s, *numLights, uint8(*intensity), uint16(*temperature))
+	display, err := apa102.New(s, *numPixels, uint8(*intensity), uint16(*temperature))
 	if err != nil {
 		return err
 	}
@@ -177,7 +177,7 @@ func mainImpl() error {
 	r := byte(rgb >> 16)
 	g := byte(rgb >> 8)
 	b := byte(rgb)
-	buf := make([]byte, *numLights*3)
+	buf := make([]byte, *numPixels*3)
 	for i := 0; i < len(buf); i += 3 {
 		buf[i] = r
 		buf[i+1] = g
