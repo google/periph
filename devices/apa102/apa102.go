@@ -216,17 +216,17 @@ func ToRGB(p []color.NRGBA) []byte {
 //
 // Includes intensity and temperature correction.
 type Dev struct {
-	Intensity   uint8  // Set an intensity between 0 (off) and 255 (full brightness).
-	Temperature uint16 // In Kelvin.
-	s           spi.Conn
-	l           lut // Updated at each .Write() call.
-	numLights   int
-	rawBuf      []byte
-	pixels      []byte
+	Intensity   uint8    // Set an intensity between 0 (off) and 255 (full brightness).
+	Temperature uint16   // In Kelvin.
+	s           spi.Conn //
+	l           lut      // Updated at each .Write() call.
+	numPixels   int      //
+	rawBuf      []byte   // Raw buffer sent over SPI. Cached to reduce heap fragmentation.
+	pixels      []byte   // Double buffer of pixels, to enable partial painting via Draw(). Effectively points inside rawBuf.
 }
 
 func (d *Dev) String() string {
-	return fmt.Sprintf("APA102{I:%d, T:%dK, %dLEDs, %s}", d.Intensity, d.Temperature, d.numLights, d.s)
+	return fmt.Sprintf("APA102{I:%d, T:%dK, %dLEDs, %s}", d.Intensity, d.Temperature, d.numPixels, d.s)
 }
 
 // ColorModel implements devices.Display. There's no surprise, it is
@@ -237,7 +237,7 @@ func (d *Dev) ColorModel() color.Model {
 
 // Bounds implements devices.Display. Min is guaranteed to be {0, 0}.
 func (d *Dev) Bounds() image.Rectangle {
-	return image.Rectangle{Max: image.Point{X: d.numLights, Y: 1}}
+	return image.Rectangle{Max: image.Point{X: d.numPixels, Y: 1}}
 }
 
 // Draw implements devices.Display.
@@ -262,14 +262,10 @@ func (d *Dev) Draw(r image.Rectangle, src image.Image, sp image.Point) {
 // Write accepts a stream of raw RGB pixels and sends it as APA102 encoded
 // stream.
 func (d *Dev) Write(pixels []byte) (int, error) {
-	if len(pixels)%3 != 0 {
-		return 0, errLength
+	if len(pixels)%3 != 0 || len(pixels) > len(d.pixels) {
+		return 0, errors.New("apa102: invalid RGB stream length")
 	}
 	d.l.init(d.Intensity, d.Temperature)
-	// Trying to write more pixels than defined?
-	if o := d.numLights; o < len(pixels)/3 {
-		pixels = pixels[:o*3]
-	}
 	// Do not touch header and footer.
 	d.l.raster(d.pixels, pixels)
 	err := d.s.Tx(d.rawBuf, nil)
@@ -278,7 +274,7 @@ func (d *Dev) Write(pixels []byte) (int, error) {
 
 // Halt turns off all the lights.
 func (d *Dev) Halt() error {
-	_, err := d.Write(make([]byte, d.numLights*3))
+	_, err := d.Write(make([]byte, d.numPixels*3))
 	return err
 }
 
@@ -293,7 +289,7 @@ func (d *Dev) Halt() error {
 // As per APA102-C spec, the chip's max refresh rate is 400hz.
 // https://en.wikipedia.org/wiki/Flicker_fusion_threshold is a recommended
 // reading.
-func New(p spi.Port, numLights int, intensity uint8, temperature uint16) (*Dev, error) {
+func New(p spi.Port, numPixels int, intensity uint8, temperature uint16) (*Dev, error) {
 	c, err := p.Connect(20000000, spi.Mode3, 8)
 	if err != nil {
 		return nil, err
@@ -301,8 +297,8 @@ func New(p spi.Port, numLights int, intensity uint8, temperature uint16) (*Dev, 
 	// End frames are needed to be able to push enough SPI clock signals due to
 	// internal half-delay of data signal from each individual LED. See
 	// https://cpldcpu.wordpress.com/2014/11/30/understanding-the-apa102-superled/
-	buf := make([]byte, 4*(numLights+1)+numLights/2/8+1)
-	tail := buf[4+4*numLights:]
+	buf := make([]byte, 4*(numPixels+1)+numPixels/2/8+1)
+	tail := buf[4+4*numPixels:]
 	for i := range tail {
 		tail[i] = 0xFF
 	}
@@ -310,16 +306,14 @@ func New(p spi.Port, numLights int, intensity uint8, temperature uint16) (*Dev, 
 		Intensity:   intensity,
 		Temperature: temperature,
 		s:           c,
-		numLights:   numLights,
+		numPixels:   numPixels,
 		rawBuf:      buf,
-		pixels:      buf[4 : 4+4*numLights],
+		pixels:      buf[4 : 4+4*numPixels],
 	}, nil
 }
 
 //
 
-var errLength = errors.New("apa102: invalid RGB stream length")
-
-var _ devices.Display = &Dev{}
 var _ devices.Device = &Dev{}
+var _ devices.Display = &Dev{}
 var _ fmt.Stringer = &Dev{}

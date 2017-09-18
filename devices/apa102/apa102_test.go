@@ -349,7 +349,7 @@ func TestConnectFail(t *testing.T) {
 func TestDevLen(t *testing.T) {
 	buf := bytes.Buffer{}
 	d, _ := New(spitest.NewRecordRaw(&buf), 1, 255, 6500)
-	if n, err := d.Write([]byte{0}); n != 0 || err != errLength {
+	if n, err := d.Write([]byte{0}); n != 0 || err == nil {
 		t.Fatalf("%d %v", n, err)
 	}
 	if expected := []byte{}; !bytes.Equal(expected, buf.Bytes()) {
@@ -457,10 +457,10 @@ func TestDevLong(t *testing.T) {
 	}
 }
 
-func TestDevWriteShort(t *testing.T) {
+func TestDevWrite_Long(t *testing.T) {
 	buf := bytes.Buffer{}
 	d, _ := New(spitest.NewRecordRaw(&buf), 1, 250, 6500)
-	if n, err := d.Write([]byte{0, 0, 0, 1, 1, 1}); n != 3 || err != nil {
+	if n, err := d.Write([]byte{0, 0, 0, 1, 1, 1}); n != 0 || err == nil {
 		t.Fatal(n, err)
 	}
 }
