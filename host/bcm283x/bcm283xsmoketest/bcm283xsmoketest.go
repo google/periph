@@ -52,6 +52,13 @@ func (s *SmokeTest) Run(args []string) error {
 	if err := ensureConnectivity(pClk, pPWM); err != nil {
 		return err
 	}
+	// Confirmed they are connected. Now ready to test.
+	if err := s.testClock(pClk, pPWM); err != nil {
+		return err
+	}
+	if err := s.testPWM(pPWM, pClk); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -70,6 +77,78 @@ func (s *SmokeTest) waitForEdge(p gpio.PinIO) <-chan bool {
 		c <- b
 	}()
 	return c
+}
+
+// testClock tests .PWM() for a clock pin.
+func (s *SmokeTest) testClock(p1, p2 *loggingPin) error {
+	fmt.Printf("- Testing clock\n")
+	const period = 200 * time.Microsecond
+	if err := p2.In(gpio.PullDown, gpio.BothEdges); err != nil {
+		return err
+	}
+	time.Sleep(time.Microsecond)
+
+	if err := p1.PWM(0, period); err != nil {
+		return err
+	}
+	time.Sleep(time.Microsecond)
+	if p2.Read() != gpio.Low {
+		return fmt.Errorf("unexpected %s value; expected Low", p1)
+	}
+
+	if err := p1.PWM(gpio.DutyMax, period); err != nil {
+		return err
+	}
+	time.Sleep(time.Microsecond)
+	if p2.Read() != gpio.High {
+		return fmt.Errorf("unexpected %s value; expected High", p1)
+	}
+
+	// A clock doesn't support arbitrary duty cycle.
+	if err := p1.PWM(gpio.DutyHalf/2, period); err == nil {
+		return fmt.Errorf("expected error on %s", p1)
+	}
+
+	if err := p1.PWM(gpio.DutyHalf, period); err != nil {
+		return err
+	}
+	return nil
+}
+
+// testPWM tests .PWM() for a PWM pin.
+func (s *SmokeTest) testPWM(p1, p2 *loggingPin) error {
+	const period = 200 * time.Microsecond
+	fmt.Printf("- Testing PWM\n")
+	if err := p2.In(gpio.PullDown, gpio.BothEdges); err != nil {
+		return err
+	}
+	time.Sleep(time.Microsecond)
+
+	if err := p1.PWM(0, period); err != nil {
+		return err
+	}
+	time.Sleep(time.Microsecond)
+	if p2.Read() != gpio.Low {
+		return fmt.Errorf("unexpected %s value; expected Low", p1)
+	}
+
+	if err := p1.PWM(gpio.DutyMax, period); err != nil {
+		return err
+	}
+	time.Sleep(time.Microsecond)
+	if p2.Read() != gpio.High {
+		return fmt.Errorf("unexpected %s value; expected High", p1)
+	}
+
+	// A real PWM supports arbitrary duty cycle.
+	if err := p1.PWM(gpio.DutyHalf/2, period); err != nil {
+		return err
+	}
+
+	if err := p2.PWM(gpio.DutyHalf, period); err != nil {
+		return err
+	}
+	return nil
 }
 
 //
@@ -104,6 +183,11 @@ func (p *loggingPin) In(pull gpio.Pull, edge gpio.Edge) error {
 func (p *loggingPin) Out(l gpio.Level) error {
 	fmt.Printf("  %s %s.Out(%s)\n", since(p.start), p, l)
 	return p.Pin.Out(l)
+}
+
+func (p *loggingPin) PWM(duty gpio.Duty, period time.Duration) error {
+	fmt.Printf("  %s %s.PWM(%s, %s)\n", since(p.start), p, duty, period)
+	return p.Pin.PWM(duty, period)
 }
 
 // ensureConnectivity makes sure they are connected together.

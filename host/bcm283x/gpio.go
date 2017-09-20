@@ -276,6 +276,114 @@ func (p *Pin) Out(l gpio.Level) error {
 	return nil
 }
 
+// BUG(maruel): PWM(): There is no way to disable the clock sources. A host
+// reboot is currently required.
+//
+// BUG(maruel): PWM(): There is no conflict verification when multiple pins are
+// used simultaneously. The last call to PWM() will affect all pins of the same
+// type (PWM, GPCLK0, GPCLK2).
+
+// PWM sets a PWM output on supported pins.
+//
+// Supported PWM pins are 12, 13, 18, 19, 40, 41 and 45.
+//
+// Supported clock pins are 4, 6, 20, 32, 34 and 43. These can only be used
+// with duty set to gpio.DutyHalf. They also have relatively limited frequency
+// range from 4.8kHz to 1MHz with a specific set of values supported.
+//
+// Furthermore, these can only be used if the "bcm283x-dma" driver was loaded.
+// It can only be loaded if the process has root level access.
+func (p *Pin) PWM(duty gpio.Duty, period time.Duration) error {
+	if duty == 0 {
+		return p.Out(gpio.Low)
+	} else if duty == gpio.DutyMax {
+		return p.Out(gpio.High)
+	}
+	if period < 500*time.Nanosecond {
+		// High clock rate tends to hang the RPi. Need to investigate more.
+		return p.wrap(errors.New("period must be at least 500ns"))
+	}
+	f := alt0
+	clkID := -1
+	switch p.number {
+	case 4, 32, 34:
+		if duty != gpio.DutyHalf {
+			return p.wrap(errors.New("pin can only be used with 50% duty cycle"))
+		}
+		clkID = 0
+	case 5, 21, 42, 44:
+		return p.wrap(errors.New("GPCLK1 cannot be safely used"))
+	case 6, 43:
+		if duty != gpio.DutyHalf {
+			return p.wrap(errors.New("pin can only be used with 50% duty cycle"))
+		}
+		clkID = 2
+	case 20:
+		if duty != gpio.DutyHalf {
+			return p.wrap(errors.New("pin can only be used with 50% duty cycle"))
+		}
+		clkID = 0
+		f = alt5
+	case 12, 13, 40, 41, 45: // PWM
+	case 18, 19: // PWM
+		f = alt5
+	default:
+		// Technically 52 and 53 could also support PWM as alt1 but they are assumed
+		// to be used for the SD Card.
+		return p.wrap(errors.New("pwm is not supported on this pin"))
+	}
+
+	// Intentionally check later, so a more informative error is returned on
+	// unsupported pins.
+	if gpioMemory == nil {
+		return p.wrap(errors.New("subsystem not initialized"))
+	}
+	if pwmMemory == nil || clockMemory == nil {
+		return p.wrap(errors.New("bcm283x-dma not initialized; try again as root?"))
+	}
+
+	// Convert period to frequency. This is lossy.
+	hz := uint64(time.Second / period)
+
+	if clkID != -1 {
+		// Using a clock pin.
+		var clk *clock
+		switch clkID {
+		case 0:
+			clk = &clockMemory.gp0
+		case 2:
+			clk = &clockMemory.gp2
+		}
+		actual, waits, err := clk.set(hz, 1)
+		if err != nil {
+			return p.wrap(err)
+		}
+		if actual != hz {
+			return p.wrap(fmt.Errorf("asked for %dHz, got %dHz", hz, actual))
+		}
+		if waits != 1 {
+			return p.wrap(fmt.Errorf("got oversampled clock by %dx", waits))
+		}
+		p.setFunction(f)
+		return nil
+	}
+
+	// TODO(maruel): Leverage oversampling.
+	if _, _, err := clockMemory.pwm.set(uint64(time.Second/period), 1); err != nil {
+		return p.wrap(err)
+	}
+	shift := uint((p.number & 1) * 8)
+	// rng1/rng2 are already 32.
+	if shift == 0 {
+		pwmMemory.dat1 = uint32(duty)<<16 | uint32(duty)
+	} else {
+		pwmMemory.dat2 = uint32(duty)<<16 | uint32(duty)
+	}
+	pwmMemory.ctl |= pwm1Enable << shift
+	p.setFunction(f)
+	return nil
+}
+
 // DefaultPull returns the default pull for the pin.
 //
 // Implements gpio.PinDefaultPull.
@@ -716,3 +824,4 @@ var _ gpio.PinDefaultPull = &Pin{}
 var _ gpio.PinIO = &Pin{}
 var _ gpio.PinIn = &Pin{}
 var _ gpio.PinOut = &Pin{}
+var _ gpio.PinPWM = &Pin{}
