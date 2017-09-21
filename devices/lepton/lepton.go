@@ -454,5 +454,5 @@ func verifyCRC(d []byte) bool {
 	return internal.CRC16(tmp) == internal.Big16.Uint16(d[2:])
 }
 
-var _ devices.Device = &Dev{}
+var _ conn.Resource = &Dev{}
 var _ fmt.Stringer = &Dev{}

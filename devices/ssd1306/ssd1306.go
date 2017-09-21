@@ -488,6 +488,6 @@ const (
 	i2cData = 0x40 // I²C transaction has stream of data bytes
 )
 
+var _ conn.Resource = &Dev{}
 var _ devices.Display = &Dev{}
-var _ devices.Device = &Dev{}
 var _ fmt.Stringer = &Dev{}

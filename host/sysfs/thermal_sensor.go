@@ -50,7 +50,7 @@ func (t *ThermalSensor) String() string {
 	return t.name
 }
 
-// Halt implements devices.Device. It is a noop.
+// Halt implements conn.Resource. It is a noop.
 func (t *ThermalSensor) Halt() error {
 	return nil
 }

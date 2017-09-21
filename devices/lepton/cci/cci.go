@@ -28,6 +28,7 @@ import (
 	"sync"
 	"time"
 
+	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/mmr"
 	"periph.io/x/periph/devices"
@@ -150,14 +151,14 @@ type FFCMode struct {
 //
 // Maximum I²C speed is 1Mhz.
 type Dev struct {
-	c      conn
+	c      cciConn
 	serial uint64
 }
 
 // New returns a driver for the FLIR Lepton CCI protocol.
 func New(i i2c.Bus) (*Dev, error) {
 	d := &Dev{
-		c: conn{r: mmr.Dev16{Conn: &i2c.Dev{Bus: i, Addr: 0x2A}, Order: internal.Big16}},
+		c: cciConn{r: mmr.Dev16{Conn: &i2c.Dev{Bus: i, Addr: 0x2A}, Order: internal.Big16}},
 	}
 	// Wait for the device to be booted.
 	for {
@@ -313,21 +314,21 @@ func (d *Dev) RunFFC() error {
 
 //
 
-// conn is the low level connection.
+// cciConn is the low level connection.
 //
 // It implements the low level protocol to run the GET, SET and RUN commands
 // via memory mapped registers.
-type conn struct {
+type cciConn struct {
 	mu sync.Mutex
 	r  mmr.Dev16
 }
 
-func (c *conn) String() string {
+func (c *cciConn) String() string {
 	return fmt.Sprintf("%s", &c.r)
 }
 
 // waitIdle waits for the busy bit to clear.
-func (c *conn) waitIdle() (StatusBit, error) {
+func (c *cciConn) waitIdle() (StatusBit, error) {
 	// Do not take the lock.
 	for {
 		if s, err := c.r.ReadUint16(regStatus); err != nil || StatusBit(s)&StatusBusy == 0 {
@@ -338,7 +339,7 @@ func (c *conn) waitIdle() (StatusBit, error) {
 }
 
 // get returns an attribute by querying the device.
-func (c *conn) get(cmd command, data interface{}) error {
+func (c *cciConn) get(cmd command, data interface{}) error {
 	if data == nil {
 		return errors.New("lepton-cci: get() argument must not be nil")
 	}
@@ -393,7 +394,7 @@ func (c *conn) get(cmd command, data interface{}) error {
 }
 
 // set returns an attribute on the device.
-func (c *conn) set(cmd command, data interface{}) error {
+func (c *cciConn) set(cmd command, data interface{}) error {
 	if data == nil {
 		return errors.New("lepton-cci: set() argument must not be nil")
 	}
@@ -437,7 +438,7 @@ func (c *conn) set(cmd command, data interface{}) error {
 }
 
 // run runs a command on the device that doesn't need any argument.
-func (c *conn) run(cmd command) error {
+func (c *cciConn) run(cmd command) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if _, err := c.waitIdle(); err != nil {
@@ -557,6 +558,6 @@ const (
 
 // TODO(maruel): Enable RadXXX commands.
 
-var _ devices.Device = &Dev{}
+var _ conn.Resource = &Dev{}
 var _ fmt.Stringer = &Dev{}
-var _ fmt.Stringer = &conn{}
+var _ fmt.Stringer = &cciConn{}

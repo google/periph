@@ -105,7 +105,7 @@ func TestWaitIdle(t *testing.T) {
 		{Addr: 42, W: []byte{0x00, 0x02}, R: []byte{0x00, 0x06}},
 	}
 	bus := i2ctest.Playback{Ops: ops}
-	d := Dev{c: conn{r: mmr.Dev16{Conn: &i2c.Dev{Bus: &bus, Addr: 0x2A}, Order: internal.Big16}}}
+	d := Dev{c: cciConn{r: mmr.Dev16{Conn: &i2c.Dev{Bus: &bus, Addr: 0x2A}, Order: internal.Big16}}}
 	if _, err := d.WaitIdle(); err != nil {
 		t.Fatal(err)
 	}
@@ -262,7 +262,7 @@ func TestConn_get(t *testing.T) {
 		{Addr: 42, W: []byte{0x00, 0x08}, R: []byte{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}},
 	}
 	bus := i2ctest.Playback{Ops: ops}
-	c := conn{r: mmr.Dev16{Conn: &i2c.Dev{Bus: &bus, Addr: 0x2A}, Order: internal.Big16}}
+	c := cciConn{r: mmr.Dev16{Conn: &i2c.Dev{Bus: &bus, Addr: 0x2A}, Order: internal.Big16}}
 	var v internal.Status
 	if err := c.get(sysStatus, &v); err != nil {
 		t.Fatal(err)
@@ -275,7 +275,7 @@ func TestConn_get(t *testing.T) {
 	for len(ops) != 0 {
 		ops = ops[:len(ops)-1]
 		bus := i2ctest.Playback{Ops: ops, DontPanic: true}
-		c = conn{r: mmr.Dev16{Conn: &i2c.Dev{Bus: &bus, Addr: 0x2A}, Order: internal.Big16}}
+		c = cciConn{r: mmr.Dev16{Conn: &i2c.Dev{Bus: &bus, Addr: 0x2A}, Order: internal.Big16}}
 		var v internal.Status
 		if c.get(sysStatus, &v) == nil {
 			t.Fatal("should have failed")
@@ -300,7 +300,7 @@ func TestConn_get_large(t *testing.T) {
 		{Addr: 42, W: []byte{0xf8, 0}, R: make([]byte, 2048)},
 	}
 	bus := i2ctest.Playback{Ops: ops}
-	c := conn{r: mmr.Dev16{Conn: &i2c.Dev{Bus: &bus, Addr: 0x2A}, Order: internal.Big16}}
+	c := cciConn{r: mmr.Dev16{Conn: &i2c.Dev{Bus: &bus, Addr: 0x2A}, Order: internal.Big16}}
 	v := make([]byte, 2048)
 	if err := c.get(sysStatus, v); err != nil {
 		t.Fatal(err)
@@ -322,7 +322,7 @@ func TestConn_get_fail_waitidle(t *testing.T) {
 		{Addr: 42, W: []byte{0x00, 0x02}, R: []byte{0x01, 0x00}},
 	}
 	bus := i2ctest.Playback{Ops: ops}
-	c := conn{r: mmr.Dev16{Conn: &i2c.Dev{Bus: &bus, Addr: 0x2A}, Order: internal.Big16}}
+	c := cciConn{r: mmr.Dev16{Conn: &i2c.Dev{Bus: &bus, Addr: 0x2A}, Order: internal.Big16}}
 	var v internal.Status
 	if c.get(sysStatus, &v) == nil {
 		t.Fatal("waitIdle failed")
@@ -334,7 +334,7 @@ func TestConn_get_fail_waitidle(t *testing.T) {
 
 func TestConn_get_fail(t *testing.T) {
 	bus := i2ctest.Playback{}
-	c := conn{r: mmr.Dev16{Conn: &i2c.Dev{Bus: &bus, Addr: 0x2A}, Order: internal.Big16}}
+	c := cciConn{r: mmr.Dev16{Conn: &i2c.Dev{Bus: &bus, Addr: 0x2A}, Order: internal.Big16}}
 	if c.get(sysStatus, nil) == nil {
 		t.Fatal("nil value")
 	}
@@ -365,7 +365,7 @@ func TestConn_set(t *testing.T) {
 		{Addr: 42, W: []byte{0x00, 0x02}, R: []byte{0x00, 0x06}},
 	}
 	bus := i2ctest.Playback{Ops: ops}
-	c := conn{r: mmr.Dev16{Conn: &i2c.Dev{Bus: &bus, Addr: 0x2A}, Order: internal.Big16}}
+	c := cciConn{r: mmr.Dev16{Conn: &i2c.Dev{Bus: &bus, Addr: 0x2A}, Order: internal.Big16}}
 	var v internal.Status
 	if err := c.set(sysStatus, &v); err != nil {
 		t.Fatal(err)
@@ -378,7 +378,7 @@ func TestConn_set(t *testing.T) {
 	for len(ops) != 0 {
 		ops = ops[:len(ops)-1]
 		bus := i2ctest.Playback{Ops: ops, DontPanic: true}
-		c = conn{r: mmr.Dev16{Conn: &i2c.Dev{Bus: &bus, Addr: 0x2A}, Order: internal.Big16}}
+		c = cciConn{r: mmr.Dev16{Conn: &i2c.Dev{Bus: &bus, Addr: 0x2A}, Order: internal.Big16}}
 		var v internal.Status
 		if c.set(sysStatus, &v) == nil {
 			t.Fatal("should have failed")
@@ -403,7 +403,7 @@ func TestConn_set_large(t *testing.T) {
 		{Addr: 42, W: []byte{0x00, 0x02}, R: []byte{0x00, 0x06}},
 	}
 	bus := i2ctest.Playback{Ops: ops}
-	c := conn{r: mmr.Dev16{Conn: &i2c.Dev{Bus: &bus, Addr: 0x2A}, Order: internal.Big16}}
+	c := cciConn{r: mmr.Dev16{Conn: &i2c.Dev{Bus: &bus, Addr: 0x2A}, Order: internal.Big16}}
 	v := make([]byte, 2048)
 	if err := c.set(sysStatus, v); err != nil {
 		t.Fatal(err)
@@ -427,7 +427,7 @@ func TestConn_set_fail_waitidle(t *testing.T) {
 		{Addr: 42, W: []byte{0x00, 0x02}, R: []byte{0x0f, 0x00}},
 	}
 	bus := i2ctest.Playback{Ops: ops}
-	c := conn{r: mmr.Dev16{Conn: &i2c.Dev{Bus: &bus, Addr: 0x2A}, Order: internal.Big16}}
+	c := cciConn{r: mmr.Dev16{Conn: &i2c.Dev{Bus: &bus, Addr: 0x2A}, Order: internal.Big16}}
 	var v internal.Status
 	if c.set(sysStatus, &v) == nil {
 		t.Fatal("waitIdle failed")
@@ -439,7 +439,7 @@ func TestConn_set_fail_waitidle(t *testing.T) {
 
 func TestConn_set_fail(t *testing.T) {
 	bus := i2ctest.Playback{}
-	c := conn{r: mmr.Dev16{Conn: &i2c.Dev{Bus: &bus, Addr: 0x2A}, Order: internal.Big16}}
+	c := cciConn{r: mmr.Dev16{Conn: &i2c.Dev{Bus: &bus, Addr: 0x2A}, Order: internal.Big16}}
 	if c.set(sysStatus, nil) == nil {
 		t.Fatal("nil value")
 	}
@@ -465,7 +465,7 @@ func TestConn_run(t *testing.T) {
 		{Addr: 42, W: []byte{0x00, 0x02}, R: []byte{0x00, 0x06}},
 	}
 	bus := i2ctest.Playback{Ops: ops}
-	c := conn{r: mmr.Dev16{Conn: &i2c.Dev{Bus: &bus, Addr: 0x2A}, Order: internal.Big16}}
+	c := cciConn{r: mmr.Dev16{Conn: &i2c.Dev{Bus: &bus, Addr: 0x2A}, Order: internal.Big16}}
 	if err := c.run(sysFCCRunNormalization); err != nil {
 		t.Fatal(err)
 	}
@@ -477,7 +477,7 @@ func TestConn_run(t *testing.T) {
 	for len(ops) != 0 {
 		ops = ops[:len(ops)-1]
 		bus := i2ctest.Playback{Ops: ops, DontPanic: true}
-		c = conn{r: mmr.Dev16{Conn: &i2c.Dev{Bus: &bus, Addr: 0x2A}, Order: internal.Big16}}
+		c = cciConn{r: mmr.Dev16{Conn: &i2c.Dev{Bus: &bus, Addr: 0x2A}, Order: internal.Big16}}
 		if c.run(sysFCCRunNormalization) == nil {
 			t.Fatal("should have failed")
 		}
@@ -499,7 +499,7 @@ func TestConn_run_fail_waitidle(t *testing.T) {
 		{Addr: 42, W: []byte{0x00, 0x02}, R: []byte{0x0f, 0x00}},
 	}
 	bus := i2ctest.Playback{Ops: ops}
-	c := conn{r: mmr.Dev16{Conn: &i2c.Dev{Bus: &bus, Addr: 0x2A}, Order: internal.Big16}}
+	c := cciConn{r: mmr.Dev16{Conn: &i2c.Dev{Bus: &bus, Addr: 0x2A}, Order: internal.Big16}}
 	if c.run(sysFCCRunNormalization) == nil {
 		t.Fatal("waitIdle failed")
 	}
@@ -561,13 +561,13 @@ func TestStrings(t *testing.T) {
 
 func getDev(ops []i2ctest.IO) (*i2ctest.Playback, *Dev) {
 	bus := &i2ctest.Playback{Ops: ops}
-	d := &Dev{c: conn{r: mmr.Dev16{Conn: &i2c.Dev{Bus: bus, Addr: 0x2A}, Order: internal.Big16}}}
+	d := &Dev{c: cciConn{r: mmr.Dev16{Conn: &i2c.Dev{Bus: bus, Addr: 0x2A}, Order: internal.Big16}}}
 	return bus, d
 }
 
 func getDevFail() *Dev {
 	bus := &i2ctest.Playback{DontPanic: true}
-	d := &Dev{c: conn{r: mmr.Dev16{Conn: &i2c.Dev{Bus: bus, Addr: 0x2A}, Order: internal.Big16}}}
+	d := &Dev{c: cciConn{r: mmr.Dev16{Conn: &i2c.Dev{Bus: bus, Addr: 0x2A}, Order: internal.Big16}}}
 	return d
 }
 

@@ -10,6 +10,7 @@ import (
 	"image"
 	"image/color"
 
+	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/spi"
 	"periph.io/x/periph/devices"
 )
@@ -314,6 +315,6 @@ func New(p spi.Port, numPixels int, intensity uint8, temperature uint16) (*Dev, 
 
 //
 
-var _ devices.Device = &Dev{}
+var _ conn.Resource = &Dev{}
 var _ devices.Display = &Dev{}
 var _ fmt.Stringer = &Dev{}

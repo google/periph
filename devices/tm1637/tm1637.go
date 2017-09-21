@@ -15,8 +15,8 @@ import (
 	"runtime"
 	"time"
 
+	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio"
-	"periph.io/x/periph/devices"
 	"periph.io/x/periph/host/cpu"
 )
 
@@ -200,5 +200,5 @@ func (d *Dev) sleepHalfCycle() {
 	cpu.Nanospin(clockHalfCycle)
 }
 
-var _ devices.Device = &Dev{}
+var _ conn.Resource = &Dev{}
 var _ fmt.Stringer = &Dev{}

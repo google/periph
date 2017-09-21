@@ -514,6 +514,6 @@ var defaults = Opts{
 	Humidity:    O4x,
 }
 
+var _ conn.Resource = &Dev{}
 var _ devices.Environmental = &Dev{}
-var _ devices.Device = &Dev{}
 var _ fmt.Stringer = &Dev{}
