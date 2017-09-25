@@ -6,6 +6,21 @@ package conn
 
 import "fmt"
 
+// Resource is a basic resource (like a gpio pin) or a device.
+//
+// Implementers are expected to also implement fmt.Stringer. In this case,
+// String() must return a name representing this resource in a descriptive way
+// for the user.
+type Resource interface {
+	// Halt stops the resource.
+	//
+	// Unlike a Conn, a Resource may not be closable, On the other hand, a
+	// resource can be halted. What halting entails depends on the resource
+	// device but it should stop motion, sensing loop, light emission or PWM
+	// output and go back into an inert state.
+	Halt() error
+}
+
 // Duplex declares whether communication can happen simultaneously both ways.
 //
 // Some protocol can be either depending on configuration settings, like UART.

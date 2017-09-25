@@ -14,14 +14,9 @@ import (
 
 // Device is a basic device.
 //
-// It is expected to implement fmt.Stringer.
+// This interface is deprecated and will be removed in v3. Use conn.Resource
+// instead.
 type Device interface {
-	// Halt stops the device.
-	//
-	// Unlike a connection, a device cannot be closed, only the port can be
-	// closed. On the other hand, a device can be halted. What halting entails
-	// depends on the actual device but it should stop motion, sensing or light
-	// emission.
 	Halt() error
 }
 

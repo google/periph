@@ -11,6 +11,7 @@ import (
 	"image/color"
 	"image/draw"
 
+	"periph.io/x/periph/conn"
 	"periph.io/x/periph/devices"
 )
 
@@ -23,7 +24,7 @@ func (d *Display) String() string {
 	return "Display"
 }
 
-// Halt implements devices.Device. It is a noop.
+// Halt implements conn.Resource. It is a noop.
 func (d *Display) Halt() error {
 	return nil
 }
@@ -52,6 +53,6 @@ func (d *Display) Draw(r image.Rectangle, src image.Image, sp image.Point) {
 	draw.Draw(d.Img, r, src, sp, draw.Src)
 }
 
+var _ conn.Resource = &Display{}
 var _ devices.Display = &Display{}
-var _ devices.Device = &Display{}
 var _ fmt.Stringer = &Display{}

@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"time"
 
+	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/onewire"
 	"periph.io/x/periph/devices"
 )
@@ -98,7 +99,7 @@ func (d *Dev) String() string {
 	return fmt.Sprintf("DS18B20{%v}", d.onewire)
 }
 
-// Halt implements devices.Device.
+// Halt implements conn.Resource.
 func (d *Dev) Halt() error {
 	return nil
 }
@@ -174,5 +175,5 @@ func (d *Dev) readScratchpad() ([]byte, error) {
 	return spad[:8], nil
 }
 
-var _ devices.Device = &Dev{}
+var _ conn.Resource = &Dev{}
 var _ fmt.Stringer = &Dev{}
