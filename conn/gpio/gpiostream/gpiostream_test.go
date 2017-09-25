@@ -5,9 +5,59 @@
 package gpiostream
 
 import (
+	"fmt"
+	"log"
 	"testing"
 	"time"
+
+	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/gpio/gpioreg"
 )
+
+func ExamplePinIn() {
+	// Read one second of sample at 1ms resolution and print the values read.
+	p := gpioreg.ByName("GPIO3")
+	r, ok := p.(PinIn)
+	if !ok {
+		log.Fatalf("pin streaming is not supported on pin %s", p)
+	}
+	b := BitStream{Res: time.Millisecond, Bits: make(Bits, 1000/8)}
+	if err := r.StreamIn(gpio.PullNoChange, &b); err != nil {
+		log.Fatal(err)
+	}
+	for i, bit := range b.Bits {
+		for j := 0; j < 8; j++ {
+			fmt.Printf("%4s, ", gpio.Level(bit&(1<<uint(j)) != 0))
+		}
+		if i&1 == 1 {
+			fmt.Printf("\n")
+		}
+	}
+}
+
+func ExamplePinOut() {
+	// Generates a 25% duty cycle PWM at 1kHz for 5 seconds with a precision of
+	// 1µs.
+	p := gpioreg.ByName("GPIO3")
+	r, ok := p.(PinOut)
+	if !ok {
+		log.Fatalf("pin streaming is not supported on pin %s", p)
+	}
+	b := Program{
+		Parts: []Stream{
+			&EdgeStream{
+				Res:   time.Microsecond,
+				Edges: []time.Duration{250 * time.Microsecond, 750 * time.Microsecond},
+			},
+		},
+		Loops: 5000,
+	}
+	if err := r.StreamOut(&b); err != nil {
+		log.Fatal(err)
+	}
+}
+
+//
 
 func TestBitStream(t *testing.T) {
 	s := BitStream{Res: time.Second, Bits: make(Bits, 100)}
