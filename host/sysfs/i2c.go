@@ -158,18 +158,12 @@ func (i *I2C) SetSpeed(hz int64) error {
 }
 
 // SCL implements i2c.Pins.
-//
-// It will fail if host.Init() wasn't called. host.Init() is transparently
-// called by host.MakeI2C().
 func (i *I2C) SCL() gpio.PinIO {
 	i.initPins()
 	return i.scl
 }
 
 // SDA implements i2c.Pins.
-//
-// It will fail if host.Init() wasn't called. host.Init() is transparently
-// called by host.MakeI2C().
 func (i *I2C) SDA() gpio.PinIO {
 	i.initPins()
 	return i.sda
