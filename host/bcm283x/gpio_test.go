@@ -6,6 +6,7 @@ package bcm283x
 
 import (
 	"testing"
+	"time"
 
 	"periph.io/x/periph/conn/gpio"
 )
@@ -133,6 +134,34 @@ func TestPin(t *testing.T) {
 	p.setFunction(alt5)
 	if s := p.Function(); s != "UART1_RXD" {
 		t.Fatal(s)
+	}
+}
+
+func TestPinPWM(t *testing.T) {
+	defer func() {
+		clockMemory = nil
+		gpioMemory = nil
+		pwmMemory = nil
+	}()
+
+	p := Pin{name: "C1", number: 4, defaultPull: gpio.PullDown}
+	if err := p.PWM(gpio.DutyHalf, 500*time.Nanosecond); err == nil || err.Error() != "bcm283x-gpio (C1): subsystem not initialized" {
+		t.Fatal(err)
+	}
+
+	gpioMemory = &gpioMap{}
+	if err := p.PWM(gpio.DutyHalf, 500*time.Nanosecond); err == nil || err.Error() != "bcm283x-gpio (C1): bcm283x-dma not initialized; try again as root?" {
+		t.Fatal(err)
+	}
+
+	clockMemory = &clockMap{}
+	pwmMemory = &pwmMap{}
+	if err := p.PWM(gpio.DutyHalf, 499*time.Nanosecond); err == nil || err.Error() != "bcm283x-gpio (C1): period must be at least 500ns" {
+		t.Fatal(err)
+	}
+	// TODO(maruel): Fix test.
+	if err := p.PWM(gpio.DutyHalf, 500*time.Nanosecond); err == nil || err.Error() != "bcm283x-gpio (C1): can't write to clock divisor CPU register" {
+		t.Fatal(err)
 	}
 }
 
