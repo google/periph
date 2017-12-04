@@ -166,7 +166,8 @@ type pwmMap struct {
 	// first PWM_RNGi bits are sent resulting in a truncation. If it is larger
 	// than 32 excess zero bits are padded at the end of data. Default value for
 	// this register is 32.
-	rng1 uint32 // RNG1
+	dummy1 uint32 // Padding
+	rng1   uint32 // RNG1
 	// This register stores the 32 bit data to be sent by the PWM Controller when
 	// USEFi is 0. In PWM mode data is sent by pulse width modulation: the value
 	// of this register defines the number of pulses which is sent within the
@@ -194,9 +195,10 @@ type pwmMap struct {
 	//
 	// If the set of channels to share the FIFO has been modified after a
 	// configuration change, FIFO should be cleared before writing new data.
-	fifo uint32 // FIF1
-	rng2 uint32 // RNG2 Equivalent of rng1 for channel 2
-	dat2 uint32 // DAT2 Equivalent of dat1 for channel 2
+	fifo   uint32 // FIF1
+	dummy2 uint32 // Padding
+	rng2   uint32 // RNG2 Equivalent of rng1 for channel 2
+	dat2   uint32 // DAT2 Equivalent of dat1 for channel 2
 }
 
 // reset stops the PWM.
