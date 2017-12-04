@@ -215,7 +215,7 @@ func calcSource(hz uint64, maxWaitCycles int) (clockCtl, int, int, uint64, error
 	if hz < 1 {
 		return 0, 0, 0, 0, fmt.Errorf("bcm283x-clock: desired frequency %dHz must be >1hz", hz)
 	}
-	if hz > 25000000 {
+	if hz > 250000000 {
 		return 0, 0, 0, 0, fmt.Errorf("bcm283x-clock: desired frequency %dHz is too high", hz)
 	}
 	// http://elinux.org/BCM2835_datasheet_errata states that clockSrc19dot2MHz
@@ -227,6 +227,7 @@ func calcSource(hz uint64, maxWaitCycles int) (clockCtl, int, int, uint64, error
 	// Try 500Mhz.
 	div, wait = findDivisorExact(clk500MHz, hz, maxWaitCycles)
 	if div != 0 {
+		fmt.Println("SrcPLLD", clockSrcPLLD, div, wait, hz)
 		return clockSrcPLLD, div, wait, hz, nil
 	}
 
@@ -284,11 +285,12 @@ func (c *clock) setRaw(ctl clockCtl, div int) error {
 	}
 	d := clockDiv(div << clockDiviShift)
 	c.div = clockPasswdDiv | d
-	Nanospin(10 * time.Nanosecond)
+	Nanospin(10 * time.Microsecond)
 	// Page 107
 	c.ctl = clockPasswdCtl | ctl
-	Nanospin(10 * time.Nanosecond)
+	Nanospin(10 * time.Microsecond)
 	c.ctl = clockPasswdCtl | ctl | clockEnable
+	fmt.Println("clock", c.ctl.String(), c.div.String())
 	if c.div != d {
 		return errors.New("can't write to clock divisor CPU register")
 	}

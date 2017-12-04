@@ -294,6 +294,9 @@ func (p *Pin) Out(l gpio.Level) error {
 // Furthermore, these can only be used if the "bcm283x-dma" driver was loaded.
 // It can only be loaded if the process has root level access.
 func (p *Pin) PWM(duty gpio.Duty, period time.Duration) error {
+	// Debug
+	fmt.Println(p, "ctl", pwmMemory.ctl, "rng1", pwmMemory.rng1, "dat1", pwmMemory.dat1)
+
 	if duty == 0 {
 		return p.Out(gpio.Low)
 	} else if duty == gpio.DutyMax {
@@ -369,17 +372,26 @@ func (p *Pin) PWM(duty gpio.Duty, period time.Duration) error {
 	}
 
 	// TODO(maruel): Leverage oversampling.
-	if _, _, err := clockMemory.pwm.set(uint64(time.Second/period), 1); err != nil {
+	base_freq := uint64(250 * 1000 * 1000)
+	freq := uint64(time.Second / period)
+	rng := base_freq / freq
+	dat := uint32(rng * uint64(duty) / uint64(gpio.DutyMax))
+	fmt.Println("rng", uint32(rng), "dat", dat)
+	if _, _, err := clockMemory.pwm.set(base_freq, 1); err != nil {
 		return p.wrap(err)
 	}
 	shift := uint((p.number & 1) * 8)
-	// rng1/rng2 are already 32.
 	if shift == 0 {
-		pwmMemory.dat1 = uint32(duty)<<16 | uint32(duty)
+		pwmMemory.rng1 = uint32(rng)
+		Nanospin(10 * time.Microsecond)
+		pwmMemory.dat1 = uint32(dat)
 	} else {
-		pwmMemory.dat2 = uint32(duty)<<16 | uint32(duty)
+		pwmMemory.rng2 = uint32(rng)
+		Nanospin(10 * time.Microsecond)
+		pwmMemory.dat2 = uint32(dat)
 	}
-	pwmMemory.ctl |= pwm1Enable << shift
+	Nanospin(10 * time.Microsecond)
+	pwmMemory.ctl |= (pwm1Enable | pwm1MS) << shift
 	p.setFunction(f)
 	return nil
 }
