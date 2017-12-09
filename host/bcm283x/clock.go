@@ -289,7 +289,6 @@ func (c *clock) setRaw(ctl clockCtl, div int) error {
 	c.ctl = clockPasswdCtl | ctl
 	Nanospin(10 * time.Microsecond)
 	c.ctl = clockPasswdCtl | ctl | clockEnable
-	fmt.Println("clock", c.ctl.String(), c.div.String())
 	if c.div != d {
 		return errors.New("can't write to clock divisor CPU register")
 	}
