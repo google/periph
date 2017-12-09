@@ -391,7 +391,8 @@ func (p *Pin) PWM(duty gpio.Duty, period time.Duration) error {
 		pwmMemory.dat2 = uint32(dat)
 	}
 	Nanospin(10 * time.Microsecond)
-	pwmMemory.ctl |= (pwm1Enable | pwm1MS) << shift
+	old := pwmMemory.ctl
+	pwmMemory.ctl = (old & ^(0xff << shift)) | ((pwm1Enable | pwm1MS) << shift)
 	p.setFunction(f)
 	return nil
 }
