@@ -215,7 +215,7 @@ func calcSource(hz uint64, maxWaitCycles int) (clockCtl, int, int, uint64, error
 	if hz < 1 {
 		return 0, 0, 0, 0, fmt.Errorf("bcm283x-clock: desired frequency %dHz must be >1hz", hz)
 	}
-	if hz > 250000000 {
+	if hz > clk500MHz {
 		return 0, 0, 0, 0, fmt.Errorf("bcm283x-clock: desired frequency %dHz is too high", hz)
 	}
 	// http://elinux.org/BCM2835_datasheet_errata states that clockSrc19dot2MHz
@@ -227,7 +227,6 @@ func calcSource(hz uint64, maxWaitCycles int) (clockCtl, int, int, uint64, error
 	// Try 500Mhz.
 	div, wait = findDivisorExact(clk500MHz, hz, maxWaitCycles)
 	if div != 0 {
-		fmt.Println("SrcPLLD", clockSrcPLLD, div, wait, hz)
 		return clockSrcPLLD, div, wait, hz, nil
 	}
 

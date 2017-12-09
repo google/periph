@@ -294,9 +294,6 @@ func (p *Pin) Out(l gpio.Level) error {
 // Furthermore, these can only be used if the "bcm283x-dma" driver was loaded.
 // It can only be loaded if the process has root level access.
 func (p *Pin) PWM(duty gpio.Duty, period time.Duration) error {
-	// Debug
-	fmt.Println(p, "ctl", pwmMemory.ctl, "rng1", pwmMemory.rng1, "dat1", pwmMemory.dat1)
-
 	if duty == 0 {
 		return p.Out(gpio.Low)
 	} else if duty == gpio.DutyMax {
@@ -371,12 +368,9 @@ func (p *Pin) PWM(duty gpio.Duty, period time.Duration) error {
 		return nil
 	}
 
-	// TODO(maruel): Leverage oversampling.
-	base_freq := uint64(250 * 1000 * 1000)
-	freq := uint64(time.Second / period)
-	rng := base_freq / freq
+	base_freq := uint64(250 * 1000 * 1000) // 250MHz
+	rng := base_freq * uint64(period) / uint64(time.Second)
 	dat := uint32(rng * uint64(duty) / uint64(gpio.DutyMax))
-	fmt.Println("rng", uint32(rng), "dat", dat)
 	if _, _, err := clockMemory.pwm.set(base_freq, 1); err != nil {
 		return p.wrap(err)
 	}
