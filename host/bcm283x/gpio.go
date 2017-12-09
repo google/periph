@@ -368,7 +368,8 @@ func (p *Pin) PWM(duty gpio.Duty, period time.Duration) error {
 		return nil
 	}
 
-	base_freq := uint64(250 * 1000 * 1000) // 250MHz
+	// TODO(maruel): Leverage oversampling.
+	base_freq := uint64(25 * 1000 * 1000) // 25MHz
 	// Total cycles in the period
 	rng := base_freq * uint64(period) / uint64(time.Second)
 	// Pulse width cycles
