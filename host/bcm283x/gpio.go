@@ -381,14 +381,14 @@ func (p *Pin) PWM(duty gpio.Duty, period time.Duration) error {
 	shift := uint((p.number & 1) * 8)
 	if shift == 0 {
 		pwmMemory.rng1 = uint32(rng)
-		Nanospin(10 * time.Microsecond)
+		Nanospin(10 * time.Nanosecond)
 		pwmMemory.dat1 = uint32(dat)
 	} else {
 		pwmMemory.rng2 = uint32(rng)
-		Nanospin(10 * time.Microsecond)
+		Nanospin(10 * time.Nanosecond)
 		pwmMemory.dat2 = uint32(dat)
 	}
-	Nanospin(10 * time.Microsecond)
+	Nanospin(10 * time.Nanosecond)
 	old := pwmMemory.ctl
 	pwmMemory.ctl = (old & ^(0xff << shift)) | ((pwm1Enable | pwm1MS) << shift)
 	p.setFunction(f)
