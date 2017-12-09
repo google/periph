@@ -369,11 +369,14 @@ func (p *Pin) PWM(duty gpio.Duty, period time.Duration) error {
 	}
 
 	base_freq := uint64(250 * 1000 * 1000) // 250MHz
+	// Total cycles in the period
 	rng := base_freq * uint64(period) / uint64(time.Second)
+	// Pulse width cycles
 	dat := uint32(rng * uint64(duty) / uint64(gpio.DutyMax))
 	if _, _, err := clockMemory.pwm.set(base_freq, 1); err != nil {
 		return p.wrap(err)
 	}
+	// Bit shift for PWM0 and PWM1
 	shift := uint((p.number & 1) * 8)
 	if shift == 0 {
 		pwmMemory.rng1 = uint32(rng)
