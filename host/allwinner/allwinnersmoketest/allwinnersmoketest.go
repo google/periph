@@ -42,10 +42,10 @@ func (s *SmokeTest) Run(args []string) error {
 	if !allwinner.Present() {
 		return errors.New("this smoke test can only be used on a Allwinner based host")
 	}
-	f := flag.NewFlagSet("allwinner", flag.ExitOnError)
+	f := flag.NewFlagSet(s.Name(), flag.ExitOnError)
 	f.Parse(args)
 	if f.NArg() != 0 {
-		return errors.New("unsupported flags")
+		return errors.New("unrecognized arguments")
 	}
 
 	start := time.Now()

@@ -7,6 +7,7 @@
 package odroidc1smoketest
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strconv"
@@ -141,6 +142,9 @@ func (s *SmokeTest) Description() string {
 
 // Run implements periph-smoketest.SmokeTest.
 func (s *SmokeTest) Run(args []string) error {
+	if len(args) != 0 {
+		return errors.New("unrecognized arguments")
+	}
 	tests := []func() error{
 		testOdroidC1Present, testOdroidC1Headers,
 		testOdroidC1GpioNames, testOdroidC1Aliases,

@@ -59,7 +59,7 @@ func (s *SmokeTest) Description() string {
 
 // Run implements periph-smoketest.SmokeTest.
 func (s *SmokeTest) Run(args []string) error {
-	f := flag.NewFlagSet("gpio", flag.ExitOnError)
+	f := flag.NewFlagSet(s.Name(), flag.ExitOnError)
 	slow := f.Bool("s", false, "slow; insert a second between each step")
 	useSysfs := f.Bool("sysfs", false, "force the use of sysfs")
 	f.Parse(args)

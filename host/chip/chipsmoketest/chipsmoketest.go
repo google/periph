@@ -7,6 +7,7 @@
 package chipsmoketest
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strconv"
@@ -152,6 +153,9 @@ func (s *SmokeTest) Description() string {
 
 // Run implements periph-smoketest.SmokeTest.
 func (s *SmokeTest) Run(args []string) error {
+	if len(args) != 0 {
+		return errors.New("unrecognized arguments")
+	}
 	tests := []func() error{
 		testChipPresent, testChipHeaders, testChipGpioNumbers, testChipGpioNames, testChipAliases,
 	}

@@ -8,6 +8,7 @@ package ssd1306smoketest
 
 import (
 	"bytes"
+	"errors"
 	"flag"
 	"fmt"
 	"image"
@@ -53,7 +54,7 @@ func (s *SmokeTest) Description() string {
 func (s *SmokeTest) Run(args []string) (err error) {
 	s.delay = 2 * time.Second
 
-	f := flag.NewFlagSet("buses", flag.ExitOnError)
+	f := flag.NewFlagSet(s.Name(), flag.ExitOnError)
 	i2cID := f.String("i2c", "", "I²C bus to use")
 	spiID := f.String("spi", "", "SPI port to use")
 	dcName := f.String("dc", "", "DC pin to use in 4-wire SPI mode")
@@ -64,6 +65,9 @@ func (s *SmokeTest) Run(args []string) (err error) {
 
 	record := f.Bool("record", false, "record operation (for playback unit testing)")
 	f.Parse(args)
+	if f.NArg() != 0 {
+		return errors.New("unrecognized arguments")
+	}
 
 	i2cBus, err2 := i2creg.Open(*i2cID)
 	if err2 != nil {
