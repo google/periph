@@ -278,7 +278,10 @@ func (p *Pin) Out(l gpio.Level) error {
 
 // Halt implements conn.Resource.
 //
-// If the pin was running a PWM or waiting for edges, it is halted.
+// If the pin is running a clock, PWM or waiting for edges, it is halted.
+//
+// In the case of clock or PWM, all pins with this clock source are also
+// disabled.
 func (p *Pin) Halt() error {
 	if p.usingEdge {
 		if err := p.edge.In(gpio.PullNoChange, gpio.NoEdge); err != nil {
@@ -302,7 +305,8 @@ func (p *Pin) Halt() error {
 // PWM1 is exposed on pins 13, 19, 41 and 45.
 //
 // PWM0 and PWM1 share the same clock source, so even if they can have
-// independent duty cycle, they must have the same period.
+// independent duty cycle, they must have the same period. Pins shared on one
+// PWM (0 or 1) must have the same duty cycle.
 //
 // Clock pins
 //
