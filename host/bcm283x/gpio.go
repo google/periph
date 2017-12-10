@@ -91,8 +91,9 @@ type Pin struct {
 	defaultPull gpio.Pull
 
 	// Mutable.
-	edge      *sysfs.Pin // Set once, then never set back to nil.
-	usingEdge bool       // Set when edge detection is enabled.
+	edge       *sysfs.Pin // Set once, then never set back to nil.
+	usingEdge  bool       // Set when edge detection is enabled.
+	usingClock bool       // Set when a GPCLK or PWM clock is used.
 }
 
 // PinIO implementation.
@@ -179,6 +180,9 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	if gpioMemory == nil {
 		return p.wrap(errors.New("subsystem not initialized"))
 	}
+	if err := p.haltClock(); err != nil {
+		return err
+	}
 	p.setFunction(in)
 	if pull != gpio.PullNoChange {
 		// Changing pull resistor requires a specific dance as described at
@@ -258,12 +262,8 @@ func (p *Pin) Out(l gpio.Level) error {
 	if gpioMemory == nil {
 		return p.wrap(errors.New("subsystem not initialized"))
 	}
-	if p.usingEdge {
-		// First disable edges.
-		if err := p.edge.In(gpio.PullNoChange, gpio.NoEdge); err != nil {
-			return p.wrap(err)
-		}
-		p.usingEdge = false
+	if err := p.Halt(); err != nil {
+		return err
 	}
 	// Change output before changing mode to not create any glitch.
 	offset := p.number / 32
@@ -276,23 +276,49 @@ func (p *Pin) Out(l gpio.Level) error {
 	return nil
 }
 
-// BUG(maruel): PWM(): There is no way to disable the clock sources. A host
-// reboot is currently required.
+// Halt implements conn.Resource.
 //
+// If the pin was running a PWM or waiting for edges, it is halted.
+func (p *Pin) Halt() error {
+	if p.usingEdge {
+		if err := p.edge.In(gpio.PullNoChange, gpio.NoEdge); err != nil {
+			return p.wrap(err)
+		}
+		p.usingEdge = false
+	}
+	return p.haltClock()
+}
+
 // BUG(maruel): PWM(): There is no conflict verification when multiple pins are
 // used simultaneously. The last call to PWM() will affect all pins of the same
-// type (PWM, GPCLK0, GPCLK2).
+// type (GPCLK0, GPCLK2, PWM0 or PWM1).
 
-// PWM sets a PWM output on supported pins.
+// PWM outputs a periodic signal on supported pins.
 //
-// Supported PWM pins are 12, 13, 18, 19, 40, 41 and 45.
+// PWM pins
 //
-// Supported clock pins are 4, 6, 20, 32, 34 and 43. These can only be used
-// with duty set to gpio.DutyHalf. They also have relatively limited frequency
-// range from 4.8kHz to 1MHz with a specific set of values supported.
+// PWM0 is exposed on pins 12, 18 and 40.
 //
-// Furthermore, these can only be used if the "bcm283x-dma" driver was loaded.
+// PWM1 is exposed on pins 13, 19, 41 and 45.
+//
+// PWM0 and PWM1 share the same clock source, so even if they can have
+// independent duty cycle, they must have the same period.
+//
+// Clock pins
+//
+// Clock GPCLK0 is exposed on pins 4, 20 32 and 34.
+//
+// Clock GPCLK2 is exposed on pins 6 and 43.
+//
+// Clocks can only be used with duty 0, gpio.DutyHalf or gpio.DutyMax. They
+// also have relatively limited frequency range from 4.8kHz to 1MHz with a
+// specific set of values supported.
+//
+// Furthermore, these can only be used if the drive "bcm283x-dma" was loaded.
 // It can only be loaded if the process has root level access.
+//
+// The user must call either Halt(), In(), Out(), PWM(0,..) or
+// PWM(gpio.DutyMax,..) to stop the clock source before exiting the program.
 func (p *Pin) PWM(duty gpio.Duty, period time.Duration) error {
 	if duty == 0 {
 		return p.Out(gpio.Low)
@@ -358,6 +384,7 @@ func (p *Pin) PWM(duty gpio.Duty, period time.Duration) error {
 		if err != nil {
 			return p.wrap(err)
 		}
+		p.usingClock = true
 		if actual != hz {
 			return p.wrap(fmt.Errorf("asked for %dHz, got %dHz", hz, actual))
 		}
@@ -377,6 +404,7 @@ func (p *Pin) PWM(duty gpio.Duty, period time.Duration) error {
 	if _, _, err := clockMemory.pwm.set(base_freq, 1); err != nil {
 		return p.wrap(err)
 	}
+	p.usingClock = true
 	// Bit shift for PWM0 and PWM1
 	shift := uint((p.number & 1) * 8)
 	if shift == 0 {
@@ -405,6 +433,44 @@ func (p *Pin) DefaultPull() gpio.Pull {
 }
 
 // Internal code.
+
+// haltClock disables the GPCLK/PWM clock if used.
+func (p *Pin) haltClock() error {
+	if !p.usingClock {
+		return nil
+	}
+	p.usingClock = false
+	switch p.number {
+	// GPCLKx
+	case 4, 20, 32, 34:
+		if _, _, err := clockMemory.gp0.set(0, 0); err != nil {
+			return p.wrap(err)
+		}
+		return nil
+	case 5, 21, 42, 44:
+		return p.wrap(errors.New("GPCLK1 cannot be safely used"))
+	case 6, 43:
+		if _, _, err := clockMemory.gp2.set(0, 0); err != nil {
+			return p.wrap(err)
+		}
+		return nil
+
+	// PWMx
+	case 12, 13, 18, 19, 40, 45:
+		if _, _, err := clockMemory.pwm.set(0, 0); err != nil {
+			return p.wrap(err)
+		}
+		// Bit shift for PWM0 and PWM1.
+		shift := uint((p.number & 1) * 8)
+		pwmMemory.ctl &= ^(0xff << shift)
+		return nil
+
+	default:
+		// Technically 52 and 53 could also support PWM as alt1 but they are assumed
+		// to be used for the SD Card.
+		return p.wrap(errors.New("pwm is not supported on this pin"))
+	}
+}
 
 // function returns the current GPIO pin function.
 func (p *Pin) function() function {
