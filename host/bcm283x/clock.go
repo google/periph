@@ -215,7 +215,7 @@ func calcSource(hz uint64, maxWaitCycles int) (clockCtl, int, int, uint64, error
 	if hz < 1 {
 		return 0, 0, 0, 0, fmt.Errorf("bcm283x-clock: desired frequency %dHz must be >1hz", hz)
 	}
-	if hz > 25000000 {
+	if hz > 125*1000*1000 {
 		return 0, 0, 0, 0, fmt.Errorf("bcm283x-clock: desired frequency %dHz is too high", hz)
 	}
 	// http://elinux.org/BCM2835_datasheet_errata states that clockSrc19dot2MHz

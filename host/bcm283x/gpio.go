@@ -370,17 +370,28 @@ func (p *Pin) PWM(duty gpio.Duty, period time.Duration) error {
 	}
 
 	// TODO(maruel): Leverage oversampling.
-	if _, _, err := clockMemory.pwm.set(uint64(time.Second/period), 1); err != nil {
+	base_freq := uint64(25 * 1000 * 1000) // 25MHz
+	// Total cycles in the period
+	rng := base_freq * uint64(period) / uint64(time.Second)
+	// Pulse width cycles
+	dat := uint32(rng * uint64(duty) / uint64(gpio.DutyMax))
+	if _, _, err := clockMemory.pwm.set(base_freq, 1); err != nil {
 		return p.wrap(err)
 	}
+	// Bit shift for PWM0 and PWM1
 	shift := uint((p.number & 1) * 8)
-	// rng1/rng2 are already 32.
 	if shift == 0 {
-		pwmMemory.dat1 = uint32(duty)<<16 | uint32(duty)
+		pwmMemory.rng1 = uint32(rng)
+		Nanospin(10 * time.Nanosecond)
+		pwmMemory.dat1 = uint32(dat)
 	} else {
-		pwmMemory.dat2 = uint32(duty)<<16 | uint32(duty)
+		pwmMemory.rng2 = uint32(rng)
+		Nanospin(10 * time.Nanosecond)
+		pwmMemory.dat2 = uint32(dat)
 	}
-	pwmMemory.ctl |= pwm1Enable << shift
+	Nanospin(10 * time.Nanosecond)
+	old := pwmMemory.ctl
+	pwmMemory.ctl = (old & ^(0xff << shift)) | ((pwm1Enable | pwm1MS) << shift)
 	p.setFunction(f)
 	return nil
 }
