@@ -653,10 +653,10 @@ func runIO(pCB pmem.Mem, liteOk bool) error {
 }
 
 // dmaReadStream streams input from a pin.
-func dmaReadStream(p *Pin, resolution time.Duration, r gpiostream.Bits) error {
+func dmaReadStream(p *Pin, b *gpiostream.BitStream) error {
 	// Needs 32x the memory since each read is one full uint32. On the other
 	// hand one could read 32 contiguous pins simultaneously at no cost.
-	l := len(r) * 32
+	l := len(b.Bits) * 32
 	buf, err := videocore.Alloc((l + 0xFFF) &^ 0xFFF)
 	if err != nil {
 		return err
@@ -669,7 +669,7 @@ func dmaReadStream(p *Pin, resolution time.Duration, r gpiostream.Bits) error {
 	defer pCB.Close()
 
 	// Convert the resolution into clock frequency. This is lossy.
-	hz := uint64(time.Second / resolution)
+	hz := uint64(time.Second / b.Res)
 	actualHz, waits, err := setPWMClockSource(hz)
 	if err != nil {
 		return err
@@ -686,7 +686,7 @@ func dmaReadStream(p *Pin, resolution time.Duration, r gpiostream.Bits) error {
 	err = runIO(pCB, l > maxLite)
 	// TODO(maruel): Fix precision, especially when the actualHz is not an exact
 	// multiple.
-	uint32ToBit(r, buf.Bytes(), uint8(p.number&31), int(actualHz/hz)*4)
+	uint32ToBit(b.Bits, buf.Bytes(), uint8(p.number&31), int(actualHz/hz)*4)
 	return err
 }
 
