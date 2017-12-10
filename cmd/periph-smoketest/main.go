@@ -56,9 +56,9 @@ var tests = []SmokeTest{
 	&ssd1306smoketest.SmokeTest{},
 }
 
-func usage() {
+func usage(fs *flag.FlagSet) {
 	io.WriteString(os.Stderr, "Usage: periph-smoketest <args> <name> ...\n\n")
-	flag.PrintDefaults()
+	fs.PrintDefaults()
 	io.WriteString(os.Stderr, "\nTests available:\n")
 	names := make([]string, len(tests))
 	desc := make(map[string]string, len(tests))
@@ -78,20 +78,20 @@ func mainImpl() error {
 	if err != nil {
 		return fmt.Errorf("error loading drivers: %v", err)
 	}
-	verbose := flag.Bool("v", false, "verbose mode")
-	flag.CommandLine.Init(os.Args[0], flag.ContinueOnError)
-	flag.Usage = usage
-	if err := flag.CommandLine.Parse(os.Args[1:]); err == flag.ErrHelp {
+	fs := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
+	verbose := fs.Bool("v", false, "verbose mode")
+	fs.Usage = func() { usage(fs) }
+	if err := fs.Parse(os.Args[1:]); err == flag.ErrHelp {
 		return nil
 	} else if err != nil {
 		return err
 	}
-	if flag.NArg() == 0 {
+	if fs.NArg() == 0 {
 		return errors.New("please specify a test to run or use -help")
 	}
-	cmd := flag.Arg(0)
+	cmd := fs.Arg(0)
 	if cmd == "help" {
-		usage()
+		usage(fs)
 		return nil
 	}
 
@@ -121,7 +121,7 @@ func mainImpl() error {
 
 	for i := range tests {
 		if tests[i].Name() == cmd {
-			if err = tests[i].Run(flag.Args()[1:]); err == nil {
+			if err = tests[i].Run(fs.Args()[1:]); err == nil {
 				log.Printf("Test %s successful", cmd)
 			}
 			return err
