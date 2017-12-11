@@ -271,6 +271,17 @@ func (p *Pin) Out(l gpio.Level) error {
 		return err
 	}
 	// Change output before changing mode to not create any glitch.
+	p.FastOut(l)
+	p.setFunction(out)
+	return nil
+}
+
+// FastOut sets a pin output level with Absolutely No error checking.
+//
+// Out() Must be called once first before calling FastOut(), otherwise the
+// behavior is undefined. Then FastOut() can be used for minimal CPU overhead
+// to reach Mhz scale bit banging.
+func (p *Pin) FastOut(l gpio.Level) {
 	mask := uint32(1) << uint(p.number&31)
 	if l == gpio.Low {
 		if p.number < 32 {
@@ -285,8 +296,6 @@ func (p *Pin) Out(l gpio.Level) error {
 			gpioMemory.outputSet[1] = mask
 		}
 	}
-	p.setFunction(out)
-	return nil
 }
 
 // Halt implements conn.Resource.
