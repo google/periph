@@ -304,9 +304,8 @@ func (p *Pin) Halt() error {
 //
 // PWM1 is exposed on pins 13, 19, 41 and 45.
 //
-// PWM0 and PWM1 share the same clock source, so even if they can have
-// independent duty cycle, they must have the same period. Pins shared on one
-// PWM (0 or 1) must have the same duty cycle.
+// PWM0 and PWM1 share the same 25Mhz clock source. The period must be a
+// divisor of 25Mhz.
 //
 // Clock pins
 //
