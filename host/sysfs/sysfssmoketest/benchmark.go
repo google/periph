@@ -60,8 +60,23 @@ func (s *Benchmark) Run(args []string) error {
 		}
 		return fmt.Errorf("invalid pin %d; valid: %s", *num, valid)
 	}
+	printBench("In()", testing.Benchmark(s.benchmarkIn))
 	printBench("Out()", testing.Benchmark(s.benchmarkOut))
 	return nil
+}
+
+func (s *Benchmark) benchmarkIn(b *testing.B) {
+	p := s.p
+	if err := p.In(gpio.PullNoChange, gpio.NoEdge); err != nil {
+		b.Fatal(err)
+	}
+	l := gpio.Low
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		l = p.Read()
+	}
+	b.StopTimer()
+	b.Log(l)
 }
 
 func (s *Benchmark) benchmarkOut(b *testing.B) {
