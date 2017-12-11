@@ -52,8 +52,9 @@ func (s *Benchmark) Run(args []string) error {
 	if !ok {
 		return fmt.Errorf("invalid pin %q", *name)
 	}
-	printBench("In()", testing.Benchmark(s.benchmarkIn))
-	printBench("Out()", testing.Benchmark(s.benchmarkOut))
+	printBench("In()     ", testing.Benchmark(s.benchmarkIn))
+	printBench("Out()    ", testing.Benchmark(s.benchmarkOut))
+	printBench("FastOut()", testing.Benchmark(s.benchmarkFastOut))
 	return nil
 }
 
@@ -80,6 +81,18 @@ func (s *Benchmark) benchmarkOut(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		p.Out(gpio.High)
 		p.Out(gpio.Low)
+	}
+}
+
+func (s *Benchmark) benchmarkFastOut(b *testing.B) {
+	p := s.p
+	if err := p.Out(gpio.Low); err != nil {
+		b.Fatal(err)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		p.FastOut(gpio.High)
+		p.FastOut(gpio.Low)
 	}
 }
 
