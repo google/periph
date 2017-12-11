@@ -216,16 +216,53 @@ func (p *Pin) Out(l gpio.Level) error {
 		}
 		p.usingEdge = false
 	}
-	p.setFunction(out)
-	// TODO(maruel): Set the value *before* changing the pin to be an output, so
-	// there is no glitch.
 	bit := uint32(1 << p.offset)
 	// Pn_DAT  n*0x24+0x10  Port n Data Register (n from 1(B) to 7(H))
-	if l {
-		gpioMemory.groups[p.group].data |= bit
-	} else {
-		gpioMemory.groups[p.group].data &^= bit
+	switch p.group {
+	case 1:
+		if l {
+			gpioMemory.groups[1].data |= bit
+		} else {
+			gpioMemory.groups[1].data &^= bit
+		}
+	case 2:
+		if l {
+			gpioMemory.groups[2].data |= bit
+		} else {
+			gpioMemory.groups[2].data &^= bit
+		}
+	case 3:
+		if l {
+			gpioMemory.groups[3].data |= bit
+		} else {
+			gpioMemory.groups[3].data &^= bit
+		}
+	case 4:
+		if l {
+			gpioMemory.groups[4].data |= bit
+		} else {
+			gpioMemory.groups[4].data &^= bit
+		}
+	case 5:
+		if l {
+			gpioMemory.groups[5].data |= bit
+		} else {
+			gpioMemory.groups[5].data &^= bit
+		}
+	case 6:
+		if l {
+			gpioMemory.groups[6].data |= bit
+		} else {
+			gpioMemory.groups[6].data &^= bit
+		}
+	case 7:
+		if l {
+			gpioMemory.groups[7].data |= bit
+		} else {
+			gpioMemory.groups[7].data &^= bit
+		}
 	}
+	p.setFunction(out)
 	return nil
 }
 
