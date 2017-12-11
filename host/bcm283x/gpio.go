@@ -235,7 +235,12 @@ func (p *Pin) Read() gpio.Level {
 	if gpioMemory == nil {
 		return gpio.Low
 	}
-	return gpio.Level((gpioMemory.level[p.number/32] & (1 << uint(p.number&31))) != 0)
+	if p.number < 32 {
+		// Important: do not remove the &31 here even if not necessary. Testing
+		// showed that it slows down the performance by several percents.
+		return gpio.Level((gpioMemory.level[0] & (1 << uint(p.number&31))) != 0)
+	}
+	return gpio.Level((gpioMemory.level[1] & (1 << uint(p.number&31))) != 0)
 }
 
 // WaitForEdge does edge detection and implements gpio.PinIn.
