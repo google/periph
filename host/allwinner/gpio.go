@@ -165,8 +165,9 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	return nil
 }
 
-// Read returns the current level of the pin. Due to the way the Allwinner hardware functions it
-// will do this regardless of the pin's function but this should not be relied upon.
+// Read return the current pin level and implements gpio.PinIn.
+//
+// This function is very fast.
 func (p *Pin) Read() gpio.Level {
 	if gpioMemory == nil || !p.available {
 		return gpio.Low
@@ -174,7 +175,8 @@ func (p *Pin) Read() gpio.Level {
 	return gpio.Level(gpioMemory.groups[p.group].data&(1<<p.offset) != 0)
 }
 
-// WaitForEdge waits for an edge as previously set using In() or the expiration of a timeout.
+// WaitForEdge waits for an edge as previously set using In() or the expiration
+// of a timeout.
 func (p *Pin) WaitForEdge(timeout time.Duration) bool {
 	if p.edge != nil {
 		return p.edge.WaitForEdge(timeout)
@@ -216,6 +218,17 @@ func (p *Pin) Out(l gpio.Level) error {
 		}
 		p.usingEdge = false
 	}
+	p.FastOut(l)
+	p.setFunction(out)
+	return nil
+}
+
+// FastOut sets a pin output level with Absolutely No error checking.
+//
+// Out() Must be called once first before calling FastOut(), otherwise the
+// behavior is undefined. Then FastOut() can be used for minimal CPU overhead
+// to reach Mhz scale bit banging.
+func (p *Pin) FastOut(l gpio.Level) {
 	bit := uint32(1 << p.offset)
 	// Pn_DAT  n*0x24+0x10  Port n Data Register (n from 1(B) to 7(H))
 	switch p.group {
@@ -262,8 +275,6 @@ func (p *Pin) Out(l gpio.Level) error {
 			gpioMemory.groups[7].data &^= bit
 		}
 	}
-	p.setFunction(out)
-	return nil
 }
 
 // DefaultPull returns the default pull for the pin.
