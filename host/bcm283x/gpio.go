@@ -266,11 +266,19 @@ func (p *Pin) Out(l gpio.Level) error {
 		p.usingEdge = false
 	}
 	// Change output before changing mode to not create any glitch.
-	offset := p.number / 32
+	mask := uint32(1) << uint(p.number&31)
 	if l == gpio.Low {
-		gpioMemory.outputClear[offset] = 1 << uint(p.number&31)
+		if p.number < 32 {
+			gpioMemory.outputClear[0] = mask
+		} else {
+			gpioMemory.outputClear[1] = mask
+		}
 	} else {
-		gpioMemory.outputSet[offset] = 1 << uint(p.number&31)
+		if p.number < 32 {
+			gpioMemory.outputSet[0] = mask
+		} else {
+			gpioMemory.outputSet[1] = mask
+		}
 	}
 	p.setFunction(out)
 	return nil
