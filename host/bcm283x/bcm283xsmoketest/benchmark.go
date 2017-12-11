@@ -52,9 +52,9 @@ func (s *Benchmark) Run(args []string) error {
 	if !ok {
 		return fmt.Errorf("invalid pin %q", *name)
 	}
-	printBench("In()      ", testing.Benchmark(s.benchmarkIn))
-	printBench("Out()     ", testing.Benchmark(s.benchmarkOut))
-	printBench("FastOut() ", testing.Benchmark(s.benchmarkFastOut))
+	printBench("In()     ", testing.Benchmark(s.benchmarkIn))
+	printBench("Out()    ", testing.Benchmark(s.benchmarkOut))
+	printBench("FastOut()", testing.Benchmark(s.benchmarkFastOut))
 	return nil
 }
 
