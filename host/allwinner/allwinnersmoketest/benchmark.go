@@ -33,18 +33,19 @@ func (s *Benchmark) Description() string {
 }
 
 // Run implements the SmokeTest interface.
-func (s *Benchmark) Run(args []string) error {
-	if !allwinner.Present() {
-		return errors.New("this smoke test can only be used on a allwinner based host")
-	}
-	f := flag.NewFlagSet(s.Name(), flag.ExitOnError)
+func (s *Benchmark) Run(f *flag.FlagSet, args []string) error {
 	name := f.String("p", "", "Pin to use")
 	f.Parse(args)
 	if f.NArg() != 0 {
+		f.Usage()
 		return errors.New("unsupported flags")
 	}
-
+	if !allwinner.Present() {
+		f.Usage()
+		return errors.New("this smoke test can only be run on an allwinner based host")
+	}
 	if *name == "" {
+		f.Usage()
 		return errors.New("-p is required")
 	}
 	ok := false

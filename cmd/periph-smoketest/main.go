@@ -40,7 +40,7 @@ type SmokeTest interface {
 	// work.
 	Description() string
 	// Run runs the test and return an error in case of failure.
-	Run(args []string) error
+	Run(f *flag.FlagSet, args []string) error
 }
 
 // tests is the list of registered smoke tests.
@@ -66,14 +66,18 @@ func usage(fs *flag.FlagSet) {
 	io.WriteString(os.Stderr, "\nTests available:\n")
 	names := make([]string, len(tests))
 	desc := make(map[string]string, len(tests))
+	l := 0
 	for i := range tests {
 		n := tests[i].Name()
+		if len(n) > l {
+			l = len(n)
+		}
 		names[i] = n
 		desc[n] = tests[i].Description()
 	}
 	sort.Strings(names)
 	for _, name := range names {
-		fmt.Fprintf(os.Stderr, "  %s: %s\n", name, desc[name])
+		fmt.Fprintf(os.Stderr, "  %-*s %s\n", l, name, desc[name])
 	}
 }
 
@@ -91,6 +95,8 @@ func mainImpl() error {
 		return err
 	}
 	if fs.NArg() == 0 {
+		fs.Usage()
+		io.WriteString(os.Stdout, "\n")
 		return errors.New("please specify a test to run or use -help")
 	}
 	cmd := fs.Arg(0)
@@ -123,9 +129,20 @@ func mainImpl() error {
 		}
 	}
 
-	for i := range tests {
-		if tests[i].Name() == cmd {
-			if err = tests[i].Run(fs.Args()[1:]); err == nil {
+	for _, t := range tests {
+		if t.Name() == cmd {
+			f := flag.NewFlagSet("periph-smoketest "+t.Name(), flag.ExitOnError)
+			u := f.Usage
+			f.Usage = func() {
+				fmt.Printf("%s: %s\n\n", t.Name(), t.Description())
+				u()
+				flags := false
+				f.VisitAll(func(*flag.Flag) { flags = true })
+				if !flags {
+					fmt.Printf("  This smoke test doesn't have any flag.\n")
+				}
+			}
+			if err = t.Run(f, fs.Args()[1:]); err == nil {
 				log.Printf("Test %s successful", cmd)
 			}
 			return err

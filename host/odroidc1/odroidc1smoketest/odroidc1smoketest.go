@@ -8,6 +8,7 @@ package odroidc1smoketest
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"sort"
 	"strconv"
@@ -18,12 +19,44 @@ import (
 	"periph.io/x/periph/host/odroidc1"
 )
 
-// testOdroidC1Present verifies that odroidc1 is indeed detected.
-func testOdroidC1Present() error {
-	if !odroidc1.Present() {
-		return fmt.Errorf("did not detect presence of ODROID-C1")
+// SmokeTest is imported by periph-smoketest.
+type SmokeTest struct {
+}
+
+func (s *SmokeTest) String() string {
+	return s.Name()
+}
+
+// Name implements periph-smoketest.SmokeTest.
+func (s *SmokeTest) Name() string {
+	return "odroid-c1"
+}
+
+// Description implements periph-smoketest.SmokeTest.
+func (s *SmokeTest) Description() string {
+	return "Quad core low cost board made by hardkernel.com"
+}
+
+// Run implements periph-smoketest.SmokeTest.
+func (s *SmokeTest) Run(f *flag.FlagSet, args []string) error {
+	f.Parse(args)
+	if f.NArg() != 0 {
+		f.Usage()
+		return errors.New("unrecognized arguments")
 	}
-	// TODO: add amlogic s805 detection check once that is implemented
+	if !odroidc1.Present() {
+		f.Usage()
+		return errors.New("this smoke test can only be run on an ODROID-C1 based host")
+	}
+	// TODO: add amlogic s805 detection check once that is implemented.
+	tests := []func() error{
+		testOdroidC1Headers, testOdroidC1GpioNames, testOdroidC1Aliases,
+	}
+	for _, t := range tests {
+		if err := t(); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -117,41 +150,6 @@ func testOdroidC1Aliases() error {
 		if pr := pa.Real(); pr.Name() != r {
 			return fmt.Errorf("expected that alias %s have real pin %s but it's %s",
 				a, r, pr.Name())
-		}
-	}
-	return nil
-}
-
-// SmokeTest is imported by periph-smoketest.
-type SmokeTest struct {
-}
-
-func (s *SmokeTest) String() string {
-	return s.Name()
-}
-
-// Name implements periph-smoketest.SmokeTest.
-func (s *SmokeTest) Name() string {
-	return "odroid-c1"
-}
-
-// Description implements periph-smoketest.SmokeTest.
-func (s *SmokeTest) Description() string {
-	return "Quad core low cost board made by hardkernel.com"
-}
-
-// Run implements periph-smoketest.SmokeTest.
-func (s *SmokeTest) Run(args []string) error {
-	if len(args) != 0 {
-		return errors.New("unrecognized arguments")
-	}
-	tests := []func() error{
-		testOdroidC1Present, testOdroidC1Headers,
-		testOdroidC1GpioNames, testOdroidC1Aliases,
-	}
-	for _, t := range tests {
-		if err := t(); err != nil {
-			return err
 		}
 	}
 	return nil

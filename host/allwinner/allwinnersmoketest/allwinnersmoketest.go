@@ -38,14 +38,15 @@ func (s *SmokeTest) Description() string {
 }
 
 // Run implements the SmokeTest interface.
-func (s *SmokeTest) Run(args []string) error {
-	if !allwinner.Present() {
-		return errors.New("this smoke test can only be used on a Allwinner based host")
-	}
-	f := flag.NewFlagSet(s.Name(), flag.ExitOnError)
+func (s *SmokeTest) Run(f *flag.FlagSet, args []string) error {
 	f.Parse(args)
 	if f.NArg() != 0 {
+		f.Usage()
 		return errors.New("unrecognized arguments")
+	}
+	if !allwinner.Present() {
+		f.Usage()
+		return errors.New("this smoke test can only be run on an allwinner based host")
 	}
 
 	start := time.Now()

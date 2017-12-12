@@ -58,23 +58,19 @@ func (s *SmokeTest) Description() string {
 }
 
 // Run implements periph-smoketest.SmokeTest.
-func (s *SmokeTest) Run(args []string) error {
-	f := flag.NewFlagSet(s.Name(), flag.ExitOnError)
+func (s *SmokeTest) Run(f *flag.FlagSet, args []string) error {
+	pin1 := f.String("pin1", "", "first pin to use")
+	pin2 := f.String("pin2", "", "second pin to use")
 	slow := f.Bool("s", false, "slow; insert a second between each step")
 	useSysfs := f.Bool("sysfs", false, "force the use of sysfs")
 	f.Parse(args)
-	if f.NArg() != 2 {
-		// TODO(maruel): Find pins automatically:
-		// - For each header in headers.All():
-		//   - For each pin in header that are GPIO:
-		//     - p.In(Down, RisingEdge)
-		//     - Start a goroutine to detect edge.
-		//   - For each pin in header that are GPIO:
-		//     - p.Out(High)
-		//     - See if a pin triggered
-		//     - p.In(Down, RisingEdge)
-		// This assumes that everything actually work in the first place.
-		return errors.New("specify the two pins to use; they must be connected together")
+	if f.NArg() != 0 {
+		f.Usage()
+		return errors.New("unrecognized arguments")
+	}
+	if *pin1 == "" || *pin2 == "" {
+		f.Usage()
+		return errors.New("-pin1 and -pin2 are required and they must be connected together")
 	}
 
 	s.edgeWait = 10 * time.Millisecond
@@ -97,11 +93,11 @@ func (s *SmokeTest) Run(args []string) error {
 	// On certain Allwinner CPUs, it's a good idea to test specifically the PLx
 	// pins, since they use a different register memory block (driver
 	// "allwinner_pl") than groups PB to PH (driver "allwinner").
-	p1, err := getPin(f.Args()[0], *useSysfs)
+	p1, err := getPin(*pin1, *useSysfs)
 	if err != nil {
 		return err
 	}
-	p2, err := getPin(f.Args()[1], *useSysfs)
+	p2, err := getPin(*pin2, *useSysfs)
 	if err != nil {
 		return err
 	}

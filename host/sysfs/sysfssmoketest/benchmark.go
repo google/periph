@@ -33,15 +33,15 @@ func (s *Benchmark) Description() string {
 }
 
 // Run implements the SmokeTest interface.
-func (s *Benchmark) Run(args []string) error {
-	f := flag.NewFlagSet(s.Name(), flag.ExitOnError)
+func (s *Benchmark) Run(f *flag.FlagSet, args []string) error {
 	num := f.Int("p", -1, "Pin number to use")
 	f.Parse(args)
 	if f.NArg() != 0 {
+		f.Usage()
 		return errors.New("unsupported flags")
 	}
-
 	if *num == -1 {
+		f.Usage()
 		return errors.New("-p is required")
 	}
 	if s.p = sysfs.Pins[*num]; s.p == nil {

@@ -37,14 +37,14 @@ func (s *SmokeTest) Description() string {
 }
 
 // Run implements the SmokeTest interface.
-func (s *SmokeTest) Run(args []string) (err error) {
-	f := flag.NewFlagSet(s.Name(), flag.ExitOnError)
+func (s *SmokeTest) Run(f *flag.FlagSet, args []string) (err error) {
 	i2cID := f.String("i2c", "", "I²C bus to use")
 	i2cAddr := f.Uint("ia", 0x76, "I²C bus address to use; either 0x76 (BMx280, the default) or 0x77 (BMP180)")
 	spiID := f.String("spi", "", "SPI port to use")
 	record := f.Bool("r", false, "record operation (for playback unit testing)")
 	f.Parse(args)
 	if f.NArg() != 0 {
+		f.Usage()
 		return errors.New("unrecognized arguments")
 	}
 
