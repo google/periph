@@ -86,6 +86,18 @@ func (p *Pin) Function() string {
 	return "ERR"
 }
 
+// Halt implements conn.Resource.
+//
+// It stops edge detection if enabled.
+func (p *Pin) Halt() error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if err := p.haltEdge(); err != nil {
+		return err
+	}
+	return nil
+}
+
 // In setups a pin as an input.
 func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	if pull != gpio.PullNoChange && pull != gpio.Float {
@@ -216,13 +228,8 @@ func (p *Pin) Out(l gpio.Level) error {
 		if err := p.open(); err != nil {
 			return p.wrap(err)
 		}
-		if p.edge != gpio.NoEdge {
-			p.edge = gpio.NoEdge
-			if err := seekWrite(p.fEdge, bNone); err != nil {
-				return p.wrap(err)
-			}
-			// This is still important to remove an accumulated edge.
-			p.WaitForEdge(0)
+		if err := p.haltEdge(); err != nil {
+			return err
 		}
 		// "To ensure glitch free operation, values "low" and "high" may be written
 		// to configure the GPIO as an output with that initial value."
@@ -300,6 +307,19 @@ func (p *Pin) open() error {
 		p.fValue = nil
 	}
 	return p.err
+}
+
+// haltEdge stops any on-going edge detection.
+func (p *Pin) haltEdge() error {
+	if p.edge != gpio.NoEdge {
+		if err := seekWrite(p.fEdge, bNone); err != nil {
+			return p.wrap(err)
+		}
+		p.edge = gpio.NoEdge
+		// This is still important to remove an accumulated edge.
+		p.WaitForEdge(0)
+	}
+	return nil
 }
 
 func (p *Pin) wrap(err error) error {
