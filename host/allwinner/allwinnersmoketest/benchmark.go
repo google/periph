@@ -8,9 +8,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"os"
-	"testing"
-	"time"
 
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
@@ -19,7 +16,8 @@ import (
 
 // Benchmark is imported by periph-smoketest.
 type Benchmark struct {
-	p *allwinner.Pin
+	p    *allwinner.Pin
+	pull gpio.Pull
 }
 
 // Name implements the SmokeTest interface.
@@ -53,74 +51,7 @@ func (s *Benchmark) Run(f *flag.FlagSet, args []string) error {
 	if !ok {
 		return fmt.Errorf("invalid pin %q", *name)
 	}
-	printBench("In()     ", testing.Benchmark(s.benchmarkIn))
-	printBench("Out()    ", testing.Benchmark(s.benchmarkOut))
-	printBench("FastOut()", testing.Benchmark(s.benchmarkFastOut))
+	s.pull = gpio.PullDown
+	s.runFastGPIOBenchmark()
 	return nil
-}
-
-func (s *Benchmark) benchmarkIn(b *testing.B) {
-	p := s.p
-	if err := p.In(gpio.PullDown, gpio.NoEdge); err != nil {
-		b.Fatal(err)
-	}
-	l := gpio.Low
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		l = p.Read()
-	}
-	b.StopTimer()
-	b.Log(l)
-}
-
-func (s *Benchmark) benchmarkOut(b *testing.B) {
-	p := s.p
-	if err := p.Out(gpio.Low); err != nil {
-		b.Fatal(err)
-	}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		p.Out(gpio.High)
-		p.Out(gpio.Low)
-	}
-}
-
-func (s *Benchmark) benchmarkFastOut(b *testing.B) {
-	p := s.p
-	if err := p.Out(gpio.Low); err != nil {
-		b.Fatal(err)
-	}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		p.FastOut(gpio.High)
-		p.FastOut(gpio.Low)
-	}
-}
-
-//
-
-func printBench(name string, r testing.BenchmarkResult) {
-	if r.Bytes != 0 {
-		fmt.Fprintf(os.Stderr, "unexpected %d bytes written\n", r.Bytes)
-		return
-	}
-	if r.MemAllocs != 0 || r.MemBytes != 0 {
-		fmt.Fprintf(os.Stderr, "unexpected %d bytes allocated as %d calls\n", r.MemBytes, r.MemAllocs)
-		return
-	}
-	fmt.Printf("%s \t%s\t%s\n", name, r, toHz(r.N, r.T))
-}
-
-func toHz(n int, t time.Duration) string {
-	// Periph has a ban on float64 on the library but it's not too bad on unit
-	// and smoke tests.
-	hz := float64(n) * float64(time.Second) / float64(t)
-	switch {
-	case hz >= 1000000:
-		return fmt.Sprintf("%.1fMhz", hz*0.000001)
-	case hz >= 1000:
-		return fmt.Sprintf("%.1fKhz", hz*0.001)
-	default:
-		return fmt.Sprintf("%.1fhz", hz)
-	}
 }
