@@ -277,6 +277,10 @@ func (invalidPin) Function() string {
 	return ""
 }
 
+func (invalidPin) Halt() error {
+	return nil
+}
+
 func (invalidPin) In(Pull, Edge) error {
 	return errInvalidPin
 }

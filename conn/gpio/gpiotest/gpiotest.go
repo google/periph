@@ -47,6 +47,13 @@ func (p *Pin) Function() string {
 	return p.Fn
 }
 
+// Halt implements conn.Resource.
+//
+// It has no effect.
+func (p *Pin) Halt() error {
+	return nil
+}
+
 // In is concurrent safe.
 func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	p.Lock()

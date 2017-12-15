@@ -155,6 +155,22 @@ func (p *Pin) Function() string {
 	}
 }
 
+// Halt implements conn.Resource.
+//
+// If the pin is running a clock, PWM or waiting for edges, it is halted.
+//
+// In the case of clock or PWM, all pins with this clock source are also
+// disabled.
+func (p *Pin) Halt() error {
+	if p.usingEdge {
+		if err := p.edge.Halt(); err != nil {
+			return p.wrap(err)
+		}
+		p.usingEdge = false
+	}
+	return p.haltClock()
+}
+
 // In setups a pin as an input and implements gpio.PinIn.
 //
 // Specifying a value for pull other than gpio.PullNoChange causes this
@@ -179,6 +195,12 @@ func (p *Pin) Function() string {
 func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	if gpioMemory == nil {
 		return p.wrap(errors.New("subsystem not initialized"))
+	}
+	if p.usingEdge && edge == gpio.NoEdge {
+		if err := p.edge.Halt(); err != nil {
+			return p.wrap(err)
+		}
+		p.usingEdge = false
 	}
 	if err := p.haltClock(); err != nil {
 		return err
@@ -208,9 +230,7 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 		gpioMemory.pullEnable = 0
 		gpioMemory.pullEnableClock[offset] = 0
 	}
-	wasUsing := p.usingEdge
-	p.usingEdge = edge != gpio.NoEdge
-	if p.usingEdge {
+	if edge != gpio.NoEdge {
 		if p.edge == nil {
 			ok := false
 			n := p.Number()
@@ -218,12 +238,11 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 				return p.wrap(fmt.Errorf("pin %d is not exported by sysfs", n))
 			}
 		}
-	}
-	if p.usingEdge || wasUsing {
 		// This resets pending edges.
 		if err := p.edge.In(gpio.PullNoChange, edge); err != nil {
 			return p.wrap(err)
 		}
+		p.usingEdge = true
 	}
 	return nil
 }
@@ -296,22 +315,6 @@ func (p *Pin) FastOut(l gpio.Level) {
 			gpioMemory.outputSet[1] = mask
 		}
 	}
-}
-
-// Halt implements conn.Resource.
-//
-// If the pin is running a clock, PWM or waiting for edges, it is halted.
-//
-// In the case of clock or PWM, all pins with this clock source are also
-// disabled.
-func (p *Pin) Halt() error {
-	if p.usingEdge {
-		if err := p.edge.In(gpio.PullNoChange, gpio.NoEdge); err != nil {
-			return p.wrap(err)
-		}
-		p.usingEdge = false
-	}
-	return p.haltClock()
 }
 
 // BUG(maruel): PWM(): There is no conflict verification when multiple pins are

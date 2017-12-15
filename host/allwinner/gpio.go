@@ -116,6 +116,19 @@ func (p *Pin) Function() string {
 	}
 }
 
+// Halt implements conn.Resource.
+//
+// It stops edge detection if enabled.
+func (p *Pin) Halt() error {
+	if p.usingEdge {
+		if err := p.edge.Halt(); err != nil {
+			return p.wrap(err)
+		}
+		p.usingEdge = false
+	}
+	return nil
+}
+
 // In sets the pin direction to input and optionally enables a pull-up/down
 // resistor as well as edge detection.
 //
@@ -134,6 +147,12 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	if edge != gpio.NoEdge && !p.supportEdge {
 		return p.wrap(errors.New("edge detection is not supported on this pin"))
 	}
+	if p.usingEdge && edge == gpio.NoEdge {
+		if err := p.edge.Halt(); err != nil {
+			return p.wrap(err)
+		}
+		p.usingEdge = false
+	}
 	p.setFunction(in)
 	if pull != gpio.PullNoChange {
 		off := p.offset / 16
@@ -148,19 +167,18 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 		default:
 		}
 	}
-	wasUsing := p.usingEdge
-	p.usingEdge = edge != gpio.NoEdge
-	if p.usingEdge && p.edge == nil {
-		ok := false
-		if p.edge, ok = sysfs.Pins[p.Number()]; !ok {
-			return p.wrap(errors.New("pin is not exported by sysfs"))
+	if edge != gpio.NoEdge {
+		if p.edge == nil {
+			ok := false
+			if p.edge, ok = sysfs.Pins[p.Number()]; !ok {
+				return p.wrap(errors.New("pin is not exported by sysfs"))
+			}
 		}
-	}
-	if p.usingEdge || wasUsing {
 		// This resets pending edges.
 		if err := p.edge.In(gpio.PullNoChange, edge); err != nil {
-			return err
+			return p.wrap(err)
 		}
+		p.usingEdge = true
 	}
 	return nil
 }
@@ -211,12 +229,9 @@ func (p *Pin) Out(l gpio.Level) error {
 	if !p.available {
 		return p.wrap(errors.New("not available on this CPU architecture"))
 	}
-	if p.usingEdge {
-		// First disable edges.
-		if err := p.edge.In(gpio.PullNoChange, gpio.NoEdge); err != nil {
-			return err
-		}
-		p.usingEdge = false
+	// First disable edges.
+	if err := p.Halt(); err != nil {
+		return err
 	}
 	p.FastOut(l)
 	p.setFunction(out)
