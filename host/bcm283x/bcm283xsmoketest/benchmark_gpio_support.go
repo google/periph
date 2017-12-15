@@ -24,6 +24,7 @@ import (
 // - p: concrete type that implements gpio.PinIO.
 // - pull: gpio.Pull value.
 func (s *Benchmark) runGPIOBenchmark() {
+	printBench("InNaive             ", testing.Benchmark(s.benchmarkInNaive))
 	printBench("InDiscard           ", testing.Benchmark(s.benchmarkInDiscard))
 	printBench("InSliceLevel        ", testing.Benchmark(s.benchmarkInSliceLevel))
 	printBench("InBitsLSBLoop       ", testing.Benchmark(s.benchmarkInBitsLSBLoop))
@@ -40,7 +41,22 @@ func (s *Benchmark) runGPIOBenchmark() {
 
 // In
 
-// benchmarkInDiscard reads but discards the data.
+// benchmarkInNaive reads but ignores the data.
+//
+// This is an intentionally naive benchamrk.
+func (s *Benchmark) benchmarkInNaive(b *testing.B) {
+	p := s.p
+	if err := p.In(s.pull, gpio.NoEdge); err != nil {
+		b.Fatal(err)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		p.Read()
+	}
+	b.StopTimer()
+}
+
+// benchmarkInDiscard reads but discards the data except for the last value.
 //
 // It measures the maximum raw read speed, at least in theory.
 func (s *Benchmark) benchmarkInDiscard(b *testing.B) {
@@ -349,10 +365,10 @@ func toHz(n int, t time.Duration) string {
 	hz := float64(n) * float64(time.Second) / float64(t)
 	switch {
 	case hz >= 1000000:
-		return fmt.Sprintf("%.1fMhz", hz*0.000001)
+		return fmt.Sprintf("%.1fMHz", hz*0.000001)
 	case hz >= 1000:
-		return fmt.Sprintf("%.1fKhz", hz*0.001)
+		return fmt.Sprintf("%.1fkHz", hz*0.001)
 	default:
-		return fmt.Sprintf("%.1fhz", hz)
+		return fmt.Sprintf("%.1fHz", hz)
 	}
 }
