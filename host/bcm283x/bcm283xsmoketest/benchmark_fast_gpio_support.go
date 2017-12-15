@@ -24,6 +24,8 @@ func (s *Benchmark) runFastGPIOBenchmark() {
 	printBench("FastOutBitsMSBLoop  ", testing.Benchmark(s.benchmarkFastOutBitsMSBLoop))
 	printBench("FastOutBitsLSBUnroll", testing.Benchmark(s.benchmarkFastOutBitsLSBUnroll))
 	printBench("FastOutBitsMSBUnroll", testing.Benchmark(s.benchmarkFastOutBitsMSBUnroll))
+	printBench("FastOutInterface    ", testing.Benchmark(s.benchmarkFastOutInterface))
+	printBench("FastOutMemberVariabl", testing.Benchmark(s.benchmarkFastOutMemberVariabl))
 }
 
 // benchmarkFastOutClock outputs an hardcoded clock.
@@ -155,6 +157,62 @@ func (s *Benchmark) benchmarkFastOutBitsMSBUnroll(b *testing.B) {
 		p.FastOut(gpio.Level(l&0x04 != 0))
 		p.FastOut(gpio.Level(l&0x02 != 0))
 		p.FastOut(gpio.Level(l&0x01 != 0))
+	}
+	b.StopTimer()
+}
+
+// benchmarkFastOutInterface is an anti-pattern where an interface is used.
+//
+// It is otherwise the same as benchmarkFastOutBitsMSBUnroll.
+func (s *Benchmark) benchmarkFastOutInterface(b *testing.B) {
+	type fastOuter interface {
+		Out(l gpio.Level) error
+		FastOut(l gpio.Level)
+	}
+	var p fastOuter = s.p
+	if err := p.Out(gpio.Low); err != nil {
+		b.Fatal(err)
+	}
+	buf := make(gpiostream.BitsMSB, (b.N+7)/8)
+	for i := 0; i < len(buf); i += 2 {
+		buf[i] = 0xAA
+	}
+	b.ResetTimer()
+	for _, l := range buf {
+		p.FastOut(gpio.Level(l&0x80 != 0))
+		p.FastOut(gpio.Level(l&0x40 != 0))
+		p.FastOut(gpio.Level(l&0x20 != 0))
+		p.FastOut(gpio.Level(l&0x10 != 0))
+		p.FastOut(gpio.Level(l&0x08 != 0))
+		p.FastOut(gpio.Level(l&0x04 != 0))
+		p.FastOut(gpio.Level(l&0x02 != 0))
+		p.FastOut(gpio.Level(l&0x01 != 0))
+	}
+	b.StopTimer()
+}
+
+// benchmarkFastOutMemberVariabl is an anti-pattern where the struct member
+// variable is used.
+//
+// It is otherwise the same as benchmarkFastOutBitsMSBUnroll.
+func (s *Benchmark) benchmarkFastOutMemberVariabl(b *testing.B) {
+	if err := s.p.Out(gpio.Low); err != nil {
+		b.Fatal(err)
+	}
+	buf := make(gpiostream.BitsMSB, (b.N+7)/8)
+	for i := 0; i < len(buf); i += 2 {
+		buf[i] = 0xAA
+	}
+	b.ResetTimer()
+	for _, l := range buf {
+		s.p.FastOut(gpio.Level(l&0x80 != 0))
+		s.p.FastOut(gpio.Level(l&0x40 != 0))
+		s.p.FastOut(gpio.Level(l&0x20 != 0))
+		s.p.FastOut(gpio.Level(l&0x10 != 0))
+		s.p.FastOut(gpio.Level(l&0x08 != 0))
+		s.p.FastOut(gpio.Level(l&0x04 != 0))
+		s.p.FastOut(gpio.Level(l&0x02 != 0))
+		s.p.FastOut(gpio.Level(l&0x01 != 0))
 	}
 	b.StopTimer()
 }
