@@ -2,7 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package gpiostreamtest enables testing device driver using gpiostream.PinIn or PinOut.
+// Package gpiostreamtest enables testing device driver using gpiostream.PinIn
+// or PinOut.
 package gpiostreamtest
 
 import (
@@ -17,25 +18,31 @@ import (
 	"periph.io/x/periph/conn/gpio/gpiostream"
 )
 
-// InOp represents an expected replay StreamIn operation.
-type InOp struct {
+// InOpLSB represents an expected replay StreamIn operation in PinInLSB.
+type InOpLSB struct {
 	gpio.Pull
-	gpiostream.BitStream
+	gpiostream.BitStreamLSB
 }
 
-// PinIn implements gpiostream.PinIn.
+// InOpMSB represents an expected replay StreamIn operation in PinInMSB.
+type InOpMSB struct {
+	gpio.Pull
+	gpiostream.BitStreamMSB
+}
+
+// PinInLSB implements gpiostream.PinIn that accepts BitStreamLSB only.
 //
 // Embed in a struct with gpiotest.Pin for more functionality.
-type PinIn struct {
+type PinInLSB struct {
 	sync.Mutex
 	N         string
 	DontPanic bool
-	Ops       []InOp
+	Ops       []InOpLSB
 	Count     int
 }
 
 // Close verifies that all the expected Ops have been consumed.
-func (p *PinIn) Close() error {
+func (p *PinInLSB) Close() error {
 	p.Lock()
 	defer p.Unlock()
 	if len(p.Ops) != p.Count {
@@ -44,29 +51,85 @@ func (p *PinIn) Close() error {
 	return nil
 }
 
-func (p *PinIn) String() string {
+func (p *PinInLSB) String() string {
 	p.Lock()
 	defer p.Unlock()
 	return p.N
 }
 
 // StreamIn implements gpiostream.PinIn.
-func (p *PinIn) StreamIn(pull gpio.Pull, b *gpiostream.BitStream) error {
+func (p *PinInLSB) StreamIn(pull gpio.Pull, b gpiostream.Stream) error {
+	s, ok := b.(*gpiostream.BitStreamLSB)
+	if !ok {
+		return errorf(p.DontPanic, "gpiostreamtest: unexpected StreamIn(%t)", b)
+	}
 	p.Lock()
 	defer p.Unlock()
 	if len(p.Ops) <= p.Count {
 		return errorf(p.DontPanic, "gpiostreamtest: unexpected StreamIn() (count #%d) expecting %#v", p.Count, b)
 	}
-	if b.Res != p.Ops[p.Count].BitStream.Res {
-		return errorf(p.DontPanic, "gpiostreamtest: unexpected StreamIn() Res (count #%d) expected %s, got %s", p.Count, p.Ops[p.Count].BitStream.Res, b.Res)
+	if s.Res != p.Ops[p.Count].Res {
+		return errorf(p.DontPanic, "gpiostreamtest: unexpected StreamIn() Res (count #%d) expected %s, got %s", p.Count, p.Ops[p.Count].Res, s.Res)
 	}
-	if len(b.Bits) != len(p.Ops[p.Count].BitStream.Bits) {
-		return errorf(p.DontPanic, "gpiostreamtest: unexpected StreamIn() len(Bits) (count #%d) expected %d, got %d", p.Count, len(p.Ops[p.Count].BitStream.Bits), len(b.Bits))
+	if len(s.Bits) != len(p.Ops[p.Count].Bits) {
+		return errorf(p.DontPanic, "gpiostreamtest: unexpected StreamIn() len(Bits) (count #%d) expected %d, got %d", p.Count, len(p.Ops[p.Count].Bits), len(s.Bits))
 	}
 	if pull != p.Ops[p.Count].Pull {
 		return errorf(p.DontPanic, "gpiostreamtest: unexpected StreamIn() pull (count #%d) expected %s, got %s", p.Count, p.Ops[p.Count].Pull, pull)
 	}
-	copy(b.Bits, p.Ops[p.Count].Bits)
+	copy(s.Bits, p.Ops[p.Count].Bits)
+	p.Count++
+	return nil
+}
+
+// PinInMSB implements gpiostream.PinIn that accepts BitStreamMSB only.
+//
+// Embed in a struct with gpiotest.Pin for more functionality.
+type PinInMSB struct {
+	sync.Mutex
+	N         string
+	DontPanic bool
+	Ops       []InOpMSB
+	Count     int
+}
+
+// Close verifies that all the expected Ops have been consumed.
+func (p *PinInMSB) Close() error {
+	p.Lock()
+	defer p.Unlock()
+	if len(p.Ops) != p.Count {
+		return errorf(p.DontPanic, "gpiostreamtest: expected playback to be empty: I/O count %d; expected %d", p.Count, len(p.Ops))
+	}
+	return nil
+}
+
+func (p *PinInMSB) String() string {
+	p.Lock()
+	defer p.Unlock()
+	return p.N
+}
+
+// StreamIn implements gpiostream.PinIn.
+func (p *PinInMSB) StreamIn(pull gpio.Pull, b gpiostream.Stream) error {
+	s, ok := b.(*gpiostream.BitStreamMSB)
+	if !ok {
+		return errorf(p.DontPanic, "gpiostreamtest: unexpected StreamIn(%t)", b)
+	}
+	p.Lock()
+	defer p.Unlock()
+	if len(p.Ops) <= p.Count {
+		return errorf(p.DontPanic, "gpiostreamtest: unexpected StreamIn() (count #%d) expecting %#v", p.Count, b)
+	}
+	if s.Res != p.Ops[p.Count].Res {
+		return errorf(p.DontPanic, "gpiostreamtest: unexpected StreamIn() Res (count #%d) expected %s, got %s", p.Count, p.Ops[p.Count].Res, s.Res)
+	}
+	if len(s.Bits) != len(p.Ops[p.Count].Bits) {
+		return errorf(p.DontPanic, "gpiostreamtest: unexpected StreamIn() len(Bits) (count #%d) expected %d, got %d", p.Count, len(p.Ops[p.Count].Bits), len(s.Bits))
+	}
+	if pull != p.Ops[p.Count].Pull {
+		return errorf(p.DontPanic, "gpiostreamtest: unexpected StreamIn() pull (count #%d) expected %s, got %s", p.Count, p.Ops[p.Count].Pull, pull)
+	}
+	copy(s.Bits, p.Ops[p.Count].Bits)
 	p.Count++
 	return nil
 }
@@ -151,8 +214,12 @@ func errorf(dontPanic bool, format string, a ...interface{}) error {
 
 func deepCopy(s gpiostream.Stream) (gpiostream.Stream, error) {
 	switch t := s.(type) {
-	case *gpiostream.BitStream:
-		o := &gpiostream.BitStream{Bits: make(gpiostream.Bits, len(t.Bits)), Res: t.Res}
+	case *gpiostream.BitStreamLSB:
+		o := &gpiostream.BitStreamLSB{Bits: make(gpiostream.BitsLSB, len(t.Bits)), Res: t.Res}
+		copy(o.Bits, t.Bits)
+		return o, nil
+	case *gpiostream.BitStreamMSB:
+		o := &gpiostream.BitStreamMSB{Bits: make(gpiostream.BitsMSB, len(t.Bits)), Res: t.Res}
 		copy(o.Bits, t.Bits)
 		return o, nil
 	case *gpiostream.EdgeStream:
@@ -174,11 +241,14 @@ func deepCopy(s gpiostream.Stream) (gpiostream.Stream, error) {
 	}
 }
 
-var _ io.Closer = &PinIn{}
+var _ io.Closer = &PinInLSB{}
+var _ io.Closer = &PinInMSB{}
 var _ io.Closer = &PinOutPlayback{}
-var _ fmt.Stringer = &PinIn{}
+var _ fmt.Stringer = &PinInLSB{}
+var _ fmt.Stringer = &PinInMSB{}
 var _ fmt.Stringer = &PinOutPlayback{}
 var _ fmt.Stringer = &PinOutRecord{}
-var _ gpiostream.PinIn = &PinIn{}
+var _ gpiostream.PinIn = &PinInLSB{}
+var _ gpiostream.PinIn = &PinInMSB{}
 var _ gpiostream.PinOut = &PinOutPlayback{}
 var _ gpiostream.PinOut = &PinOutRecord{}

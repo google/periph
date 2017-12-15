@@ -16,9 +16,9 @@ import (
 	"periph.io/x/periph/devices"
 )
 
-// NRZ converts a byte into the Non-Return-to-Zero encoded 24 bits.
+// NRZ converts a byte into the MSB-first Non-Return-to-Zero encoded 24 bits.
 //
-// The upper 8 bits are zeros.
+// The upper 8 bits are zeros and shall be ignored.
 //
 // The Non-return-to-zero protocol is a self-clocking signal that enables
 // one-way communication without the need of a dedicated clock signal, unlike
@@ -45,9 +45,9 @@ func NRZ(b byte) uint32 {
 type Dev struct {
 	p         gpiostream.PinOut
 	numPixels int
-	channels  int                  // Number of channels per pixel
-	b         gpiostream.BitStream // NRZ encoded bits; cached to reduce heap fragmentation
-	buf       []byte               // Double buffer of RGB/RGBW pixels; enables partial Draw()
+	channels  int                     // Number of channels per pixel
+	b         gpiostream.BitStreamMSB // NRZ encoded bits; cached to reduce heap fragmentation
+	buf       []byte                  // Double buffer of RGB/RGBW pixels; enables partial Draw()
 }
 
 func (d *Dev) String() string {
@@ -166,23 +166,21 @@ func New(p gpiostream.PinOut, numPixels, hz int, channels int) (*Dev, error) {
 	if channels != 3 && channels != 4 {
 		return nil, errors.New("nrzled: specify valid number of channels (3 or 4)")
 	}
-	// It is more space effective to use gpiostream.Bits than
-	// gpiostream.EdgeStream.
 	return &Dev{
 		p:         p,
 		numPixels: numPixels,
 		channels:  channels,
-		b: gpiostream.BitStream{
+		b: gpiostream.BitStreamMSB{
 			Res: time.Second / time.Duration(hz),
 			// Each bit is encoded on 3 bits.
-			Bits: make(gpiostream.Bits, numPixels*3*channels),
+			Bits: make(gpiostream.BitsMSB, numPixels*3*channels),
 		},
 	}, nil
 }
 
 //
 
-// raster converts a RGB/RGBW input stream into a binary output stream as it
+// raster converts a RGB/RGBW input stream into a MSB binary output stream as it
 // must be sent over the GPIO pin.
 //
 // `in` is RGB 24 bits or RGBW 32 bits. Each bit is encoded over 3 bits so the
@@ -211,6 +209,7 @@ func raster(out, in []byte, outChannels, inChannels int) {
 	}
 }
 
+// put writes the byte v as an MSB-first NRZ encoded triplet byte into out.
 func put(out []byte, v byte) {
 	w := NRZ(v)
 	out[0] = byte(w >> 16)
