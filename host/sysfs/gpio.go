@@ -44,6 +44,7 @@ type Pin struct {
 	fEdge      fileIO    // handle to /sys/class/gpio/gpio*/edge; never closed
 	fValue     fileIO    // handle to /sys/class/gpio/gpio*/value; never closed
 	event      fs.Event  // Initialized once
+	buf        [4]byte   // scratch buffer for Function(), Read() and Out()
 }
 
 func (p *Pin) String() string {
@@ -69,13 +70,12 @@ func (p *Pin) Function() string {
 	if err := p.open(); err != nil {
 		return "ERR"
 	}
-	var buf [4]byte
-	if _, err := seekRead(p.fDirection, buf[:]); err != nil {
+	if _, err := seekRead(p.fDirection, p.buf[:]); err != nil {
 		return "ERR"
 	}
-	if buf[0] == 'i' && buf[1] == 'n' {
+	if p.buf[0] == 'i' && p.buf[1] == 'n' {
 		p.direction = dIn
-	} else if buf[0] == 'o' && buf[1] == 'u' && buf[2] == 't' {
+	} else if p.buf[0] == 'o' && p.buf[1] == 'u' && p.buf[2] == 't' {
 		p.direction = dOut
 	}
 	if p.direction == dIn {
@@ -170,15 +170,14 @@ func (p *Pin) Read() gpio.Level {
 	if p.fValue == nil {
 		return gpio.Low
 	}
-	var buf [4]byte
-	if _, err := seekRead(p.fValue, buf[:]); err != nil {
+	if _, err := seekRead(p.fValue, p.buf[:]); err != nil {
 		// Error.
 		return gpio.Low
 	}
-	if buf[0] == '0' {
+	if p.buf[0] == '0' {
 		return gpio.Low
 	}
-	if buf[0] == '1' {
+	if p.buf[0] == '1' {
 		return gpio.High
 	}
 	// Error.
@@ -245,13 +244,12 @@ func (p *Pin) Out(l gpio.Level) error {
 		p.direction = dOut
 		return nil
 	}
-	var d [1]byte
 	if l == gpio.Low {
-		d[0] = '0'
+		p.buf[0] = '0'
 	} else {
-		d[0] = '1'
+		p.buf[0] = '1'
 	}
-	if err := seekWrite(p.fValue, d[:]); err != nil {
+	if err := seekWrite(p.fValue, p.buf[:1]); err != nil {
 		return p.wrap(err)
 	}
 	return nil
