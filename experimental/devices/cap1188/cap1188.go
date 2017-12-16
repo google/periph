@@ -41,15 +41,15 @@ type TouchStatus int8
 func (t TouchStatus) String() string {
 	switch t {
 	case OffStatus:
-		return "Off"
+		return "Off    "
 	case PressedStatus:
 		return "Pressed"
 	case HeldStatus:
-		return "Held"
+		return "Held   "
 	case ReleasedStatus:
 		return "Released"
 	default:
-		return "Unknown"
+		return "Unknown "
 	}
 }
 

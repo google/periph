@@ -129,7 +129,7 @@ func DefaultOpts() *Opts {
 		LinkedLEDs:            true,
 		MaxTouchDuration:      MaxDur5600ms,
 		RetriggerOnHold:       false,
-		EnableRecalibration:   true,
+		EnableRecalibration:   false,
 		InterruptOnRelease:    false,
 		SamplesPerMeasurement: Avg1,
 		SamplingTime:          S1_28ms,

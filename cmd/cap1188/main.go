@@ -21,7 +21,7 @@ import (
 
 func mainImpl() error {
 	i2cID := flag.String("i2c", "", "I²C bus to use")
-	i2cADDR := flag.Uint("ia", 0x2c, "I²C bus address to use, defaults to Pimoroni's Drum Hat")
+	i2cADDR := flag.Uint("ia", 0x29, "I²C bus address to use, Pimoroni's Drum Hat is 0x2c")
 	hz := flag.Int("hz", 0, "I²C bus/SPI port speed")
 	verbose := flag.Bool("v", false, "verbose mode")
 	flag.Parse()
@@ -59,6 +59,8 @@ func mainImpl() error {
 			return fmt.Errorf("couldn't set the i2c bus speed - %s", err)
 		}
 	}
+	// The alert pin is the pin connected to the IRQ/interrupt pin and indicates
+	// when a touch event occurs.
 	alertPin := gpioreg.ByName("GPIO25")
 	if alertPin == nil {
 		return errors.New("invalid alert GPIO pin number")
