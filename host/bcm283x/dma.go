@@ -543,7 +543,7 @@ func (d *dmaChannel) wait() error {
 	// TODO(maruel): Calculate the number of bytes remaining, the clock rate and
 	// do a short sleep instead of a spin. To do so, it'll need the clock rate.
 	// Spin until the the bit is reset, to release the DMA controller channel.
-	for d.cs&dmaEnd == 0 && d.debug&(dmaReadError|dmaFIFOError|dmaReadLastNotSetError) == 0 {
+	for d.cs&dmaActive != 0 && d.debug&(dmaReadError|dmaFIFOError|dmaReadLastNotSetError) == 0 {
 	}
 	if d.debug&dmaReadError != 0 {
 		return errors.New("DMA read error")
@@ -784,10 +784,11 @@ func dmaWriteStreamEdges(p *Pin, w gpiostream.Stream) error {
 		return nil
 	}
 	resolution := w.Resolution()
-	hz := uint64(time.Second / resolution)
+	hz := uint64(time.Second/resolution) * 2
 	// We must calculate the clock rate right away to be able to specify the
 	// right waits value.
-	_, _, divs, actualHz, err := calcSource(hz, dmaWaitcyclesMax+1)
+	src, d, divs, actualHz, err := calcSource(hz, dmaWaitcyclesMax+1)
+	fmt.Println("src", src, "divs", d, "wait", divs, "actualHz", actualHz, "hz", hz)
 	if err != nil {
 		return err
 	}
@@ -824,11 +825,14 @@ func dmaWriteStreamEdges(p *Pin, w gpiostream.Stream) error {
 	mask := uint32(1) << uint(p.number&31)
 	u := buf.Uint32()
 	offset := (len(buf.Bytes()) - 4096)
-	u[offset/4] = mask
+	for i := offset / 4; i < len(buf.Bytes())/4; i++ {
+		u[i] = mask
+	}
 	physBit := uint32(buf.PhysAddr()) + uint32(offset)
 
 	// Other constants during the loop.
-	waits := divs - 1
+	//waits := divs - 1
+	waits := 0
 	dest := [2]uint32{
 		gpioBaseAddr + 0x28 + 4*uint32(p.number/32), // clear
 		gpioBaseAddr + 0x1C + 4*uint32(p.number/32), // set
@@ -862,6 +866,8 @@ func dmaWriteStreamEdges(p *Pin, w gpiostream.Stream) error {
 	if err := cb[index].initBlock(physBit, dest[last], stride*4, false, true, dmaPWM, waits); err != nil {
 		return err
 	}
+	fmt.Printf("pwm ctl: %x\n", pwmMemory.ctl)
+	fmt.Println(cb[0].GoString())
 	// Stop the clock before setting up the DMA controller.
 	if _, _, err := clockMemory.pwm.set(0, 0); err != nil {
 		return err
@@ -881,7 +887,10 @@ func dmaWriteStreamEdges(p *Pin, w gpiostream.Stream) error {
 	if err != nil {
 		return err
 	}
-	return ch.wait()
+	fmt.Println("waits", waits, clockMemory.pwm.String())
+	status := ch.wait()
+	fmt.Println(ch.GoString())
+	return status
 }
 
 // dmaWriteStreamDualChannel streams data to a pin using two DMA channels.

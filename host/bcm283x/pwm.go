@@ -235,7 +235,8 @@ func setPWMClockSource(hz uint64) (uint64, int, error) {
 		Nanospin(10 * time.Microsecond)
 		// It acts as a clock multiplier, since this amount of data is sent per
 		// clock tick.
-		pwmMemory.rng1 = 10 // 32?
+		//pwmMemory.rng1 = 10 // 32?
+		pwmMemory.rng1 = uint32(divs) * 2 // 32?
 		Nanospin(10 * time.Microsecond)
 		// Periph data (?)
 
