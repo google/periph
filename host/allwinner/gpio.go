@@ -116,6 +116,19 @@ func (p *Pin) Function() string {
 	}
 }
 
+// Halt implements conn.Resource.
+//
+// It stops edge detection if enabled.
+func (p *Pin) Halt() error {
+	if p.usingEdge {
+		if err := p.edge.Halt(); err != nil {
+			return p.wrap(err)
+		}
+		p.usingEdge = false
+	}
+	return nil
+}
+
 // In sets the pin direction to input and optionally enables a pull-up/down
 // resistor as well as edge detection.
 //
@@ -134,6 +147,12 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	if edge != gpio.NoEdge && !p.supportEdge {
 		return p.wrap(errors.New("edge detection is not supported on this pin"))
 	}
+	if p.usingEdge && edge == gpio.NoEdge {
+		if err := p.edge.Halt(); err != nil {
+			return p.wrap(err)
+		}
+		p.usingEdge = false
+	}
 	p.setFunction(in)
 	if pull != gpio.PullNoChange {
 		off := p.offset / 16
@@ -148,25 +167,25 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 		default:
 		}
 	}
-	wasUsing := p.usingEdge
-	p.usingEdge = edge != gpio.NoEdge
-	if p.usingEdge && p.edge == nil {
-		ok := false
-		if p.edge, ok = sysfs.Pins[p.Number()]; !ok {
-			return p.wrap(errors.New("pin is not exported by sysfs"))
+	if edge != gpio.NoEdge {
+		if p.edge == nil {
+			ok := false
+			if p.edge, ok = sysfs.Pins[p.Number()]; !ok {
+				return p.wrap(errors.New("pin is not exported by sysfs"))
+			}
 		}
-	}
-	if p.usingEdge || wasUsing {
 		// This resets pending edges.
 		if err := p.edge.In(gpio.PullNoChange, edge); err != nil {
-			return err
+			return p.wrap(err)
 		}
+		p.usingEdge = true
 	}
 	return nil
 }
 
-// Read returns the current level of the pin. Due to the way the Allwinner hardware functions it
-// will do this regardless of the pin's function but this should not be relied upon.
+// Read return the current pin level and implements gpio.PinIn.
+//
+// This function is very fast.
 func (p *Pin) Read() gpio.Level {
 	if gpioMemory == nil || !p.available {
 		return gpio.Low
@@ -174,7 +193,8 @@ func (p *Pin) Read() gpio.Level {
 	return gpio.Level(gpioMemory.groups[p.group].data&(1<<p.offset) != 0)
 }
 
-// WaitForEdge waits for an edge as previously set using In() or the expiration of a timeout.
+// WaitForEdge waits for an edge as previously set using In() or the expiration
+// of a timeout.
 func (p *Pin) WaitForEdge(timeout time.Duration) bool {
 	if p.edge != nil {
 		return p.edge.WaitForEdge(timeout)
@@ -209,24 +229,67 @@ func (p *Pin) Out(l gpio.Level) error {
 	if !p.available {
 		return p.wrap(errors.New("not available on this CPU architecture"))
 	}
-	if p.usingEdge {
-		// First disable edges.
-		if err := p.edge.In(gpio.PullNoChange, gpio.NoEdge); err != nil {
-			return err
-		}
-		p.usingEdge = false
+	// First disable edges.
+	if err := p.Halt(); err != nil {
+		return err
 	}
+	p.FastOut(l)
 	p.setFunction(out)
-	// TODO(maruel): Set the value *before* changing the pin to be an output, so
-	// there is no glitch.
+	return nil
+}
+
+// FastOut sets a pin output level with Absolutely No error checking.
+//
+// Out() Must be called once first before calling FastOut(), otherwise the
+// behavior is undefined. Then FastOut() can be used for minimal CPU overhead
+// to reach Mhz scale bit banging.
+func (p *Pin) FastOut(l gpio.Level) {
 	bit := uint32(1 << p.offset)
 	// Pn_DAT  n*0x24+0x10  Port n Data Register (n from 1(B) to 7(H))
-	if l {
-		gpioMemory.groups[p.group].data |= bit
-	} else {
-		gpioMemory.groups[p.group].data &^= bit
+	switch p.group {
+	case 1:
+		if l {
+			gpioMemory.groups[1].data |= bit
+		} else {
+			gpioMemory.groups[1].data &^= bit
+		}
+	case 2:
+		if l {
+			gpioMemory.groups[2].data |= bit
+		} else {
+			gpioMemory.groups[2].data &^= bit
+		}
+	case 3:
+		if l {
+			gpioMemory.groups[3].data |= bit
+		} else {
+			gpioMemory.groups[3].data &^= bit
+		}
+	case 4:
+		if l {
+			gpioMemory.groups[4].data |= bit
+		} else {
+			gpioMemory.groups[4].data &^= bit
+		}
+	case 5:
+		if l {
+			gpioMemory.groups[5].data |= bit
+		} else {
+			gpioMemory.groups[5].data &^= bit
+		}
+	case 6:
+		if l {
+			gpioMemory.groups[6].data |= bit
+		} else {
+			gpioMemory.groups[6].data &^= bit
+		}
+	case 7:
+		if l {
+			gpioMemory.groups[7].data |= bit
+		} else {
+			gpioMemory.groups[7].data &^= bit
+		}
 	}
-	return nil
 }
 
 // DefaultPull returns the default pull for the pin.

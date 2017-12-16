@@ -7,6 +7,8 @@
 package chipsmoketest
 
 import (
+	"errors"
+	"flag"
 	"fmt"
 	"sort"
 	"strconv"
@@ -18,13 +20,46 @@ import (
 	"periph.io/x/periph/host/chip"
 )
 
-// testChipPresent verifies that CHIP and Allwinner are indeed detected.
-func testChipPresent() error {
+// SmokeTest is imported by periph-smoketest.
+type SmokeTest struct {
+}
+
+func (s *SmokeTest) String() string {
+	return s.Name()
+}
+
+// Name implements periph-smoketest.SmokeTest.
+func (s *SmokeTest) Name() string {
+	return "chip"
+}
+
+// Description implements periph-smoketest.SmokeTest.
+func (s *SmokeTest) Description() string {
+	return "Single CPU low cost board available at getchip.com"
+}
+
+// Run implements periph-smoketest.SmokeTest.
+func (s *SmokeTest) Run(f *flag.FlagSet, args []string) error {
+	f.Parse(args)
+	if f.NArg() != 0 {
+		f.Usage()
+		return errors.New("unrecognized arguments")
+	}
 	if !chip.Present() {
-		return fmt.Errorf("did not detect presence of CHIP")
+		f.Usage()
+		return errors.New("this smoke test can only be run on a C.H.I.P. based host")
 	}
 	if !allwinner.Present() {
-		return fmt.Errorf("did not detect presence of Allwinner CPU")
+		f.Usage()
+		return errors.New("this smoke test can only be run on an allwinner based host")
+	}
+	tests := []func() error{
+		testChipHeaders, testChipGpioNumbers, testChipGpioNames, testChipAliases,
+	}
+	for _, t := range tests {
+		if err := t(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -127,37 +162,6 @@ func testChipAliases() error {
 		if pr := pa.Real(); pr.Name() != r {
 			return fmt.Errorf("expected that alias %s have real pin %s but it's %s",
 				a, r, pr.Name())
-		}
-	}
-	return nil
-}
-
-// SmokeTest is imported by periph-smoketest.
-type SmokeTest struct {
-}
-
-func (s *SmokeTest) String() string {
-	return s.Name()
-}
-
-// Name implements periph-smoketest.SmokeTest.
-func (s *SmokeTest) Name() string {
-	return "chip"
-}
-
-// Description implements periph-smoketest.SmokeTest.
-func (s *SmokeTest) Description() string {
-	return "Single CPU low cost board available at getchip.com"
-}
-
-// Run implements periph-smoketest.SmokeTest.
-func (s *SmokeTest) Run(args []string) error {
-	tests := []func() error{
-		testChipPresent, testChipHeaders, testChipGpioNumbers, testChipGpioNames, testChipAliases,
-	}
-	for _, t := range tests {
-		if err := t(); err != nil {
-			return err
 		}
 	}
 	return nil

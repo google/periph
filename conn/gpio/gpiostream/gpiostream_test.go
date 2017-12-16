@@ -14,6 +14,48 @@ import (
 	"periph.io/x/periph/conn/gpio/gpioreg"
 )
 
+func ExampleBitsLSB() {
+	// Format is LSB; least significant bit first.
+	stream := Bits{0x80, 0x01, 0xAA, 0x55}
+	for _, l := range stream {
+		fmt.Printf("0x%02X: ", l)
+		for j := 0; j < 8; j++ {
+			mask := byte(1) << uint(j)
+			fmt.Printf("%4s,", gpio.Level(l&mask != 0))
+			if j != 7 {
+				fmt.Printf(" ")
+			}
+		}
+		fmt.Printf("\n")
+	}
+	// Output:
+	// 0x80:  Low,  Low,  Low,  Low,  Low,  Low,  Low, High,
+	// 0x01: High,  Low,  Low,  Low,  Low,  Low,  Low,  Low,
+	// 0xAA:  Low, High,  Low, High,  Low, High,  Low, High,
+	// 0x55: High,  Low, High,  Low, High,  Low, High,  Low,
+}
+
+func ExampleBitsMSB() {
+	// Format is MSB; most significant bit first.
+	stream := Bits{0x80, 0x01, 0xAA, 0x55}
+	for _, l := range stream {
+		fmt.Printf("0x%02X: ", l)
+		for j := 7; j >= 0; j-- {
+			mask := byte(1) << uint(j)
+			fmt.Printf("%4s,", gpio.Level(l&mask != 0))
+			if j != 0 {
+				fmt.Printf(" ")
+			}
+		}
+		fmt.Printf("\n")
+	}
+	// Output:
+	// 0x80: High,  Low,  Low,  Low,  Low,  Low,  Low,  Low,
+	// 0x01:  Low,  Low,  Low,  Low,  Low,  Low,  Low, High,
+	// 0xAA: High,  Low, High,  Low, High,  Low, High,  Low,
+	// 0x55:  Low, High,  Low, High,  Low, High,  Low, High,
+}
+
 func ExamplePinIn() {
 	// Read one second of sample at 1ms resolution and print the values read.
 	p := gpioreg.ByName("GPIO3")
@@ -25,9 +67,11 @@ func ExamplePinIn() {
 	if err := r.StreamIn(gpio.PullNoChange, &b); err != nil {
 		log.Fatal(err)
 	}
-	for i, bit := range b.Bits {
-		for j := 0; j < 8; j++ {
-			fmt.Printf("%4s, ", gpio.Level(bit&(1<<uint(j)) != 0))
+	for i, l := range b.Bits {
+		// Bits format is in MSB; the most significant bit is streamed first.
+		for j := 7; j >= 0; j-- {
+			mask := byte(1) << uint(j)
+			fmt.Printf("%4s, ", gpio.Level(l&mask != 0))
 		}
 		if i&1 == 1 {
 			fmt.Printf("\n")
@@ -58,6 +102,34 @@ func ExamplePinOut() {
 }
 
 //
+
+func TestBitStreamLSB(t *testing.T) {
+	s := BitStreamLSB{Res: time.Second, Bits: make(BitsLSB, 100)}
+	if r := s.Resolution(); r != time.Second {
+		t.Fatal(r)
+	}
+	if d := s.Duration(); d != 100*time.Second {
+		t.Fatal(d)
+	}
+	s = BitStreamLSB{Res: time.Second}
+	if r := s.Resolution(); r != 0 {
+		t.Fatal(r)
+	}
+}
+
+func TestBitStreamMSB(t *testing.T) {
+	s := BitStreamMSB{Res: time.Second, Bits: make(BitsMSB, 100)}
+	if r := s.Resolution(); r != time.Second {
+		t.Fatal(r)
+	}
+	if d := s.Duration(); d != 100*time.Second {
+		t.Fatal(d)
+	}
+	s = BitStreamMSB{Res: time.Second}
+	if r := s.Resolution(); r != 0 {
+		t.Fatal(r)
+	}
+}
 
 func TestBitStream(t *testing.T) {
 	s := BitStream{Res: time.Second, Bits: make(Bits, 100)}
@@ -95,7 +167,7 @@ func TestProgram(t *testing.T) {
 	s := Program{
 		Parts: []Stream{
 			&EdgeStream{Res: time.Second, Edges: []time.Duration{time.Second, time.Millisecond}},
-			&BitStream{Res: time.Second, Bits: make(Bits, 100)},
+			&BitStreamLSB{Res: time.Second, Bits: make(BitsLSB, 100)},
 		},
 		Loops: 2,
 	}
@@ -124,9 +196,9 @@ func TestProgram(t *testing.T) {
 func TestProgram_Nyquist(t *testing.T) {
 	s := Program{
 		Parts: []Stream{
-			&BitStream{Res: time.Second + 2*time.Millisecond, Bits: make(Bits, 1)},
-			&BitStream{Res: time.Second, Bits: make(Bits, 1)},
-			&BitStream{Res: 5 * time.Second, Bits: make(Bits, 1)},
+			&BitStreamLSB{Res: time.Second + 2*time.Millisecond, Bits: make(BitsLSB, 1)},
+			&BitStreamLSB{Res: time.Second, Bits: make(BitsLSB, 1)},
+			&BitStreamLSB{Res: 5 * time.Second, Bits: make(BitsLSB, 1)},
 		},
 		Loops: 1,
 	}

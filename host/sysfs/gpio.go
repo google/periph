@@ -44,6 +44,7 @@ type Pin struct {
 	fEdge      fileIO    // handle to /sys/class/gpio/gpio*/edge; never closed
 	fValue     fileIO    // handle to /sys/class/gpio/gpio*/value; never closed
 	event      fs.Event  // Initialized once
+	buf        [4]byte   // scratch buffer for Function(), Read() and Out()
 }
 
 func (p *Pin) String() string {
@@ -69,13 +70,12 @@ func (p *Pin) Function() string {
 	if err := p.open(); err != nil {
 		return "ERR"
 	}
-	var buf [4]byte
-	if _, err := seekRead(p.fDirection, buf[:]); err != nil {
+	if _, err := seekRead(p.fDirection, p.buf[:]); err != nil {
 		return "ERR"
 	}
-	if buf[0] == 'i' && buf[1] == 'n' {
+	if p.buf[0] == 'i' && p.buf[1] == 'n' {
 		p.direction = dIn
-	} else if buf[0] == 'o' && buf[1] == 'u' && buf[2] == 't' {
+	} else if p.buf[0] == 'o' && p.buf[1] == 'u' && p.buf[2] == 't' {
 		p.direction = dOut
 	}
 	if p.direction == dIn {
@@ -84,6 +84,18 @@ func (p *Pin) Function() string {
 		return "Out/" + p.Read().String()
 	}
 	return "ERR"
+}
+
+// Halt implements conn.Resource.
+//
+// It stops edge detection if enabled.
+func (p *Pin) Halt() error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if err := p.haltEdge(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // In setups a pin as an input.
@@ -158,15 +170,14 @@ func (p *Pin) Read() gpio.Level {
 	if p.fValue == nil {
 		return gpio.Low
 	}
-	var buf [4]byte
-	if _, err := seekRead(p.fValue, buf[:]); err != nil {
+	if _, err := seekRead(p.fValue, p.buf[:]); err != nil {
 		// Error.
 		return gpio.Low
 	}
-	if buf[0] == '0' {
+	if p.buf[0] == '0' {
 		return gpio.Low
 	}
-	if buf[0] == '1' {
+	if p.buf[0] == '1' {
 		return gpio.High
 	}
 	// Error.
@@ -216,13 +227,8 @@ func (p *Pin) Out(l gpio.Level) error {
 		if err := p.open(); err != nil {
 			return p.wrap(err)
 		}
-		if p.edge != gpio.NoEdge {
-			p.edge = gpio.NoEdge
-			if err := seekWrite(p.fEdge, bNone); err != nil {
-				return p.wrap(err)
-			}
-			// This is still important to remove an accumulated edge.
-			p.WaitForEdge(0)
+		if err := p.haltEdge(); err != nil {
+			return err
 		}
 		// "To ensure glitch free operation, values "low" and "high" may be written
 		// to configure the GPIO as an output with that initial value."
@@ -238,13 +244,12 @@ func (p *Pin) Out(l gpio.Level) error {
 		p.direction = dOut
 		return nil
 	}
-	var d [1]byte
 	if l == gpio.Low {
-		d[0] = '0'
+		p.buf[0] = '0'
 	} else {
-		d[0] = '1'
+		p.buf[0] = '1'
 	}
-	if err := seekWrite(p.fValue, d[:]); err != nil {
+	if err := seekWrite(p.fValue, p.buf[:1]); err != nil {
 		return p.wrap(err)
 	}
 	return nil
@@ -300,6 +305,19 @@ func (p *Pin) open() error {
 		p.fValue = nil
 	}
 	return p.err
+}
+
+// haltEdge stops any on-going edge detection.
+func (p *Pin) haltEdge() error {
+	if p.edge != gpio.NoEdge {
+		if err := seekWrite(p.fEdge, bNone); err != nil {
+			return p.wrap(err)
+		}
+		p.edge = gpio.NoEdge
+		// This is still important to remove an accumulated edge.
+		p.WaitForEdge(0)
+	}
+	return nil
 }
 
 func (p *Pin) wrap(err error) error {

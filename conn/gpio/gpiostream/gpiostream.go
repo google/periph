@@ -3,6 +3,10 @@
 // that can be found in the LICENSE file.
 
 // Package gpiostream defines digital streams.
+//
+// Warning
+//
+// This package is still in flux as development is on-going.
 package gpiostream
 
 import (
@@ -12,7 +16,7 @@ import (
 	"periph.io/x/periph/conn/gpio"
 )
 
-// Stream is the interface to define a generic stream
+// Stream is the interface to define a generic stream.
 type Stream interface {
 	// Resolution is the minimum resolution of the binary stream at which it is
 	// usable.
@@ -22,16 +26,82 @@ type Stream interface {
 	Duration() time.Duration
 }
 
-// Bits is a densely packed bitstream. The format is LSB, bit 0 is sent first,
-// up to bit 7.
+// BitsLSB is a densely packed LSB-first bitstream.
+//
+// The format is LSB-first, the first bit processed is the least significant
+// one (0x01).
+//
+// For example, Ethernet uses LSB-first at the byte level and MSB-first at the
+// word level.
 //
 // The stream is required to be a multiple of 8 samples.
+type BitsLSB []byte
+
+// BitsMSB is a densely packed MSB-first bitstream.
+//
+// The format is MSB-first, the first bit processed is the most significant one
+// (0x80).
+//
+// For example, I²C, I2S PCM and SPI use MSB-first at the word level. This
+// requires to pack words correctly.
+//
+// The stream is required to be a multiple of 8 samples.
+type BitsMSB []byte
+
+// BitStreamLSB is a stream of BitsLSB to be written or read.
+type BitStreamLSB struct {
+	Bits BitsLSB
+	// The duration each bit represents.
+	Res time.Duration
+}
+
+// Resolution implement Stream.
+func (b *BitStreamLSB) Resolution() time.Duration {
+	if len(b.Bits) == 0 {
+		return 0
+	}
+	return b.Res
+}
+
+// Duration implement Stream.
+func (b *BitStreamLSB) Duration() time.Duration {
+	return b.Res * time.Duration(len(b.Bits))
+}
+
+// BitStreamMSB is a stream of Bits.MSB to be written or read.
+type BitStreamMSB struct {
+	Bits BitsMSB
+	// The duration each bit represents.
+	Res time.Duration
+}
+
+// Resolution implement Stream.
+func (b *BitStreamMSB) Resolution() time.Duration {
+	if len(b.Bits) == 0 {
+		return 0
+	}
+	return b.Res
+}
+
+// Duration implement Stream.
+func (b *BitStreamMSB) Duration() time.Duration {
+	return b.Res * time.Duration(len(b.Bits))
+}
+
+//
+
+// Bits is a densely packed LSB-first bitstream.
+//
+// Warning
+//
+// This type will be removed in the next major version.
 type Bits []byte
 
-// BitStream is a stream of bits to be written or read.
+// BitStream is a stream of Bits to be written or read.
 //
-// This struct is useful for dense binary data, like controlling ws2812b LED
-// strip or using the GPIO pin as an digital oscilloscope.
+// Warning
+//
+// This struct will be removed in the next major version.
 type BitStream struct {
 	Bits Bits
 	// The duration each bit represents.
@@ -51,9 +121,11 @@ func (b *BitStream) Duration() time.Duration {
 	return b.Res * time.Duration(len(b.Bits))
 }
 
+//
+
 // EdgeStream is a stream of edges to be written.
 //
-// This struct is more efficient than BitStream for repetitive pulses, like
+// This struct is more efficient than BitStreamxSB for repetitive pulses, like
 // controlling a servo. A PWM can be created by specifying a slice of twice the
 // same resolution and make it looping via a Program.
 type EdgeStream struct {
@@ -142,11 +214,17 @@ func (p *Program) Duration() time.Duration {
 
 // PinIn allows to read a bit stream from a pin.
 //
-// Caveat: This interface doesn't enable sampling multiple pins in a
+// Caveat
+//
+// This interface doesn't enable sampling multiple pins in a
 // synchronized way or reading in a continuous uninterrupted way. As such, it
 // should be considered experimental.
 type PinIn interface {
-	StreamIn(p gpio.Pull, b *BitStream) error
+	// StreamIn reads for the pin at the specified resolution to fill the
+	// provided buffer.
+	//
+	// May only support a subset of the structs implementing Stream.
+	StreamIn(p gpio.Pull, b Stream) error
 }
 
 // PinOut allows to stream to a pin.
@@ -155,7 +233,9 @@ type PinIn interface {
 // Program that is an infinite loop, a separate goroutine can be used to cancel
 // the program. In this case StreamOut() returns without an error.
 //
-// Caveat: This interface doesn't enable streaming to multiple pins in a
+// Caveat
+//
+// This interface doesn't enable streaming to multiple pins in a
 // synchronized way or reading in a continuous uninterrupted way. As such, it
 // should be considered experimental.
 type PinOut interface {
@@ -164,6 +244,8 @@ type PinOut interface {
 
 //
 
+var _ Stream = &BitStreamLSB{}
+var _ Stream = &BitStreamMSB{}
 var _ Stream = &BitStream{}
 var _ Stream = &EdgeStream{}
 var _ Stream = &Program{}

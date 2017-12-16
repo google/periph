@@ -73,6 +73,13 @@ func (l *LED) Function() string {
 	return "LED/Off"
 }
 
+// Halt implements conn.Resource.
+//
+// It turns the light off.
+func (l *LED) Halt() error {
+	return l.Out(gpio.Low)
+}
+
 // In implements gpio.PinIn.
 func (l *LED) In(pull gpio.Pull, edge gpio.Edge) error {
 	if pull != gpio.Float && pull != gpio.PullNoChange {
