@@ -12,7 +12,7 @@ import (
 )
 
 func TestRaster32Bits(t *testing.T) {
-	b := gpiostream.BitStream{Res: time.Second, Bits: make(gpiostream.Bits, 100)}
+	b := gpiostream.BitStreamLSB{Res: time.Second, Bits: make(gpiostream.BitsLSB, 100)}
 	// TODO(maruel): Test all code path, including filtering and all errors.
 	var d32Set []uint32
 	var d32Clear []uint32

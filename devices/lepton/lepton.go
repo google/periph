@@ -142,7 +142,7 @@ func New(p spi.Port, i i2c.Bus, cs gpio.PinOut) (*Dev, error) {
 		return nil, err
 	} else if status.CameraStatus != cci.SystemReady {
 		// The lepton takes < 1 second to boot so it should not happen normally.
-		return nil, fmt.Errorf("lepton: camera is not ready: %s", status)
+		return nil, fmt.Errorf("lepton: camera is not ready: %#v", status)
 	}
 	if err := d.Init(); err != nil {
 		return nil, err

@@ -36,14 +36,15 @@ func (s *SmokeTest) Description() string {
 }
 
 // Run implements the SmokeTest interface.
-func (s *SmokeTest) Run(args []string) error {
-	if !bcm283x.Present() {
-		return errors.New("this smoke test can only be used on a bcm283x based host")
-	}
-	f := flag.NewFlagSet("bcm283x", flag.ExitOnError)
+func (s *SmokeTest) Run(f *flag.FlagSet, args []string) error {
 	f.Parse(args)
 	if f.NArg() != 0 {
-		return errors.New("unsupported flags")
+		f.Usage()
+		return errors.New("unrecognized arguments")
+	}
+	if !bcm283x.Present() {
+		f.Usage()
+		return errors.New("this smoke test can only be run on a bcm283x based host")
 	}
 
 	start := time.Now()
@@ -161,7 +162,7 @@ func (s *SmokeTest) testDMA(p1, p2 *loggingPin) error {
 	}
 	// Gather 0.1 second of readings at 10kHz sampling rate.
 	// TODO(maruel): Support >64kb buffer.
-	b := make(gpiostream.Bits, 1000)
+	b := make(gpiostream.BitsLSB, 1000)
 	if err := p1.ReadStream(gpio.PullDown, period/2, b); err != nil {
 		return err
 	}

@@ -14,7 +14,7 @@ import (
 
 // uint32ToBit packs a bit offset found on slice `d` (that is actually uint32)
 // back into a densely packed Bits stream.
-func uint32ToBit(w gpiostream.Bits, d []uint8, bit uint8, skip int) {
+func uint32ToBit(w gpiostream.BitsLSB, d []uint8, bit uint8, skip int) {
 	// Little endian.
 	x := bit / 8
 	d = d[x:]
@@ -33,7 +33,7 @@ func uint32ToBit(w gpiostream.Bits, d []uint8, bit uint8, skip int) {
 	}
 }
 
-func raster32Bits(b *gpiostream.BitStream, resolution time.Duration, clear, set []uint32, mask uint32) error {
+func raster32Bits(b *gpiostream.BitStreamLSB, resolution time.Duration, clear, set []uint32, mask uint32) error {
 	if resolution != b.Res {
 		// TODO(maruel): Implement nearest neighborhood filter.
 		return errors.New("bcm283x: TODO: implement resolution matching")
@@ -98,7 +98,7 @@ func raster32(s gpiostream.Stream, resolution time.Duration, clear, set []uint32
 		return errors.New("bcm283x: clear and set buffers have different length")
 	}
 	switch x := s.(type) {
-	case *gpiostream.BitStream:
+	case *gpiostream.BitStreamLSB:
 		return raster32Bits(x, resolution, clear, set, mask)
 	case *gpiostream.EdgeStream:
 		return raster32Edges(x, resolution, clear, set, mask)
@@ -111,11 +111,11 @@ func raster32(s gpiostream.Stream, resolution time.Duration, clear, set []uint32
 
 //
 
-func rasterEdges(e *gpiostream.EdgeStream, out *gpiostream.BitStream) error {
+func rasterEdges(e *gpiostream.EdgeStream, out *gpiostream.BitStreamLSB) error {
 	return errors.New("bcm283x: implement me")
 }
 
-func rasterBits(b *gpiostream.BitStream, out *gpiostream.BitStream) error {
+func rasterBits(b *gpiostream.BitStreamLSB, out *gpiostream.BitStreamLSB) error {
 	if out.Res != b.Res {
 		// TODO(maruel): Implement nearest neighborhood filter.
 		return errors.New("bcm283x: TODO: implement resolution matching")
@@ -127,16 +127,16 @@ func rasterBits(b *gpiostream.BitStream, out *gpiostream.BitStream) error {
 	return nil
 }
 
-func rasterProgram(p *gpiostream.Program, out *gpiostream.BitStream) error {
+func rasterProgram(p *gpiostream.Program, out *gpiostream.BitStreamLSB) error {
 	return errors.New("bcm283x: implement me")
 }
 
-// raster rasters the stream into a gpiostream.Bits stream.
+// raster rasters the stream into a gpiostream.BitsLSB stream.
 //
 // `s` must be one of the types in this package.
-func raster(s gpiostream.Stream, out *gpiostream.BitStream) error {
+func raster(s gpiostream.Stream, out *gpiostream.BitStreamLSB) error {
 	switch x := s.(type) {
-	case *gpiostream.BitStream:
+	case *gpiostream.BitStreamLSB:
 		return rasterBits(x, out)
 	case *gpiostream.EdgeStream:
 		return rasterEdges(x, out)

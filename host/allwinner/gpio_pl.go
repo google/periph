@@ -93,16 +93,29 @@ func (p *PinPL) Function() string {
 	}
 }
 
-// In implemented gpio.PinIn.
+// Halt implements conn.Resource.
 //
-// This requires opening a gpio sysfs file handle. The pin will be exported at
-// /sys/class/gpio/gpio*/. Note that the pin will not be unexported at
-// shutdown.
-//
-// Not all pins support edge detection Allwinner processors!
+// It stops edge detection if enabled.
+func (p *PinPL) Halt() error {
+	if p.usingEdge {
+		if err := p.edge.Halt(); err != nil {
+			return p.wrap(err)
+		}
+		p.usingEdge = false
+	}
+	return nil
+}
+
+// In implements gpio.PinIn. See Pin.In for more information.
 func (p *PinPL) In(pull gpio.Pull, edge gpio.Edge) error {
 	if gpioMemoryPL == nil {
 		return p.wrap(errors.New("subsystem not initialized"))
+	}
+	if p.usingEdge && edge == gpio.NoEdge {
+		if err := p.edge.Halt(); err != nil {
+			return p.wrap(err)
+		}
+		p.usingEdge = false
 	}
 	if !p.setFunction(in) {
 		return p.wrap(errors.New("failed to set pin as input"))
@@ -120,30 +133,28 @@ func (p *PinPL) In(pull gpio.Pull, edge gpio.Edge) error {
 		default:
 		}
 	}
-	wasUsing := p.usingEdge
-	p.usingEdge = edge != gpio.NoEdge
-	if p.usingEdge && p.edge == nil {
-		ok := false
-		n := p.Number()
-		if p.edge, ok = sysfs.Pins[n]; !ok {
-			return p.wrap(fmt.Errorf("pin %d is not exported by sysfs", n))
+	if edge != gpio.NoEdge {
+		if p.edge == nil {
+			ok := false
+			if p.edge, ok = sysfs.Pins[p.Number()]; !ok {
+				return p.wrap(errors.New("pin is not exported by sysfs"))
+			}
 		}
-	}
-	if p.usingEdge || wasUsing {
 		// This resets pending edges.
 		if err := p.edge.In(gpio.PullNoChange, edge); err != nil {
 			return p.wrap(err)
 		}
+		p.usingEdge = true
 	}
 	return nil
 }
 
-// Read implements gpio.PinIn.
+// Read implements gpio.PinIn. See Pin.Read for more information.
 func (p *PinPL) Read() gpio.Level {
 	return gpio.Level(gpioMemoryPL.data&(1<<p.offset) != 0)
 }
 
-// WaitForEdge does edge detection and implements gpio.PinIn.
+// WaitForEdge implements gpio.PinIn. See Pin.WaitForEdge for more information.
 func (p *PinPL) WaitForEdge(timeout time.Duration) bool {
 	if p.edge != nil {
 		return p.edge.WaitForEdge(timeout)
@@ -151,7 +162,7 @@ func (p *PinPL) WaitForEdge(timeout time.Duration) bool {
 	return false
 }
 
-// Pull implements gpio.PinIn.
+// Pull implements gpio.PinIn. See Pin.Pull for more information.
 func (p *PinPL) Pull() gpio.Pull {
 	if gpioMemoryPL == nil {
 		return gpio.PullNoChange
@@ -169,30 +180,35 @@ func (p *PinPL) Pull() gpio.Pull {
 	}
 }
 
-// Out implements gpio.PinOut.
+// Out implements gpio.PinOut. See Pin.Out for more information.
 func (p *PinPL) Out(l gpio.Level) error {
 	if gpioMemoryPL == nil {
 		return p.wrap(errors.New("subsystem not initialized"))
 	}
 	if p.usingEdge {
 		// First disable edges.
-		if err := p.edge.In(gpio.PullNoChange, gpio.NoEdge); err != nil {
+		if err := p.edge.Halt(); err != nil {
 			return p.wrap(err)
 		}
 		p.usingEdge = false
 	}
+	p.FastOut(l)
 	if !p.setFunction(out) {
 		return p.wrap(errors.New("failed to set pin as output"))
 	}
-	// TODO(maruel): Set the value *before* changing the pin to be an output, so
-	// there is no glitch.
+	return nil
+}
+
+// FastOut sets a pin output level with Absolutely No error checking.
+//
+// See Pin.FastOut for more information.
+func (p *PinPL) FastOut(l gpio.Level) {
 	bit := uint32(1 << p.offset)
 	if l {
 		gpioMemoryPL.data |= bit
 	} else {
 		gpioMemoryPL.data &^= bit
 	}
-	return nil
 }
 
 // TODO(maruel): PWM support for PL10.

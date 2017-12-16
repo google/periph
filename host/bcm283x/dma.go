@@ -653,7 +653,7 @@ func runIO(pCB pmem.Mem, liteOk bool) error {
 }
 
 // dmaReadStream streams input from a pin.
-func dmaReadStream(p *Pin, b *gpiostream.BitStream) error {
+func dmaReadStream(p *Pin, b *gpiostream.BitStreamLSB) error {
 	// Needs 32x the memory since each read is one full uint32. On the other
 	// hand one could read 32 contiguous pins simultaneously at no cost.
 	l := len(b.Bits) * 32
@@ -693,9 +693,9 @@ func dmaReadStream(p *Pin, b *gpiostream.BitStream) error {
 // dmaWriteStreamPCM streams data to a PCM enabled pin as a half-duplex I²S
 // channel.
 func dmaWriteStreamPCM(p *Pin, w gpiostream.Stream) error {
-	bits, ok := w.(*gpiostream.BitStream)
+	bits, ok := w.(*gpiostream.BitStreamLSB)
 	if !ok {
-		return errors.New("TODO(maruel): handle other Stream than BitStream")
+		return errors.New("TODO(maruel): handle other Stream than BitStreamLSB")
 	}
 	if len(bits.Bits) == 0 {
 		return nil
@@ -776,9 +776,9 @@ func dmaWriteStreamPCM(p *Pin, w gpiostream.Stream) error {
 // the DMA controller write in a following controlBlock.nextCB.
 // handling gpiostream.Program explicitly.
 func dmaWriteStreamEdges(p *Pin, w gpiostream.Stream) error {
-	bits, ok := w.(*gpiostream.BitStream)
+	bits, ok := w.(*gpiostream.BitStreamLSB)
 	if !ok {
-		return errors.New("TODO(maruel): handle other Stream than BitStream")
+		return errors.New("TODO(maruel): handle other Stream than BitStreamLSB")
 	}
 	if len(bits.Bits) == 0 {
 		return nil
