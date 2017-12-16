@@ -534,7 +534,7 @@ func (d *dmaChannel) wait() error {
 	// TODO(maruel): Calculate the number of bytes remaining, the clock rate and
 	// do a short sleep instead of a spin. To do so, it'll need the clock rate.
 	// Spin until the the bit is reset, to release the DMA controller channel.
-	for d.cs&dmaEnd == 0 && d.debug&(dmaReadError|dmaFIFOError|dmaReadLastNotSetError) == 0 {
+	for d.cs&dmaActive != 0 && d.debug&(dmaReadError|dmaFIFOError|dmaReadLastNotSetError) == 0 {
 	}
 	if d.debug&dmaReadError != 0 {
 		return errors.New("DMA read error")
