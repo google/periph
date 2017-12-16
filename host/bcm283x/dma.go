@@ -784,9 +784,11 @@ func dmaWriteStreamEdges(p *Pin, w gpiostream.Stream) error {
 		return nil
 	}
 	resolution := w.Resolution()
+	// Double the frequncy because we double the divisor.
 	hz := uint64(time.Second/resolution) * 2
 	// We must calculate the clock rate right away to be able to specify the
 	// right waits value.
+	// TODO(simokawa): We don't need divs here anymore. Remove calcSource() here.
 	src, d, divs, actualHz, err := calcSource(hz, dmaWaitcyclesMax+1)
 	fmt.Println("src", src, "divs", d, "wait", divs, "actualHz", actualHz, "hz", hz)
 	if err != nil {
@@ -831,6 +833,8 @@ func dmaWriteStreamEdges(p *Pin, w gpiostream.Stream) error {
 	physBit := uint32(buf.PhysAddr()) + uint32(offset)
 
 	// Other constants during the loop.
+	// Waits does not seem to work as expected. Not counted as DREQ pulses?
+	// Use PWM's rng1 instead for this.
 	//waits := divs - 1
 	waits := 0
 	dest := [2]uint32{

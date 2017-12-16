@@ -236,7 +236,9 @@ func setPWMClockSource(hz uint64) (uint64, int, error) {
 		// It acts as a clock multiplier, since this amount of data is sent per
 		// clock tick.
 		//pwmMemory.rng1 = 10 // 32?
-		pwmMemory.rng1 = uint32(divs) * 2 // 32?
+		// Even if we set rng1 to 1, DREQ is generated every other clock.
+		// Doubles divisor assuming we use doubled frequency.
+		pwmMemory.rng1 = uint32(divs) * 2
 		Nanospin(10 * time.Microsecond)
 		// Periph data (?)
 
