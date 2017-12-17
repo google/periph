@@ -27,8 +27,6 @@ func mainImpl() error {
 	flag.Parse()
 	if !*verbose {
 		log.SetOutput(ioutil.Discard)
-	} else {
-		cap1188.Debug = true
 	}
 	log.SetFlags(log.Lmicroseconds)
 
@@ -51,7 +49,7 @@ func mainImpl() error {
 		printPin("SCL", p.SCL())
 		printPin("SDA", p.SDA())
 	} else {
-		fmt.Println("i2cBus.(i2c.Pins) failed")
+		log.Println("i2cBus.(i2c.Pins) failed")
 	}
 
 	if *hz != 0 {
@@ -69,7 +67,7 @@ func mainImpl() error {
 		return err
 	}
 	if *verbose {
-		fmt.Printf("cap1188: alert pin: %#v\n", alertPin)
+		log.Printf("cap1188: alert pin: %#v\n", alertPin)
 	}
 
 	resetPin := gpioreg.ByName("GPIO21")
@@ -78,6 +76,9 @@ func mainImpl() error {
 	}
 	opts.AlertPin = alertPin
 	opts.ResetPin = resetPin
+	if *verbose {
+		opts.Debug = true
+	}
 
 	if dev, err = cap1188.NewI2C(i2cBus, opts); err != nil {
 		return fmt.Errorf("couldn't open cap1188 - %s", err)
@@ -106,17 +107,17 @@ func mainImpl() error {
 	}
 
 	if alertPin != nil {
-		fmt.Println("Monitoring for touch events")
+		log.Println("Monitoring for touch events")
 		for {
 			if alertPin.WaitForEdge(-1) {
 				status, err := dev.InputStatus()
 				if err != nil {
-					fmt.Printf("Error reading inputs: %s\n", err)
+					log.Printf("Error reading inputs: %s\n", err)
 				}
 				printSensorsStatus(status)
 				// we need to clear the interrupt so it can be triggered again
 				if err := dev.ClearInterrupt(); err != nil {
-					fmt.Println(err, "while clearing the interrupt")
+					log.Println(err, "while clearing the interrupt")
 				}
 			}
 		}
@@ -147,7 +148,7 @@ func printPin(fn string, p pin.Pin) {
 
 func printSensorsStatus(statuses []cap1188.TouchStatus) {
 	for i, st := range statuses {
-		fmt.Printf("#%d: %s\t", i, st)
+		log.Printf("#%d: %s\t", i, st)
 	}
-	fmt.Println()
+	log.Println()
 }

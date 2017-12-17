@@ -10,7 +10,7 @@
 //
 // The official data sheet can be found here:
 //
-// http://ww1.microchip.com/downloads/en/DeviceDoc/CAP1188%20.pdf
+// http://ww1.microchip.com/downloads/en/DeviceDoc/CAP1188.pdf
 //
 package cap1188
 
@@ -18,7 +18,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"sync"
+	"log"
 	"time"
 
 	"periph.io/x/periph/conn"
@@ -29,27 +29,21 @@ import (
 	"periph.io/x/periph/devices"
 )
 
-var (
-	// Debug is a debugging flag to turn on extra logging
-	Debug         bool
-	inputStatuses []TouchStatus
-)
-
 // TouchStatus is the status of an input sensor
 type TouchStatus int8
 
 func (t TouchStatus) String() string {
 	switch t {
 	case OffStatus:
-		return "Off    "
+		return "Off"
 	case PressedStatus:
 		return "Pressed"
 	case HeldStatus:
-		return "Held   "
+		return "Held"
 	case ReleasedStatus:
 		return "Released"
 	default:
-		return "Unknown "
+		return "Unknown"
 	}
 }
 
@@ -82,15 +76,17 @@ const (
 
 // Dev is a handle to a cap1188.
 type Dev struct {
-	d          conn.Conn
-	regWrapper mmr.Dev8
-	isSPI      bool
-	opts       *Opts
-	mu         sync.Mutex
+	// Debug is a flag that indicates that more logging will be created
+	Debug         bool
+	d             conn.Conn
+	regWrapper    mmr.Dev8
+	isSPI         bool
+	opts          *Opts
+	inputStatuses []TouchStatus
 }
 
 func (d *Dev) String() string {
-	return fmt.Sprintf("cap1188{%s}", d.d)
+	return fmt.Sprintf("cap1188{%s}", d.regWrapper.Conn)
 }
 
 // Halt is a noop for the cap1188.
@@ -104,13 +100,13 @@ func (d *Dev) InputStatus() ([]TouchStatus, error) {
 	// read inputs
 	status, err := d.regWrapper.ReadUint8(0x3)
 	if err != nil {
-		return inputStatuses, wrap(fmt.Errorf("failed to read the input values - %s", err))
+		return d.inputStatuses, wrap(fmt.Errorf("failed to read the input values - %s", err))
 	}
 
 	// read deltas (in two's complement, capped at -128 to 127)
 	deltasB := [nbrOfLEDs]byte{}
 	if err = d.regWrapper.ReadStruct(0x10, &deltasB); err != nil {
-		return inputStatuses, wrap(fmt.Errorf("failed to read the delta values - %s", err))
+		return d.inputStatuses, wrap(fmt.Errorf("failed to read the delta values - %s", err))
 	}
 	deltas := [nbrOfLEDs]int{}
 	for i, b := range deltasB {
@@ -120,31 +116,31 @@ func (d *Dev) InputStatus() ([]TouchStatus, error) {
 	// read threshold
 	thresholds := [nbrOfLEDs]byte{}
 	if err = d.regWrapper.ReadStruct(0x30, &thresholds); err != nil {
-		return inputStatuses, wrap(fmt.Errorf("failed to read the threshold values - %s", err))
+		return d.inputStatuses, wrap(fmt.Errorf("failed to read the threshold values - %s", err))
 	}
 
 	// convert the data into a sensor state
 	var touched bool
-	for i := uint8(0); i < nbrOfLEDs; i++ {
+	for i := uint8(0); i < uint8(len(d.inputStatuses)); i++ {
 		touched = isBitSet(status, 7-i)
 
-		// TODO: check if the event is passed the threshold:
+		// TODO(mattetti): check if the event is passed the threshold:
 		// deltas[i] > int(thresholds[i])
 
 		if touched {
-			if inputStatuses[i] == PressedStatus {
+			if d.inputStatuses[i] == PressedStatus {
 				if d.opts.RetriggerOnHold {
-					inputStatuses[i] = HeldStatus
+					d.inputStatuses[i] = HeldStatus
 				}
 				continue
 			}
-			inputStatuses[i] = PressedStatus
+			d.inputStatuses[i] = PressedStatus
 		} else {
-			inputStatuses[i] = OffStatus
+			d.inputStatuses[i] = OffStatus
 		}
 	}
 
-	return inputStatuses, nil
+	return d.inputStatuses, nil
 }
 
 // LinkLeds link the behavior of the LEDs to the touch sensors.
@@ -168,6 +164,7 @@ func (d *Dev) UnlinkLeds() error {
 }
 
 // AllLedsOn turns all the LEDs on.
+//
 // This is quite more efficient than looping through each led and turn them on.
 func (d *Dev) AllLedsOn() error {
 	if d.opts.LinkedLEDs {
@@ -194,8 +191,8 @@ func (d *Dev) SetLed(idx int, state bool) error {
 	if idx > 7 || idx < 0 {
 		return wrap(fmt.Errorf("invalid led idx %d", idx))
 	}
-	if Debug {
-		fmt.Printf("Set LED state %d - %t\n", idx, state)
+	if d.Debug {
+		log.Printf("Set LED state %d - %t\n", idx, state)
 	}
 	if state {
 		return d.setBit(reg_LEDOutputControl, idx)
@@ -208,7 +205,7 @@ func (d *Dev) SetLed(idx int, state bool) error {
 func (d *Dev) Reset() (err error) {
 	d.ClearInterrupt()
 	if d != nil && d.opts != nil && d.opts.ResetPin != nil {
-		if Debug {
+		if d.Debug {
 			fmt.Println("cap1188: Resetting the device using the reset pin")
 		}
 		if err = d.opts.ResetPin.Out(gpio.Low); err != nil {
@@ -266,11 +263,14 @@ func NewI2C(b i2c.Bus, opts *Opts) (*Dev, error) {
 			return nil, wrap(errors.New("given address not supported by device"))
 		}
 	}
-	if Debug {
-		fmt.Printf("cap1188: Connecting via I2C address: %#X\n", addr)
-	}
 	d := &Dev{d: &i2c.Dev{Bus: b, Addr: addr}, opts: opts, isSPI: false}
-	resetMemInputStatus()
+	if opts != nil {
+		d.Debug = opts.Debug
+	}
+	if d.Debug {
+		log.Printf("cap1188: Connecting via I2C address: %#X\n", addr)
+	}
+	d.inputStatuses = make([]TouchStatus, nbrOfLEDs)
 	if err := d.makeDev(opts); err != nil {
 		return nil, err
 	}
@@ -366,8 +366,8 @@ func (d *Dev) makeDev(opts *Opts) error {
 		// TODO: use opts.CycleTime
 		byte(0)<<1 |
 		byte(0)<<0)
-	if Debug {
-		fmt.Printf("cap1188: Sampling config mask: %08b\n", samplingConfig)
+	if d.Debug {
+		log.Printf("cap1188: Sampling config mask: %08b\n", samplingConfig)
 	}
 	if err = d.regWrapper.WriteUint8(0x24, samplingConfig); err != nil {
 		return fmt.Errorf("failed to enable multitouch - %s", err)
@@ -384,8 +384,8 @@ func (d *Dev) makeDev(opts *Opts) error {
 		// Set to 4x: TODO: make that configurable.
 		byte(1)<<6 | byte(0)<<5 | byte(1)<<4 |
 		byte(0)<<3 | byte(0)<<2 | byte(0)<<1 | byte(0)<<0)
-	if Debug {
-		fmt.Printf("cap1188: Sensitivity mask: %08b\n", sensitivity)
+	if d.Debug {
+		log.Printf("cap1188: Sensitivity mask: %08b\n", sensitivity)
 	}
 	if err = d.regWrapper.WriteUint8(0x1F, sensitivity); err != nil {
 		return fmt.Errorf("failed to set sensitivity - %s", err)
@@ -445,8 +445,8 @@ func (d *Dev) makeDev(opts *Opts) error {
 		byte(0)<<2 |
 		byte(0)<<1 |
 		byte(0)<<0)
-	if Debug {
-		fmt.Printf("cap1188: Config mask: %08b\n", config)
+	if d.Debug {
+		log.Printf("cap1188: Config mask: %08b\n", config)
 	}
 	if err = d.regWrapper.WriteUint8(0x20, config); err != nil {
 		return fmt.Errorf("failed to set the device configuration - %s", err)
@@ -495,8 +495,8 @@ func (d *Dev) makeDev(opts *Opts) error {
 		// when 1:  An interrupt is generated when a press is detected and
 		// at the repeat rate but not when a release is detected.
 		intOnRel<<0)
-	if Debug {
-		fmt.Printf("cap1188: Config2 mask: %08b\n", config2)
+	if d.Debug {
+		log.Printf("cap1188: Config2 mask: %08b\n", config2)
 	}
 	if err = d.regWrapper.WriteUint8(0x44, config2); err != nil {
 		return fmt.Errorf("failed to set the device configuration 2 - %s", err)
@@ -525,12 +525,6 @@ func (d *Dev) clearBit(regID uint8, idx int) error {
 	}
 	v &= ^(1 << uint8(idx))
 	return d.regWrapper.WriteUint8(regID, v)
-}
-
-// resetMemInputStatus resets the in memory slice containing the state of the
-// inputs.
-func resetMemInputStatus() {
-	inputStatuses = make([]TouchStatus, nbrOfLEDs)
 }
 
 // b is the byte to check and position is the bit position

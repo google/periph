@@ -104,8 +104,6 @@ func TestNewI2C(t *testing.T) {
 			{Addr: 40, W: []byte{0x24, 0x8}, R: nil},
 			// sensitivity
 			{Addr: 40, W: []byte{0x1f, 0x50}, R: nil},
-			// linked leds
-			{Addr: 40, W: []byte{0x72, 0xff}, R: nil},
 			// don't retrigger on hold
 			{Addr: 40, W: []byte{0x28, 0x0}, R: nil},
 			// config
@@ -114,8 +112,7 @@ func TestNewI2C(t *testing.T) {
 			{Addr: 40, W: []byte{0x44, 0x61}, R: nil},
 		},
 	}
-	cap1188.Debug = true
-	d, err := cap1188.NewI2C(&bus, nil)
+	d, err := cap1188.NewI2C(&bus, &cap1188.Opts{Debug: true})
 	if err != nil {
 		t.Fatal(err)
 	}

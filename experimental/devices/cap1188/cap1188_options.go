@@ -76,6 +76,8 @@ type Opts struct {
 	// Address is the I2C slave address to use
 	Address uint16
 
+	// Debug turns on extra logging capabilities
+	Debug bool
 	// LinkedLEDs indicates if the LEDs should be activated automatically
 	// when their sensors detect a touch event.
 	LinkedLEDs bool
