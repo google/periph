@@ -56,8 +56,10 @@ func Example() {
 	time.Sleep(200 * time.Millisecond)
 
 	fmt.Println("Monitoring for touch events")
-	for {
+	maxTouches := 42 // stop the program after 42 touches
+	for maxTouches > 0 {
 		if alertPin.WaitForEdge(-1) {
+			maxTouches--
 			statuses, err := dev.InputStatus()
 			if err != nil {
 				fmt.Printf("Error reading inputs: %s\n", err)
