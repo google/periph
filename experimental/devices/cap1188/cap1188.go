@@ -76,12 +76,10 @@ const (
 
 // Dev is a handle to a cap1188.
 type Dev struct {
-	// Debug is a flag that indicates that more logging will be created
-	Debug         bool
+	Opts
 	d             conn.Conn
 	regWrapper    mmr.Dev8
 	isSPI         bool
-	opts          *Opts
 	inputStatuses []TouchStatus
 }
 
@@ -97,7 +95,6 @@ func (d *Dev) Halt() error {
 // InputStatus reads and returns the status of the 8 inputs as an array where
 // each entry indicates a touch event or not.
 func (d *Dev) InputStatus() ([]TouchStatus, error) {
-
 	// read inputs
 	status, err := d.regWrapper.ReadUint8(0x3)
 	if err != nil {
@@ -109,16 +106,9 @@ func (d *Dev) InputStatus() ([]TouchStatus, error) {
 	if err = d.regWrapper.ReadStruct(0x10, &deltasB); err != nil {
 		return d.inputStatuses, wrap(fmt.Errorf("failed to read the delta values - %s", err))
 	}
-	// twoComplementsToInt returns the int value of a standard 2’s complement number
-	twoComplementsToInt := func(v byte) int {
-		if (v & (1 << (8 - 1))) == 0 {
-			return int(v)
-		}
-		return int(v) - (1 << 8)
-	}
 	deltas := [nbrOfLEDs]int{}
 	for i, b := range deltasB {
-		deltas[i] = twoComplementsToInt(b)
+		deltas[i] = int(int8(b))
 	}
 
 	// read threshold
@@ -137,7 +127,7 @@ func (d *Dev) InputStatus() ([]TouchStatus, error) {
 
 		if touched {
 			if d.inputStatuses[i] == PressedStatus {
-				if d.opts.RetriggerOnHold {
+				if d.RetriggerOnHold {
 					d.inputStatuses[i] = HeldStatus
 				}
 				continue
@@ -151,49 +141,49 @@ func (d *Dev) InputStatus() ([]TouchStatus, error) {
 	return d.inputStatuses, nil
 }
 
-// LinkLeds link the behavior of the LEDs to the touch sensors.
+// LinkLEDs link the behavior of the LEDs to the touch sensors.
 // Doing so, disabled the option for the host to set specific LEDs on/off.
-func (d *Dev) LinkLeds() error {
+func (d *Dev) LinkLEDs() error {
 	if err := d.regWrapper.WriteUint8(reg_LEDLinking, 0xff); err != nil {
 		return wrap(fmt.Errorf("failed to link LEDs - %s", err))
 	}
-	d.opts.LinkedLEDs = true
+	d.LinkedLEDs = true
 	return nil
 }
 
-// UnlinkLeds disassociate the LEDs from the input sensors allowing the host to
+// UnlinkLEDs disassociate the LEDs from the input sensors allowing the host to
 // control the LEDs.
-func (d *Dev) UnlinkLeds() error {
+func (d *Dev) UnlinkLEDs() error {
 	if err := d.regWrapper.WriteUint8(reg_LEDLinking, 0x00); err != nil {
 		return wrap(fmt.Errorf("failed to unlink LEDs - %s", err))
 	}
-	d.opts.LinkedLEDs = false
+	d.LinkedLEDs = false
 	return nil
 }
 
-// AllLedsOn turns all the LEDs on.
+// AllLEDsOn turns all the LEDs on.
 //
 // This is quite more efficient than looping through each led and turn them on.
-func (d *Dev) AllLedsOn() error {
-	if d.opts.LinkedLEDs {
+func (d *Dev) AllLEDsOn() error {
+	if d.LinkedLEDs {
 		return wrap(fmt.Errorf("can't manually set LEDs when they are linked to sensors"))
 	}
 	return d.regWrapper.WriteUint8(reg_LEDOutputControl, 0xff)
 }
 
-// AllLedsOff turns all the LEDs off.
+// AllLEDsOff turns all the LEDs off.
 // This is quite more efficient than looping through each led and turn them off.
-func (d *Dev) AllLedsOff() error {
-	if d.opts.LinkedLEDs {
+func (d *Dev) AllLEDsOff() error {
+	if d.LinkedLEDs {
 		return wrap(fmt.Errorf("can't manually set LEDs when they are linked to sensors"))
 	}
 	return d.regWrapper.WriteUint8(reg_LEDOutputControl, 0x00)
 }
 
-// SetLed sets the state of a LED as on or off
+// SetLED sets the state of a LED as on or off
 // Only works if the LEDs are not linked to the sensors
-func (d *Dev) SetLed(idx int, state bool) error {
-	if d.opts.LinkedLEDs {
+func (d *Dev) SetLED(idx int, state bool) error {
+	if d.LinkedLEDs {
 		return wrap(fmt.Errorf("can't manually set LEDs when they are linked to sensors"))
 	}
 	if idx > 7 || idx < 0 {
@@ -212,18 +202,18 @@ func (d *Dev) SetLed(idx int, state bool) error {
 // if available.
 func (d *Dev) Reset() (err error) {
 	d.ClearInterrupt()
-	if d != nil && d.opts != nil && d.opts.ResetPin != nil {
+	if d != nil && d != nil && d.ResetPin != nil {
 		if d.Debug {
 			fmt.Println("cap1188: Resetting the device using the reset pin")
 		}
-		if err = d.opts.ResetPin.Out(gpio.Low); err != nil {
+		if err = d.ResetPin.Out(gpio.Low); err != nil {
 			return err
 		}
-		if err = d.opts.ResetPin.Out(gpio.High); err != nil {
+		if err = d.ResetPin.Out(gpio.High); err != nil {
 			return err
 		}
 		time.Sleep(10 * time.Millisecond)
-		if err = d.opts.ResetPin.Out(gpio.Low); err != nil {
+		if err = d.ResetPin.Out(gpio.Low); err != nil {
 			return err
 		}
 	}
@@ -271,10 +261,7 @@ func NewI2C(b i2c.Bus, opts *Opts) (*Dev, error) {
 			return nil, wrap(errors.New("given address not supported by device"))
 		}
 	}
-	d := &Dev{d: &i2c.Dev{Bus: b, Addr: addr}, opts: opts, isSPI: false}
-	if opts != nil {
-		d.Debug = opts.Debug
-	}
+	d := &Dev{d: &i2c.Dev{Bus: b, Addr: addr}, isSPI: false}
 	if d.Debug {
 		log.Printf("cap1188: Connecting via I2C address: %#X\n", addr)
 	}
@@ -296,7 +283,7 @@ func (d *Dev) makeDev(opts *Opts) error {
 	if opts == nil {
 		opts = DefaultOpts()
 	}
-	d.opts = opts
+	d.Opts = *opts
 	d.regWrapper = mmr.Dev8{Conn: d.d, Order: binary.LittleEndian}
 
 	var productID byte
@@ -402,7 +389,7 @@ func (d *Dev) makeDev(opts *Opts) error {
 	}
 
 	if opts.LinkedLEDs {
-		if err = d.LinkLeds(); err != nil {
+		if err = d.LinkLEDs(); err != nil {
 			return err
 		}
 	}

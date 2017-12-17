@@ -1,3 +1,6 @@
+// Copyright 2017 The Periph Authors. All rights reserved.
+// Use of this source code is governed under the Apache License, Version 2.0
+// that can be found in the LICENSE file.
 package main
 
 import (
@@ -85,23 +88,23 @@ func mainImpl() error {
 	}
 	time.Sleep(200 * time.Millisecond)
 
-	userAskedToLinkLeds := opts.LinkedLEDs
+	userAskedToLinkLEDs := opts.LinkedLEDs
 	// unlinked LED demo
-	if err := dev.UnlinkLeds(); err != nil {
+	if err := dev.UnlinkLEDs(); err != nil {
 		log.Println("Failed to unlink leds", err)
 	}
 	for i := 0; i < 8; i++ {
-		dev.SetLed(i, true)
+		dev.SetLED(i, true)
 		time.Sleep(75 * time.Millisecond)
 	}
 	time.Sleep(200 * time.Millisecond)
-	dev.AllLedsOff()
+	dev.AllLEDsOff()
 	time.Sleep(100 * time.Millisecond)
-	dev.AllLedsOn()
+	dev.AllLEDsOn()
 	time.Sleep(100 * time.Millisecond)
-	dev.AllLedsOff()
-	if userAskedToLinkLeds {
-		if err := dev.LinkLeds(); err != nil {
+	dev.AllLEDsOff()
+	if userAskedToLinkLEDs {
+		if err := dev.LinkLEDs(); err != nil {
 			log.Println("Failed to relink leds", err)
 		}
 	}
