@@ -97,6 +97,7 @@ func (d *Dev) Halt() error {
 // InputStatus reads and returns the status of the 8 inputs as an array where
 // each entry indicates a touch event or not.
 func (d *Dev) InputStatus() ([]TouchStatus, error) {
+
 	// read inputs
 	status, err := d.regWrapper.ReadUint8(0x3)
 	if err != nil {
@@ -107,6 +108,13 @@ func (d *Dev) InputStatus() ([]TouchStatus, error) {
 	deltasB := [nbrOfLEDs]byte{}
 	if err = d.regWrapper.ReadStruct(0x10, &deltasB); err != nil {
 		return d.inputStatuses, wrap(fmt.Errorf("failed to read the delta values - %s", err))
+	}
+	// twoComplementsToInt returns the int value of a standard 2’s complement number
+	twoComplementsToInt := func(v byte) int {
+		if (v & (1 << (8 - 1))) == 0 {
+			return int(v)
+		}
+		return int(v) - (1 << 8)
 	}
 	deltas := [nbrOfLEDs]int{}
 	for i, b := range deltasB {
@@ -325,7 +333,8 @@ func (d *Dev) makeDev(opts *Opts) error {
 	if err = d.regWrapper.WriteUint8(0x27, 0xff); err != nil {
 		return wrap(fmt.Errorf("failed to enable interrupts - %s", err))
 	}
-	// enable/disable repeats (TODO: make it an option)
+	// enable/disable repeats
+	// TODO(mattetti): make it an option
 	if err = d.regWrapper.WriteUint8(0x28, 0xff); err != nil {
 		return fmt.Errorf("failed to disable repeats - %s", err)
 	}
@@ -354,16 +363,16 @@ func (d *Dev) makeDev(opts *Opts) error {
 	// Averaging and Sampling Config
 	samplingConfig := (byte(0)<<7 |
 		// number of samples taken per measurement
-		// TODO: use opts.SamplesPerMeasurement
+		// TODO(mattetti): use opts.SamplesPerMeasurement
 		byte(0)<<6 |
 		byte(0)<<5 |
 		byte(0)<<4 |
 		// sample time
-		// TODO: use opts.SamplingTime
+		// TODO(mattetti): use opts.SamplingTime
 		byte(1)<<3 |
 		byte(0)<<2 |
 		// overall cycle time
-		// TODO: use opts.CycleTime
+		// TODO(mattetti): use opts.CycleTime
 		byte(0)<<1 |
 		byte(0)<<0)
 	if d.Debug {
@@ -381,7 +390,8 @@ func (d *Dev) makeDev(opts *Opts) error {
 		// touches are detected for a smaller delta capacitance corresponding to a “lighter” touch. These settings
 		// are more sensitive to noise, however, and a noisy environment may flag more false touches with higher
 		// sensitivity levels.
-		// Set to 4x: TODO: make that configurable.
+		// Set to 4x
+		// TODO(mattetti): make that configurable.
 		byte(1)<<6 | byte(0)<<5 | byte(1)<<4 |
 		byte(0)<<3 | byte(0)<<2 | byte(0)<<1 | byte(0)<<0)
 	if d.Debug {
@@ -506,7 +516,7 @@ func (d *Dev) makeDev(opts *Opts) error {
 }
 
 // setBit sets a specific bit on a register
-// TODO: avoid reading before writing, keep states in memory
+// TODO(mattetti): avoid reading before writing, keep states in memory
 func (d *Dev) setBit(regID uint8, idx int) error {
 	v, err := d.regWrapper.ReadUint8(regID)
 	if err != nil {
@@ -517,7 +527,7 @@ func (d *Dev) setBit(regID uint8, idx int) error {
 }
 
 // clearBit clears a specific bit on a register
-// TODO: avoid reading before writing, keep states in memory
+// TODO(mattetti): avoid reading before writing, keep states in memory
 func (d *Dev) clearBit(regID uint8, idx int) error {
 	v, err := d.regWrapper.ReadUint8(regID)
 	if err != nil {
@@ -531,14 +541,6 @@ func (d *Dev) clearBit(regID uint8, idx int) error {
 // index 0 where 7 is the "most left bit".
 func isBitSet(b byte, pos uint8) bool {
 	return (b>>pos)&1 == 1
-}
-
-// twoComplementsToInt returns the int value of a standard 2’s complement number
-func twoComplementsToInt(v byte) int {
-	if (v & (1 << (8 - 1))) == 0 {
-		return int(v)
-	}
-	return int(v) - (1 << 8)
 }
 
 func wrap(err error) error {
