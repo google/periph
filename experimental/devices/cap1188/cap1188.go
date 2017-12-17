@@ -128,21 +128,8 @@ func (d *Dev) InputStatus() ([]TouchStatus, error) {
 	for i := uint8(0); i < nbrOfLEDs; i++ {
 		touched = isBitSet(status, 7-i)
 
-		// if touched {
-		// check that we passed the threshold
-		// if deltas[i] == 127 && Debug {
-		// 	fmt.Println("sensitivity settings are too sensitive")
-		// }
-		// else {
-		// 	if deltas[i] > int(thresholds[i]) {
-		// 		if inputStatuses[i] == PressedStatus {
-		// 			inputStatuses[i] = HeldStatus
-		// 		} else {
-		// 			inputStatuses[i] = PressedStatus
-		// 		}
-		// 		continue
-		// 	}
-		// }
+		// TODO: check if the event is passed the threshold:
+		// deltas[i] > int(thresholds[i])
 
 		if touched {
 			if inputStatuses[i] == PressedStatus {
@@ -160,7 +147,7 @@ func (d *Dev) InputStatus() ([]TouchStatus, error) {
 	return inputStatuses, nil
 }
 
-// LinkLeds() link the behavior of the LEDs to the touch sensors.
+// LinkLeds link the behavior of the LEDs to the touch sensors.
 // Doing so, disabled the option for the host to set specific LEDs on/off.
 func (d *Dev) LinkLeds() error {
 	if err := d.regWrapper.WriteUint8(reg_LEDLinking, 0xff); err != nil {
@@ -251,21 +238,19 @@ func (d *Dev) ClearInterrupt() error {
 // sampled will flag a release and then remain in a non-touched state. LEDs that
 // are manually controlled will be unaffected.
 func (d *Dev) Standby() error {
-	panic("not implemented")
-
-	return nil
+	return fmt.Errorf("not implemented")
 }
 
 // WakeUp takes the device out of standby or deep sleep mode.
 func (d *Dev) WakeUp() error {
-	panic("not implemented")
+	return fmt.Errorf("not implemented")
 }
 
 // DeepSleep puts the device in a deep sleep mode. All sensor input scanning is
 // disabled. All LEDs are driven to their programmed non-actuated
 // state and no PWM operations will be done.
 func (d *Dev) DeepSleep() error {
-	panic("not implemented")
+	return fmt.Errorf("not implemented")
 }
 
 // NewI2C returns a new device that communicates over I²C to cap1188.
@@ -295,7 +280,7 @@ func NewI2C(b i2c.Bus, opts *Opts) (*Dev, error) {
 // NewSPI returns an object that communicates over SPI to cap1188 environmental
 // sensor.
 func NewSPI(p spi.Port, opts *Opts) (*Dev, error) {
-	panic("not implemented")
+	return nil, fmt.Errorf("not implemented")
 }
 
 func (d *Dev) makeDev(opts *Opts) error {
