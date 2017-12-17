@@ -42,20 +42,20 @@ func mainImpl() error {
 	}
 
 	var dev *cap1188.Dev
-	i, err := i2creg.Open(*i2cID)
+	i2cBus, err := i2creg.Open(*i2cID)
 	if err != nil {
 		return fmt.Errorf("couldn't open the i2c bus - %s", err)
 	}
-	defer i.Close()
-	if p, ok := i.(i2c.Pins); ok {
+	defer i2cBus.Close()
+	if p, ok := i2cBus.(i2c.Pins); ok {
 		printPin("SCL", p.SCL())
 		printPin("SDA", p.SDA())
 	} else {
-		fmt.Println("i.(i2c.Pins) failed")
+		fmt.Println("i2cBus.(i2c.Pins) failed")
 	}
 
 	if *hz != 0 {
-		if err := i.SetSpeed(int64(*hz)); err != nil {
+		if err := i2cBus.SetSpeed(int64(*hz)); err != nil {
 			return fmt.Errorf("couldn't set the i2c bus speed - %s", err)
 		}
 	}
@@ -79,7 +79,7 @@ func mainImpl() error {
 	opts.AlertPin = alertPin
 	opts.ResetPin = resetPin
 
-	if dev, err = cap1188.NewI2C(i, opts); err != nil {
+	if dev, err = cap1188.NewI2C(i2cBus, opts); err != nil {
 		return fmt.Errorf("couldn't open cap1188 - %s", err)
 	}
 	time.Sleep(200 * time.Millisecond)
