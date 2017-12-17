@@ -4,7 +4,7 @@
 
 // Package cap1188 controls a Microchip cap1188 device over I²C.
 
-// The device is a 8 Channel Capacitive Touch Sensor with 8 LED Drivers
+// Package cap1188 is for a 8 Channel Capacitive Touch Sensor with 8 LED Drivers
 //
 // Datasheet
 //
@@ -35,13 +35,13 @@ type TouchStatus int8
 func (t TouchStatus) String() string {
 	switch t {
 	case OffStatus:
-		return "Off"
+		return strOffStatus
 	case PressedStatus:
-		return "Pressed"
+		return strPressedStatus
 	case HeldStatus:
-		return "Held"
+		return strHeldStatus
 	case ReleasedStatus:
-		return "Released"
+		return strReleasedStatus
 	default:
 		return "Unknown"
 	}
@@ -59,7 +59,11 @@ const (
 )
 
 const (
-	nbrOfLEDs = 8
+	nbrOfLEDs         = 8
+	strOffStatus      = "Off"
+	strPressedStatus  = "Pressed"
+	strHeldStatus     = "Held"
+	strReleasedStatus = "Released"
 )
 
 const (
