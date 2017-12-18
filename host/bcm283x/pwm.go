@@ -220,7 +220,7 @@ func (p *pwmMap) reset() {
 // It may select an higher frequency than the one requested.
 //
 // Other potentially good clock sources are PCM, SPI and UART.
-func setPWMClockSource(hz uint64) (uint64, int, error) {
+func setPWMClockSource(hz uint64, div uint32) (uint64, int, error) {
 	if pwmMemory == nil {
 		return 0, 0, errors.New("subsystem PWM not initialized")
 	}
@@ -229,22 +229,19 @@ func setPWMClockSource(hz uint64) (uint64, int, error) {
 	}
 	actual, divs, err := clockMemory.pwm.set(hz, dmaWaitcyclesMax+1)
 	if err == nil {
-		pwmMemory.ctl = 0
-		Nanospin(10 * time.Microsecond)
-		pwmMemory.status = pwmStatusMask
-		Nanospin(10 * time.Microsecond)
 		// It acts as a clock multiplier, since this amount of data is sent per
 		// clock tick.
-		pwmMemory.rng1 = 10 // 32?
+		pwmMemory.rng1 = uint32(divs) * div
 		Nanospin(10 * time.Microsecond)
 		// Periph data (?)
 
 		// Use low priority.
 		pwmMemory.dmaCfg = pwmDMAEnable | pwmDMACfg(15<<pwmPanicShift|15)
 		Nanospin(10 * time.Microsecond)
-		pwmMemory.ctl = pwmClearFIFO
+		pwmMemory.ctl |= pwmClearFIFO
 		Nanospin(10 * time.Microsecond)
-		pwmMemory.ctl = pwm1UseFIFO | pwm1Enable
+		old := pwmMemory.ctl
+		pwmMemory.ctl = (old & ^pwmControl(0xff)) | pwm1UseFIFO | pwm1Enable
 	}
 	// Convert divisor into wait cycles.
 	return actual, divs - 1, err
