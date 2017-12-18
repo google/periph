@@ -89,7 +89,6 @@ func mainImpl() error {
 	if dev, err = cap1188.NewI2C(i2cBus, opts); err != nil {
 		return fmt.Errorf("couldn't open cap1188 - %s", err)
 	}
-	time.Sleep(200 * time.Millisecond)
 
 	userAskedToLinkLEDs := opts.LinkedLEDs
 	// unlinked LED demo
