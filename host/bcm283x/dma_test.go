@@ -51,45 +51,45 @@ func TestDmaStride_String(t *testing.T) {
 
 func TestControlBlock(t *testing.T) {
 	c := controlBlock{}
-	if c.initBlock(0, 0, 0, true, true, dmaFire, 0) == nil {
+	if c.initBlock(0, 0, 0, true, true, false, false, dmaFire, 0) == nil {
 		t.Fatal("can't set both")
 	}
-	if c.initBlock(0, 0, 0, false, false, dmaFire, 0) == nil {
+	if c.initBlock(0, 0, 0, false, false, true, true, dmaFire, 0) == nil {
 		t.Fatal("need at least one addr")
 	}
-	if c.initBlock(0, 1, 0, true, false, dmaFire, 0) == nil {
+	if c.initBlock(0, 1, 0, true, false, false, true, dmaFire, 0) == nil {
 		t.Fatal("srcIO requires srcAddr")
 	}
-	if c.initBlock(1, 0, 0, false, true, dmaFire, 0) == nil {
+	if c.initBlock(1, 0, 0, false, true, true, false, dmaFire, 0) == nil {
 		t.Fatal("dstIO requires dstAddr")
 	}
-	if c.initBlock(1, 1, 0, false, false, dmaSrcIgnore, 0) == nil {
+	if c.initBlock(1, 1, 0, false, false, true, true, dmaSrcIgnore, 0) == nil {
 		t.Fatal("must not specify anything other than clock source")
 	}
-	if c.initBlock(1, 1, 0, false, false, dmaFire, 100) == nil {
+	if c.initBlock(1, 1, 0, false, false, true, true, dmaFire, 100) == nil {
 		t.Fatal("dstIO requires dstAddr")
 	}
-	if c.initBlock(1, 1, 0, false, false, dmaFire, 1) == nil {
+	if c.initBlock(1, 1, 0, false, false, true, true, dmaFire, 1) == nil {
 		t.Fatal("dmaFire can't use waits")
 	}
 
-	if err := c.initBlock(1, 0, 0, false, false, dmaFire, 0); err != nil {
+	if err := c.initBlock(1, 0, 0, false, false, true, true, dmaFire, 0); err != nil {
 		t.Fatal(err)
 	}
-	if err := c.initBlock(0, 1, 0, false, false, dmaFire, 0); err != nil {
+	if err := c.initBlock(0, 1, 0, false, false, true, true, dmaFire, 0); err != nil {
 		t.Fatal(err)
 	}
-	if err := c.initBlock(1, 0, 0, true, false, dmaFire, 0); err != nil {
+	if err := c.initBlock(1, 0, 0, true, false, false, true, dmaFire, 0); err != nil {
 		t.Fatal(err)
 	}
-	if err := c.initBlock(0, 1, 0, false, true, dmaPCMTX, 0); err != nil {
+	if err := c.initBlock(0, 1, 0, false, true, true, false, dmaPCMTX, 0); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestControlBlockGo_String(t *testing.T) {
 	c := controlBlock{}
-	if err := c.initBlock(0, 1, 0, false, true, dmaPCMTX, 0); err != nil {
+	if err := c.initBlock(0, 1, 0, false, true, false, false, dmaPCMTX, 0); err != nil {
 		t.Fatal(err)
 	}
 	expected := "{\n  transferInfo: NoWideBursts|SrcIgnore|DstDReq|WaitResp|PCMTX,\n  srcAddr:      0x0,\n  dstAddr:      0x7e000001,\n  txLen:        0,\n  stride:       0x0,\n  nextCB:       0x0,\n}"
@@ -125,7 +125,7 @@ func TestDmaChannel_GoString(t *testing.T) {
 	d := dmaChannel{}
 	d.reset()
 	d.startIO(0)
-	expected := "{\n  cs:           WaitForOutstandingWrites|Active|pp8|p8,\n  cbAddr:       0x0,\n  transferInfo: Fire,\n  srcAddr:      0x0,\n  dstAddr:      0x0,\n  txLen:        0,\n  stride:       0x0,\n  nextCB:       0x0,\n  debug:        ReadError|FIFOError|ReadLastNotSetError,\n  reserved:     {...},\n}"
+	expected := "{\n  cs:           WaitForOutstandingWrites|Active|pp8|p8,\n  cbAddr:       0x0,\n  transferInfo: Fire,\n  srcAddr:      0x0,\n  dstAddr:      0x0,\n  txLen:        0,\n  stride:       0x0,\n  nextCB:       0x0,\n  debug:        0,\n  reserved:     {...},\n}"
 	if s := d.GoString(); s != expected {
 		t.Fatalf("%q", s)
 	}
