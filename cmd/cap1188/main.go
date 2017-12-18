@@ -1,6 +1,7 @@
 // Copyright 2017 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
+
 package main
 
 import (
@@ -27,6 +28,8 @@ func mainImpl() error {
 	i2cADDR := flag.Uint("ia", 0x29, "I²C bus address to use, Pimoroni's Drum Hat is 0x2c")
 	hz := flag.Int("hz", 0, "I²C bus/SPI port speed")
 	verbose := flag.Bool("v", false, "verbose mode")
+	alertPinName := flag.String("alert", "GPIO25", "Name of the alert/interrupt pin")
+	resetPinName := flag.String("reset", "GPIO21", "Name of the reset pin")
 	flag.Parse()
 	if !*verbose {
 		log.SetOutput(ioutil.Discard)
@@ -62,7 +65,7 @@ func mainImpl() error {
 	}
 	// The alert pin is the pin connected to the IRQ/interrupt pin and indicates
 	// when a touch event occurs.
-	alertPin := gpioreg.ByName("GPIO25")
+	alertPin := gpioreg.ByName(*alertPinName)
 	if alertPin == nil {
 		return errors.New("invalid alert GPIO pin number")
 	}
@@ -73,7 +76,7 @@ func mainImpl() error {
 		log.Printf("cap1188: alert pin: %#v\n", alertPin)
 	}
 
-	resetPin := gpioreg.ByName("GPIO21")
+	resetPin := gpioreg.ByName(*resetPinName)
 	if resetPin == nil {
 		return errors.New("invalid reset GPIO pin number")
 	}
@@ -90,7 +93,7 @@ func mainImpl() error {
 
 	userAskedToLinkLEDs := opts.LinkedLEDs
 	// unlinked LED demo
-	if err := dev.UnlinkLEDs(); err != nil {
+	if err := dev.LinkLEDs(false); err != nil {
 		log.Println("Failed to unlink leds", err)
 	}
 	for i := 0; i < 8; i++ {
@@ -98,13 +101,13 @@ func mainImpl() error {
 		time.Sleep(75 * time.Millisecond)
 	}
 	time.Sleep(200 * time.Millisecond)
-	dev.AllLEDsOff()
+	dev.AllLEDs(false)
 	time.Sleep(100 * time.Millisecond)
-	dev.AllLEDsOn()
+	dev.AllLEDs(true)
 	time.Sleep(100 * time.Millisecond)
-	dev.AllLEDsOff()
+	dev.AllLEDs(false)
 	if userAskedToLinkLEDs {
-		if err := dev.LinkLEDs(); err != nil {
+		if err := dev.LinkLEDs(true); err != nil {
 			log.Println("Failed to relink leds", err)
 		}
 	}

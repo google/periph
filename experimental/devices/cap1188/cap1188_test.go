@@ -2,8 +2,6 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package cap1188 controls a Microchip cap1188 device over I²C.
-
 package cap1188_test
 
 import (

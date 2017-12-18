@@ -3,8 +3,7 @@
 // that can be found in the LICENSE file.
 
 // Package cap1188 controls a Microchip cap1188 device over I²C.
-
-// Package cap1188 is for a 8 Channel Capacitive Touch Sensor with 8 LED Drivers
+// The device is a 8 Channel Capacitive Touch Sensor with 8 LED Drivers
 //
 // Datasheet
 //
@@ -85,6 +84,7 @@ type Dev struct {
 	regWrapper    mmr.Dev8
 	isSPI         bool
 	inputStatuses []TouchStatus
+	resetAt       time.Time
 }
 
 func (d *Dev) String() string {
@@ -99,6 +99,12 @@ func (d *Dev) Halt() error {
 // InputStatus reads and returns the status of the 8 inputs as an array where
 // each entry indicates a touch event or not.
 func (d *Dev) InputStatus() ([]TouchStatus, error) {
+	// first check that we are ready
+	now := time.Now()
+	readyAt := d.resetAt.Add(200 * time.Millisecond)
+	if now.Before(readyAt) {
+		time.Sleep(readyAt.Sub(now))
+	}
 	// read inputs
 	status, err := d.regWrapper.ReadUint8(0x3)
 	if err != nil {
@@ -124,7 +130,8 @@ func (d *Dev) InputStatus() ([]TouchStatus, error) {
 	// convert the data into a sensor state
 	var touched bool
 	for i := uint8(0); i < uint8(len(d.inputStatuses)); i++ {
-		touched = isBitSet(status, 7-i)
+		// check if the bit is set.
+		touched = (status>>(7-i))&1 == 1
 
 		// TODO(mattetti): check if the event is passed the threshold:
 		// deltas[i] > int(thresholds[i])
@@ -145,42 +152,33 @@ func (d *Dev) InputStatus() ([]TouchStatus, error) {
 	return d.inputStatuses, nil
 }
 
-// LinkLEDs link the behavior of the LEDs to the touch sensors.
+// LinkLEDs links the behavior of the LEDs to the touch sensors.
 // Doing so, disabled the option for the host to set specific LEDs on/off.
-func (d *Dev) LinkLEDs() error {
-	if err := d.regWrapper.WriteUint8(reg_LEDLinking, 0xff); err != nil {
-		return wrap(fmt.Errorf("failed to link LEDs - %s", err))
+func (d *Dev) LinkLEDs(on bool) error {
+	if on {
+		if err := d.regWrapper.WriteUint8(reg_LEDLinking, 0xff); err != nil {
+			return wrap(fmt.Errorf("failed to link LEDs - %s", err))
+		}
+	} else {
+		if err := d.regWrapper.WriteUint8(reg_LEDLinking, 0x00); err != nil {
+			return wrap(fmt.Errorf("failed to unlink LEDs - %s", err))
+		}
 	}
-	d.LinkedLEDs = true
+	d.LinkedLEDs = on
 	return nil
 }
 
-// UnlinkLEDs disassociate the LEDs from the input sensors allowing the host to
-// control the LEDs.
-func (d *Dev) UnlinkLEDs() error {
-	if err := d.regWrapper.WriteUint8(reg_LEDLinking, 0x00); err != nil {
-		return wrap(fmt.Errorf("failed to unlink LEDs - %s", err))
-	}
-	d.LinkedLEDs = false
-	return nil
-}
-
-// AllLEDsOn turns all the LEDs on.
+// AllLEDs turns all the LEDs on or off.
 //
-// This is quite more efficient than looping through each led and turn them on.
-func (d *Dev) AllLEDsOn() error {
+// This is quite more efficient than looping through each led and turn them on/off.
+func (d *Dev) AllLEDs(on bool) error {
 	if d.LinkedLEDs {
 		return wrap(fmt.Errorf("can't manually set LEDs when they are linked to sensors"))
 	}
-	return d.regWrapper.WriteUint8(reg_LEDOutputControl, 0xff)
-}
+	if on {
+		return d.regWrapper.WriteUint8(reg_LEDOutputControl, 0xff)
+	}
 
-// AllLEDsOff turns all the LEDs off.
-// This is quite more efficient than looping through each led and turn them off.
-func (d *Dev) AllLEDsOff() error {
-	if d.LinkedLEDs {
-		return wrap(fmt.Errorf("can't manually set LEDs when they are linked to sensors"))
-	}
 	return d.regWrapper.WriteUint8(reg_LEDOutputControl, 0x00)
 }
 
@@ -206,13 +204,14 @@ func (d *Dev) SetLED(idx int, state bool) error {
 // if available.
 func (d *Dev) Reset() (err error) {
 	d.ClearInterrupt()
-	if d != nil && d != nil && d.ResetPin != nil {
+	if d != nil && d.ResetPin != nil {
 		if d.Debug {
-			fmt.Println("cap1188: Resetting the device using the reset pin")
+			log.Println("cap1188: Resetting the device using the reset pin")
 		}
 		if err = d.ResetPin.Out(gpio.Low); err != nil {
 			return err
 		}
+		time.Sleep(1 * time.Microsecond)
 		if err = d.ResetPin.Out(gpio.High); err != nil {
 			return err
 		}
@@ -221,6 +220,9 @@ func (d *Dev) Reset() (err error) {
 			return err
 		}
 	}
+	// track the reset time since the device won't be ready for up to 15ms
+	// and won't be ready for first conversion for up to 200ms
+	d.resetAt = time.Now()
 
 	return nil
 }
@@ -229,27 +231,6 @@ func (d *Dev) Reset() (err error) {
 func (d *Dev) ClearInterrupt() error {
 	// clear the main control bit
 	return d.clearBit(0x0, 0)
-}
-
-// Standby turns off the capacitive touch sensor inputs. The status registers will
-// not be cleared until read. LEDs that are linked to capacitive touch sensor
-// inputs will remain linked and active. Sensor inputs that are no longer
-// sampled will flag a release and then remain in a non-touched state. LEDs that
-// are manually controlled will be unaffected.
-func (d *Dev) Standby() error {
-	return fmt.Errorf("not implemented")
-}
-
-// WakeUp takes the device out of standby or deep sleep mode.
-func (d *Dev) WakeUp() error {
-	return fmt.Errorf("not implemented")
-}
-
-// DeepSleep puts the device in a deep sleep mode. All sensor input scanning is
-// disabled. All LEDs are driven to their programmed non-actuated
-// state and no PWM operations will be done.
-func (d *Dev) DeepSleep() error {
-	return fmt.Errorf("not implemented")
 }
 
 // NewI2C returns a new device that communicates over I²C to cap1188.
@@ -272,6 +253,12 @@ func NewI2C(b i2c.Bus, opts *Opts) (*Dev, error) {
 	d.inputStatuses = make([]TouchStatus, nbrOfLEDs)
 	if err := d.makeDev(opts); err != nil {
 		return nil, err
+	}
+	// time to communications is 15ms
+	now := time.Now()
+	readyAt := d.resetAt.Add(15 * time.Millisecond)
+	if now.Before(readyAt) {
+		time.Sleep(readyAt.Sub(now))
 	}
 	return d, nil
 }
@@ -393,7 +380,7 @@ func (d *Dev) makeDev(opts *Opts) error {
 	}
 
 	if opts.LinkedLEDs {
-		if err = d.LinkLEDs(); err != nil {
+		if err = d.LinkLEDs(true); err != nil {
 			return err
 		}
 	}
@@ -526,12 +513,6 @@ func (d *Dev) clearBit(regID uint8, idx int) error {
 	}
 	v &= ^(1 << uint8(idx))
 	return d.regWrapper.WriteUint8(regID, v)
-}
-
-// b is the byte to check and position is the bit position
-// index 0 where 7 is the "most left bit".
-func isBitSet(b byte, pos uint8) bool {
-	return (b>>pos)&1 == 1
 }
 
 func wrap(err error) error {
