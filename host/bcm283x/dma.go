@@ -514,11 +514,7 @@ func (d *dmaChannel) isAvailable() bool {
 // It doesn't clear the local controlBlock cached values.
 func (d *dmaChannel) reset() {
 	d.cs = dmaReset
-	// Clear bits if needed.
-	// TODO(simokawa): Test if it works as expected.
-	d.cs = dmaInterrupt
 	d.cbAddr = 0
-	d.nextCB = 0
 }
 
 // startIO initializes the DMA channel to start a transmission.
