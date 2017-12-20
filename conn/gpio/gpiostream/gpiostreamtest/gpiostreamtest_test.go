@@ -38,7 +38,7 @@ func TestPinIn_fail_type(t *testing.T) {
 		Ops:       []InOp{{BitStream: gpiostream.BitStream{Res: time.Second, Bits: []byte{0xCC}, LSBF: true}, Pull: gpio.PullNoChange}},
 		DontPanic: true,
 	}
-	b := gpiostream.EdgeStream{Res: time.Minute, Edges: make([]time.Duration, 1)}
+	b := gpiostream.EdgeStream{Res: time.Minute, Edges: make([]uint16, 1)}
 	if p.StreamIn(gpio.PullNoChange, &b) == nil {
 		t.Fatal("unsupported EdgeStream")
 	}
@@ -163,7 +163,7 @@ func TestPinOutRecord(t *testing.T) {
 	data := []gpiostream.Stream{
 		&gpiostream.BitStream{Res: time.Second, Bits: []byte{0xCC}, LSBF: true},
 		&gpiostream.BitStream{Res: time.Second, Bits: []byte{0xCC}, LSBF: false},
-		&gpiostream.EdgeStream{Res: time.Second, Edges: []time.Duration{time.Minute, 2 * time.Minute}},
+		&gpiostream.EdgeStream{Res: time.Second, Edges: []uint16{60, 120}},
 		&gpiostream.Program{Parts: []gpiostream.Stream{&gpiostream.BitStream{Res: time.Second, Bits: []byte{0xCC}, LSBF: true}}, Loops: 2},
 	}
 	for _, line := range data {

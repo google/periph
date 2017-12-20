@@ -24,8 +24,8 @@ func TestBitStream(t *testing.T) {
 }
 
 func TestEdgeStream(t *testing.T) {
-	s := EdgeStream{Res: time.Second, Edges: []time.Duration{time.Second, time.Millisecond}}
-	if r := s.Resolution(); r != time.Second {
+	s := EdgeStream{Res: time.Millisecond, Edges: []uint16{1000, 1}}
+	if r := s.Resolution(); r != time.Millisecond {
 		t.Fatal(r)
 	}
 	if d := s.Duration(); d != 1001*time.Millisecond {
@@ -35,7 +35,7 @@ func TestEdgeStream(t *testing.T) {
 	if r := s.Resolution(); r != 0 {
 		t.Fatal(r)
 	}
-	s = EdgeStream{Edges: []time.Duration{time.Second, time.Millisecond}}
+	s = EdgeStream{Edges: []uint16{1000, 1}}
 	if d := s.Duration(); d != 0 {
 		t.Fatal(d)
 	}
@@ -44,12 +44,12 @@ func TestEdgeStream(t *testing.T) {
 func TestProgram(t *testing.T) {
 	s := Program{
 		Parts: []Stream{
-			&EdgeStream{Res: time.Second, Edges: []time.Duration{time.Second, time.Millisecond}},
+			&EdgeStream{Res: time.Millisecond, Edges: []uint16{1000, 1}},
 			&BitStream{Res: time.Second, Bits: make([]byte, 100)},
 		},
 		Loops: 2,
 	}
-	if r := s.Resolution(); r != 500*time.Millisecond {
+	if r := s.Resolution(); r != time.Millisecond {
 		t.Fatal(r)
 	}
 	if d := s.Duration(); d != 2*(100*8*time.Second+1001*time.Millisecond) {
