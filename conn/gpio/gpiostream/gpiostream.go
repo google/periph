@@ -96,8 +96,12 @@ func (b *BitStreamMSBF) Duration() time.Duration {
 // same resolution and make it looping via a Program.
 type EdgeStream struct {
 	// Edges is the list of Level change. It is assumed that the signal starts
-	// with gpio.High. Use a duration of 0 to start with a Low.
-	Edges []time.Duration
+	// with gpio.High. Use a duration of 0 for Edges[0] to start with a Low
+	// instead of the default High.
+	//
+	// The value is a multiple of Res. Use a 0 value to 'extend' a continuous
+	// signal that lasts more than "2^16-1*Res" duration by skipping a pulse.
+	Edges []uint16
 	// Res is the minimum resolution at which the edges should be
 	// rasterized.
 	//
@@ -118,11 +122,11 @@ func (e *EdgeStream) Duration() time.Duration {
 	if e.Res == 0 {
 		return 0
 	}
-	var t time.Duration
+	t := 0
 	for _, edge := range e.Edges {
-		t += edge
+		t += int(edge)
 	}
-	return t
+	return e.Res * time.Duration(t)
 }
 
 // Program is a loop of streams.

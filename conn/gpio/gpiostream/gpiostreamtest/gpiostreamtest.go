@@ -11,7 +11,6 @@ import (
 	"io"
 	"reflect"
 	"sync"
-	"time"
 
 	"periph.io/x/periph/conn/conntest"
 	"periph.io/x/periph/conn/gpio"
@@ -223,7 +222,7 @@ func deepCopy(s gpiostream.Stream) (gpiostream.Stream, error) {
 		copy(o.Bits, t.Bits)
 		return o, nil
 	case *gpiostream.EdgeStream:
-		o := &gpiostream.EdgeStream{Edges: make([]time.Duration, len(t.Edges)), Res: t.Res}
+		o := &gpiostream.EdgeStream{Edges: make([]uint16, len(t.Edges)), Res: t.Res}
 		copy(o.Edges, t.Edges)
 		return o, nil
 	case *gpiostream.Program:

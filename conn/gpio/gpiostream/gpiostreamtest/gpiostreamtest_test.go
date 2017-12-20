@@ -225,7 +225,7 @@ func TestPinOutRecord(t *testing.T) {
 	data := []gpiostream.Stream{
 		&gpiostream.BitStreamLSBF{Res: time.Second, Bits: gpiostream.BitsLSBF{0xCC}},
 		&gpiostream.BitStreamMSBF{Res: time.Second, Bits: gpiostream.BitsMSBF{0xCC}},
-		&gpiostream.EdgeStream{Res: time.Second, Edges: []time.Duration{time.Minute, 2 * time.Minute}},
+		&gpiostream.EdgeStream{Res: time.Second, Edges: []uint16{60, 120}},
 		&gpiostream.Program{Parts: []gpiostream.Stream{&gpiostream.BitStreamLSBF{Res: time.Second, Bits: gpiostream.BitsLSBF{0xCC}}}, Loops: 2},
 	}
 	for _, line := range data {

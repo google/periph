@@ -102,7 +102,7 @@ func ExamplePinOut() {
 		Parts: []gpiostream.Stream{
 			&gpiostream.EdgeStream{
 				Res:   time.Microsecond,
-				Edges: []time.Duration{250 * time.Microsecond, 750 * time.Microsecond},
+				Edges: []uint16{250, 750},
 			},
 		},
 		Loops: 5000,
