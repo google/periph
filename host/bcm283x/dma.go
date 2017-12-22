@@ -52,8 +52,9 @@ import (
 )
 
 var (
-	dmaMemory    *dmaMap
-	dmaChannel15 *dmaChannel
+	dmaMemory       *dmaMap
+	dmaChannel15    *dmaChannel
+	dmaBufAllocator func(s int) (*videocore.Mem, error) = videocore.Alloc
 )
 
 const (
@@ -641,7 +642,7 @@ func runIO(pCB pmem.Mem, liteOk bool) error {
 }
 
 func allocateCB(size int) ([]controlBlock, *videocore.Mem, error) {
-	buf, err := videocore.Alloc((size + 0xFFF) &^ 0xFFF)
+	buf, err := dmaBufAllocator((size + 0xFFF) &^ 0xFFF)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -654,6 +655,9 @@ func allocateCB(size int) ([]controlBlock, *videocore.Mem, error) {
 }
 
 func startPWMbyDMA(p *Pin, rng, data uint32) (*dmaChannel, *videocore.Mem, error) {
+	if dmaMemory == nil {
+		return nil, nil, errors.New("bcm283x-dma is not initialized; try running as root?")
+	}
 	cb, buf, err := allocateCB(4096)
 	if err != nil {
 		return nil, nil, err
