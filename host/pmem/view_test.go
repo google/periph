@@ -205,9 +205,8 @@ func TestMapAsPOD(t *testing.T) {
 func TestView(t *testing.T) {
 	defer reset()
 	v := View{}
-	if err := v.Close(); err != nil {
-		t.Fatal(err)
-	}
+	// Close fails on invalid View.
+	_ = v.Close()
 	v.PhysAddr()
 }
 
