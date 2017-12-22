@@ -23,10 +23,7 @@ func (d *driver) Prerequisites() []string {
 }
 
 func (d *driver) Init() (bool, error) {
-	if !Present() {
-		return false, errors.New("BeagleBoard/BeagleBone board not detected")
-	}
-	return true, nil
+	return false, errors.New("BeagleBoard/BeagleBone board not detected")
 }
 
 func init() {
