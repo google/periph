@@ -37,7 +37,7 @@ func New() (*Conn, error) {
 	c := &Conn{w: w, c: make(chan ir.Message), list: map[string][]string{}}
 	// Unconditionally retrieve the list of all known keys at start.
 	if _, err := w.Write([]byte("LIST\n")); err != nil {
-		w.Close()
+		_ = w.Close()
 		return nil, err
 	}
 	go c.loop(bufio.NewReader(w))

@@ -96,15 +96,23 @@ func mainImpl() error {
 		log.Println("Failed to unlink leds", err)
 	}
 	for i := 0; i < 8; i++ {
-		dev.SetLED(i, true)
+		if err := dev.SetLED(i, true); err != nil {
+			return err
+		}
 		time.Sleep(75 * time.Millisecond)
 	}
 	time.Sleep(200 * time.Millisecond)
-	dev.AllLEDs(false)
+	if err := dev.AllLEDs(false); err != nil {
+		return err
+	}
 	time.Sleep(100 * time.Millisecond)
-	dev.AllLEDs(true)
+	if err := dev.AllLEDs(true); err != nil {
+		return err
+	}
 	time.Sleep(100 * time.Millisecond)
-	dev.AllLEDs(false)
+	if err := dev.AllLEDs(false); err != nil {
+		return err
+	}
 	if userAskedToLinkLEDs {
 		if err := dev.LinkLEDs(true); err != nil {
 			log.Println("Failed to relink leds", err)

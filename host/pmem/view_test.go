@@ -170,7 +170,8 @@ func TestSlice_Errors1(t *testing.T) {
 
 func TestMapGPIO(t *testing.T) {
 	defer reset()
-	MapGPIO()
+	// It can fail, depending on the platform.
+	_, _ = MapGPIO()
 }
 
 func TestMap(t *testing.T) {
@@ -204,7 +205,9 @@ func TestMapAsPOD(t *testing.T) {
 func TestView(t *testing.T) {
 	defer reset()
 	v := View{}
-	v.Close()
+	if err := v.Close(); err != nil {
+		t.Fatal(err)
+	}
 	v.PhysAddr()
 }
 

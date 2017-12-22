@@ -36,7 +36,9 @@ func (s *SmokeTest) Description() string {
 
 // Run implements the SmokeTest interface.
 func (s *SmokeTest) Run(f *flag.FlagSet, args []string) error {
-	f.Parse(args)
+	if err := f.Parse(args); err != nil {
+		return err
+	}
 	if f.NArg() != 0 {
 		f.Usage()
 		return errors.New("unrecognized arguments")

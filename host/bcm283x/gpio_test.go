@@ -177,7 +177,8 @@ func TestDriver(t *testing.T) {
 	if s := d.Prerequisites(); s != nil {
 		t.Fatal(s)
 	}
-	d.Init()
+	// It will fail to initialize on non-bcm.
+	_, _ = d.Init()
 }
 
 func TestSetSpeed(t *testing.T) {

@@ -43,9 +43,9 @@ func ExampleAll() {
 
 func ExampleOpen() {
 	// On linux, the following calls will likely open the same bus.
-	Open("/dev/i2c-1")
-	Open("I2C1")
-	Open("1")
+	_, _ = Open("/dev/i2c-1")
+	_, _ = Open("I2C1")
+	_, _ = Open("1")
 
 	// How a command line tool may let the user choose an I²C bus, yet default to
 	// the first bus known.
@@ -57,7 +57,9 @@ func ExampleOpen() {
 	}
 	defer b.Close()
 	// Use b...
-	b.Tx(23, []byte("cmd"), nil)
+	if err := b.Tx(23, []byte("cmd"), nil); err != nil {
+		log.Fatal(err)
+	}
 }
 
 //

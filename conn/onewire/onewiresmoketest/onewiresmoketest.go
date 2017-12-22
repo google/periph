@@ -46,7 +46,9 @@ func (s *SmokeTest) Description() string {
 func (s *SmokeTest) Run(f *flag.FlagSet, args []string) error {
 	busName := f.String("i2cbus", "", "I²C bus name for the DS2483 1-wire interface chip")
 	seed := f.Int64("seed", 0, "random number seed, default is to use the time")
-	f.Parse(args)
+	if err := f.Parse(args); err != nil {
+		return err
+	}
 	if f.NArg() != 0 {
 		f.Usage()
 		return errors.New("unrecognized arguments")

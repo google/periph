@@ -24,7 +24,9 @@ func ExampleLEDByName() {
 	if err != nil {
 		log.Fatalf("failed to find LED: %v", err)
 	}
-	led.Out(gpio.Low)
+	if err := led.Out(gpio.Low); err != nil {
+		log.Fatal(err)
+	}
 }
 
 //

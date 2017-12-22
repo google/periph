@@ -47,9 +47,9 @@ func ExampleAll() {
 
 func ExampleOpen() {
 	// On linux, the following calls will likely open the same port.
-	Open("/dev/spidev1.0")
-	Open("SPI1.0")
-	Open("1")
+	_, _ = Open("/dev/spidev1.0")
+	_, _ = Open("SPI1.0")
+	_, _ = Open("1")
 
 	// How a command line tool may let the user choose a SPI port, yet
 	// default to the first port known.
@@ -67,7 +67,9 @@ func ExampleOpen() {
 		log.Fatal(err)
 	}
 	// Use b...
-	c.Tx([]byte("cmd"), nil)
+	if err := c.Tx([]byte("cmd"), nil); err != nil {
+		log.Fatal(err)
+	}
 }
 
 //

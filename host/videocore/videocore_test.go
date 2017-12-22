@@ -21,13 +21,15 @@ func ExampleAlloc() {
 		log.Fatal(err)
 	}
 	// Use m
-	m.Close()
+	if err := m.Close(); err != nil {
+		log.Fatal(err)
+	}
 }
 
 //
 
 func TestClose(t *testing.T) {
-	defer reset()
+	defer reset(t)
 	mailbox = &dummy{}
 	m := Mem{View: &pmem.View{}}
 	if m.Close() == nil {
@@ -36,7 +38,7 @@ func TestClose(t *testing.T) {
 }
 
 func TestAlloc_fail(t *testing.T) {
-	defer reset()
+	defer reset(t)
 	if m, err := Alloc(0); m != nil || err == nil {
 		t.Fatal("can't alloc 0 bytes")
 	}
@@ -89,7 +91,7 @@ func TestAlloc_fail(t *testing.T) {
 }
 
 func TestOpenMailbox(t *testing.T) {
-	defer reset()
+	defer reset(t)
 	mailbox = &playback{}
 	if err := openMailbox(); err != nil {
 		if mailboxErr != err {
@@ -107,11 +109,13 @@ func TestOpenMailbox(t *testing.T) {
 		}
 	}
 	// No-op in any case.
-	openMailbox()
+	if err := openMailbox(); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestSmokeTest(t *testing.T) {
-	defer reset()
+	defer reset(t)
 	mailbox = &dummy{}
 	if err := smokeTest(); err != nil {
 		t.Fatal(err)
@@ -119,7 +123,7 @@ func TestSmokeTest(t *testing.T) {
 }
 
 func TestGenPacket(t *testing.T) {
-	defer reset()
+	defer reset(t)
 	actual := genPacket(10, 12, 1, 2, 3)
 	expected := []uint32{0x24, 0x0, 0xa, 0xc, 0xc, 0x1, 0x2, 0x3, 0x0}
 	if !uint32Equals(actual, expected) {
@@ -177,12 +181,14 @@ func uint32Equals(a []uint32, b []uint32) bool {
 	return true
 }
 
-func reset() {
+func reset(t *testing.T) {
 	mu.Lock()
 	defer mu.Unlock()
 	if mailbox != nil {
 		if m, ok := mailbox.(*messageBox); ok {
-			m.f.Close()
+			if err := m.f.Close(); err != nil {
+				t.Fatal(err)
+			}
 		}
 	}
 	mailbox = nil

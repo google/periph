@@ -66,7 +66,9 @@ func TestSmokeTest_fail(t *testing.T) {
 	}
 
 	copyOffset := func(d, s uint64) error {
-		copyRAM(d, s, 1024, 1)
+		if err := copyRAM(d, s, 1024, 1); err != nil {
+			return err
+		}
 		toSlice(d)[3] = 0
 		return nil
 	}

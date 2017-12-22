@@ -648,7 +648,7 @@ func allocateCB(size int) ([]controlBlock, *videocore.Mem, error) {
 	}
 	var cb []controlBlock
 	if err := buf.AsPOD(&cb); err != nil {
-		buf.Close()
+		_ = buf.Close()
 		return nil, nil, err
 	}
 	return cb, buf, nil
@@ -674,16 +674,22 @@ func startPWMbyDMA(p *Pin, rng, data uint32) (*dmaChannel, *videocore.Mem, error
 	}
 	waits := 0
 	// High
-	cb[0].initBlock(physBit, dest[1], data*4, false, true, false, false, dmaPWM, waits)
+	if err := cb[0].initBlock(physBit, dest[1], data*4, false, true, false, false, dmaPWM, waits); err != nil {
+		_ = buf.Close()
+		return nil, nil, err
+	}
 	cb[0].nextCB = physBuf + cbBytes
 	// Low
-	cb[1].initBlock(physBit, dest[0], (rng-data)*4, false, true, false, false, dmaPWM, waits)
+	if err := cb[1].initBlock(physBit, dest[0], (rng-data)*4, false, true, false, false, dmaPWM, waits); err != nil {
+		_ = buf.Close()
+		return nil, nil, err
+	}
 	cb[1].nextCB = physBuf // Loop back to cb[0]
 
 	// OK with lite channels.
 	_, ch := pickChannel()
 	if ch == nil {
-		buf.Close()
+		_ = buf.Close()
 		return nil, nil, errors.New("bcm283x-dma: no channel available")
 	}
 	ch.startIO(physBuf)

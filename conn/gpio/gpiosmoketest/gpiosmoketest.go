@@ -63,7 +63,9 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) error {
 	pin2 := f.String("pin2", "", "second pin to use")
 	slow := f.Bool("s", false, "slow; insert a second between each step")
 	useSysfs := f.Bool("sysfs", false, "force the use of sysfs")
-	f.Parse(args)
+	if err := f.Parse(args); err != nil {
+		return err
+	}
 	if f.NArg() != 0 {
 		f.Usage()
 		return errors.New("unrecognized arguments")

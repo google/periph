@@ -46,7 +46,9 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) error {
 	spiID := f.String("spi", "", "SPI port to use")
 	wp := f.String("wp", "", "gpio pin for EEPROM write-protect")
 	seed := f.Int64("seed", 0, "random number seed, default is to use the time")
-	f.Parse(args)
+	if err := f.Parse(args); err != nil {
+		return err
+	}
 	if f.NArg() != 0 {
 		f.Usage()
 		return errors.New("unrecognized arguments")
@@ -153,13 +155,19 @@ func (s *SmokeTest) eeprom(d spi.Conn, wpPin gpio.PinIO) error {
 	log.Printf("%s: writing&reading EEPROM byte %#x", s, addr[1])
 	for _, v := range values {
 		// Write byte.
-		d.Tx([]byte{cmdWriteEnable}, rBuf[:1])
-		d.Tx([]byte{cmdWriteMemory, addr[0], addr[1], v}, rBuf[:4])
+		if err := d.Tx([]byte{cmdWriteEnable}, rBuf[:1]); err != nil {
+			return err
+		}
+		if err := d.Tx([]byte{cmdWriteMemory, addr[0], addr[1], v}, rBuf[:4]); err != nil {
+			return err
+		}
 		// Read byte back after the chip is ready.
 		if err := waitReady(d); err != nil {
 			return err
 		}
-		d.Tx([]byte{cmdReadMemory, addr[0], addr[1], 0}, rBuf[:4])
+		if err := d.Tx([]byte{cmdReadMemory, addr[0], addr[1], 0}, rBuf[:4]); err != nil {
+			return err
+		}
 		if rBuf[3] != v {
 			return fmt.Errorf("eeprom: wrote %#x but got %#v back", v, rBuf[3])
 		}
@@ -205,7 +213,9 @@ func (s *SmokeTest) eeprom(d spi.Conn, wpPin gpio.PinIO) error {
 	}
 
 	// Set write-protect, attempt a write, and expect it not to happen.
-	wpPin.Out(gpio.Low)
+	if err := wpPin.Out(gpio.Low); err != nil {
+		return err
+	}
 	if err := d.Tx([]byte{0x10, 0xA5}, nil); err == nil {
 		return errors.New("eeprom: write with write-control disabled didn't return an error")
 	}
@@ -236,7 +246,9 @@ func (s *SmokeTest) eeprom(d spi.Conn, wpPin gpio.PinIO) error {
 func waitReady(d spi.Conn) error {
 	for start := time.Now(); time.Since(start) <= 100*time.Millisecond; {
 		var rBuf [2]byte
-		d.Tx([]byte{cmdReadStatus, 0}, rBuf[:])
+		if err := d.Tx([]byte{cmdReadStatus, 0}, rBuf[:]); err != nil {
+			return err
+		}
 		if rBuf[1]&1 == 0 {
 			return nil
 		}

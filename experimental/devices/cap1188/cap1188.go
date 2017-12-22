@@ -66,15 +66,15 @@ const (
 )
 
 const (
-	// reg_LEDLinking - The Sensor Input LED Linking register controls whether a
+	// regLEDLinking - The Sensor Input LED Linking register controls whether a
 	// capacitive touch sensor input is linked to an LED output. If the
 	// corresponding bit is set, then the appropriate LED output will change
 	// states defined by the LED Behavior controls in response to the capacitive
 	// touch sensor input.
-	reg_LEDLinking = 0x72
-	// reg_LEDOutputControl - The LED Output Control Register controls the output
+	regLEDLinking = 0x72
+	// regLEDOutputControl - The LED Output Control Register controls the output
 	// state of the LED pins that are not linked to sensor inputs.
-	reg_LEDOutputControl = 0x74
+	regLEDOutputControl = 0x74
 )
 
 // Dev is a handle to a cap1188.
@@ -156,11 +156,11 @@ func (d *Dev) InputStatus() ([]TouchStatus, error) {
 // Doing so, disabled the option for the host to set specific LEDs on/off.
 func (d *Dev) LinkLEDs(on bool) error {
 	if on {
-		if err := d.regWrapper.WriteUint8(reg_LEDLinking, 0xff); err != nil {
+		if err := d.regWrapper.WriteUint8(regLEDLinking, 0xff); err != nil {
 			return wrap(fmt.Errorf("failed to link LEDs - %s", err))
 		}
 	} else {
-		if err := d.regWrapper.WriteUint8(reg_LEDLinking, 0x00); err != nil {
+		if err := d.regWrapper.WriteUint8(regLEDLinking, 0x00); err != nil {
 			return wrap(fmt.Errorf("failed to unlink LEDs - %s", err))
 		}
 	}
@@ -176,10 +176,10 @@ func (d *Dev) AllLEDs(on bool) error {
 		return wrap(fmt.Errorf("can't manually set LEDs when they are linked to sensors"))
 	}
 	if on {
-		return d.regWrapper.WriteUint8(reg_LEDOutputControl, 0xff)
+		return d.regWrapper.WriteUint8(regLEDOutputControl, 0xff)
 	}
 
-	return d.regWrapper.WriteUint8(reg_LEDOutputControl, 0x00)
+	return d.regWrapper.WriteUint8(regLEDOutputControl, 0x00)
 }
 
 // SetLED sets the state of a LED as on or off
@@ -195,33 +195,35 @@ func (d *Dev) SetLED(idx int, state bool) error {
 		log.Printf("Set LED state %d - %t\n", idx, state)
 	}
 	if state {
-		return d.setBit(reg_LEDOutputControl, idx)
+		return d.setBit(regLEDOutputControl, idx)
 	}
-	return d.clearBit(reg_LEDOutputControl, idx)
+	return d.clearBit(regLEDOutputControl, idx)
 }
 
 // Reset issues a soft reset to the device using the reset pin
 // if available.
-func (d *Dev) Reset() (err error) {
-	d.ClearInterrupt()
+func (d *Dev) Reset() error {
+	if err := d.ClearInterrupt(); err != nil {
+		return err
+	}
 	if d != nil && d.ResetPin != nil {
 		if d.Debug {
 			log.Println("cap1188: Resetting the device using the reset pin")
 		}
-		if err = d.ResetPin.Out(gpio.Low); err != nil {
+		if err := d.ResetPin.Out(gpio.Low); err != nil {
 			return err
 		}
 		time.Sleep(1 * time.Microsecond)
-		if err = d.ResetPin.Out(gpio.High); err != nil {
+		if err := d.ResetPin.Out(gpio.High); err != nil {
 			return err
 		}
 		time.Sleep(10 * time.Millisecond)
-		if err = d.ResetPin.Out(gpio.Low); err != nil {
+		if err := d.ResetPin.Out(gpio.Low); err != nil {
 			return err
 		}
 	}
-	// track the reset time since the device won't be ready for up to 15ms
-	// and won't be ready for first conversion for up to 200ms
+	// Track the reset time since the device won't be ready for up to 15ms
+	// and won't be ready for first conversion for up to 200ms.
 	d.resetAt = time.Now()
 
 	return nil

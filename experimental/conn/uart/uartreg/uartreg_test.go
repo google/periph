@@ -47,9 +47,9 @@ func ExampleAll() {
 
 func ExampleOpen() {
 	// On linux, the following calls will likely open the same bus.
-	Open("/dev/ttyUSB0")
-	Open("UART0")
-	Open("0")
+	_, _ = Open("/dev/ttyUSB0")
+	_, _ = Open("UART0")
+	_, _ = Open("0")
 
 	// How a command line tool may let the user choose an UART port, yet default
 	// to the first bus known.
@@ -61,7 +61,9 @@ func ExampleOpen() {
 	}
 	defer b.Close()
 	// Use b...
-	b.Tx([]byte("cmd"), nil)
+	if err := b.Tx([]byte("cmd"), nil); err != nil {
+		log.Fatal(err)
+	}
 }
 
 //
