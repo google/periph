@@ -5,6 +5,7 @@
 package ds18b20
 
 import (
+	"reflect"
 	"testing"
 	"time"
 
@@ -61,9 +62,10 @@ func TestTemperature(t *testing.T) {
 		t.Fatal(s)
 	}
 	// Read the temperature.
-	t0 := time.Now()
+	var sleeps []time.Duration
+	sleep = func(d time.Duration) { sleeps = append(sleeps, d) }
+	defer func() { sleep = func(time.Duration) {} }()
 	now, err := dev.Temperature()
-	dt := time.Since(t0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,8 +74,8 @@ func TestTemperature(t *testing.T) {
 		t.Errorf("expected %s, got %s", temp.String(), now.String())
 	}
 	// Expect it to take >187ms
-	if dt < 188*time.Millisecond {
-		t.Errorf("expected conversion to take >187ms, took %s", dt)
+	if !reflect.DeepEqual(sleeps, []time.Duration{188 * time.Millisecond}) {
+		t.Errorf("expected conversion to sleep: %v", sleeps)
 	}
 	if err := dev.Halt(); err != nil {
 		t.Fatal(err)
@@ -93,13 +95,15 @@ func TestConvertAll(t *testing.T) {
 	}
 	bus := onewiretest.Playback{Ops: ops}
 	// Perform the conversion
-	t0 := time.Now()
+	var sleeps []time.Duration
+	sleep = func(d time.Duration) { sleeps = append(sleeps, d) }
+	defer func() { sleep = func(time.Duration) {} }()
 	if err := ConvertAll(&bus, 9); err != nil {
 		t.Fatal(err)
 	}
 	// Expect it to take >93ms
-	if dt := time.Since(t0); dt < 94*time.Millisecond {
-		t.Errorf("expected conversion to take >93ms, took %s", dt)
+	if !reflect.DeepEqual(sleeps, []time.Duration{94 * time.Millisecond}) {
+		t.Errorf("expected conversion to take >93ms, took %s", sleeps)
 	}
 	if err := bus.Close(); err != nil {
 		t.Fatal(err)
@@ -118,6 +122,10 @@ func TestConvertAll_fail_io(t *testing.T) {
 	if err := ConvertAll(bus, 9); err == nil {
 		t.Fatal("invalid io")
 	}
+}
+
+func init() {
+	sleep = func(time.Duration) {}
 }
 
 /* Commented out in order not to import periph/host, need to move to smoke test

@@ -162,7 +162,7 @@ func (d *Dev) waitIdle(delay time.Duration) byte {
 	}
 	// Overall timeout.
 	tOut := time.Now().Add(3 * time.Millisecond)
-	time.Sleep(delay)
+	sleep(delay)
 	for {
 		// Read status register.
 		var status [1]byte
@@ -179,7 +179,7 @@ func (d *Dev) waitIdle(delay time.Duration) byte {
 			return 0
 		}
 		// Try not to hog the kernel thread.
-		time.Sleep(delay / 10)
+		sleep(delay / 10)
 	}
 }
 
@@ -195,6 +195,8 @@ type busError string
 
 func (e busError) Error() string  { return string(e) }
 func (e busError) BusError() bool { return true }
+
+var sleep = time.Sleep
 
 var _ conn.Resource = &Dev{}
 var _ fmt.Stringer = &Dev{}

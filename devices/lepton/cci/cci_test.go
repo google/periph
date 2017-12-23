@@ -6,6 +6,7 @@ package cci
 
 import (
 	"testing"
+	"time"
 
 	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/i2c/i2ctest"
@@ -612,4 +613,8 @@ func runOps(c []byte) []i2ctest.IO {
 		// waitIdle
 		{Addr: 42, W: []byte{0x00, 0x02}, R: []byte{0x00, 0x06}},
 	}
+}
+
+func init() {
+	sleep = func(time.Duration) {}
 }
