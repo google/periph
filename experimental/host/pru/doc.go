@@ -2,9 +2,9 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package pruicss exposes the Programmable Real-Time Unit Subsystem and
-// Industrial Communication Subsystem (PRUICSS) functionality found on many
-// Texas Instruments processors.
+// Package pru exposes the Programmable Real-Time Unit Subsystem and Industrial
+// Communication Subsystem (PRUICSS) functionality found on many Texas
+// Instruments processors.
 //
 // This one of the rare way of doing true realtime on a linux microcomputer.
 //
@@ -30,4 +30,4 @@
 // http://beagleboard.org/pru
 //
 // https://elinux.org/Ti_AM33XX_PRUSSv2
-package pruicss
+package pru
