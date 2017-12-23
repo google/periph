@@ -37,14 +37,27 @@ func TestI2C_faked(t *testing.T) {
 	if s := bus.String(); s != "I2C24" {
 		t.Fatal(s)
 	}
-	// These will all fail, need to mock ioctl.
-	bus.Tx(0x401, nil, nil)
-	bus.Tx(1, nil, nil)
-	bus.Tx(1, []byte{0}, nil)
-	bus.Tx(1, nil, []byte{0})
-	bus.Tx(1, []byte{0}, []byte{0})
-	bus.SetSpeed(0)
-	bus.SetSpeed(1)
+	if bus.Tx(0x401, nil, nil) == nil {
+		t.Fatal("empty Tx")
+	}
+	if err := bus.Tx(1, nil, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := bus.Tx(1, []byte{0}, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := bus.Tx(1, nil, []byte{0}); err != nil {
+		t.Fatal(err)
+	}
+	if err := bus.Tx(1, []byte{0}, []byte{0}); err != nil {
+		t.Fatal(err)
+	}
+	if bus.SetSpeed(0) == nil {
+		t.Fatal("0 is invalid")
+	}
+	if bus.SetSpeed(1) == nil {
+		t.Fatal("can't set speed")
+	}
 	bus.SCL()
 	bus.SDA()
 	if err := bus.Close(); err != nil {
@@ -74,7 +87,10 @@ func TestDriver_Init(t *testing.T) {
 			// It may fail due to ACL.
 			b, _ := i2creg.Open("")
 			if b != nil {
-				b.Close()
+				// If opening succeeded, closing must always succeed.
+				if err := b.Close(); err != nil {
+					t.Fatal(err)
+				}
 			}
 		}
 	}

@@ -224,7 +224,9 @@ func findXIOBase() int {
 			continue
 		}
 		b, err := ioutil.ReadAll(f)
-		f.Close()
+		if err1 := f.Close(); err == nil {
+			err = err1
+		}
 		if err != nil {
 			continue
 		}

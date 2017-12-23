@@ -48,7 +48,9 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) error {
 	i2cID := f.String("bus", "", "I²C bus to use")
 	wc := f.String("wc", "", "gpio pin for EEPROM write-control pin")
 	seed := f.Int64("seed", 0, "random number seed, default is to use the time")
-	f.Parse(args)
+	if err := f.Parse(args); err != nil {
+		return err
+	}
 	if f.NArg() != 0 {
 		f.Usage()
 		return errors.New("unrecognized arguments")
@@ -159,9 +161,13 @@ func (s *SmokeTest) eeprom(bus i2c.Bus, wcPin gpio.PinIO) error {
 		return fmt.Errorf("eeprom: cannot init WC control pin: %v", err)
 	}
 	time.Sleep(time.Millisecond)
-	wcPin.Out(gpio.High)
+	if err := wcPin.Out(gpio.High); err != nil {
+		return err
+	}
 	time.Sleep(time.Millisecond)
-	wcPin.Out(gpio.Low)
+	if err := wcPin.Out(gpio.Low); err != nil {
+		return err
+	}
 
 	// Pick a byte in the first 256 bytes and try to write it and read it back a couple
 	// of times. Using a random byte for "wear leveling"...
@@ -223,7 +229,9 @@ func (s *SmokeTest) eeprom(bus i2c.Bus, wcPin gpio.PinIO) error {
 
 	// Disable write-control, attempt a write, and expect to get an i2c error.
 	// TODO: create a clearly identifiable error.
-	wcPin.Out(gpio.High)
+	if err := wcPin.Out(gpio.High); err != nil {
+		return err
+	}
 	if err := d.WriteUint8(0x10, 0xA5); err == nil {
 		return errors.New("eeprom: write with write-control disabled didn't return an error")
 	}

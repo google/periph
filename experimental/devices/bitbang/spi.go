@@ -98,23 +98,23 @@ func (s *SPI) Tx(w, r []byte) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.csn != nil {
-		s.csn.Out(gpio.Low)
+		_ = s.csn.Out(gpio.Low)
 		s.sleepHalfCycle()
 	}
 	for i := uint(0); i < uint(len(w)*8); i++ {
-		s.sdo.Out(w[i/8]&(1<<(i%8)) != 0)
+		_ = s.sdo.Out(w[i/8]&(1<<(i%8)) != 0)
 		s.sleepHalfCycle()
-		s.sck.Out(gpio.Low)
+		_ = s.sck.Out(gpio.Low)
 		s.sleepHalfCycle()
 		if len(r) != 0 {
 			if s.sdi.Read() == gpio.High {
 				r[i/8] |= 1 << (i % 8)
 			}
 		}
-		s.sck.Out(gpio.Low)
+		_ = s.sck.Out(gpio.Low)
 	}
 	if s.csn != nil {
-		s.csn.Out(gpio.High)
+		_ = s.csn.Out(gpio.High)
 	}
 	return nil
 }

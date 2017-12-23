@@ -42,7 +42,9 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) (err error) {
 	i2cAddr := f.Uint("ia", 0x76, "I²C bus address to use; either 0x76 (BMx280, the default) or 0x77 (BMP180)")
 	spiID := f.String("spi", "", "SPI port to use")
 	record := f.Bool("r", false, "record operation (for playback unit testing)")
-	f.Parse(args)
+	if err := f.Parse(args); err != nil {
+		return err
+	}
 	if f.NArg() != 0 {
 		f.Usage()
 		return errors.New("unrecognized arguments")

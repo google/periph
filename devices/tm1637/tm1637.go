@@ -79,7 +79,9 @@ func (d *Dev) SetBrightness(b Brightness) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 	d.start()
-	d.writeByte(byte(b))
+	if _, err := d.writeByte(byte(b)); err != nil {
+		return err
+	}
 	d.stop()
 	return nil
 }
@@ -104,15 +106,23 @@ func (d *Dev) Write(seg []byte) (int, error) {
 	// Use auto-incrementing address. It is possible to write to a single
 	// segment but there isn't much point.
 	d.start()
-	d.writeByte(0x40)
+	if _, err := d.writeByte(0x40); err != nil {
+		return 0, err
+	}
 	d.stop()
 	d.start()
-	d.writeByte(0xC0)
+	if _, err := d.writeByte(0xC0); err != nil {
+		return 0, err
+	}
 	for i := 0; i < 6; i++ {
 		if len(seg) <= i {
-			d.writeByte(0)
+			if _, err := d.writeByte(0); err != nil {
+				return i, err
+			}
 		} else {
-			d.writeByte(seg[i])
+			if _, err := d.writeByte(seg[i]); err != nil {
+				return i, err
+			}
 		}
 	}
 	d.stop()
@@ -153,16 +163,16 @@ var digitToSegment = []byte{
 }
 
 func (d *Dev) start() {
-	d.data.Out(gpio.Low)
+	_ = d.data.Out(gpio.Low)
 	d.sleepHalfCycle()
-	d.clk.Out(gpio.Low)
+	_ = d.clk.Out(gpio.Low)
 }
 
 func (d *Dev) stop() {
 	d.sleepHalfCycle()
-	d.clk.Out(gpio.High)
+	_ = d.clk.Out(gpio.High)
 	d.sleepHalfCycle()
-	d.data.Out(gpio.High)
+	_ = d.data.Out(gpio.High)
 	d.sleepHalfCycle()
 }
 
@@ -171,27 +181,27 @@ func (d *Dev) stop() {
 func (d *Dev) writeByte(b byte) (bool, error) {
 	for i := 0; i < 8; i++ {
 		// LSB (!)
-		d.data.Out(b&(1<<byte(i)) != 0)
+		_ = d.data.Out(b&(1<<byte(i)) != 0)
 		d.sleepHalfCycle()
-		d.clk.Out(gpio.High)
+		_ = d.clk.Out(gpio.High)
 		d.sleepHalfCycle()
-		d.clk.Out(gpio.Low)
+		_ = d.clk.Out(gpio.Low)
 	}
 	// 9th clock is ACK.
-	d.data.Out(gpio.Low)
+	_ = d.data.Out(gpio.Low)
 	time.Sleep(clockHalfCycle)
 	// TODO(maruel): Add.
 	//if err := d.data.In(gpio.PullUp, gpio.NoEdge); err != nil {
 	//	return false, err
 	//}
-	d.clk.Out(gpio.High)
+	_ = d.clk.Out(gpio.High)
 	d.sleepHalfCycle()
 	//ack := d.data.Read() == gpio.Low
 	//d.sleepHalfCycle()
 	//if err := d.data.Out(); err != nil {
 	//	return false, err
 	//}
-	d.clk.Out(gpio.Low)
+	_ = d.clk.Out(gpio.Low)
 	return true, nil
 }
 

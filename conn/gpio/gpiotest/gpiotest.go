@@ -87,14 +87,14 @@ func (p *Pin) Read() gpio.Level {
 // WaitForEdge implements gpio.PinIn.
 func (p *Pin) WaitForEdge(timeout time.Duration) bool {
 	if timeout == -1 {
-		p.Out(<-p.EdgesChan)
+		_ = p.Out(<-p.EdgesChan)
 		return true
 	}
 	select {
 	case <-time.After(timeout):
 		return false
 	case l := <-p.EdgesChan:
-		p.Out(l)
+		_ = p.Out(l)
 		return true
 	}
 }

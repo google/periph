@@ -223,8 +223,8 @@ func (s *Benchmark) benchmarkOutClock(b *testing.B) {
 	n := (b.N + 1) / 2
 	b.ResetTimer()
 	for i := 0; i < n; i++ {
-		p.Out(gpio.High)
-		p.Out(gpio.Low)
+		_ = p.Out(gpio.High)
+		_ = p.Out(gpio.Low)
 	}
 	b.StopTimer()
 }
@@ -244,7 +244,7 @@ func (s *Benchmark) benchmarkOutSliceLevel(b *testing.B) {
 	}
 	b.ResetTimer()
 	for _, l := range buf {
-		p.Out(l)
+		_ = p.Out(l)
 	}
 	b.StopTimer()
 }
@@ -264,7 +264,7 @@ func (s *Benchmark) benchmarkOutBitsLSBLoop(b *testing.B) {
 	for _, l := range buf {
 		for i := 0; i < 8; i++ {
 			mask := byte(1) << uint(i)
-			p.Out(gpio.Level(l&mask != 0))
+			_ = p.Out(gpio.Level(l&mask != 0))
 		}
 	}
 	b.StopTimer()
@@ -285,7 +285,7 @@ func (s *Benchmark) benchmarkOutBitsMSBLoop(b *testing.B) {
 	for _, l := range buf {
 		for i := 7; i >= 0; i-- {
 			mask := byte(1) << uint(i)
-			p.Out(gpio.Level(l&mask != 0))
+			_ = p.Out(gpio.Level(l&mask != 0))
 		}
 	}
 	b.StopTimer()
@@ -306,14 +306,14 @@ func (s *Benchmark) benchmarkOutBitsLSBUnroll(b *testing.B) {
 	}
 	b.ResetTimer()
 	for _, l := range buf {
-		p.Out(gpio.Level(l&0x01 != 0))
-		p.Out(gpio.Level(l&0x02 != 0))
-		p.Out(gpio.Level(l&0x04 != 0))
-		p.Out(gpio.Level(l&0x08 != 0))
-		p.Out(gpio.Level(l&0x10 != 0))
-		p.Out(gpio.Level(l&0x20 != 0))
-		p.Out(gpio.Level(l&0x40 != 0))
-		p.Out(gpio.Level(l&0x80 != 0))
+		_ = p.Out(gpio.Level(l&0x01 != 0))
+		_ = p.Out(gpio.Level(l&0x02 != 0))
+		_ = p.Out(gpio.Level(l&0x04 != 0))
+		_ = p.Out(gpio.Level(l&0x08 != 0))
+		_ = p.Out(gpio.Level(l&0x10 != 0))
+		_ = p.Out(gpio.Level(l&0x20 != 0))
+		_ = p.Out(gpio.Level(l&0x40 != 0))
+		_ = p.Out(gpio.Level(l&0x80 != 0))
 	}
 	b.StopTimer()
 }
@@ -333,14 +333,14 @@ func (s *Benchmark) benchmarkOutBitsMSBUnroll(b *testing.B) {
 	}
 	b.ResetTimer()
 	for _, l := range buf {
-		p.Out(gpio.Level(l&0x80 != 0))
-		p.Out(gpio.Level(l&0x40 != 0))
-		p.Out(gpio.Level(l&0x20 != 0))
-		p.Out(gpio.Level(l&0x10 != 0))
-		p.Out(gpio.Level(l&0x08 != 0))
-		p.Out(gpio.Level(l&0x04 != 0))
-		p.Out(gpio.Level(l&0x02 != 0))
-		p.Out(gpio.Level(l&0x01 != 0))
+		_ = p.Out(gpio.Level(l&0x80 != 0))
+		_ = p.Out(gpio.Level(l&0x40 != 0))
+		_ = p.Out(gpio.Level(l&0x20 != 0))
+		_ = p.Out(gpio.Level(l&0x10 != 0))
+		_ = p.Out(gpio.Level(l&0x08 != 0))
+		_ = p.Out(gpio.Level(l&0x04 != 0))
+		_ = p.Out(gpio.Level(l&0x02 != 0))
+		_ = p.Out(gpio.Level(l&0x01 != 0))
 	}
 	b.StopTimer()
 }

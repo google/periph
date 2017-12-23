@@ -215,7 +215,7 @@ func TestThermalSensorDriver(t *testing.T) {
 		t.Fatal("unexpected ThermalSensor prerequisites")
 	}
 	// It may pass or fail, as long as it doesn't panic.
-	d.Init()
+	_, _ = d.Init()
 }
 
 //

@@ -62,7 +62,9 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) (err error) {
 	rotated := f.Bool("rotated", false, "Rotate the displays by 180°")
 
 	record := f.Bool("record", false, "record operation (for playback unit testing)")
-	f.Parse(args)
+	if err := f.Parse(args); err != nil {
+		return err
+	}
 	if f.NArg() != 0 {
 		f.Usage()
 		return errors.New("unrecognized arguments")

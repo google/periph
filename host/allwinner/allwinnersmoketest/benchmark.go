@@ -33,7 +33,9 @@ func (s *Benchmark) Description() string {
 // Run implements the SmokeTest interface.
 func (s *Benchmark) Run(f *flag.FlagSet, args []string) error {
 	name := f.String("p", "", "Pin to use")
-	f.Parse(args)
+	if err := f.Parse(args); err != nil {
+		return err
+	}
 	if f.NArg() != 0 {
 		f.Usage()
 		return errors.New("unsupported flags")

@@ -131,7 +131,7 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 				return p.wrap(err)
 			}
 			if err = p.event.MakeEvent(p.fValue.Fd()); err != nil {
-				p.fEdge.Close()
+				_ = p.fEdge.Close()
 				p.fEdge = nil
 				return p.wrap(err)
 			}
@@ -301,7 +301,7 @@ func (p *Pin) open() error {
 	p.fDirection, err = fileIOOpen(p.root+"direction", os.O_RDWR)
 	if err != nil {
 		p.err = err
-		p.fValue.Close()
+		_ = p.fValue.Close()
 		p.fValue = nil
 	}
 	return p.err

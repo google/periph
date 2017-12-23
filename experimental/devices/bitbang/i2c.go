@@ -150,9 +150,9 @@ func New(clk gpio.PinIO, data gpio.PinIO, speedHz int) (*I2C, error) {
 func (i *I2C) start() {
 	// Page 9, section 3.1.4 START and STOP conditions
 	// In multi-master mode, it would have to sense SDA first and after the sleep.
-	i.sda.Out(gpio.Low)
+	_ = i.sda.Out(gpio.Low)
 	i.sleepHalfCycle()
-	i.scl.Out(gpio.Low)
+	_ = i.scl.Out(gpio.Low)
 }
 
 // "When CLK is a high level and DIO changes from low level to high level, data
@@ -161,11 +161,11 @@ func (i *I2C) start() {
 // Lasts 3/2 cycle.
 func (i *I2C) stop() {
 	// Page 9, section 3.1.4 START and STOP conditions
-	i.scl.Out(gpio.Low)
+	_ = i.scl.Out(gpio.Low)
 	i.sleepHalfCycle()
-	i.scl.Out(gpio.High)
+	_ = i.scl.Out(gpio.High)
 	i.sleepHalfCycle()
-	i.sda.Out(gpio.High)
+	_ = i.sda.Out(gpio.High)
 	// TODO(maruel): This sleep could be skipped, assuming we wait for the next
 	// transfer if too quick to happen.
 	i.sleepHalfCycle()
@@ -184,13 +184,13 @@ func (i *I2C) writeByte(b byte) (bool, error) {
 	// clock."
 	// Page 10, section 3.1.5 Byte format
 	for x := 0; x < 8; x++ {
-		i.sda.Out(b&byte(1<<byte(7-x)) != 0)
+		_ = i.sda.Out(b&byte(1<<byte(7-x)) != 0)
 		i.sleepHalfCycle()
 		// Let the device read SDA.
 		// TODO(maruel): Support clock stretching, the device may keep the line low.
-		i.scl.Out(gpio.High)
+		_ = i.scl.Out(gpio.High)
 		i.sleepHalfCycle()
-		i.scl.Out(gpio.Low)
+		_ = i.scl.Out(gpio.Low)
 	}
 	// Page 10, section 3.1.6 ACK and NACK
 	// 9th clock is ACK.
@@ -233,18 +233,18 @@ func (i *I2C) readByte() (byte, error) {
 	for x := 0; x < 8; x++ {
 		i.sleepHalfCycle()
 		// TODO(maruel): Support clock stretching, the device may keep the line low.
-		i.scl.Out(gpio.High)
+		_ = i.scl.Out(gpio.High)
 		i.sleepHalfCycle()
 		if i.sda.Read() == gpio.High {
 			b |= byte(1) << byte(7-x)
 		}
-		i.scl.Out(gpio.Low)
+		_ = i.scl.Out(gpio.Low)
 	}
 	if err := i.sda.Out(gpio.Low); err != nil {
 		return 0, err
 	}
 	i.sleepHalfCycle()
-	i.scl.Out(gpio.High)
+	_ = i.scl.Out(gpio.High)
 	i.sleepHalfCycle()
 	return b, nil
 }

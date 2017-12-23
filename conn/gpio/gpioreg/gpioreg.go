@@ -241,7 +241,3 @@ type pinList []gpio.PinIO
 func (p pinList) Len() int           { return len(p) }
 func (p pinList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 func (p pinList) Less(i, j int) bool { return p[i].Number() < p[j].Number() }
-
-func init() {
-	Register(gpio.INVALID, true)
-}

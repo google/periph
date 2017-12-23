@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/host/pmem"
+	"periph.io/x/periph/host/videocore"
 )
 
 func TestPresent(t *testing.T) {
@@ -142,6 +144,7 @@ func TestPinPWM(t *testing.T) {
 		clockMemory = nil
 		gpioMemory = nil
 		pwmMemory = nil
+		dmaMemory = nil
 	}()
 
 	p := Pin{name: "C1", number: 4, defaultPull: gpio.PullDown}
@@ -160,6 +163,7 @@ func TestPinPWM(t *testing.T) {
 		t.Fatal(err)
 	}
 	// TODO(maruel): Fix test.
+	dmaMemory = &dmaMap{}
 	if err := p.PWM(gpio.DutyHalf, 500*time.Nanosecond); err == nil || err.Error() != "bcm283x-gpio (C1): can't write to clock divisor CPU register" {
 		t.Fatal(err)
 	}
@@ -173,11 +177,19 @@ func TestDriver(t *testing.T) {
 	if s := d.Prerequisites(); s != nil {
 		t.Fatal(s)
 	}
-	d.Init()
+	// It will fail to initialize on non-bcm.
+	_, _ = d.Init()
 }
 
 func TestSetSpeed(t *testing.T) {
 	if setSpeed(1000) == nil {
 		t.Fatal("cannot change live")
+	}
+}
+
+func init() {
+	dmaBufAllocator = func(s int) (*videocore.Mem, error) {
+		buf := make([]byte, s)
+		return &videocore.Mem{View: &pmem.View{Slice: buf}}, nil
 	}
 }

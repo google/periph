@@ -72,7 +72,10 @@ func mainImpl() error {
 	if *edges {
 		for {
 			p.WaitForEdge(-1)
-			printLevel(p.Read())
+			if err := printLevel(p.Read()); err != nil {
+				// Do not return an error on pipe fail, just exit.
+				return nil
+			}
 		}
 	}
 	return printLevel(p.Read())

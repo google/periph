@@ -87,7 +87,7 @@ func TestPlayback_Close_panic(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 	}()
-	p.Close()
+	_ = p.Close()
 	t.Fatal("shouldn't run")
 }
 

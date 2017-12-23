@@ -52,8 +52,9 @@ import (
 )
 
 var (
-	dmaMemory    *dmaMap
-	dmaChannel15 *dmaChannel
+	dmaMemory       *dmaMap
+	dmaChannel15    *dmaChannel
+	dmaBufAllocator func(s int) (*videocore.Mem, error) = videocore.Alloc
 )
 
 const (
@@ -641,19 +642,22 @@ func runIO(pCB pmem.Mem, liteOk bool) error {
 }
 
 func allocateCB(size int) ([]controlBlock, *videocore.Mem, error) {
-	buf, err := videocore.Alloc((size + 0xFFF) &^ 0xFFF)
+	buf, err := dmaBufAllocator((size + 0xFFF) &^ 0xFFF)
 	if err != nil {
 		return nil, nil, err
 	}
 	var cb []controlBlock
 	if err := buf.AsPOD(&cb); err != nil {
-		buf.Close()
+		_ = buf.Close()
 		return nil, nil, err
 	}
 	return cb, buf, nil
 }
 
 func startPWMbyDMA(p *Pin, rng, data uint32) (*dmaChannel, *videocore.Mem, error) {
+	if dmaMemory == nil {
+		return nil, nil, errors.New("bcm283x-dma is not initialized; try running as root?")
+	}
 	cb, buf, err := allocateCB(4096)
 	if err != nil {
 		return nil, nil, err
@@ -670,16 +674,22 @@ func startPWMbyDMA(p *Pin, rng, data uint32) (*dmaChannel, *videocore.Mem, error
 	}
 	waits := 0
 	// High
-	cb[0].initBlock(physBit, dest[1], data*4, false, true, false, false, dmaPWM, waits)
+	if err := cb[0].initBlock(physBit, dest[1], data*4, false, true, false, false, dmaPWM, waits); err != nil {
+		_ = buf.Close()
+		return nil, nil, err
+	}
 	cb[0].nextCB = physBuf + cbBytes
 	// Low
-	cb[1].initBlock(physBit, dest[0], (rng-data)*4, false, true, false, false, dmaPWM, waits)
+	if err := cb[1].initBlock(physBit, dest[0], (rng-data)*4, false, true, false, false, dmaPWM, waits); err != nil {
+		_ = buf.Close()
+		return nil, nil, err
+	}
 	cb[1].nextCB = physBuf // Loop back to cb[0]
 
 	// OK with lite channels.
 	_, ch := pickChannel()
 	if ch == nil {
-		buf.Close()
+		_ = buf.Close()
 		return nil, nil, errors.New("bcm283x-dma: no channel available")
 	}
 	ch.startIO(physBuf)

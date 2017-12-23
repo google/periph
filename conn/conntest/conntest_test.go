@@ -88,7 +88,7 @@ func TestPlayback_Close_panic(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 	}()
-	p.Close()
+	_ = p.Close()
 	t.Fatal("shouldn't run")
 }
 
@@ -138,7 +138,7 @@ func TestPlayback_Tx_panic_count(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 	}()
-	p.Tx([]byte{0}, nil)
+	_ = p.Tx([]byte{0}, nil)
 	t.Fatal("shouldn't run")
 }
 
@@ -154,7 +154,7 @@ func TestPlayback_Tx_panic_write(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 	}()
-	p.Tx([]byte{0}, nil)
+	_ = p.Tx([]byte{0}, nil)
 	t.Fatal("shouldn't run")
 }
 
@@ -170,7 +170,7 @@ func TestPlayback_Tx_panic_read(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 	}()
-	p.Tx(nil, []byte{0, 1})
+	_ = p.Tx(nil, []byte{0, 1})
 	t.Fatal("shouldn't run")
 }
 
