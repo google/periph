@@ -394,10 +394,11 @@ func (p *Pin) PWM(duty gpio.Duty, period time.Duration) error {
 		if err := p.haltDMA(); err != nil {
 			return p.wrap(err)
 		}
-		if p.dmaCh, p.dmaBuf, err = startPWMbyDMA(p, uint32(rng), dat); err != nil {
+		// Start clock before DMA starts.
+		if _, err = setPWMClockSource(baseFreq, div); err != nil {
 			return p.wrap(err)
 		}
-		if _, _, err = setPWMClockSource(baseFreq, div); err != nil {
+		if p.dmaCh, p.dmaBuf, err = startPWMbyDMA(p, uint32(rng), dat); err != nil {
 			return p.wrap(err)
 		}
 	} else {
