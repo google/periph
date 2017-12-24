@@ -9,6 +9,7 @@ import (
 	"errors"
 	"log"
 	"testing"
+	"time"
 
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
@@ -101,4 +102,8 @@ func (f *failPin) Out(l gpio.Level) error {
 		return errors.New("injected error")
 	}
 	return nil
+}
+
+func init() {
+	spin = func(time.Duration) {}
 }

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"testing"
+	"time"
 
 	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/conn/i2c/i2ctest"
@@ -82,6 +83,10 @@ func TestNew_opts(t *testing.T) {
 	if err := bus.Close(); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func init() {
+	sleep = func(time.Duration) {}
 }
 
 /* Commented out in order not to import periph/host, need to move to smoke test

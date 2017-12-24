@@ -19,7 +19,7 @@ func (d *Dev) sense180(env *devices.Environment) error {
 	if err := d.writeCommands([]byte{0xF4, 0x20 | 0x0E}); err != nil {
 		return d.wrap(err)
 	}
-	time.Sleep(4500 * time.Microsecond)
+	doSleep(4500 * time.Microsecond)
 	var tempBuf [2]byte
 	if err := d.readReg(0xF6, tempBuf[:]); err != nil {
 		return d.wrap(err)
@@ -31,7 +31,7 @@ func (d *Dev) sense180(env *devices.Environment) error {
 	if err := d.writeCommands([]byte{0xF4, 0x20 | 0x14 | d.os<<6}); err != nil {
 		return d.wrap(err)
 	}
-	time.Sleep(pressureConvTime180[d.os])
+	doSleep(pressureConvTime180[d.os])
 	var pressureBuf [3]byte
 	if err := d.readReg(0xF6, pressureBuf[:]); err != nil {
 		return d.wrap(err)
