@@ -377,3 +377,7 @@ func TestCompensate180(t *testing.T) {
 		t.Errorf("pressure is wrong, want %v, got %v", 69964, pressure)
 	}
 }
+
+func init() {
+	doSleep = func(time.Duration) {}
+}

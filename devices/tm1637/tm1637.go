@@ -189,7 +189,7 @@ func (d *Dev) writeByte(b byte) (bool, error) {
 	}
 	// 9th clock is ACK.
 	_ = d.data.Out(gpio.Low)
-	time.Sleep(clockHalfCycle)
+	d.sleepHalfCycle()
 	// TODO(maruel): Add.
 	//if err := d.data.In(gpio.PullUp, gpio.NoEdge); err != nil {
 	//	return false, err
@@ -207,8 +207,10 @@ func (d *Dev) writeByte(b byte) (bool, error) {
 
 // sleep does a busy loop to act as fast as possible.
 func (d *Dev) sleepHalfCycle() {
-	cpu.Nanospin(clockHalfCycle)
+	spin(clockHalfCycle)
 }
+
+var spin = cpu.Nanospin
 
 var _ conn.Resource = &Dev{}
 var _ fmt.Stringer = &Dev{}

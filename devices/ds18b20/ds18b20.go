@@ -66,7 +66,7 @@ func New(o onewire.Bus, addr onewire.Address, resolutionBits int) (*Dev, error) 
 			return nil, err
 		}
 		// Wait for the write to complete.
-		time.Sleep(10 * time.Millisecond)
+		sleep(10 * time.Millisecond)
 	}
 
 	return d, nil
@@ -158,7 +158,7 @@ func (e busError) BusError() bool { return true }
 // on the resolution:
 // 9bits:94ms, 10bits:188ms, 11bits:376ms, 12bits:752ms, datasheet p.6.
 func conversionSleep(bits int) {
-	time.Sleep((94 << uint(bits-9)) * time.Millisecond)
+	sleep((94 << uint(bits-9)) * time.Millisecond)
 }
 
 // readScratchpad reads the 9 bytes of scratchpad and checks the CRC.
@@ -182,6 +182,8 @@ func (d *Dev) readScratchpad() ([]byte, error) {
 
 	return spad[:8], nil
 }
+
+var sleep = time.Sleep
 
 var _ conn.Resource = &Dev{}
 var _ fmt.Stringer = &Dev{}

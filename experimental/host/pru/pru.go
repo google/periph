@@ -2,7 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-package pruicss
+package pru
 
 import (
 	"errors"
@@ -25,7 +25,7 @@ type driver struct {
 }
 
 func (d *driver) String() string {
-	return "pruicss"
+	return "pru"
 }
 
 func (d *driver) Prerequisites() []string {
@@ -34,7 +34,7 @@ func (d *driver) Prerequisites() []string {
 
 func (d *driver) Init() (bool, error) {
 	if !Present() {
-		return false, errors.New("real time PRU-ICSS CPU not detected")
+		return false, errors.New("real time TI's PRU side-CPU not detected")
 	}
 	return true, nil
 }

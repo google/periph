@@ -418,7 +418,7 @@ type controlBlock struct {
 //
 // dreq can be dmaFire, dmaPwm, dmaPcmTx, etc. waits is additional wait state
 // between clocks.
-func (c *controlBlock) initBlock(srcAddr, dstAddr, l uint32, srcIO, dstIO, srcInc, dstInc bool, dreq dmaTransferInfo, waits int) error {
+func (c *controlBlock) initBlock(srcAddr, dstAddr, l uint32, srcIO, dstIO, srcInc, dstInc bool, dreq dmaTransferInfo) error {
 	if srcIO && dstIO {
 		return errors.New("only one of src and dst can be I/O")
 	}
@@ -433,12 +433,6 @@ func (c *controlBlock) initBlock(srcAddr, dstAddr, l uint32, srcIO, dstIO, srcIn
 	}
 	if dreq&^dmaPerMapMask != 0 {
 		return errors.New("dreq must be one of the clock source, nothing else")
-	}
-	if waits < 0 || waits > dmaWaitcyclesMax {
-		return fmt.Errorf("waits must be between 0 and %d", dmaWaitcyclesMax)
-	}
-	if dreq == dmaFire && waits != 0 {
-		return errors.New("using wait cycles without a clock doesn't make sense")
 	}
 
 	t := dmaNoWideBursts | dmaWaitResp
@@ -473,8 +467,15 @@ func (c *controlBlock) initBlock(srcAddr, dstAddr, l uint32, srcIO, dstIO, srcIn
 		}
 	}
 	if dreq != dmaFire {
-		// dmaSrcDReq |
-		t |= dmaDstDReq | dreq | dmaTransferInfo(waits<<dmaWaitCyclesShift)
+		// Inserting a wait prevents multiple transfers in a single DReq cycle.
+		waits := 1
+		t |= dreq | dmaTransferInfo(waits<<dmaWaitCyclesShift)
+		if srcIO {
+			t |= dmaSrcDReq
+		}
+		if dstIO {
+			t |= dmaDstDReq
+		}
 	}
 	c.transferInfo = t
 	// In bytes.
@@ -658,7 +659,7 @@ func startPWMbyDMA(p *Pin, rng, data uint32) (*dmaChannel, *videocore.Mem, error
 	if dmaMemory == nil {
 		return nil, nil, errors.New("bcm283x-dma is not initialized; try running as root?")
 	}
-	cb, buf, err := allocateCB(4096)
+	cb, buf, err := allocateCB(2*32 + 4) // 2 CBs + mask
 	if err != nil {
 		return nil, nil, err
 	}
@@ -672,22 +673,26 @@ func startPWMbyDMA(p *Pin, rng, data uint32) (*dmaChannel, *videocore.Mem, error
 		gpioBaseAddr + 0x28 + 4*uint32(p.number/32), // clear
 		gpioBaseAddr + 0x1C + 4*uint32(p.number/32), // set
 	}
-	waits := 0
 	// High
-	if err := cb[0].initBlock(physBit, dest[1], data*4, false, true, false, false, dmaPWM, waits); err != nil {
+	if err := cb[0].initBlock(physBit, dest[1], data*4, false, true, false, false, dmaPWM); err != nil {
 		_ = buf.Close()
 		return nil, nil, err
 	}
 	cb[0].nextCB = physBuf + cbBytes
 	// Low
-	if err := cb[1].initBlock(physBit, dest[0], (rng-data)*4, false, true, false, false, dmaPWM, waits); err != nil {
+	if err := cb[1].initBlock(physBit, dest[0], (rng-data)*4, false, true, false, false, dmaPWM); err != nil {
 		_ = buf.Close()
 		return nil, nil, err
 	}
 	cb[1].nextCB = physBuf // Loop back to cb[0]
 
-	// OK with lite channels.
-	_, ch := pickChannel()
+	var blacklist []int
+	if data*4 >= 1<<16 || (rng-data)*4 >= 1<<16 {
+		// Don't use lite channels.
+		blacklist = []int{7, 8, 9, 10, 11, 12, 13, 14, 15}
+	}
+	_, ch := pickChannel(blacklist...)
+
 	if ch == nil {
 		_ = buf.Close()
 		return nil, nil, errors.New("bcm283x-dma: no channel available")
@@ -751,16 +756,16 @@ func smokeTest() error {
 			// process startup, which may cause undesirable glitches.
 
 			// Initializes the PWM clock right away to 1MHz.
-			_, waits, err := setPWMClockSource(1000000, 10)
+			_, err := setPWMClockSource(1000000, 10)
 			if err != nil {
 				return err
 			}
-			if err := cb.initBlock(uint32(pSrc), uint32(pDst)+holeSize, size-2*holeSize, false, false, true, true, dmaPWM, waits); err != nil {
+			if err := cb.initBlock(uint32(pSrc), uint32(pDst)+holeSize, size-2*holeSize, false, false, true, true, dmaPWM); err != nil {
 				return err
 			}
 		} else {
 			// Use maximum performance.
-			if err := cb.initBlock(uint32(pSrc), uint32(pDst)+holeSize, size-2*holeSize, false, false, true, true, dmaFire, 0); err != nil {
+			if err := cb.initBlock(uint32(pSrc), uint32(pDst)+holeSize, size-2*holeSize, false, false, true, true, dmaFire); err != nil {
 				return err
 			}
 		}

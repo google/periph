@@ -167,7 +167,7 @@ func (d *Dev) Sense(env *devices.Environment) error {
 		if err != nil {
 			return d.wrap(err)
 		}
-		time.Sleep(d.measDelay)
+		doSleep(d.measDelay)
 		for idle := false; !idle; {
 			if idle, err = d.isIdle280(); err != nil {
 				return d.wrap(err)
@@ -513,6 +513,8 @@ var defaults = Opts{
 	Pressure:    O4x,
 	Humidity:    O4x,
 }
+
+var doSleep = time.Sleep
 
 var _ conn.Resource = &Dev{}
 var _ devices.Environmental = &Dev{}

@@ -158,16 +158,16 @@ type clock struct {
 // Favorizes high clock divisor value over high clock wait cycles. This means
 // that the function is slower than it could be, but results in more stable
 // clock.
-func findDivisorExact(srcHz, desiredHz uint64, maxWaitCycles int) (int, int) {
+func findDivisorExact(srcHz, desiredHz uint64, maxWaitCycles uint32) (uint32, uint32) {
 	if srcHz > (desiredHz*uint64(maxWaitCycles)*uint64(clockDiviMax)) || srcHz < desiredHz || srcHz%desiredHz != 0 {
 		// Can't attain without oversampling (too low) or desired frequency is
 		// higher than the source (too high) or is not a multiple.
 		return 0, 0
 	}
-	factor := int(srcHz / desiredHz)
+	factor := uint32(srcHz / desiredHz)
 	// TODO(maruel): Only iterate over valid divisors to save a bit more
 	// calculations. Since it's is only doing 32 loops, this is not a big deal.
-	for wait := 1; wait <= maxWaitCycles; wait++ {
+	for wait := uint32(1); wait <= maxWaitCycles; wait++ {
 		if rest := factor % wait; rest != 0 {
 			continue
 		}
@@ -188,7 +188,7 @@ func findDivisorExact(srcHz, desiredHz uint64, maxWaitCycles int) (int, int) {
 // Allowed oversampling depends on the desiredHz. Cap oversampling because
 // oversampling at 10x in the 1Mhz range becomes unreasonable in term of
 // memory usage.
-func findDivisorOversampled(srcHz, desiredHz uint64, maxWaitCycles int) (int, int, uint64) {
+func findDivisorOversampled(srcHz, desiredHz uint64, maxWaitCycles uint32) (uint32, uint32, uint64) {
 	//log.Printf("findDivisorOversampled(%d, %d, %d)", srcHz, desiredHz, maxWaitCycles)
 	// There are 2 reasons:
 	// - desiredHz is so low it is not possible to lower srcHz to this frequency
@@ -211,7 +211,7 @@ func findDivisorOversampled(srcHz, desiredHz uint64, maxWaitCycles int) (int, in
 //
 // It calculates the clock source, the clock divisor and the wait cycles, if
 // applicable. Wait cycles is 'div minus 1'.
-func calcSource(hz uint64, maxWaitCycles int) (clockCtl, int, int, uint64, error) {
+func calcSource(hz uint64, maxWaitCycles uint32) (clockCtl, uint32, uint32, uint64, error) {
 	if hz < 1 {
 		return 0, 0, 0, 0, fmt.Errorf("bcm283x-clock: desired frequency %dHz must be >1hz", hz)
 	}
@@ -254,7 +254,7 @@ func calcSource(hz uint64, maxWaitCycles int) (clockCtl, int, int, uint64, error
 // available. It is expected to be dmaWaitcyclesMax+1.
 //
 // Returns the actual clock used and divisor.
-func (c *clock) set(hz uint64, maxWaitCycles int) (uint64, int, error) {
+func (c *clock) set(hz uint64, maxWaitCycles uint32) (uint64, uint32, error) {
 	if hz == 0 {
 		c.ctl = clockPasswdCtl | clockKill
 		for c.ctl&clockBusy != 0 {
@@ -269,7 +269,7 @@ func (c *clock) set(hz uint64, maxWaitCycles int) (uint64, int, error) {
 }
 
 // setRaw sets the clock speed with the clock source and the divisor.
-func (c *clock) setRaw(ctl clockCtl, div int) error {
+func (c *clock) setRaw(ctl clockCtl, div uint32) error {
 	if div < 1 || div > clockDiviMax {
 		return errors.New("invalid clock divisor")
 	}

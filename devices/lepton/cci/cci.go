@@ -169,7 +169,7 @@ func New(i i2c.Bus) (*Dev, error) {
 		}
 		//log.Printf("lepton not yet booted: 0x%02x", status)
 		// Polling rocks.
-		time.Sleep(5 * time.Millisecond)
+		sleep(5 * time.Millisecond)
 	}
 }
 
@@ -334,7 +334,7 @@ func (c *cciConn) waitIdle() (StatusBit, error) {
 		if s, err := c.r.ReadUint16(regStatus); err != nil || StatusBit(s)&StatusBusy == 0 {
 			return StatusBit(s), err
 		}
-		time.Sleep(5 * time.Millisecond)
+		sleep(5 * time.Millisecond)
 	}
 }
 
@@ -557,6 +557,8 @@ const (
 )
 
 // TODO(maruel): Enable RadXXX commands.
+
+var sleep = time.Sleep
 
 var _ conn.Resource = &Dev{}
 var _ fmt.Stringer = &Dev{}

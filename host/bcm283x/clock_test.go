@@ -57,9 +57,9 @@ func TestCalcSource_exact(t *testing.T) {
 	t.Parallel()
 	data := []struct {
 		desiredHz          uint64
-		maxWaitCycles      int
+		maxWaitCycles      uint32
 		src                clockCtl
-		clkDiv, waitCycles int
+		clkDiv, waitCycles uint32
 	}{
 		{
 			// Lowest clean exact clock.
@@ -162,9 +162,9 @@ func TestCalcSource_oversample(t *testing.T) {
 	t.Parallel()
 	data := []struct {
 		desiredHz          uint64
-		maxWaitCycles      int
+		maxWaitCycles      uint32
 		src                clockCtl
-		clkDiv, waitCycles int
+		clkDiv, waitCycles uint32
 		hz                 uint64
 	}{
 		{
@@ -216,7 +216,7 @@ func TestCalcSource_inexact(t *testing.T) {
 	// clockDiviMax is 4095, an odd number.
 	data := []struct {
 		desiredHz     uint64
-		maxWaitCycles int
+		maxWaitCycles uint32
 		//src           clockCtl
 		//clkDiv, waitCycles int
 		//hz                 uint64
