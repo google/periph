@@ -220,14 +220,16 @@ func (p *pwmMap) reset() {
 // It may select an higher frequency than the one requested.
 //
 // Other potentially good clock sources are PCM, SPI and UART.
-func setPWMClockSource(hz uint64, div uint32) (uint64, int, error) {
+func setPWMClockSource(hz uint64, div uint32) (uint64, error) {
 	if pwmMemory == nil {
-		return 0, 0, errors.New("subsystem PWM not initialized")
+		return 0, errors.New("subsystem PWM not initialized")
 	}
 	if clockMemory == nil {
-		return 0, 0, errors.New("subsystem Clock not initialized")
+		return 0, errors.New("subsystem Clock not initialized")
 	}
-	actual, divs, err := clockMemory.pwm.set(hz, dmaWaitcyclesMax+1)
+	// divs * div must fit in rng1 registor.
+	maxDivisor := ^uint32(0) / div
+	actual, divs, err := clockMemory.pwm.set(hz, maxDivisor)
 	if err == nil {
 		// It acts as a clock multiplier, since this amount of data is sent per
 		// clock tick.
@@ -244,5 +246,5 @@ func setPWMClockSource(hz uint64, div uint32) (uint64, int, error) {
 		pwmMemory.ctl = (old & ^pwmControl(0xff)) | pwm1UseFIFO | pwm1Enable
 	}
 	// Convert divisor into wait cycles.
-	return actual, divs - 1, err
+	return actual, err
 }
