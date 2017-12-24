@@ -108,7 +108,7 @@ func TestBitStreamLSB(t *testing.T) {
 	if r := s.Resolution(); r != time.Second {
 		t.Fatal(r)
 	}
-	if d := s.Duration(); d != 100*time.Second {
+	if d := s.Duration(); d != 100*8*time.Second {
 		t.Fatal(d)
 	}
 	s = BitStreamLSB{Res: time.Second}
@@ -122,7 +122,7 @@ func TestBitStreamMSB(t *testing.T) {
 	if r := s.Resolution(); r != time.Second {
 		t.Fatal(r)
 	}
-	if d := s.Duration(); d != 100*time.Second {
+	if d := s.Duration(); d != 100*8*time.Second {
 		t.Fatal(d)
 	}
 	s = BitStreamMSB{Res: time.Second}
@@ -174,7 +174,7 @@ func TestProgram(t *testing.T) {
 	if r := s.Resolution(); r != 500*time.Millisecond {
 		t.Fatal(r)
 	}
-	if d := s.Duration(); d != 2*(100*time.Second+1001*time.Millisecond) {
+	if d := s.Duration(); d != 2*(100*8*time.Second+1001*time.Millisecond) {
 		t.Fatal(d)
 	}
 	s = Program{Loops: 0}
@@ -206,7 +206,7 @@ func TestProgram_Nyquist(t *testing.T) {
 	if r := s.Resolution(); r != 500*time.Millisecond {
 		t.Fatal(r)
 	}
-	if d := s.Duration(); d != 7*time.Second+2*time.Millisecond {
+	if d := s.Duration(); d != 7*8*time.Second+2*8*time.Millisecond {
 		t.Fatal(d)
 	}
 }

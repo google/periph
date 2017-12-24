@@ -6,19 +6,26 @@ package bcm283x
 
 import (
 	"errors"
+	"fmt"
 	"time"
 )
 
-// Page 138
-// - Two independent bit-streams
-// - Each channel either a PWM or serialised version of a 32-bit word
-// - Variable input and output resolutions.
-// - Load data from a FIFO storage block, to extent to 8 32-bit words (256
-//   bits).
-//
-// Author note: 100Mhz base resolution with a 256 bits 1-bit stream is actually
-// good enough to generate a DAC.
-var pwmMemory *pwmMap
+var (
+	// Page 138
+	// - Two independent bit-streams
+	// - Each channel either a PWM or serialised version of a 32-bit word
+	// - Variable input and output resolutions.
+	// - Load data from a FIFO storage block, to extent to 8 32-bit words (256
+	//   bits).
+	//
+	// Author note: 100Mhz base resolution with a 256 bits 1-bit stream is actually
+	// good enough to generate a DAC.
+	pwmMemory *pwmMap
+
+	// These clocks are shared with hardware PWM, DMA driven PWM and BitStream.
+	pwmBaseFreq uint64 = 25 * 1000 * 1000 // 25MHz
+	pwmDMAFreq  uint64 = 200 * 1000       // 200KHz
+)
 
 // PWENi is used to enable/disable the corresponding channel. Setting this bit
 // to 1 enables the channel and transmitter state machine. All registers and
@@ -220,31 +227,36 @@ func (p *pwmMap) reset() {
 // It may select an higher frequency than the one requested.
 //
 // Other potentially good clock sources are PCM, SPI and UART.
-func setPWMClockSource(hz uint64, div uint32) (uint64, error) {
+func setPWMClockSource() (uint64, error) {
 	if pwmMemory == nil {
 		return 0, errors.New("subsystem PWM not initialized")
 	}
 	if clockMemory == nil {
 		return 0, errors.New("subsystem Clock not initialized")
 	}
-	// divs * div must fit in rng1 registor.
-	maxDivisor := ^uint32(0) / div
-	actual, divs, err := clockMemory.pwm.set(hz, maxDivisor)
-	if err == nil {
-		// It acts as a clock multiplier, since this amount of data is sent per
-		// clock tick.
-		pwmMemory.rng1 = uint32(divs) * div
-		Nanospin(10 * time.Microsecond)
-		// Periph data (?)
 
-		// Use low priority.
-		pwmMemory.dmaCfg = pwmDMAEnable | pwmDMACfg(15<<pwmPanicShift|15)
-		Nanospin(10 * time.Microsecond)
-		pwmMemory.ctl |= pwmClearFIFO
-		Nanospin(10 * time.Microsecond)
-		old := pwmMemory.ctl
-		pwmMemory.ctl = (old & ^pwmControl(0xff)) | pwm1UseFIFO | pwm1Enable
+	// divs * div must fit in rng1 registor.
+	div := uint32(pwmBaseFreq / pwmDMAFreq)
+	actual, divs, err := clockMemory.pwm.set(pwmBaseFreq, div)
+	if err != nil {
+		return 0, err
 	}
-	// Convert divisor into wait cycles.
-	return actual, err
+	if pwmDMAFreq != actual/uint64(divs*div) {
+		return 0, fmt.Errorf("Unexpected DMA frequency (%d != %d/%d/%d)", pwmDMAFreq, actual, divs, div)
+	}
+	// It acts as a clock multiplier, since this amount of data is sent per
+	// clock tick.
+	pwmMemory.rng1 = divs * div
+	Nanospin(10 * time.Microsecond)
+	// Periph data (?)
+
+	// Use low priority.
+	pwmMemory.dmaCfg = pwmDMAEnable | pwmDMACfg(15<<pwmPanicShift|15)
+	Nanospin(10 * time.Microsecond)
+	pwmMemory.ctl |= pwmClearFIFO
+	Nanospin(10 * time.Microsecond)
+	old := pwmMemory.ctl
+	pwmMemory.ctl = (old & ^pwmControl(0xff)) | pwm1UseFIFO | pwm1Enable
+
+	return pwmDMAFreq, nil
 }

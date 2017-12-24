@@ -7,6 +7,9 @@ package bcm283x
 import (
 	"reflect"
 	"testing"
+	"time"
+
+	"periph.io/x/periph/conn/gpio/gpiostream"
 )
 
 func TestDmaStatus_String(t *testing.T) {
@@ -141,5 +144,19 @@ func TestStructSizes(t *testing.T) {
 	if s := reflect.TypeOf((*dmaChannel)(nil)).Elem().Size(); s != 0x100 {
 		t.Fatalf("dmaChannel size: %d", s)
 	}
+}
 
+func TestCopyStreamToDMAbuf(t *testing.T) {
+	buf := make([]uint32, 2)
+	stream := gpiostream.BitStreamMSB{
+		Bits: []byte{1, 2, 3, 4, 5, 6, 7},
+		Res:  time.Microsecond,
+	}
+	copyStreamToDMABuf(&stream, buf)
+	if buf[0] != 0x01020304 {
+		t.Fatalf("Unexpected 0x%x != 0x%x", buf[0], 0x01020304)
+	}
+	if buf[1] != 0x05060700 {
+		t.Fatalf("Unexpected 0x%x != 0x%x", buf[1], 0x05060700)
+	}
 }
