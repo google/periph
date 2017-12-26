@@ -65,7 +65,7 @@ func (b *BitStreamLSB) Resolution() time.Duration {
 
 // Duration implement Stream.
 func (b *BitStreamLSB) Duration() time.Duration {
-	return b.Res * time.Duration(len(b.Bits))
+	return b.Res * time.Duration(len(b.Bits)*8)
 }
 
 // BitStreamMSB is a stream of Bits.MSB to be written or read.
@@ -85,7 +85,7 @@ func (b *BitStreamMSB) Resolution() time.Duration {
 
 // Duration implement Stream.
 func (b *BitStreamMSB) Duration() time.Duration {
-	return b.Res * time.Duration(len(b.Bits))
+	return b.Res * time.Duration(len(b.Bits)*8)
 }
 
 //

@@ -379,13 +379,10 @@ func (p *Pin) PWM(duty gpio.Duty, period time.Duration) error {
 		return p.wrap(errors.New("bcm283x-dma not initialized; try again as root?"))
 	}
 	p.usingClock = true
-	baseFreq := uint64(25 * 1000 * 1000) // 25MHz
 
 	if useDMA {
-		dmaFreq := uint64(200 * 1000) // 200KHz
-		div := uint32(baseFreq / dmaFreq)
 		// Total cycles in the period
-		rng := dmaFreq * uint64(period) / uint64(time.Second)
+		rng := pwmDMAFreq * uint64(period) / uint64(time.Second)
 		// Pulse width cycles
 		dat := uint32(rng * uint64(duty) / uint64(gpio.DutyMax))
 
@@ -395,7 +392,7 @@ func (p *Pin) PWM(duty gpio.Duty, period time.Duration) error {
 			return p.wrap(err)
 		}
 		// Start clock before DMA starts.
-		if _, err = setPWMClockSource(baseFreq, div); err != nil {
+		if _, err = setPWMClockSource(); err != nil {
 			return p.wrap(err)
 		}
 		if p.dmaCh, p.dmaBuf, err = startPWMbyDMA(p, uint32(rng), dat); err != nil {
@@ -404,11 +401,11 @@ func (p *Pin) PWM(duty gpio.Duty, period time.Duration) error {
 	} else {
 		// TODO(maruel): Leverage oversampling.
 		// Total cycles in the period
-		rng := baseFreq * uint64(period) / uint64(time.Second)
+		rng := pwmBaseFreq * uint64(period) / uint64(time.Second)
 		// Pulse width cycles
 		dat := uint32(rng * uint64(duty) / uint64(gpio.DutyMax))
 
-		if _, _, err := clockMemory.pwm.set(baseFreq, 1); err != nil {
+		if _, _, err := clockMemory.pwm.set(pwmBaseFreq, 1); err != nil {
 			return p.wrap(err)
 		}
 		// Bit shift for PWM0 and PWM1

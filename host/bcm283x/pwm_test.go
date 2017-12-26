@@ -9,14 +9,14 @@ import "testing"
 func TestPWMMap(t *testing.T) {
 	p := pwmMap{}
 	p.reset()
-	if _, err := setPWMClockSource(10, 10); err == nil {
+	if _, err := setPWMClockSource(); err == nil {
 		t.Fatal("pwmMemory is nil")
 	}
 	defer func() {
 		pwmMemory = nil
 	}()
 	pwmMemory = &p
-	if _, err := setPWMClockSource(10, 10); err == nil {
+	if _, err := setPWMClockSource(); err == nil {
 		t.Fatal("clockMemory is nil")
 	}
 }
