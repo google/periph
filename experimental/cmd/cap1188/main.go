@@ -25,7 +25,7 @@ import (
 
 func mainImpl() error {
 	i2cID := flag.String("i2c", "", "I²C bus to use")
-	i2cADDR := flag.Uint("ia", 0x29, "I²C bus address to use, Pimoroni's Drum Hat is 0x2c")
+	i2cAddr := flag.Uint("ia", 0x29, "I²C bus address to use, Pimoroni's Drum Hat is 0x2c")
 	hz := flag.Int("hz", 0, "I²C bus/SPI port speed")
 	verbose := flag.Bool("v", false, "verbose mode")
 	alertPinName := flag.String("alert", "GPIO25", "Name of the alert/interrupt pin")
@@ -37,12 +37,15 @@ func mainImpl() error {
 	log.SetFlags(log.Lmicroseconds)
 
 	opts := cap1188.DefaultOpts()
-	if *i2cADDR != 0 {
-		opts.Address = uint16(*i2cADDR)
+	if *i2cAddr != 0 {
+		if *i2cAddr < 0 || *i2cAddr > 65535 {
+			return errors.New("invlaid -i2c value")
+		}
+		opts.I2CAddr = uint16(*i2cAddr)
 	}
 
 	if _, err := host.Init(); err != nil {
-		return fmt.Errorf("couldn't init the host - %s", err)
+		return err
 	}
 
 	var dev *cap1188.Dev
@@ -54,8 +57,6 @@ func mainImpl() error {
 	if p, ok := i2cBus.(i2c.Pins); ok {
 		printPin("SCL", p.SCL())
 		printPin("SDA", p.SDA())
-	} else {
-		log.Println("i2cBus.(i2c.Pins) failed")
 	}
 
 	if *hz != 0 {
@@ -72,9 +73,7 @@ func mainImpl() error {
 	if err := alertPin.In(gpio.PullUp, gpio.BothEdges); err != nil {
 		return err
 	}
-	if *verbose {
-		log.Printf("cap1188: alert pin: %#v\n", alertPin)
-	}
+	log.Printf("cap1188: alert pin: %#v", alertPin)
 
 	resetPin := gpioreg.ByName(*resetPinName)
 	if resetPin == nil {
@@ -93,7 +92,7 @@ func mainImpl() error {
 	userAskedToLinkLEDs := opts.LinkedLEDs
 	// unlinked LED demo
 	if err := dev.LinkLEDs(false); err != nil {
-		log.Println("Failed to unlink leds", err)
+		log.Printf("Failed to unlink leds: %v", err)
 	}
 	for i := 0; i < 8; i++ {
 		if err := dev.SetLED(i, true); err != nil {
@@ -115,7 +114,7 @@ func mainImpl() error {
 	}
 	if userAskedToLinkLEDs {
 		if err := dev.LinkLEDs(true); err != nil {
-			log.Println("Failed to relink leds", err)
+			log.Printf("Failed to relink leds: %v", err)
 		}
 	}
 
@@ -125,22 +124,21 @@ func mainImpl() error {
 			if alertPin.WaitForEdge(-1) {
 				status, err := dev.InputStatus()
 				if err != nil {
-					log.Printf("Error reading inputs: %s\n", err)
+					log.Printf("Error reading inputs: %s", err)
 				}
-				printSensorsStatus(status)
-				// we need to clear the interrupt so it can be triggered again
+				printSensorsStatus(status[:])
+				// We need to clear the interrupt so it can be triggered again.
 				if err := dev.ClearInterrupt(); err != nil {
-					log.Println(err, "while clearing the interrupt")
+					log.Printf("%v", err)
 				}
 			}
 		}
 	}
 
-	err2 := dev.Halt()
-	if err != nil {
-		return err
+	if err2 := dev.Halt(); err == nil {
+		err = err2
 	}
-	return err2
+	return err
 }
 
 func main() {
@@ -153,15 +151,18 @@ func main() {
 func printPin(fn string, p pin.Pin) {
 	name, pos := pinreg.Position(p)
 	if name != "" {
-		log.Printf("  %-4s: %-10s found on header %s, #%d\n", fn, p, name, pos)
+		log.Printf("  %-4s: %-10s found on header %s, #%d", fn, p, name, pos)
 	} else {
-		log.Printf("  %-4s: %-10s\n", fn, p)
+		log.Printf("  %-4s: %-10s", fn, p)
 	}
 }
 
 func printSensorsStatus(statuses []cap1188.TouchStatus) {
 	for i, st := range statuses {
-		log.Printf("#%d: %s\t", i, st)
+		fmt.Printf("#%d: %s", i, st)
+		if i != len(statuses)-1 {
+			fmt.Printf("\t")
+		}
 	}
-	log.Println()
+	fmt.Printf("\n")
 }
