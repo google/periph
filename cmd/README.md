@@ -4,6 +4,18 @@ This directory contains directly usable tools installable via `go get
 periph.io/x/periph/cmd/...`.
 
 
+## Push
+
+If you prefer to build on your workstation and push the binaries to the micro
+computer, install `push` from [periph.io/x/bootstrap](
+https://github.com/periph/bootstrap) to cross compile and efficiently push via
+rsync:
+
+```
+go get -u periph.io/x/bootstrap/cmd/push
+push -host pi@raspberrypi periph.io/x/periph/cmd/...
+```
+
 ## Recommended first use
 
 Try first `periph-info`. It will print out if any driver failed to run, for
