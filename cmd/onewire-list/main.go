@@ -2,8 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Onewire-list lists all onewire buses and devices.
-
+// onewire-list lists all onewire buses and devices.
 package main
 
 import (
