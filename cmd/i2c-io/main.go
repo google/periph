@@ -53,7 +53,8 @@ func mainImpl() error {
 		if flag.NArg() == 0 {
 			return errors.New("specify data to write as a list of hex encoded bytes")
 		}
-		buf = make([]byte, 0, flag.NArg())
+		buf = make([]byte, 1, flag.NArg()+1)
+		buf[0] = byte(*reg)
 		for _, a := range flag.Args() {
 			b, err := strconv.ParseUint(a, 0, 8)
 			if err != nil {
