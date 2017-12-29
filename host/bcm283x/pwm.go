@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"periph.io/x/periph/host/videocore"
 )
 
 var (
@@ -25,6 +27,8 @@ var (
 	// These clocks are shared with hardware PWM, DMA driven PWM and BitStream.
 	pwmBaseFreq uint64 = 25 * 1000 * 1000 // 25MHz
 	pwmDMAFreq  uint64 = 200 * 1000       // 200KHz
+	pwmDMACh    *dmaChannel
+	pwmDMABuf   *videocore.Mem
 )
 
 // PWENi is used to enable/disable the corresponding channel. Setting this bit
@@ -234,6 +238,10 @@ func setPWMClockSource() (uint64, error) {
 	if clockMemory == nil {
 		return 0, errors.New("subsystem Clock not initialized")
 	}
+	if pwmDMACh != nil {
+		// Already initialized
+		return pwmDMAFreq, nil
+	}
 
 	// divs * div must fit in rng1 registor.
 	div := uint32(pwmBaseFreq / pwmDMAFreq)
@@ -258,5 +266,25 @@ func setPWMClockSource() (uint64, error) {
 	old := pwmMemory.ctl
 	pwmMemory.ctl = (old & ^pwmControl(0xff)) | pwm1UseFIFO | pwm1Enable
 
+	// Start DMA
+	if pwmDMACh, pwmDMABuf, err = dmaWritePWMFIFO(); err != nil {
+		return 0, err
+	}
+
 	return pwmDMAFreq, nil
+}
+
+func resetPWMClockSource() error {
+	if pwmDMACh != nil {
+		pwmDMACh.reset()
+		pwmDMACh = nil
+	}
+	if pwmDMABuf != nil {
+		if err := pwmDMABuf.Close(); err != nil {
+			return err
+		}
+		pwmDMABuf = nil
+	}
+	_, _, err := clockMemory.pwm.set(0, 0)
+	return err
 }

@@ -9,12 +9,14 @@
 package bcm283xsmoketest
 
 import (
+	"encoding/hex"
 	"errors"
 	"flag"
 	"fmt"
 	"time"
 
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/gpio/gpiostream"
 	"periph.io/x/periph/host/bcm283x"
 )
 
@@ -59,7 +61,11 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) error {
 	if err := s.testPWMbyDMA(pClk, pPWM); err != nil {
 		return err
 	}
-	return s.testPWM(pPWM, pClk)
+	if err := s.testPWM(pPWM, pClk); err != nil {
+		return err
+	}
+	return s.testStreamIn(pPWM, pClk)
+	// TODO(simokawa): test StreamOut.
 }
 
 // waitForEdge returns a channel that will return one bool, true if a edge was
@@ -153,6 +159,42 @@ func (s *SmokeTest) testPWM(p1, p2 *loggingPin) error {
 	return p1.Halt()
 }
 
+// testStreamIn tests gpiostream.StreamIn and gpio.PWM.
+func (s *SmokeTest) testStreamIn(p1, p2 *loggingPin) error {
+	const period = 200 * time.Microsecond
+	fmt.Printf("- Testing StreamIn\n")
+	defer p2.Halt()
+	if err := p2.PWM(gpio.DutyHalf, period); err != nil {
+		return err
+	}
+	// Gather 0.1 second of readings at 10kHz sampling rate.
+	// TODO(maruel): Support >64kb buffer.
+	b := &gpiostream.BitStreamLSB{
+		Bits: make(gpiostream.BitsLSB, 1000),
+		Res:  period / 2,
+	}
+	if err := p1.StreamIn(gpio.PullDown, b); err != nil {
+		fmt.Printf("%s\n", hex.EncodeToString(b.Bits))
+		return err
+	}
+
+	// Sum the bits, it should be close to 50%.
+	v := 0
+	for _, x := range b.Bits {
+		for j := 0; j < 8; j++ {
+			v += int((x >> uint(j)) & 1)
+		}
+	}
+	fraction := (100 * v) / (8 * len(b.Bits))
+	fmt.Println("fraction", fraction)
+	if fraction < 45 || fraction > 55 {
+		return fmt.Errorf("reading clock lead to %d%% bits On, expected 50%%", fraction)
+	}
+
+	// TODO(maruel): There should be 10 streaks.
+	return nil
+}
+
 //
 
 func printPin(p gpio.PinIO) {
@@ -190,6 +232,16 @@ func (p *loggingPin) Out(l gpio.Level) error {
 func (p *loggingPin) PWM(duty gpio.Duty, period time.Duration) error {
 	fmt.Printf("  %s %s.PWM(%s, %s)\n", since(p.start), p, duty, period)
 	return p.Pin.PWM(duty, period)
+}
+
+func (p *loggingPin) StreamIn(pull gpio.Pull, s gpiostream.Stream) error {
+	fmt.Printf("  %s %s.StreamIn(%s, %s)\n", since(p.start), p, pull, s)
+	return p.Pin.StreamIn(pull, s)
+}
+
+func (p *loggingPin) StreamOut(s gpiostream.Stream) error {
+	fmt.Printf("  %s %s.StreamOut(%s)\n", since(p.start), p, s)
+	return p.Pin.StreamOut(s)
 }
 
 // ensureConnectivity makes sure they are connected together.

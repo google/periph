@@ -14,6 +14,7 @@ import (
 	"periph.io/x/periph"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
+	"periph.io/x/periph/conn/gpio/gpiostream"
 	"periph.io/x/periph/host/distro"
 	"periph.io/x/periph/host/pmem"
 	"periph.io/x/periph/host/sysfs"
@@ -407,10 +408,6 @@ func (p *Pin) PWM(duty gpio.Duty, period time.Duration) error {
 	} else if duty == gpio.DutyMax {
 		return p.Out(gpio.High)
 	}
-	if period < 500*time.Nanosecond {
-		// High clock rate tends to hang the RPi. Need to investigate more.
-		return p.wrap(errors.New("period must be at least 500ns"))
-	}
 	f := out
 	useDMA := false
 	switch p.number {
@@ -434,17 +431,19 @@ func (p *Pin) PWM(duty gpio.Duty, period time.Duration) error {
 	if pwmMemory == nil || clockMemory == nil {
 		return p.wrap(errors.New("bcm283x-dma not initialized; try again as root?"))
 	}
-	p.usingClock = true
-
 	if useDMA {
+		minPeriod := 2 * time.Second / time.Duration(pwmDMAFreq)
+		if period < minPeriod {
+			return p.wrap(fmt.Errorf("period must be at least %s", minPeriod))
+		}
+
 		// Total cycles in the period
 		rng := pwmDMAFreq * uint64(period) / uint64(time.Second)
 		// Pulse width cycles
-		dat := uint32(rng * uint64(duty) / uint64(gpio.DutyMax))
-
+		dat := uint32((rng*uint64(duty) + uint64(gpio.DutyHalf)) / uint64(gpio.DutyMax))
 		var err error
 		// TODO(simokawa): Reuse DMA buffer if possible.
-		if err := p.haltDMA(); err != nil {
+		if err = p.haltDMA(); err != nil {
 			return p.wrap(err)
 		}
 		// Start clock before DMA starts.
@@ -455,13 +454,15 @@ func (p *Pin) PWM(duty gpio.Duty, period time.Duration) error {
 			return p.wrap(err)
 		}
 	} else {
-		// TODO(maruel): Leverage oversampling.
+		minPeriod := 2 * time.Second / time.Duration(pwmBaseFreq)
+		if period < minPeriod {
+			return p.wrap(fmt.Errorf("period must be at least %s", minPeriod))
+		}
 		// Total cycles in the period
 		rng := pwmBaseFreq * uint64(period) / uint64(time.Second)
 		// Pulse width cycles
-		dat := uint32(rng * uint64(duty) / uint64(gpio.DutyMax))
-
-		if _, _, err := clockMemory.pwm.set(pwmBaseFreq, 1); err != nil {
+		dat := uint32((rng*uint64(duty) + uint64(gpio.DutyHalf)) / uint64(gpio.DutyMax))
+		if _, err := setPWMClockSource(); err != nil {
 			return p.wrap(err)
 		}
 		// Bit shift for PWM0 and PWM1
@@ -479,8 +480,54 @@ func (p *Pin) PWM(duty gpio.Duty, period time.Duration) error {
 		old := pwmMemory.ctl
 		pwmMemory.ctl = (old & ^(0xff << shift)) | ((pwm1Enable | pwm1MS) << shift)
 	}
-
+	p.usingClock = true
 	p.setFunction(f)
+	return nil
+}
+
+// StreamIn implements gpiostream.PinIn.
+//
+// DMA driven StreamOut is available for GPIO0 to GPIO31 pin and the maximum
+// resolution is 200kHz.
+func (p *Pin) StreamIn(pull gpio.Pull, s gpiostream.Stream) error {
+	b, ok := s.(*gpiostream.BitStreamLSB)
+	if !ok {
+		return errors.New("bcm283x: other Stream than BitStreamLSB are not implemented")
+	}
+	if err := p.In(pull, gpio.NoEdge); err != nil {
+		return err
+	}
+	if err := dmaReadStream(p, b); err != nil {
+		return p.wrap(err)
+	}
+	return nil
+}
+
+// StreamOut implements gpiostream.PinOut.
+//
+// PCM/I2S driven StreamOut is available for GPIO21 pin. The resolution is up to
+// 250MHz.
+//
+// For GPIO0 to GPIO31 except GPIO21 pin, DMA driven StreamOut is available and
+// the maximum resolution is 200kHz.
+func (p *Pin) StreamOut(s gpiostream.Stream) error {
+	if err := p.Out(gpio.Low); err != nil {
+		return err
+	}
+	// If the pin is PCM_DOUT, use PCM for much nicer stream and lower memory
+	// usage.
+	if p.number == 21 || p.number == 31 {
+		alt := alt0
+		if p.number == 31 {
+			alt = alt2
+		}
+		p.setFunction(alt)
+		if err := dmaWriteStreamPCM(p, s); err != nil {
+			return p.wrap(err)
+		}
+	} else if err := dmaWriteStreamEdges(p, s); err != nil {
+		return p.wrap(err)
+	}
 	return nil
 }
 
@@ -540,7 +587,7 @@ func (p *Pin) haltClock() error {
 			return nil
 		}
 	}
-	_, _, err := clockMemory.pwm.set(0, 0)
+	err := resetPWMClockSource()
 	return err
 }
 
@@ -974,3 +1021,5 @@ var _ gpio.PinIO = &Pin{}
 var _ gpio.PinIn = &Pin{}
 var _ gpio.PinOut = &Pin{}
 var _ gpio.PinPWM = &Pin{}
+var _ gpiostream.PinIn = &Pin{}
+var _ gpiostream.PinOut = &Pin{}
