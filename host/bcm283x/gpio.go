@@ -82,6 +82,62 @@ func Present() bool {
 	return false
 }
 
+// PinsRead0To31 returns the value of all GPIO0 to GPIO31 at their corresponding
+// bit as a single read operation.
+//
+// This function is extremely fast and does no error checking.
+//
+// The returned bits are valid for both inputs and outputs.
+func PinsRead0To31() uint32 {
+	return gpioMemory.level[0]
+}
+
+// PinsClear0To31 clears the value of GPIO0 to GPIO31 pin for the bit set at
+// their corresponding bit as a single write operation.
+//
+// This function is extremely fast and does no error checking.
+func PinsClear0To31(mask uint32) {
+	gpioMemory.outputClear[0] = mask
+}
+
+// PinsSet0To31 sets the value of GPIO0 to GPIO31 pin for the bit set at their
+// corresponding bit as a single write operation.
+func PinsSet0To31(mask uint32) {
+	gpioMemory.outputSet[0] = mask
+}
+
+// PinsRead32To46 returns the value of all GPIO32 to GPIO46 at their
+// corresponding 'bit minus 32' as a single read operation.
+//
+// This function is extremely fast and does no error checking.
+//
+// The returned bits are valid for both inputs and outputs.
+//
+// Bits above 15 are guaranteed to be 0.
+func PinsRead32To46() uint32 {
+	return gpioMemory.level[1] & 0x7fff
+}
+
+// PinsClear32To46 clears the value of GPIO31 to GPIO46 pin for the bit set at
+// their corresponding 'bit minus 32' as a single write operation.
+//
+// This function is extremely fast and does no error checking.
+//
+// Bits above 15 are ignored.
+func PinsClear32To46(mask uint32) {
+	gpioMemory.outputClear[1] = (mask & 0x7fff)
+}
+
+// PinsSet32To46 sets the value of GPIO31 to GPIO46 pin for the bit set at
+// their corresponding 'bit minus 32' as a single write operation.
+//
+// This function is extremely fast and does no error checking.
+//
+// Bits above 15 are ignored.
+func PinsSet32To46(mask uint32) {
+	gpioMemory.outputSet[1] = (mask & 0x7fff)
+}
+
 // Pin is a GPIO number (GPIOnn) on BCM238(5|6|7).
 //
 // Pin implements gpio.PinIO.

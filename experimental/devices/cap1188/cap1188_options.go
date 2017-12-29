@@ -4,25 +4,28 @@
 
 package cap1188
 
-import "periph.io/x/periph/conn/gpio"
+import (
+	"errors"
 
-// SamplingTime determines the time to take a single sample
+	"periph.io/x/periph/conn/gpio"
+)
+
+// SamplingTime determines the time to make a single sample.
 type SamplingTime uint8
 
-// Possible sampling time values (written as 2 bits)
+// Possible sampling time values. (written as 2 bits)
 const (
 	S320us SamplingTime = 0
 	S640us SamplingTime = 1
 	// S1_28ms represents 1.28ms sampling time, which is the default.
-	S1_28ms SamplingTime = 2 // default
+	S1_28ms SamplingTime = 2
 	S2_56ms SamplingTime = 3
 )
 
-// AvgSampling set the number of samples per measurement that get
-// averaged
+// AvgSampling set the number of samples per measurement that get averaged.
 type AvgSampling uint8
 
-// possible average sampling values. (written as 3 bits)
+// Possible average sampling values. (written as 3 bits)
 const (
 	// Avg1 means that 1 sample is taken per measurement
 	Avg1   AvgSampling = iota // 0
@@ -39,7 +42,7 @@ const (
 // normal operation.
 type CycleTime uint8
 
-// possible cycle time values. (written as 2 bits)
+// Possible cycle time values. (written as 2 bits)
 const (
 	C35ms CycleTime = iota // 0
 	C70ms                  // default
@@ -51,7 +54,7 @@ const (
 // recalibration.
 type MaxDur uint8
 
-// possible touch duration values. (written as 4 bits)
+// Possible touch duration values. (written as 4 bits)
 const (
 	MaxDur560ms MaxDur = iota
 	MaxDur840ms
@@ -71,28 +74,26 @@ const (
 	MaxDur11200ms
 )
 
-// Opts is optional options to pass to the constructor.
-//
-// Address is only used on creation of an I²C-device. Its default value is 0x28.
-// It can be set to other values (0x29, 0x2a, 0x2b, 0x2c) depending on the HW
-// configuration of the ADDR_COMM pin. This has no effect with NewSPI()
+// Opts is options to pass to the constructor.
 type Opts struct {
-	// Address is the I2C slave address to use
-	Address uint16
-
-	// Debug turns on extra logging capabilities
+	// Debug turns on extra logging capabilities.
 	Debug bool
+	// I2CAddr is the I²C slave address to use. It can only used on creation of
+	// an I²C-device. Its default value is 0x28. It can be set to other values
+	// (0x29, 0x2a, 0x2b, 0x2c) depending on the HW configuration of the
+	// ADDR_COMM pin. Must not be set when used over SPI.
+	I2CAddr uint16
 	// LinkedLEDs indicates if the LEDs should be activated automatically
 	// when their sensors detect a touch event.
 	LinkedLEDs bool
 	// MaxTouchDuration sets the touch duration threshold. It is possible that a
 	// “stuck button” occurs when something is placed on a button which causes a
-	// touch to be detected for a long period. By setting this value,
-	// a recalibration can be forced when a touch is held on a button for longer
+	// touch to be detected for a long period. By setting this value, a
+	// recalibration can be forced when a touch is held on a button for longer
 	// than the duration specified.
 	MaxTouchDuration MaxDur
-	// EnableRecalibration is used to force the recalibration if a touch event lasts
-	// longer than MaxTouchDuration.
+	// EnableRecalibration is used to force the recalibration if a touch event
+	// lasts longer than MaxTouchDuration.
 	EnableRecalibration bool
 
 	// AlertPin is the pin receiving the interrupt when a touch event is detected
@@ -105,11 +106,11 @@ type Opts struct {
 	// interrupt on the AlertPin when a release event is detected.
 	InterruptOnRelease bool
 
-	// RetriggerOnHold forces a retrigger of the interrupt when a sensor is pressed
-	// for longer than MaxTouchDuration
+	// RetriggerOnHold forces a retrigger of the interrupt when a sensor is
+	// pressed for longer than MaxTouchDuration
 	RetriggerOnHold bool
 
-	// Averaging and Sampling Configuration Register
+	// Averaging and Sampling Configuration Register.
 
 	// SamplesPerMeasurement is the number of samples taken per measurement. All
 	// samples are taken consecutively on the same channel before the next
@@ -118,15 +119,27 @@ type Opts struct {
 	// Available options: 1, 2, 4, 8 (default), 16, 32, 64, 128
 	SamplesPerMeasurement AvgSampling
 
-	// SamplingTime Determines the time to take a single sample as shown
+	// SamplingTime Determines the time to take a single sample as shown.
 	SamplingTime SamplingTime
 
-	// CycleTime  determines the overall cycle time for all measured channels
+	// CycleTime determines the overall cycle time for all measured channels
 	// during normal operation. All measured channels are sampled at the
 	// beginning of the cycle time. If additional time is remaining, then the
 	// device is placed into a lower power state for the remaining duration of
 	// the cycle.
 	CycleTime CycleTime
+}
+
+func (o *Opts) i2cAddr() (uint16, error) {
+	switch o.I2CAddr {
+	case 0:
+		// Default address.
+		return 0x28, nil
+	case 0x28, 0x29, 0x2a, 0x2b, 0x2c:
+		return o.I2CAddr, nil
+	default:
+		return 0, errors.New("given address not supported by device")
+	}
 }
 
 // DefaultOpts returns a pointer to a new Opts with the default option values.
