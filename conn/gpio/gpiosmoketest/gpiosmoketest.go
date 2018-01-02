@@ -386,10 +386,7 @@ func (s *SmokeTest) testEdges(p1, p2 gpio.PinIO) error {
 	if err := s.testEdgesSide(p1, p2, gpio.RisingEdge); err != nil {
 		return err
 	}
-	if err := s.testEdgesSide(p1, p2, gpio.FallingEdge); err != nil {
-		return err
-	}
-	return nil
+	return s.testEdgesSide(p1, p2, gpio.FallingEdge)
 }
 
 // testPull ensures input pull resistor works.

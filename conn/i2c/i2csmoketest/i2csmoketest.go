@@ -82,11 +82,7 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) error {
 	if err := s.ds248x(i2cBus); err != nil {
 		return err
 	}
-	if err := s.eeprom(i2cBus, wcPin); err != nil {
-		return err
-	}
-
-	return nil
+	return s.eeprom(i2cBus, wcPin)
 }
 
 // ds248x tests a Maxim DS248x 1-wire interface chip attached to the I²C bus. Such a chip
