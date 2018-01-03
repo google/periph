@@ -8,10 +8,16 @@ Documentation is at https://periph.io
 [![Go Report Card](https://goreportcard.com/badge/periph.io/x/periph)](https://goreportcard.com/report/periph.io/x/periph)
 [![Coverage Status](https://codecov.io/gh/google/periph/graph/badge.svg)](https://codecov.io/gh/google/periph)
 [![Build Status](https://travis-ci.org/google/periph.svg)](https://travis-ci.org/google/periph)
-[![Gitter chat](https://badges.gitter.im/google/periph.png)](https://gitter.im/periph-io/Lobby)
+
+
+Join us for a chat on
+[gophers.slack.com/messages/periph](https://gophers.slack.com/messages/periph),
+get an [invite here](https://invite.slack.golangbridge.org/).
 
 
 ## Example
+
+Blink a LED:
 
 ~~~go
 package main
