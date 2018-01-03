@@ -43,7 +43,7 @@ func (s *Benchmark) runGPIOBenchmark() {
 
 // benchmarkInNaive reads but ignores the data.
 //
-// This is an intentionally naive benchamrk.
+// This is an intentionally naive benchmark.
 func (s *Benchmark) benchmarkInNaive(b *testing.B) {
 	p := s.p
 	if err := p.In(s.pull, gpio.NoEdge); err != nil {
