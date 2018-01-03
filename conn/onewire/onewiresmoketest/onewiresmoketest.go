@@ -82,11 +82,7 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) error {
 	if err := s.ds18b20(onewireBus, addrs[0]); err != nil {
 		return err
 	}
-	if err := s.eeprom(onewireBus, addrs[1]); err != nil {
-		return err
-	}
-
-	return nil
+	return s.eeprom(onewireBus, addrs[1])
 }
 
 // search performs a search cycle on the bus and verifies that the two expected devices

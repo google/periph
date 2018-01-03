@@ -420,10 +420,7 @@ func (d *Dev) makeDev(opts *Opts) error {
 				0xF4, byte(d.opts.Temperature)<<5 | byte(d.opts.Pressure)<<2 | byte(sleep),
 			}
 		}
-		if err := d.writeCommands(b); err != nil {
-			return err
-		}
-		return nil
+		return d.writeCommands(b)
 	}
 	// Read calibration data.
 	dev := mmr.Dev8{Conn: d.d, Order: binary.BigEndian}

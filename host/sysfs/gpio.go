@@ -92,10 +92,7 @@ func (p *Pin) Function() string {
 func (p *Pin) Halt() error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	if err := p.haltEdge(); err != nil {
-		return err
-	}
-	return nil
+	return p.haltEdge()
 }
 
 // In setups a pin as an input.

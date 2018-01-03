@@ -59,10 +59,7 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) error {
 	if err := s.testPWMbyDMA(pClk, pPWM); err != nil {
 		return err
 	}
-	if err := s.testPWM(pPWM, pClk); err != nil {
-		return err
-	}
-	return nil
+	return s.testPWM(pPWM, pClk)
 }
 
 // waitForEdge returns a channel that will return one bool, true if a edge was
