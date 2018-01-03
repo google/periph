@@ -6,6 +6,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -72,13 +73,15 @@ func mainImpl() error {
 	aliases := flag.Bool("l", false, "print aliases pins (e.g. I2C1_SCL)")
 	gpios := flag.Bool("g", false, "print GPIO pins (e.g. GPIO1) (default)")
 	invalid := flag.Bool("n", false, "show not connected/INVALID pins")
-	verbose := flag.Bool("v", false, "enable verbose logs")
+	verbose := flag.Bool("v", false, "verbose mode")
 	flag.Parse()
-
 	if !*verbose {
 		log.SetOutput(ioutil.Discard)
 	}
-	log.SetFlags(0)
+	log.SetFlags(log.Lmicroseconds)
+	if flag.NArg() != 0 {
+		return errors.New("unexpected argument, try -help")
+	}
 
 	if *all {
 		*aliases = true

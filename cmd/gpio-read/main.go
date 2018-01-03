@@ -31,9 +31,8 @@ func mainImpl() error {
 	pullUp := flag.Bool("u", false, "pull up")
 	pullDown := flag.Bool("d", false, "pull down")
 	edges := flag.Bool("e", false, "wait for edges")
-	verbose := flag.Bool("v", false, "enable verbose logs")
+	verbose := flag.Bool("v", false, "verbose mode")
 	flag.Parse()
-
 	if !*verbose {
 		log.SetOutput(ioutil.Discard)
 	}

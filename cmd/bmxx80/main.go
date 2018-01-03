@@ -90,6 +90,9 @@ func mainImpl() error {
 		log.SetOutput(ioutil.Discard)
 	}
 	log.SetFlags(log.Lmicroseconds)
+	if flag.NArg() != 0 {
+		return errors.New("unexpected argument, try -help")
+	}
 
 	s := bmxx80.O4x
 	if *sample1x {

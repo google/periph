@@ -7,7 +7,10 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"os"
 
 	"periph.io/x/periph/conn/gpio"
@@ -16,12 +19,19 @@ import (
 )
 
 func mainImpl() error {
-	if len(os.Args) != 3 {
+	verbose := flag.Bool("v", false, "verbose mode")
+	flag.Parse()
+	if !*verbose {
+		log.SetOutput(ioutil.Discard)
+	}
+	log.SetFlags(log.Lmicroseconds)
+	if flag.NArg() != 2 {
 		return errors.New("specify GPIO pin to write to and its level (0 or 1)")
 	}
 
+	args := flag.Args()
 	l := gpio.Low
-	switch os.Args[2] {
+	switch args[1] {
 	case "0":
 	case "1":
 		l = gpio.High
@@ -33,7 +43,7 @@ func mainImpl() error {
 		return err
 	}
 
-	p := gpioreg.ByName(os.Args[1])
+	p := gpioreg.ByName(args[0])
 	if p == nil {
 		return errors.New("invalid GPIO pin number")
 	}
