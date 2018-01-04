@@ -33,6 +33,9 @@ func mainImpl() error {
 		log.SetOutput(ioutil.Discard)
 	}
 	log.SetFlags(log.Lmicroseconds)
+	if flag.NArg() != 0 {
+		return errors.New("unexpected argument, try -help")
+	}
 
 	if *addr < 0 || *addr >= 1<<9 {
 		return fmt.Errorf("-a is required and must be between 0 and %d", 1<<9-1)

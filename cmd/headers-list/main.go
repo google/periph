@@ -90,13 +90,16 @@ func printHardware(invalid bool, all map[string][][]pin.Pin) {
 
 func mainImpl() error {
 	invalid := flag.Bool("n", false, "show not connected/INVALID pins")
-	verbose := flag.Bool("v", false, "enable verbose logs")
+	verbose := flag.Bool("v", false, "verbose mode")
 	flag.Parse()
-
 	if !*verbose {
 		log.SetOutput(ioutil.Discard)
 	}
-	log.SetFlags(0)
+	log.SetFlags(log.Lmicroseconds)
+	if flag.NArg() != 0 {
+		return errors.New("unexpected argument, try -help")
+	}
+
 	state, err := host.Init()
 	if err != nil {
 		return err

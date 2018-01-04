@@ -397,7 +397,7 @@ func mainImpl() error {
 	}
 	log.SetFlags(log.Lmicroseconds)
 	if flag.NArg() != 0 {
-		return errors.New("unsupported arguments")
+		return errors.New("unexpected argument, try -help")
 	}
 	hasOutput := len(*output) != 0
 	if hasOutput && *ffc {
