@@ -43,6 +43,7 @@ package bcm283x
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -55,6 +56,7 @@ import (
 
 var (
 	pcmBaseAddr     uint32
+	pwmBaseAddr     uint32
 	dmaMemory       *dmaMap
 	dmaChannel15    *dmaChannel
 	dmaBufAllocator func(s int) (*videocore.Mem, error) = videocore.Alloc
@@ -713,6 +715,36 @@ func dmaWriteStreamPCM(p *Pin, w gpiostream.Stream) error {
 	return nil
 }
 
+func dmaWritePWMFIFO() (*dmaChannel, *videocore.Mem, error) {
+	if dmaMemory == nil {
+		return nil, nil, errors.New("bcm283x-dma is not initialized; try running as root?")
+	}
+	cb, buf, err := allocateCB(32 + 4) // CB + data
+	if err != nil {
+		return nil, nil, err
+	}
+	u := buf.Uint32()
+	offsetBytes := uint32(32)
+	u[offsetBytes/4] = 0x0
+	physBuf := uint32(buf.PhysAddr())
+	physBit := physBuf + offsetBytes
+	dest := pwmBaseAddr + 0x18 // PWM FIFO
+	if err := cb[0].initBlock(physBit, dest, 4, false, true, false, false, dmaPWM); err != nil {
+		_ = buf.Close()
+		return nil, nil, err
+	}
+	cb[0].nextCB = physBuf // Loop back to self.
+
+	_, ch := pickChannel()
+	if ch == nil {
+		_ = buf.Close()
+		return nil, nil, errors.New("bcm283x-dma: no channel available")
+	}
+	ch.startIO(physBuf)
+
+	return ch, buf, nil
+}
+
 func startPWMbyDMA(p *Pin, rng, data uint32) (*dmaChannel, *videocore.Mem, error) {
 	if dmaMemory == nil {
 		return nil, nil, errors.New("bcm283x-dma is not initialized; try running as root?")
@@ -967,7 +999,9 @@ func dmaWriteStreamDualChannel(p *Pin, w gpiostream.Stream) error {
 		return err
 	}
 
-	// The first channel must be a full bandwidth one.
+	// The first channel must be a full bandwidth one. The "light" ones are
+	// effectively a single one, which means that they are interleaved. If both
+	// are "light" then the jitter is largely increased.
 	x, chSet := pickChannel(6, 7, 8, 9, 10, 11, 12, 13, 14, 15)
 	if chSet == nil {
 		return errors.New("bcm283x-dma: no channel available")
@@ -1096,7 +1130,8 @@ func (d *driverDMA) Init() (bool, error) {
 	if err := pmem.MapAsPOD(uint64(pcmBaseAddr), &pcmMemory); err != nil {
 		return true, err
 	}
-	if err := pmem.MapAsPOD(uint64(baseAddr+0x20C000), &pwmMemory); err != nil {
+	pwmBaseAddr = baseAddr + 0x20C000
+	if err := pmem.MapAsPOD(uint64(pwmBaseAddr), &pwmMemory); err != nil {
 		return true, err
 	}
 	if err := pmem.MapAsPOD(uint64(baseAddr+0x101000), &clockMemory); err != nil {
@@ -1115,12 +1150,12 @@ func (d *driverDMA) Close() error {
 
 func debugDMA() {
 	for i, ch := range dmaMemory.channels {
-		fmt.Println(i, ch.cs.String())
+		log.Println(i, ch.cs.String())
 		if ch.cs&dmaActive != 0 {
-			fmt.Printf("%x: %s", ch.cbAddr, ch.GoString())
+			log.Printf("%x: %s", ch.cbAddr, ch.GoString())
 		}
 	}
-	fmt.Println(15, dmaChannel15.cs.String())
+	log.Println(15, dmaChannel15.cs.String())
 }
 
 func resetDMA(ch int) error {

@@ -207,12 +207,12 @@ func TestPinPWM(t *testing.T) {
 
 	clockMemory = &clockMap{}
 	pwmMemory = &pwmMap{}
-	if err := p.PWM(gpio.DutyHalf, 499*time.Nanosecond); err == nil || err.Error() != "bcm283x-gpio (C1): period must be at least 500ns" {
+	if err := p.PWM(gpio.DutyHalf, 9*time.Microsecond); err == nil || err.Error() != "bcm283x-gpio (C1): period must be at least 10µs" {
 		t.Fatal(err)
 	}
 	// TODO(maruel): Fix test.
 	dmaMemory = &dmaMap{}
-	if err := p.PWM(gpio.DutyHalf, 500*time.Nanosecond); err == nil || err.Error() != "bcm283x-gpio (C1): can't write to clock divisor CPU register" {
+	if err := p.PWM(gpio.DutyHalf, 10*time.Microsecond); err == nil || err.Error() != "bcm283x-gpio (C1): can't write to clock divisor CPU register" {
 		t.Fatal(err)
 	}
 }
