@@ -14,7 +14,7 @@ import (
 	"periph.io/x/periph/conn/gpio"
 )
 
-// Pin implements gpio.Pin.
+// Pin implements gpio.PinIO.
 //
 // Modify its members to simulate hardware events.
 type Pin struct {
