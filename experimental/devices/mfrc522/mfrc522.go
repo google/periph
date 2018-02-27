@@ -750,3 +750,18 @@ func ParseBlockAccess(ad []byte) (ba *BlocksAccess) {
 	ba.B3 = SectorTrailerAccess(ad[1]&0x80>>7 | ad[2]&0x08>>2 | ad[2]&0x80>>5)
 	return
 }
+
+//Halt implements Resource.Halt
+func (r *Dev) Halt() (err error) {
+	err = r.StopCrypto()
+	if err != nil {
+		return
+	}
+	err = r.Reset()
+	return
+}
+
+func (r *Dev) String() string {
+	return fmt.Sprintf("Mifare MFRC522 [bus: %v, reset pin: %s, irq pin: %s, max speed :%d]",
+		r.spiDev, r.resetPin.Name(), r.irqPin.Name(), maxSpeed)
+}
