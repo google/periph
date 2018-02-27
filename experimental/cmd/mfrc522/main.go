@@ -1,59 +1,61 @@
-// Copyright 2016 The Periph Authors. All rights reserved.
+// Copyright 2018 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
+
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 	"periph.io/x/periph/conn/spi/spireg"
-	rf522 "periph.io/x/periph/experimental/devices/mfrc522"
+	"periph.io/x/periph/experimental/devices/mfrc522"
 	"periph.io/x/periph/experimental/devices/mfrc522/commands"
 	"periph.io/x/periph/host"
 	"strconv"
 	"strings"
 )
 
-var (
-	sector = flag.Int("sector", 1, "Sector to access")
-	block  = flag.Int("block", 0, "Block to access")
+func mainImpl() (err error) {
 
-	rsPin  = flag.String("rs-pin", "13", "Reset pin")
-	irqPin = flag.String("irq-pin", "12", "IRQ pin")
+	sector := flag.Int("sector", 1, "Sector to access")
+	block := flag.Int("block", 0, "Block to access")
 
-	keyCommand   = flag.Bool("wa", false, "Overwrite keys")
-	blockCommand = flag.Bool("wb", false, "Overwrite block by [0-15]")
+	rsPin := flag.String("rs-pin", "", "Reset pin")
+	irqPin := flag.String("irq-pin", "", "IRQ pin")
 
-	spiDevice = flag.String("spidev", "/dev/spidev0.0", "SPI device")
+	keyCommand := flag.Bool("wa", false, "Overwrite keys")
+	blockCommand := flag.Bool("wb", false, "Overwrite block by [0-15]")
 
-	key = flag.String("key", "", "Comma-separated key bytes")
-)
+	spiID := flag.String("spi", "", "SPI device")
 
-func main() {
+	key := flag.String("key", "", "Comma-separated key bytes")
 
 	flag.Parse()
 
-	fmt.Println("Using pin settings: rsPin", *rsPin, "irqPin", *irqPin)
-
-	if _, err := host.Init(); err != nil {
-		log.Fatal(err)
+	if *irqPin == "" || *rsPin == "" {
+		return errors.New("please provide -rs-pin and -irq-pin arguments, or -h for help")
 	}
 
-	currentAccessKey := rf522.DefaultKey
+	if _, err = host.Init(); err != nil {
+		return
+	}
+
+	currentAccessKey := mfrc522.DefaultKey
 
 	if *key != "" {
 		keyBytes := strings.SplitN(*key, ",", 6)
 		if len(keyBytes) != 6 {
-			log.Fatal("Key should consist of 6 decimal numbers")
+			return errors.New("key should consist of 6 decimal numbers")
 		}
 		currentAccessKey = make([]byte, 6)
 
 		for i, v := range keyBytes {
 			intV, err := strconv.Atoi(v)
 			if err != nil {
-				log.Fatal(err)
+				return err
 			}
 			currentAccessKey[i] = byte(intV)
 		}
@@ -61,33 +63,26 @@ func main() {
 
 	currentAccessMethod := byte(commands.PICC_AUTHENT1B)
 
-	// use BCM numbering here
-	log.SetOutput(os.Stdout)
-
-	spiDev, err := spireg.Open(*spiDevice)
+	spiDev, err := spireg.Open(*spiID)
 	if err != nil {
-		log.Fatal(err)
+		return
 	}
 
-	rfid, err := rf522.NewSPI(spiDev, 1000000, *rsPin, *irqPin)
+	rfid, err := mfrc522.NewSPI(spiDev, *rsPin, *irqPin)
 	if err != nil {
-		log.Fatal(err)
+		return
 	}
 
-	data, err := rfid.ReadCard(currentAccessMethod, *sector, *block, currentAccessKey[:])
+	data, err := rfid.ReadCard(currentAccessMethod, *sector, *block, currentAccessKey)
 	if err != nil {
-		log.Fatal(err)
+		return
 	}
-	auth, err := rfid.ReadAuth(currentAccessMethod, *sector, currentAccessKey[:])
+	auth, err := rfid.ReadAuth(currentAccessMethod, *sector, currentAccessKey)
 	if err != nil {
-		log.Fatal(err)
+		return
 	}
 
-	access := rf522.ParseBlockAccess(auth[6:10])
-
-	if err != nil {
-		log.Fatal(err)
-	}
+	access := mfrc522.ParseBlockAccess(auth[6:10])
 
 	fmt.Printf("RFID sector %d, block %d : %v, auth: %v\n", *sector, *block, data, auth)
 	fmt.Printf("Permissions: B0: %s, B1: %s, B2: %s, B3/A: %s\n",
@@ -102,13 +97,13 @@ func main() {
 			*sector,
 			[6]byte{1, 2, 3, 4, 5, 6},
 			[6]byte{6, 5, 4, 3, 2, 1},
-			&rf522.BlocksAccess{
-				B0: rf522.RAB_WB_IB_DAB,
-				B1: rf522.RB_WB_IN_DN,
-				B2: rf522.AnyKeyRWID,
-				B3: rf522.KeyA_RN_WN_BITS_RAB_WN_KeyB_RN_WN,
+			&mfrc522.BlocksAccess{
+				B0: mfrc522.RAB_WB_IB_DAB,
+				B1: mfrc522.RB_WB_IN_DN,
+				B2: mfrc522.AnyKeyRWID,
+				B3: mfrc522.KeyA_RN_WN_BITS_RAB_WN_KeyB_RN_WN,
 			},
-			currentAccessKey[:],
+			currentAccessKey,
 		)
 		if err != nil {
 			log.Fatal(err)
@@ -125,4 +120,12 @@ func main() {
 		}
 	}
 
+	return
+}
+
+func main() {
+	if err := mainImpl(); err != nil {
+		fmt.Fprintf(os.Stderr, "mfrc522: %s.\n", err)
+		os.Exit(1)
+	}
 }
