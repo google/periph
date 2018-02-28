@@ -69,7 +69,17 @@ func mainImpl() error {
 		return err
 	}
 
-	rfid, err := mfrc522.NewSPI(spiDev, gpioreg.ByName(*rsPin), gpioreg.ByName(*irqPin))
+	rsPinReg := gpioreg.ByName(*rsPin)
+	if rsPinReg == nil {
+		return fmt.Errorf("Reset pin %s can not be found", *rsPin)
+	}
+
+	irqPinReg := gpioreg.ByName(*irqPin)
+	if rsPinReg == nil {
+		return fmt.Errorf("IRQ pin %s can not be found", *irqPin)
+	}
+
+	rfid, err := mfrc522.NewSPI(spiDev, rsPinReg, irqPinReg)
 	if err != nil {
 		return err
 	}

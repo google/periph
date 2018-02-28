@@ -4,15 +4,12 @@
 
 // Package mfrc522 controls a Mifare RFID card reader.
 //
-// The code is largely ported from Python library : https://github.com/mxgxw/MFRC522-python
-//
 // Datasheet
 //
 // https://www.nxp.com/docs/en/data-sheet/MFRC522.pdf
 package mfrc522
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -22,6 +19,53 @@ import (
 	"periph.io/x/periph/experimental/devices/mfrc522/commands"
 )
 
+// BlockAccess defines the block access bits.
+type BlockAccess byte
+
+// SectorTrailerAccess defines the sector trailing block access bits.
+type SectorTrailerAccess byte
+
+// Access bits.
+const (
+	AnyKeyRWID    BlockAccess = iota
+	RAB_WN_IN_DN              = 0x02 // Read (A|B), Write (None), Increment (None), Decrement(None)
+	RAB_WB_IN_DN              = 0x04
+	RAB_WB_IB_DAB             = 0x06
+	RAB_WN_IN_DAB             = 0x01
+	RB_WB_IN_DN               = 0x03
+	RB_WN_IN_DN               = 0x05
+	RN_WN_IN_DN               = 0x07
+
+	KeyA_RN_WA_BITS_RA_WN_KeyB_RA_WA        SectorTrailerAccess = iota
+	KeyA_RN_WN_BITS_RA_WN_KeyB_RA_WN                            = 0x02
+	KeyA_RN_WB_BITS_RAB_WN_KeyB_RN_WB                           = 0x04
+	KeyA_RN_WN_BITS_RAB_WN_KeyB_RN_WN                           = 0x06
+	KeyA_RN_WA_BITS_RA_WA_KeyB_RA_WA                            = 0x01
+	KeyA_RN_WB_BITS_RAB_WB_KeyB_RN_WB                           = 0x03
+	KeyA_RN_WN_BITS_RAB_WB_KeyB_RN_WN                           = 0x05
+	KeyA_RN_WN_BITS_RAB_WN_KeyB_RN_WN_EXTRA                     = 0x07
+)
+
+// AuthStatus indicates the authentication response, could be one of AuthOk, AuthReadFailure or AuthFailure
+type AuthStatus byte
+
+// Card authentication status enum.
+const (
+	AuthOk AuthStatus = iota
+	AuthReadFailure
+	AuthFailure
+)
+
+// BlocksAccess defines the access structure for first 3 blocks of the sector and the access bits for the
+// sector trail.
+type BlocksAccess struct {
+	B0, B1, B2 BlockAccess
+	B3         SectorTrailerAccess
+}
+
+// DefaultKey provides the default bytes for card authentication for method B.
+var DefaultKey = []byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
+
 // Dev is an handle to an MFRC522 RFID reader.
 type Dev struct {
 	resetPin         gpio.PinOut
@@ -30,8 +74,11 @@ type Dev struct {
 	spiDev           spi.Conn
 }
 
-// DefaultKey provides the default bytes for card authentication for method B.
-var DefaultKey = []byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
+///////////////////////////////////////////////////////////////////////////////////////////
+//
+//							MFRC522 SPI Dev public API
+//
+///////////////////////////////////////////////////////////////////////////////////////////
 
 // NewSPI creates and initializes the RFID card reader attached to SPI.
 //
@@ -40,11 +87,14 @@ var DefaultKey = []byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
 // 	irqPin - irq GPIO pin.
 func NewSPI(spiPort spi.Port, resetPin gpio.PinOut, irqPin gpio.PinIn) (*Dev, error) {
 
-	spiDev, err := spiPort.Connect(10000000, spi.Mode0, 8)
-	if err != nil {
-		return nil, err
+	if resetPin == nil {
+		return nil, wrapf("reset pin is not set")
+	}
+	if irqPin == nil {
+		return nil, wrapf("IRQ pin is not set")
 	}
 
+	spiDev, err := spiPort.Connect(10000000, spi.Mode0, 8)
 	if err != nil {
 		return nil, err
 	}
@@ -54,15 +104,23 @@ func NewSPI(spiPort spi.Port, resetPin gpio.PinOut, irqPin gpio.PinIn) (*Dev, er
 		operationTimeout: 30 * time.Second,
 	}
 
+	if err := resetPin.Out(gpio.High); err != nil {
+		return nil, err
+	}
+
 	dev.resetPin = resetPin
-	dev.resetPin.Out(gpio.High)
+
+	if err := irqPin.In(gpio.PullUp, gpio.FallingEdge); err != nil {
+		return nil, err
+	}
 
 	dev.irqPin = irqPin
-	dev.irqPin.In(gpio.PullUp, gpio.FallingEdge)
 
-	err = dev.Init()
+	if err := dev.Init(); err != nil {
+		return nil, err
+	}
 
-	return dev, err
+	return dev, nil
 }
 
 // SetOperationtimeout updates the device timeout for card operations.
@@ -71,39 +129,6 @@ func NewSPI(spiPort spi.Port, resetPin gpio.PinOut, irqPin gpio.PinIn) (*Dev, er
 //	timeout the duration to wait for IRQ strobe.
 func (r *Dev) SetOperationtimeout(timeout time.Duration) {
 	r.operationTimeout = timeout
-}
-
-var sequenceCommands = struct {
-	init     [][]byte
-	waitInit [][]byte
-	waitLoop [][]byte
-}{
-	init: [][]byte{
-		{commands.TModeReg, 0x8D},
-		{commands.TPrescalerReg, 0x3E},
-		{commands.TReloadRegL, 30},
-		{commands.TReloadRegH, 0},
-		{commands.TxAutoReg, 0x40},
-		{commands.ModeReg, 0x3D},
-	},
-	waitInit: [][]byte{
-		{commands.CommIrqReg, 0x00},
-		{commands.CommIEnReg, 0xA0},
-	},
-	waitLoop: [][]byte{
-		{commands.FIFODataReg, 0x26},
-		{commands.CommandReg, 0x0C},
-		{commands.BitFramingReg, 0x87},
-	},
-}
-
-func (r *Dev) writeCommandSequence(commands [][]byte) error {
-	for _, cmdData := range commands {
-		if err := r.devWrite(int(cmdData[0]), cmdData[1]); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // Init initializes the RFID chip.
@@ -115,36 +140,6 @@ func (r *Dev) Init() error {
 		return err
 	}
 	return r.SetAntenna(true)
-}
-
-func (r *Dev) devWrite(address int, data byte) error {
-	newData := []byte{(byte(address) << 1) & 0x7E, data}
-	return r.spiDev.Tx(newData, nil)
-}
-
-func (r *Dev) devRead(address int) (byte, error) {
-	data := []byte{((byte(address) << 1) & 0x7E) | 0x80, 0}
-	out := make([]byte, len(data))
-	if err := r.spiDev.Tx(data, out); err != nil {
-		return 0, err
-	}
-	return out[1], nil
-}
-
-func (r *Dev) setBitmask(address, mask int) error {
-	current, err := r.devRead(address)
-	if err != nil {
-		return err
-	}
-	return r.devWrite(address, current|byte(mask))
-}
-
-func (r *Dev) clearBitmask(address, mask int) error {
-	current, err := r.devRead(address)
-	if err != nil {
-		return err
-	}
-	return r.devWrite(address, current&^byte(mask))
 }
 
 // Reset resets the RFID chip to initial state.
@@ -165,7 +160,7 @@ func (r *Dev) SetAntenna(state bool) error {
 			return err
 		}
 		if current&0x03 != 0 {
-			return errors.New("Can not set the bitmask for antenna")
+			return wrapf("can not set the bitmask for antenna")
 		}
 		return r.setBitmask(commands.TxControlReg, 0x03)
 	}
@@ -222,7 +217,7 @@ func (r *Dev) CardWrite(command byte, data []byte) ([]byte, int, error) {
 	r.clearBitmask(commands.BitFramingReg, 0x80)
 
 	if i == 0 {
-		return nil, -1, errors.New("can't read data after 2000 loops")
+		return nil, -1, wrapf("can't read data after 2000 loops")
 	}
 
 	if d, err := r.devRead(commands.ErrorReg); err != nil || d&0x1B != 0 {
@@ -230,7 +225,7 @@ func (r *Dev) CardWrite(command byte, data []byte) ([]byte, int, error) {
 	}
 
 	if n&irqEn&0x01 == 1 {
-		return nil, -1, errors.New("IRQ error")
+		return nil, -1, wrapf("IRQ error")
 	}
 
 	if command == commands.PCD_TRANSCEIVE {
@@ -282,7 +277,7 @@ func (r *Dev) Request() (int, error) {
 		return -1, err
 	}
 	if backBits != 0x10 {
-		return -1, fmt.Errorf("wrong number of bits %d", backBits)
+		return -1, wrapf("wrong number of bits %d", backBits)
 	}
 	return backBits, nil
 }
@@ -312,7 +307,7 @@ func (r *Dev) Wait() error {
 		select {
 		case irqResult := <-irqChannel:
 			if !irqResult {
-				return fmt.Errorf("Timeout waitinf for IRQ edge: %v", r.operationTimeout)
+				return wrapf("timeout waitinf for IRQ edge: %v", r.operationTimeout)
 			}
 			return nil
 		case <-time.After(100 * time.Millisecond):
@@ -335,7 +330,7 @@ func (r *Dev) AntiColl() ([]byte, error) {
 	}
 
 	if len(backData) != 5 {
-		return nil, fmt.Errorf("Back data expected 5, actual %d", len(backData))
+		return nil, wrapf("back data expected 5, actual %d", len(backData))
 	}
 
 	crc := byte(0)
@@ -345,7 +340,7 @@ func (r *Dev) AntiColl() ([]byte, error) {
 	}
 
 	if crc != backData[4] {
-		return nil, errors.New(fmt.Sprintf("CRC mismatch, expected %02x actual %02x", crc, backData[4]))
+		return nil, wrapf("CRC mismatch, expected %02x actual %02x", crc, backData[4])
 	}
 
 	return backData, nil
@@ -414,90 +409,9 @@ func (r *Dev) SelectTag(serial []byte) (byte, error) {
 	return blocks, nil
 }
 
-// AuthStatus indicates the authentication response, could be one of AuthOk, AuthReadFailure or AuthFailure
-type AuthStatus byte
-
-const (
-	AuthOk AuthStatus = iota
-	AuthReadFailure
-	AuthFailure
-)
-
-func (r *Dev) auth(mode byte, blockAddress byte, sectorKey []byte, serial []byte) (AuthStatus, error) {
-	buffer := make([]byte, 2)
-	buffer[0] = mode
-	buffer[1] = blockAddress
-	buffer = append(buffer, sectorKey...)
-	buffer = append(buffer, serial[:4]...)
-	_, _, err := r.CardWrite(commands.PCD_AUTHENT, buffer)
-	if err != nil {
-		return AuthReadFailure, err
-	}
-	if n, err := r.devRead(commands.Status2Reg); err != nil || n&0x08 == 0 {
-		return AuthFailure, err
-	}
-	return AuthOk, nil
-}
-
 // StopCrypto stops the crypto chip.
 func (r *Dev) StopCrypto() error {
 	return r.clearBitmask(commands.Status2Reg, 0x08)
-}
-
-func (r *Dev) preAccess(blockAddr byte, cmd byte) ([]byte, int, error) {
-	send := make([]byte, 4)
-	send[0] = cmd
-	send[1] = blockAddr
-
-	crc, err := r.CRC(send[:2])
-	if err != nil {
-		return nil, -1, err
-	}
-	send[2] = crc[0]
-	send[3] = crc[1]
-	return r.CardWrite(commands.PCD_TRANSCEIVE, send)
-}
-
-func (r *Dev) read(blockAddr byte) ([]byte, error) {
-	data, _, err := r.preAccess(blockAddr, commands.PICC_READ)
-	if err != nil {
-		return nil, err
-	}
-	if len(data) != 16 {
-		return nil, fmt.Errorf("expected 16 bytes, actual %d", len(data))
-	}
-	return data, nil
-}
-
-func (r *Dev) write(blockAddr byte, data []byte) error {
-	read, backLen, err := r.preAccess(blockAddr, commands.PICC_WRITE)
-	if err != nil || backLen != 4 {
-		return err
-	}
-	if read[0]&0x0F != 0x0A {
-		return errors.New("can't authorize write")
-	}
-	newData := make([]byte, 18)
-	copy(newData, data[:16])
-	crc, err := r.CRC(newData[:16])
-	if err != nil {
-		return err
-	}
-	newData[16] = crc[0]
-	newData[17] = crc[1]
-	read, backLen, err = r.CardWrite(commands.PCD_TRANSCEIVE, newData)
-	if err != nil {
-		return err
-	}
-	if backLen != 4 || read[0]&0x0F != 0x0A {
-		err = errors.New("can not write data")
-	}
-	return nil
-}
-
-func calcBlockAddress(sector int, block int) (addr byte) {
-	addr = byte(sector*4 + block)
-	return
 }
 
 // ReadBlock reads the block from the card.
@@ -530,7 +444,7 @@ func (r *Dev) WriteBlock(auth byte, sector int, block int, data [16]byte, key []
 		return
 	}
 	if state != AuthOk {
-		err = errors.New("Authentication failed")
+		err = wrapf("authentication failed")
 		return
 	}
 
@@ -568,7 +482,7 @@ func (r *Dev) WriteSectorTrail(auth byte, sector int, keyA [6]byte, keyB [6]byte
 		return
 	}
 	if state != AuthOk {
-		err = errors.New("Failed to authenticate")
+		err = wrapf("failed to authenticate")
 		return
 	}
 
@@ -589,26 +503,6 @@ func (r *Dev) WriteSectorTrail(auth byte, sector int, keyA [6]byte, keyB [6]byte
 // 	serial - the serial of the card.
 func (r *Dev) Auth(mode byte, sector, block int, sectorKey []byte, serial []byte) (AuthStatus, error) {
 	return r.auth(mode, calcBlockAddress(sector, block), sectorKey, serial)
-}
-
-func (r *Dev) selectCard() ([]byte, error) {
-	if err := r.Wait(); err != nil {
-		return nil, err
-	}
-	if err := r.Init(); err != nil {
-		return nil, err
-	}
-	if _, err := r.Request(); err != nil {
-		return nil, err
-	}
-	uuid, err := r.AntiColl()
-	if err != nil {
-		return nil, err
-	}
-	if _, err := r.SelectTag(uuid); err != nil {
-		return nil, err
-	}
-	return uuid, nil
 }
 
 // ReadCard reads the card sector/block.
@@ -632,7 +526,7 @@ func (r *Dev) ReadCard(auth byte, sector int, block int, key []byte) (data []byt
 		return
 	}
 	if state != AuthOk {
-		err = errors.New("Can not authenticate")
+		err = wrapf("can not authenticate")
 		return
 	}
 	return r.ReadBlock(sector, block)
@@ -657,50 +551,10 @@ func (r *Dev) ReadAuth(auth byte, sector int, key []byte) (data []byte, err erro
 		return
 	}
 	if state != AuthOk {
-		return nil, errors.New("Can not authenticate")
+		return nil, wrapf("can not authenticate")
 	}
 
 	return r.read(calcBlockAddress(sector, 3))
-}
-
-// BlockAccess defines the block access bits.
-type BlockAccess byte
-
-// SectorTrailerAccess defines the sector trailing block access bits.
-type SectorTrailerAccess byte
-
-// Access bits.
-const (
-	AnyKeyRWID    BlockAccess = iota
-	RAB_WN_IN_DN              = 0x02 // Read (A|B), Write (None), Increment (None), Decrement(None)
-	RAB_WB_IN_DN              = 0x04
-	RAB_WB_IB_DAB             = 0x06
-	RAB_WN_IN_DAB             = 0x01
-	RB_WB_IN_DN               = 0x03
-	RB_WN_IN_DN               = 0x05
-	RN_WN_IN_DN               = 0x07
-
-	KeyA_RN_WA_BITS_RA_WN_KeyB_RA_WA        SectorTrailerAccess = iota
-	KeyA_RN_WN_BITS_RA_WN_KeyB_RA_WN                            = 0x02
-	KeyA_RN_WB_BITS_RAB_WN_KeyB_RN_WB                           = 0x04
-	KeyA_RN_WN_BITS_RAB_WN_KeyB_RN_WN                           = 0x06
-	KeyA_RN_WA_BITS_RA_WA_KeyB_RA_WA                            = 0x01
-	KeyA_RN_WB_BITS_RAB_WB_KeyB_RN_WB                           = 0x03
-	KeyA_RN_WN_BITS_RAB_WB_KeyB_RN_WN                           = 0x05
-	KeyA_RN_WN_BITS_RAB_WN_KeyB_RN_WN_EXTRA                     = 0x07
-)
-
-// BlocksAccess defines the access structure for first 3 blocks of the sector and the access bits for the
-// sector trail.
-type BlocksAccess struct {
-	B0, B1, B2 BlockAccess
-	B3         SectorTrailerAccess
-}
-
-func (ba *BlocksAccess) getBits(bitNum uint) byte {
-	shift := bitNum - 1
-	bit := byte(1 << shift)
-	return (byte(ba.B0)&bit)>>shift | ((byte(ba.B1)&bit)>>shift)<<1 | ((byte(ba.B2)&bit)>>shift)<<2 | ((byte(ba.B3)&bit)>>shift)<<3
 }
 
 // CalculateBlockAccess calculates the block access.
@@ -728,5 +582,176 @@ func (r *Dev) String() string {
 		r.spiDev, r.resetPin.Name(), r.irqPin.Name())
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////
+//
+//							MFRC522 SPI Dev private/helper functions
+//
+///////////////////////////////////////////////////////////////////////////////////////////
+
+func (ba *BlocksAccess) getBits(bitNum uint) byte {
+	shift := bitNum - 1
+	bit := byte(1 << shift)
+	return (byte(ba.B0)&bit)>>shift | ((byte(ba.B1)&bit)>>shift)<<1 | ((byte(ba.B2)&bit)>>shift)<<2 | ((byte(ba.B3)&bit)>>shift)<<3
+}
+
+func (r *Dev) writeCommandSequence(commands [][]byte) error {
+	for _, cmdData := range commands {
+		if err := r.devWrite(int(cmdData[0]), cmdData[1]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *Dev) selectCard() ([]byte, error) {
+	if err := r.Wait(); err != nil {
+		return nil, err
+	}
+	if err := r.Init(); err != nil {
+		return nil, err
+	}
+	if _, err := r.Request(); err != nil {
+		return nil, err
+	}
+	uuid, err := r.AntiColl()
+	if err != nil {
+		return nil, err
+	}
+	if _, err := r.SelectTag(uuid); err != nil {
+		return nil, err
+	}
+	return uuid, nil
+}
+
+func calcBlockAddress(sector int, block int) byte {
+	return byte(sector*4 + block)
+}
+
+func (r *Dev) write(blockAddr byte, data []byte) error {
+	read, backLen, err := r.preAccess(blockAddr, commands.PICC_WRITE)
+	if err != nil || backLen != 4 {
+		return err
+	}
+	if read[0]&0x0F != 0x0A {
+		return wrapf("can't authorize write")
+	}
+	var newData [18]byte
+	copy(newData[:], data[:16])
+	crc, err := r.CRC(newData[:16])
+	if err != nil {
+		return err
+	}
+	newData[16] = crc[0]
+	newData[17] = crc[1]
+	read, backLen, err = r.CardWrite(commands.PCD_TRANSCEIVE, newData[:])
+	if err != nil {
+		return err
+	}
+	if backLen != 4 || read[0]&0x0F != 0x0A {
+		err = wrapf("can't write data")
+	}
+	return nil
+}
+
+func (r *Dev) auth(mode byte, blockAddress byte, sectorKey []byte, serial []byte) (AuthStatus, error) {
+	buffer := make([]byte, 2)
+	buffer[0] = mode
+	buffer[1] = blockAddress
+	buffer = append(buffer, sectorKey...)
+	buffer = append(buffer, serial[:4]...)
+	_, _, err := r.CardWrite(commands.PCD_AUTHENT, buffer)
+	if err != nil {
+		return AuthReadFailure, err
+	}
+	if n, err := r.devRead(commands.Status2Reg); err != nil || n&0x08 == 0 {
+		return AuthFailure, err
+	}
+	return AuthOk, nil
+}
+
+func (r *Dev) devWrite(address int, data byte) error {
+	newData := []byte{(byte(address) << 1) & 0x7E, data}
+	return r.spiDev.Tx(newData, nil)
+}
+
+func (r *Dev) devRead(address int) (byte, error) {
+	data := []byte{((byte(address) << 1) & 0x7E) | 0x80, 0}
+	out := make([]byte, len(data))
+	if err := r.spiDev.Tx(data, out); err != nil {
+		return 0, err
+	}
+	return out[1], nil
+}
+
+func (r *Dev) setBitmask(address, mask int) error {
+	current, err := r.devRead(address)
+	if err != nil {
+		return err
+	}
+	return r.devWrite(address, current|byte(mask))
+}
+
+func (r *Dev) clearBitmask(address, mask int) error {
+	current, err := r.devRead(address)
+	if err != nil {
+		return err
+	}
+	return r.devWrite(address, current&^byte(mask))
+}
+
+func (r *Dev) preAccess(blockAddr byte, cmd byte) ([]byte, int, error) {
+	send := make([]byte, 4)
+	send[0] = cmd
+	send[1] = blockAddr
+
+	crc, err := r.CRC(send[:2])
+	if err != nil {
+		return nil, -1, err
+	}
+	send[2] = crc[0]
+	send[3] = crc[1]
+	return r.CardWrite(commands.PCD_TRANSCEIVE, send)
+}
+
+func (r *Dev) read(blockAddr byte) ([]byte, error) {
+	data, _, err := r.preAccess(blockAddr, commands.PICC_READ)
+	if err != nil {
+		return nil, err
+	}
+	if len(data) != 16 {
+		return nil, wrapf("expected 16 bytes, actual %d", len(data))
+	}
+	return data, nil
+}
+
+// the command batches for card init and wait loop.
+var sequenceCommands = struct {
+	init     [][]byte
+	waitInit [][]byte
+	waitLoop [][]byte
+}{
+	init: [][]byte{
+		{commands.TModeReg, 0x8D},
+		{commands.TPrescalerReg, 0x3E},
+		{commands.TReloadRegL, 30},
+		{commands.TReloadRegH, 0},
+		{commands.TxAutoReg, 0x40},
+		{commands.ModeReg, 0x3D},
+	},
+	waitInit: [][]byte{
+		{commands.CommIrqReg, 0x00},
+		{commands.CommIEnReg, 0xA0},
+	},
+	waitLoop: [][]byte{
+		{commands.FIFODataReg, 0x26},
+		{commands.CommandReg, 0x0C},
+		{commands.BitFramingReg, 0x87},
+	},
+}
+
 var _ conn.Resource = &Dev{}
 var _ fmt.Stringer = &Dev{}
+
+func wrapf(format string, a ...interface{}) error {
+	return fmt.Errorf("mfrc522: "+format, a...)
+}
