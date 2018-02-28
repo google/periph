@@ -9,13 +9,14 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
+
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/spi/spireg"
 	"periph.io/x/periph/experimental/devices/mfrc522"
 	"periph.io/x/periph/experimental/devices/mfrc522/commands"
 	"periph.io/x/periph/host"
-	"strconv"
-	"strings"
 )
 
 func mainImpl() error {

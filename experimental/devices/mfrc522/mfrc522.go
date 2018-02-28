@@ -14,11 +14,12 @@ package mfrc522
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/spi"
 	"periph.io/x/periph/experimental/devices/mfrc522/commands"
-	"time"
 )
 
 // Dev is an handle to an MFRC522 RFID reader.
