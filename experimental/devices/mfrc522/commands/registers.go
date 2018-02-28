@@ -4,7 +4,7 @@
 
 package commands
 
-// Command register constants
+// Register constants
 const (
 	CommandReg    = 0x01
 	CommIEnReg    = 0x02
