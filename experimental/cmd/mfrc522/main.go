@@ -8,8 +8,8 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"log"
 	"os"
+	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/spi/spireg"
 	"periph.io/x/periph/experimental/devices/mfrc522"
 	"periph.io/x/periph/experimental/devices/mfrc522/commands"
@@ -18,7 +18,7 @@ import (
 	"strings"
 )
 
-func mainImpl() (err error) {
+func mainImpl() error {
 
 	sector := flag.Int("sector", 1, "Sector to access")
 	block := flag.Int("block", 0, "Block to access")
@@ -27,7 +27,7 @@ func mainImpl() (err error) {
 	irqPin := flag.String("irq-pin", "", "IRQ pin")
 
 	keyCommand := flag.Bool("wa", false, "Overwrite keys")
-	blockCommand := flag.Bool("wb", false, "Overwrite block by [0-15]")
+	blockCommand := flag.String("wb", "", "Overwrite block by provided data (comma-separated list of 16 bytes)")
 
 	spiID := flag.String("spi", "", "SPI device")
 
@@ -39,8 +39,8 @@ func mainImpl() (err error) {
 		return errors.New("please provide -rs-pin and -irq-pin arguments, or -h for help")
 	}
 
-	if _, err = host.Init(); err != nil {
-		return
+	if _, err := host.Init(); err != nil {
+		return err
 	}
 
 	currentAccessKey := mfrc522.DefaultKey
@@ -53,7 +53,7 @@ func mainImpl() (err error) {
 		currentAccessKey = make([]byte, 6)
 
 		for i, v := range keyBytes {
-			intV, err := strconv.Atoi(v)
+			intV, err := strconv.ParseUint(v, 10, 8)
 			if err != nil {
 				return err
 			}
@@ -65,21 +65,21 @@ func mainImpl() (err error) {
 
 	spiDev, err := spireg.Open(*spiID)
 	if err != nil {
-		return
+		return err
 	}
 
-	rfid, err := mfrc522.NewSPI(spiDev, *rsPin, *irqPin)
+	rfid, err := mfrc522.NewSPI(spiDev, gpioreg.ByName(*rsPin), gpioreg.ByName(*irqPin))
 	if err != nil {
-		return
+		return err
 	}
 
 	data, err := rfid.ReadCard(currentAccessMethod, *sector, *block, currentAccessKey)
 	if err != nil {
-		return
+		return err
 	}
 	auth, err := rfid.ReadAuth(currentAccessMethod, *sector, currentAccessKey)
 	if err != nil {
-		return
+		return err
 	}
 
 	access := mfrc522.ParseBlockAccess(auth[6:10])
@@ -106,21 +106,33 @@ func mainImpl() (err error) {
 			currentAccessKey,
 		)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 		fmt.Println("Write successful")
-	} else if *blockCommand {
+	} else if *blockCommand != "" {
+		var defaultDataBytes [16]byte
+		bytesBuffer := strings.Split(*blockCommand, ",")
+		if len(bytesBuffer) != 16 {
+			return errors.New("data bytes must contain exactly 16 elements")
+		}
+		for i := range defaultDataBytes {
+			intVal, err := strconv.ParseUint(bytesBuffer[i], 10, 8)
+			if err != nil {
+				return err
+			}
+			defaultDataBytes[i] = byte(intVal)
+		}
 		err = rfid.WriteBlock(currentAccessMethod,
 			*sector,
 			*block,
-			[16]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
-			currentAccessKey[:])
+			defaultDataBytes,
+			currentAccessKey)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 	}
 
-	return
+	return rfid.Halt()
 }
 
 func main() {

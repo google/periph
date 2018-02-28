@@ -4,8 +4,8 @@
 
 package commands
 
+// Command register constants
 const (
-	Reserved00    = 0x00
 	CommandReg    = 0x01
 	CommIEnReg    = 0x02
 	DivlEnReg     = 0x03
@@ -20,9 +20,7 @@ const (
 	ControlReg    = 0x0C
 	BitFramingReg = 0x0D
 	CollReg       = 0x0E
-	Reserved01    = 0x0F
 
-	Reserved10     = 0x10
 	ModeReg        = 0x11
 	TxModeReg      = 0x12
 	RxModeReg      = 0x13
@@ -32,19 +30,12 @@ const (
 	RxSelReg       = 0x17
 	RxThresholdReg = 0x18
 	DemodReg       = 0x19
-	Reserved11     = 0x1A
-	Reserved12     = 0x1B
 	MifareReg      = 0x1C
-	Reserved13     = 0x1D
-	Reserved14     = 0x1E
 	SerialSpeedReg = 0x1F
 
-	Reserved20        = 0x20
 	CRCResultRegM     = 0x21
 	CRCResultRegL     = 0x22
-	Reserved21        = 0x23
 	ModWidthReg       = 0x24
-	Reserved22        = 0x25
 	RFCfgReg          = 0x26
 	GsNReg            = 0x27
 	CWGsPReg          = 0x28
@@ -56,7 +47,6 @@ const (
 	TCounterValueRegH = 0x2E
 	TCounterValueRegL = 0x2F
 
-	Reserved30      = 0x30
 	TestSel1Reg     = 0x31
 	TestSel2Reg     = 0x32
 	TestPinEnReg    = 0x33
@@ -68,8 +58,4 @@ const (
 	TestDAC1Reg     = 0x39
 	TestDAC2Reg     = 0x3A
 	TestADCReg      = 0x3B
-	Reserved31      = 0x3C
-	Reserved32      = 0x3D
-	Reserved33      = 0x3E
-	Reserved34      = 0x3F
 )

@@ -4,6 +4,7 @@
 
 package commands
 
+// Operation coinstants
 const (
 	PCD_IDLE       = 0x00
 	PCD_AUTHENT    = 0x0E
