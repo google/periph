@@ -74,11 +74,7 @@ type Dev struct {
 	spiDev           spi.Conn
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////
-//
-//							MFRC522 SPI Dev public API
-//
-///////////////////////////////////////////////////////////////////////////////////////////
+//		MFRC522 SPI Dev public API
 
 // NewSPI creates and initializes the RFID card reader attached to SPI.
 //
@@ -86,40 +82,31 @@ type Dev struct {
 // 	resetPin - reset GPIO pin.
 // 	irqPin - irq GPIO pin.
 func NewSPI(spiPort spi.Port, resetPin gpio.PinOut, irqPin gpio.PinIn) (*Dev, error) {
-
 	if resetPin == nil {
 		return nil, wrapf("reset pin is not set")
 	}
 	if irqPin == nil {
 		return nil, wrapf("IRQ pin is not set")
 	}
-
 	spiDev, err := spiPort.Connect(10000000, spi.Mode0, 8)
 	if err != nil {
 		return nil, err
 	}
-
-	dev := &Dev{
-		spiDev:           spiDev,
-		operationTimeout: 30 * time.Second,
-	}
-
 	if err := resetPin.Out(gpio.High); err != nil {
 		return nil, err
 	}
-
-	dev.resetPin = resetPin
-
 	if err := irqPin.In(gpio.PullUp, gpio.FallingEdge); err != nil {
 		return nil, err
 	}
-
-	dev.irqPin = irqPin
-
+	dev := &Dev{
+		spiDev:           spiDev,
+		operationTimeout: 30 * time.Second,
+		irqPin:           irqPin,
+		resetPin:         resetPin,
+	}
 	if err := dev.Init(); err != nil {
 		return nil, err
 	}
-
 	return dev, nil
 }
 
@@ -186,19 +173,33 @@ func (r *Dev) CardWrite(command byte, data []byte) ([]byte, int, error) {
 		irqWait = 0x30
 	}
 
-	r.devWrite(commands.CommIEnReg, irqEn|0x80)
-	r.clearBitmask(commands.CommIrqReg, 0x80)
-	r.setBitmask(commands.FIFOLevelReg, 0x80)
-	r.devWrite(commands.CommandReg, commands.PCD_IDLE)
-
-	for _, v := range data {
-		r.devWrite(commands.FIFODataReg, v)
+	if err := r.devWrite(commands.CommIEnReg, irqEn|0x80); err != nil {
+		return nil, -1, err
+	}
+	if err := r.clearBitmask(commands.CommIrqReg, 0x80); err != nil {
+		return nil, -1, err
+	}
+	if err := r.setBitmask(commands.FIFOLevelReg, 0x80); err != nil {
+		return nil, -1, err
+	}
+	if err := r.devWrite(commands.CommandReg, commands.PCD_IDLE); err != nil {
+		return nil, -1, err
 	}
 
-	r.devWrite(commands.CommandReg, command)
+	for _, v := range data {
+		if err := r.devWrite(commands.FIFODataReg, v); err != nil {
+			return nil, -1, err
+		}
+	}
+
+	if err := r.devWrite(commands.CommandReg, command); err != nil {
+		return nil, -1, err
+	}
 
 	if command == commands.PCD_TRANSCEIVE {
-		r.setBitmask(commands.BitFramingReg, 0x80)
+		if err := r.setBitmask(commands.BitFramingReg, 0x80); err != nil {
+			return nil, -1, err
+		}
 	}
 
 	i := 2000
@@ -214,7 +215,9 @@ func (r *Dev) CardWrite(command byte, data []byte) ([]byte, int, error) {
 		}
 	}
 
-	r.clearBitmask(commands.BitFramingReg, 0x80)
+	if err := r.clearBitmask(commands.BitFramingReg, 0x80); err != nil {
+		return nil, -1, err
+	}
 
 	if i == 0 {
 		return nil, -1, wrapf("can't read data after 2000 loops")
@@ -451,10 +454,9 @@ func (r *Dev) WriteBlock(auth byte, sector int, block int, data [16]byte, key []
 	return r.write(calcBlockAddress(sector, block%3), data[:])
 }
 
-/*
-ReadSectorTrail reads the sector trail (the last sector that contains the sector access bits)
-	sector - the sector number to read the data from.
-*/
+// ReadSectorTrail reads the sector trail (the last sector that contains the sector access bits)
+//
+// 	sector - the sector number to read the data from.
 func (r *Dev) ReadSectorTrail(sector int) ([]byte, error) {
 	return r.read(calcBlockAddress(sector&0xFF, 3))
 }
@@ -582,11 +584,7 @@ func (r *Dev) String() string {
 		r.spiDev, r.resetPin.Name(), r.irqPin.Name())
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////
-//
-//							MFRC522 SPI Dev private/helper functions
-//
-///////////////////////////////////////////////////////////////////////////////////////////
+//		MFRC522 SPI Dev private/helper functions
 
 func (ba *BlocksAccess) getBits(bitNum uint) byte {
 	shift := bitNum - 1
