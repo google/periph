@@ -5,49 +5,11 @@
 package gpioreg
 
 import (
-	"fmt"
-	"log"
 	"sort"
 	"testing"
 
 	"periph.io/x/periph/conn/gpio"
 )
-
-func ExampleAll() {
-	fmt.Print("GPIO pins available:\n")
-	for _, pin := range All() {
-		fmt.Printf("- %s: %s\n", pin, pin.Function())
-	}
-}
-
-func ExampleByName() {
-	p := ByName("GPIO6")
-	if p == nil {
-		log.Fatal("Failed to find GPIO6")
-	}
-	fmt.Printf("%s: %s\n", p, p.Function())
-}
-
-func ExampleByName_alias() {
-	p := ByName("LCD-D2")
-	if p == nil {
-		log.Fatal("Failed to find LCD-D2")
-	}
-	if rp, ok := p.(gpio.RealPin); ok {
-		fmt.Printf("%s is an alias for %s\n", p, rp.Real())
-	} else {
-		fmt.Printf("%s is not an alias!\n", p)
-	}
-}
-
-func ExampleByName_number() {
-	// The string representation of a number works too.
-	p := ByName("6")
-	if p == nil {
-		log.Fatal("Failed to find GPIO6")
-	}
-	fmt.Printf("%s: %s\n", p, p.Function())
-}
 
 func TestRegister(t *testing.T) {
 	defer reset()

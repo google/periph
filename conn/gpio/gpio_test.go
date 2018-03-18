@@ -5,31 +5,9 @@
 package gpio
 
 import (
-	"fmt"
-	"log"
 	"testing"
 	"time"
 )
-
-func ExamplePinIn() {
-	//p := gpioreg.ByName("GPIO6")
-	var p PinIn
-	if err := p.In(PullDown, RisingEdge); err != nil {
-		log.Fatal(err)
-	}
-	fmt.Printf("%s is %s\n", p, p.Read())
-	for p.WaitForEdge(-1) {
-		fmt.Printf("%s went %s\n", p, High)
-	}
-}
-
-func ExamplePinOut() {
-	//p := gpioreg.ByName("GPIO6")
-	var p PinOut
-	if err := p.Out(High); err != nil {
-		log.Fatal(err)
-	}
-}
 
 func TestStrings(t *testing.T) {
 	if Low.String() != "Low" || High.String() != "High" {
