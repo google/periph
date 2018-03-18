@@ -3,6 +3,18 @@
 // that can be found in the LICENSE file.
 
 // Package spi defines the SPI protocol.
+//
+// As described in https://periph.io/x/periph/conn#hdr-Concepts, periph.io uses
+// the concepts of Bus, Port and Conn.
+//
+// In the package spi, 'Bus' is not exposed, as it would be SPI bus number
+// without a CS line, for example on linux asking for "/dev/spi0" without the
+// ".0" suffix.
+//
+// The OS doesn't allow that so it is counter productive to express this at the
+// API layer, so 'Port' is exposed directly instead.
+//
+// Use Port.Connect() converts the uninitialized Port into a Conn.
 package spi
 
 import (

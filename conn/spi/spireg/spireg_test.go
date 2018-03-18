@@ -6,9 +6,7 @@ package spireg
 
 import (
 	"errors"
-	"flag"
 	"fmt"
-	"log"
 	"sort"
 	"strings"
 	"testing"
@@ -29,47 +27,27 @@ func ExampleAll() {
 			fmt.Printf("  %s\n", strings.Join(ref.Aliases, " "))
 		}
 
-		b, err := ref.Open()
+		p, err := ref.Open()
 		if err != nil {
 			fmt.Printf("  Failed to open: %v", err)
 		}
-		if p, ok := b.(spi.Pins); ok {
+		if p, ok := p.(spi.Pins); ok {
 			fmt.Printf("  CLK : %s", p.CLK())
 			fmt.Printf("  MOSI: %s", p.MOSI())
 			fmt.Printf("  MISO: %s", p.MISO())
 			fmt.Printf("  CS  : %s", p.CS())
 		}
-		if err := b.Close(); err != nil {
+		if err := p.Close(); err != nil {
 			fmt.Printf("  Failed to close: %v", err)
 		}
 	}
 }
 
 func ExampleOpen() {
-	// On linux, the following calls will likely open the same port.
+	// On Linux, the following calls will likely open the same port.
 	_, _ = Open("/dev/spidev1.0")
 	_, _ = Open("SPI1.0")
 	_, _ = Open("1")
-
-	// How a command line tool may let the user choose a SPI port, yet
-	// default to the first port known.
-	name := flag.String("spi", "", "SPI port to use")
-	flag.Parse()
-	b, err := Open(*name)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer b.Close()
-
-	// Pass b to a device driver, or if using b directly, do:
-	c, err := b.Connect(1000000, spi.Mode3, 8)
-	if err != nil {
-		log.Fatal(err)
-	}
-	// Use b...
-	if err := c.Tx([]byte("cmd"), nil); err != nil {
-		log.Fatal(err)
-	}
 }
 
 //

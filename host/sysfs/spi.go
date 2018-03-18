@@ -32,8 +32,16 @@ import (
 //
 // The resulting object is safe for concurrent use.
 //
-// busNumber is the bus number as exported by deffs. For example if the path is
+// busNumber is the bus number as exported by devfs. For example if the path is
 // /dev/spidev0.1, busNumber should be 0 and chipSelect should be 1.
+//
+// Do not use sysfs.NewSPI() directly as the package sysfs is providing
+// https://periph.io/x/periph/conn/spi Linux-specific implementation.
+//
+// periph.io works on many OSes!
+//
+// Instead, use https://periph.io/x/periph/conn/spi/spireg#Open. This permits
+// it to work on all operating systems, or devices like SPI over USB.
 func NewSPI(busNumber, chipSelect int) (*SPI, error) {
 	if isLinux {
 		return newSPI(busNumber, chipSelect)

@@ -6,32 +6,12 @@ package sysfs
 
 import (
 	"io"
-	"log"
 	"testing"
 
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/spi"
 )
-
-func ExampleNewSPI() {
-	b, err := NewSPI(0, 0)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer b.Close()
-
-	c, err := b.Connect(1000000, spi.Mode3, 8)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if err := c.Tx([]byte{0x10}, nil); err != nil {
-		log.Fatal(err)
-	}
-}
-
-//
 
 func TestNewSPI(t *testing.T) {
 	if b, err := NewSPI(-1, 0); b != nil || err == nil {

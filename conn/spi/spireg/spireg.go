@@ -3,6 +3,9 @@
 // that can be found in the LICENSE file.
 
 // Package spireg defines the SPI registry for SPI ports discovered on the host.
+//
+// SPI ports discovered on the host are automatically registered in the SPI
+// registry by host.Init().
 package spireg
 
 import (
