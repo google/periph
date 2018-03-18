@@ -4,9 +4,15 @@
 
 // Package onewire defines a Dallas Semiconductor / Maxim Integrated 1-wire bus.
 //
-// It includes an adapter to directly address a 1-wire device on a 1-wire bus
-// without having to continuously specify the address when doing I/O. This
-// enables the support of conn.Conn.
+// As described in https://periph.io/x/periph/conn#hdr-Concepts, periph.io uses
+// the concepts of Bus, Port and Conn.
+//
+// In the package onewire, 'Port' is not exposed, since once you know the 1-wire
+// device address, there's no unconfigured Port to configure.
+//
+// Instead, the package includes the adapter 'Dev' to directly convert an 1-wire
+// bus 'onewire.Bus' into a connection 'conn.Conn' by only specifying the device
+// 1-wire address.
 //
 // References
 //
@@ -32,8 +38,10 @@ import (
 type Bus interface {
 	// Tx performs a bus transaction, sending and receiving bytes, and
 	// ending by pulling the bus high either weakly or strongly depending
-	// on the value of power. A strong pull-up is typically required to
-	// power temperature conversion or EEPROM writes.
+	// on the value of power.
+	//
+	// A strong pull-up is typically required to power temperature conversion or
+	// EEPROM writes.
 	Tx(w, r []byte, power Pullup) error
 
 	// Search performs a "search" cycle on the 1-wire bus and returns the
@@ -50,10 +58,12 @@ type Bus interface {
 	Search(alarmOnly bool) ([]Address, error)
 }
 
-// Address represents a 1-wire device address in little-endian format. This means
-// that the family code ends up in the lower byte, the CRC in the top byte,
-// and the variable address part in the middle 6 bytes. E.g. a DS18B20 device,
-// which has a family code of 0x28, might have address 0x7a00000131825228.
+// Address represents a 1-wire device address in little-endian format.
+//
+// This means that the family code ends up in the lower byte, the CRC in the
+// top byte, and the variable address part in the middle 6 bytes. E.g. a
+// DS18B20 device, which has a family code of 0x28, might have address
+// 0x7a00000131825228.
 type Address uint64
 
 // Pullup encodes the type of pull-up used at the end of a bus transaction.

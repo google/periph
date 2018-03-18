@@ -2,14 +2,14 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-package i2c_test
+package onewire_test
 
 import (
 	"fmt"
 	"log"
 
-	"periph.io/x/periph/conn/i2c"
-	"periph.io/x/periph/conn/i2c/i2creg"
+	"periph.io/x/periph/conn/onewire"
+	"periph.io/x/periph/conn/onewire/onewirereg"
 	"periph.io/x/periph/host"
 )
 
@@ -19,17 +19,17 @@ func Example() {
 		log.Fatal(err)
 	}
 
-	// Use i2creg I²C bus registry to find the first available I²C bus.
-	b, err := i2creg.Open("")
+	// Use onewirereg 1-wire bus registry to find the first available 1-wire bus.
+	b, err := onewirereg.Open("")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer b.Close()
 
 	// Dev is a valid conn.Conn.
-	d := &i2c.Dev{Addr: 23, Bus: b}
+	d := &onewire.Dev{Addr: 23, Bus: b}
 
-	// Send a command 0x10 and expect a 5 bytes reply.
+	// Send a command and expect a 5 bytes reply.
 	write := []byte{0x10}
 	read := make([]byte, 5)
 	if err := d.Tx(write, read); err != nil {
@@ -44,16 +44,15 @@ func ExamplePins() {
 		log.Fatal(err)
 	}
 
-	// Use i2creg I²C port registry to find the first available I²C bus.
-	b, err := i2creg.Open("")
+	// Use onewirereg 1-wire bus registry to find the first available 1-wire bus.
+	b, err := onewirereg.Open("")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer b.Close()
 
 	// Prints out the gpio pin used.
-	if p, ok := b.(i2c.Pins); ok {
-		fmt.Printf("SDA: %s", p.SDA())
-		fmt.Printf("SCL: %s", p.SCL())
+	if p, ok := b.(onewire.Pins); ok {
+		fmt.Printf("Q: %s", p.Q())
 	}
 }

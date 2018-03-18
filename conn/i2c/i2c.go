@@ -11,7 +11,7 @@
 // device address, there's no unconfigured Port to configure.
 //
 // Instead, the package includes the adapter 'Dev' to directly convert an I²C
-// bus 'conn.Bus' into a connection 'conn.Conn' by only specifying the device
+// bus 'i2c.Bus' into a connection 'conn.Conn' by only specifying the device
 // I²C address.
 package i2c
 

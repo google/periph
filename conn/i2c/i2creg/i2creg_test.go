@@ -48,8 +48,8 @@ func ExampleOpen() {
 	// Opens the first default I²C bus found:
 	_, _ = Open("")
 
-	// Wondering what to do the opened i2c.BusCloser? Look at the package
-	// Example above.
+	// Wondering what to do with the opened i2c.BusCloser? Look at the package's
+	// example above.
 }
 
 //
