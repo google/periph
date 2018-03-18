@@ -5,20 +5,8 @@
 package pin
 
 import (
-	"fmt"
 	"testing"
 )
-
-func ExampleBasicPin() {
-	// Declare a basic pin, that is not a GPIO, for registration on an header.
-	b := &BasicPin{N: "Exotic"}
-	fmt.Printf("%s\n", b)
-
-	// Output:
-	// Exotic
-}
-
-//
 
 func TestInvalid(t *testing.T) {
 	if INVALID.String() != "INVALID" {

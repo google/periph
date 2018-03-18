@@ -6,27 +6,11 @@ package videocore
 
 import (
 	"errors"
-	"log"
 	"testing"
 
 	"periph.io/x/periph/host/fs"
 	"periph.io/x/periph/host/pmem"
 )
-
-func ExampleAlloc() {
-	// Allocates physical memory on a Broadcom CPU by leveraging the GPU.
-	// This memory can be leveraged to do DMA operations.
-	m, err := Alloc(64536)
-	if err != nil {
-		log.Fatal(err)
-	}
-	// Use m
-	if err := m.Close(); err != nil {
-		log.Fatal(err)
-	}
-}
-
-//
 
 func TestClose(t *testing.T) {
 	defer reset(t)

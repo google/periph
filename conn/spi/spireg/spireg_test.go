@@ -6,57 +6,12 @@ package spireg
 
 import (
 	"errors"
-	"fmt"
 	"sort"
-	"strings"
 	"testing"
 
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/spi"
 )
-
-func ExampleAll() {
-	// Enumerate all SPI ports available and the corresponding pins.
-	fmt.Print("SPI ports available:\n")
-	for _, ref := range All() {
-		fmt.Printf("- %s\n", ref.Name)
-		if ref.Number != -1 {
-			fmt.Printf("  %d\n", ref.Number)
-		}
-		if len(ref.Aliases) != 0 {
-			fmt.Printf("  %s\n", strings.Join(ref.Aliases, " "))
-		}
-
-		p, err := ref.Open()
-		if err != nil {
-			fmt.Printf("  Failed to open: %v", err)
-		}
-		if p, ok := p.(spi.Pins); ok {
-			fmt.Printf("  CLK : %s", p.CLK())
-			fmt.Printf("  MOSI: %s", p.MOSI())
-			fmt.Printf("  MISO: %s", p.MISO())
-			fmt.Printf("  CS  : %s", p.CS())
-		}
-		if err := p.Close(); err != nil {
-			fmt.Printf("  Failed to close: %v", err)
-		}
-	}
-}
-
-func ExampleOpen() {
-	// On Linux, the following calls will likely open the same port.
-	_, _ = Open("/dev/spidev1.0")
-	_, _ = Open("SPI1.0")
-	_, _ = Open("1")
-
-	// Opens the first default SPI bus found:
-	_, _ = Open("")
-
-	// Wondering what to do with the opened spi.PortCloser? Look at the package's
-	// example above.
-}
-
-//
 
 func TestOpen(t *testing.T) {
 	defer reset()

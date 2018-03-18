@@ -5,41 +5,11 @@
 package ds248x
 
 import (
-	"fmt"
-	"log"
 	"testing"
 	"time"
 
-	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/conn/i2c/i2ctest"
 )
-
-func Example() {
-	// Open the I²C bus to which the DS248x is connected.
-	i2cBus, err := i2creg.Open("")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer i2cBus.Close()
-
-	// Open the DS248x to get a 1-wire bus.
-	owBus, err := New(i2cBus, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	// Search devices on the bus
-	devices, err := owBus.Search(false)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Printf("Found %d 1-wire devices: ", len(devices))
-	for _, d := range devices {
-		fmt.Printf(" %#16x", uint64(d))
-	}
-	fmt.Print("\n")
-}
-
-//
 
 func TestNew(t *testing.T) {
 	bus := i2ctest.Playback{

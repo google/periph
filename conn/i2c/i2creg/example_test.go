@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"strings"
 
 	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/i2c/i2creg"
@@ -40,4 +41,53 @@ func Example() {
 		log.Fatal(err)
 	}
 	fmt.Printf("%v\n", read)
+}
+
+func ExampleAll() {
+	// Make sure periph is initialized.
+	if _, err := host.Init(); err != nil {
+		log.Fatal(err)
+	}
+
+	// Enumerate all I²C buses available and the corresponding pins.
+	fmt.Print("I²C buses available:\n")
+	for _, ref := range i2creg.All() {
+		fmt.Printf("- %s\n", ref.Name)
+		if ref.Number != -1 {
+			fmt.Printf("  %d\n", ref.Number)
+		}
+		if len(ref.Aliases) != 0 {
+			fmt.Printf("  %s\n", strings.Join(ref.Aliases, " "))
+		}
+
+		b, err := ref.Open()
+		if err != nil {
+			fmt.Printf("  Failed to open: %v", err)
+		}
+		if p, ok := b.(i2c.Pins); ok {
+			fmt.Printf("  SDA: %s", p.SDA())
+			fmt.Printf("  SCL: %s", p.SCL())
+		}
+		if err := b.Close(); err != nil {
+			fmt.Printf("  Failed to close: %v", err)
+		}
+	}
+}
+
+func ExampleOpen() {
+	// Make sure periph is initialized.
+	if _, err := host.Init(); err != nil {
+		log.Fatal(err)
+	}
+
+	// On Linux, the following calls will likely open the same bus.
+	_, _ = i2creg.Open("/dev/i2c-1")
+	_, _ = i2creg.Open("I2C1")
+	_, _ = i2creg.Open("1")
+
+	// Opens the first default I²C bus found:
+	_, _ = i2creg.Open("")
+
+	// Wondering what to do with the opened i2c.BusCloser? Look at the package's
+	// example above.
 }

@@ -5,35 +5,12 @@
 package driverskeleton
 
 import (
-	"fmt"
-	"log"
 	"strings"
 	"testing"
 
 	"periph.io/x/periph"
-	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/conn/i2c/i2ctest"
-	"periph.io/x/periph/host"
 )
-
-func Example() {
-	// FIXME: Make sure to expose a simple use case.
-	if _, err := host.Init(); err != nil {
-		log.Fatalf("failed to initialize periph: %v", err)
-	}
-	bus, err := i2creg.Open("")
-	if err != nil {
-		log.Fatalf("failed to open I²C: %v", err)
-	}
-	defer bus.Close()
-	dev, err := New(bus)
-	if err != nil {
-		log.Fatalf("failed to initialize: %v", err)
-	}
-	fmt.Printf("%s\n", dev.Read())
-}
-
-//
 
 func TestDriverSkeleton(t *testing.T) {
 	// FIXME: Try to include basic code coverage. You can use "replay" tests by

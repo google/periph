@@ -11,12 +11,10 @@ import (
 	"image"
 	"image/color"
 	"io/ioutil"
-	"log"
 	"testing"
 
 	"periph.io/x/periph/conn/conntest"
 	"periph.io/x/periph/conn/spi"
-	"periph.io/x/periph/conn/spi/spireg"
 	"periph.io/x/periph/conn/spi/spitest"
 )
 
@@ -575,27 +573,6 @@ func TestInit(t *testing.T) {
 	if equalUint16(l.r[:], l.g[:]) || !equalUint16(l.g[:], l.b[:]) {
 		t.Fatal("test case is for only when maxG == maxB but maxR != maxG")
 	}
-}
-
-//
-
-func Example() {
-	s, err := spireg.Open("")
-	if err != nil {
-		log.Fatalf("failed to open SPI: %v", err)
-	}
-	defer s.Close()
-	// Opens a strip of 150 lights are 50% intensity with color temperature at
-	// 5000 Kelvin.
-	dev, err := New(s, 150, 127, 5000)
-	if err != nil {
-		log.Fatalf("failed to open apa102: %v", err)
-	}
-	img := image.NewNRGBA(image.Rect(0, 0, dev.Bounds().Dy(), 1))
-	for x := 0; x < img.Rect.Max.X; x++ {
-		img.SetNRGBA(x, 0, color.NRGBA{uint8(x), uint8(255 - x), 0, 255})
-	}
-	dev.Draw(dev.Bounds(), img, image.Point{})
 }
 
 //

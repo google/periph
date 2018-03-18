@@ -8,81 +8,12 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"fmt"
-	"log"
 	"reflect"
 	"testing"
 
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/conntest"
-	"periph.io/x/periph/conn/i2c"
-	"periph.io/x/periph/conn/i2c/i2creg"
-	"periph.io/x/periph/conn/onewire"
-	"periph.io/x/periph/conn/onewire/onewirereg"
 )
-
-func ExampleDev8() {
-	// Open a connection, using I²C as an example:
-	bus, err := i2creg.Open("")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer bus.Close()
-	c := &i2c.Dev{Bus: bus, Addr: 0xD0}
-
-	dev := Dev8{c, binary.BigEndian}
-	v, err := dev.ReadUint8(0xD0)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if v == 0x60 {
-		fmt.Printf("Found bme280 on bus %s\n", bus)
-	}
-}
-
-func ExampleDev8_ReadStruct() {
-	// Open a connection, using I²C as an example:
-	bus, err := i2creg.Open("")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer bus.Close()
-	c := &i2c.Dev{Bus: bus, Addr: 0xD0}
-
-	dev := Dev8{c, binary.BigEndian}
-	flags := struct {
-		Flag16 uint16
-		Flag8  [2]uint8
-	}{}
-	if err = dev.ReadStruct(0xD0, &flags); err != nil {
-		log.Fatal(err)
-	}
-	// Use flags.Flag16 and flags.Flag8.
-}
-
-func ExampleDev8_WriteStruct() {
-	// Open a connection, using 1-wire as an example:
-	bus, err := onewirereg.Open("")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer bus.Close()
-	c := &onewire.Dev{Bus: bus, Addr: 0xD0}
-
-	dev := Dev8{c, binary.LittleEndian}
-	flags := struct {
-		Flag16 uint16
-		Flag8  [2]uint8
-	}{
-		0x1234,
-		[2]uint8{1, 2},
-	}
-	if err = dev.WriteStruct(0xD0, &flags); err != nil {
-		log.Fatal(err)
-	}
-}
-
-//
 
 func TestDev8_String(t *testing.T) {
 	d := Dev8{Conn: &conntest.Discard{D: conn.Full}, Order: nil}

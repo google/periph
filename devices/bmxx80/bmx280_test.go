@@ -6,7 +6,6 @@ package bmxx80
 
 import (
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -14,7 +13,6 @@ import (
 	"time"
 
 	"periph.io/x/periph/conn/conntest"
-	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/conn/i2c/i2ctest"
 	"periph.io/x/periph/conn/spi"
 	"periph.io/x/periph/conn/spi/spitest"
@@ -728,23 +726,6 @@ func TestCalibration280_limits_419430400(t *testing.T) {
 }
 
 //
-
-func Example() {
-	bus, err := i2creg.Open("")
-	if err != nil {
-		log.Fatalf("failed to open I²C: %v", err)
-	}
-	defer bus.Close()
-	dev, err := NewI2C(bus, 0x76, nil)
-	if err != nil {
-		log.Fatalf("failed to initialize bme280: %v", err)
-	}
-	env := devices.Environment{}
-	if err := dev.Sense(&env); err != nil {
-		log.Fatal(err)
-	}
-	fmt.Printf("%8s %10s %9s\n", env.Temperature, env.Pressure, env.Humidity)
-}
 
 func TestOversampling(t *testing.T) {
 	data := []struct {

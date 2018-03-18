@@ -12,28 +12,8 @@ import (
 	"time"
 
 	"periph.io/x/periph/conn/gpio"
-	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/gpio/gpiotest"
-	"periph.io/x/periph/host"
 )
-
-func Example() {
-	if _, err := host.Init(); err != nil {
-		log.Fatalf("failed to initialize periph: %v", err)
-	}
-	dev, err := New(gpioreg.ByName("GPIO6"), gpioreg.ByName("GPIO12"))
-	if err != nil {
-		log.Fatalf("failed to initialize tm1637: %v", err)
-	}
-	if err := dev.SetBrightness(Brightness10); err != nil {
-		log.Fatalf("failed to set brightness on tm1637: %v", err)
-	}
-	if _, err := dev.Write(Clock(12, 00, true)); err != nil {
-		log.Fatalf("failed to write to tm1637: %v", err)
-	}
-}
-
-//
 
 func TestNew(t *testing.T) {
 	var clk, data gpiotest.Pin
