@@ -56,6 +56,14 @@ type I2C struct {
 // /dev/i2c-1, busNumber should be 1.
 //
 // The resulting object is safe for concurent use.
+//
+// Do not use sysfs.NewI2C() directly as the package sysfs is providing a
+// https://periph.io/x/periph/conn/i2c Linux-specific implementation.
+//
+// periph.io works on many OSes!
+//
+// Instead, use https://periph.io/x/periph/conn/i2c/i2creg#Open. This permits
+// it to work on all operating systems, or devices like I²C over USB.
 func NewI2C(busNumber int) (*I2C, error) {
 	if isLinux {
 		return newI2C(busNumber)

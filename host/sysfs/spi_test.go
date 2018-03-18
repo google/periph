@@ -14,17 +14,17 @@ import (
 )
 
 func TestNewSPI(t *testing.T) {
-	if b, err := NewSPI(-1, 0); b != nil || err == nil {
+	if p, err := NewSPI(-1, 0); p != nil || err == nil {
 		t.Fatal("invalid bus number")
 	}
-	if b, err := NewSPI(0, -1); b != nil || err == nil {
+	if p, err := NewSPI(0, -1); p != nil || err == nil {
 		t.Fatal("invalid CS")
 	}
 }
 
 func TestSPI_IO(t *testing.T) {
-	port := SPI{f: &ioctlClose{}, busNumber: 24}
-	c, err := port.Connect(1, spi.Mode3, 8)
+	p := SPI{f: &ioctlClose{}, busNumber: 24}
+	c, err := p.Connect(1, spi.Mode3, 8)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,22 +49,22 @@ func TestSPI_IO(t *testing.T) {
 	if err := c.TxPackets(nil); err == nil {
 		t.Fatal("empty TxPackets")
 	}
-	p := []spi.Packet{
+	pkt := []spi.Packet{
 		{W: make([]byte, spiBufSize+1)},
 	}
-	if err := c.TxPackets(p); err == nil {
+	if err := c.TxPackets(pkt); err == nil {
 		t.Fatal("buffer too long")
 	}
-	p = []spi.Packet{
+	pkt = []spi.Packet{
 		{W: []byte{0}, R: []byte{0, 1}},
 	}
-	if err := c.TxPackets(p); err == nil {
+	if err := c.TxPackets(pkt); err == nil {
 		t.Fatal("different lengths")
 	}
-	p = []spi.Packet{
+	pkt = []spi.Packet{
 		{W: []byte{0}, R: []byte{0}},
 	}
-	if err := c.TxPackets(p); err != nil {
+	if err := c.TxPackets(pkt); err != nil {
 		t.Fatal(err)
 	}
 	if n, err := c.(io.Reader).Read(nil); n != 0 || err == nil {
@@ -82,70 +82,70 @@ func TestSPI_IO(t *testing.T) {
 	if d := c.Duplex(); d != conn.Full {
 		t.Fatal(d)
 	}
-	if err := port.Close(); err != nil {
+	if err := p.Close(); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestSPI_IO_not_initialized(t *testing.T) {
-	port := SPI{f: &ioctlClose{}, busNumber: 24}
-	if _, err := port.txInternal([]byte{0}, []byte{0}); err == nil {
+	p := SPI{f: &ioctlClose{}, busNumber: 24}
+	if _, err := p.txInternal([]byte{0}, []byte{0}); err == nil {
 		t.Fatal("not initialized")
 	}
-	if port.txPackets([]spi.Packet{{W: []byte{0}}}) == nil {
+	if p.txPackets([]spi.Packet{{W: []byte{0}}}) == nil {
 		t.Fatal("not initialized")
 	}
 }
 
 func TestSPI_pins(t *testing.T) {
-	port := SPI{f: &ioctlClose{}, busNumber: 24}
-	if p := port.CLK(); p != gpio.INVALID {
-		t.Fatal(p)
+	p := SPI{f: &ioctlClose{}, busNumber: 24}
+	if c := p.CLK(); c != gpio.INVALID {
+		t.Fatal(c)
 	}
-	if p := port.MOSI(); p != gpio.INVALID {
-		t.Fatal(p)
+	if m := p.MOSI(); m != gpio.INVALID {
+		t.Fatal(m)
 	}
-	if p := port.MISO(); p != gpio.INVALID {
-		t.Fatal(p)
+	if m := p.MISO(); m != gpio.INVALID {
+		t.Fatal(m)
 	}
-	if p := port.CS(); p != gpio.INVALID {
-		t.Fatal(p)
+	if c := p.CS(); c != gpio.INVALID {
+		t.Fatal(c)
 	}
 }
 
 func TestSPI_other(t *testing.T) {
-	port := SPI{f: &ioctlClose{}, busNumber: 24}
-	if s := port.String(); s != "SPI24.0" {
+	p := SPI{f: &ioctlClose{}, busNumber: 24}
+	if s := p.String(); s != "SPI24.0" {
 		t.Fatal(s)
 	}
-	if err := port.LimitSpeed(0); err == nil {
+	if err := p.LimitSpeed(0); err == nil {
 		t.Fatal("invalid speed")
 	}
-	if err := port.LimitSpeed(1); err != nil {
+	if err := p.LimitSpeed(1); err != nil {
 		t.Fatal(err)
 	}
-	if v := port.MaxTxSize(); v != spiBufSize {
+	if v := p.MaxTxSize(); v != spiBufSize {
 		t.Fatal(v, spiBufSize)
 	}
 }
 
 func TestSPI_Connect(t *testing.T) {
 	// Create a fake SPI to test methods.
-	port := SPI{f: &ioctlClose{}, busNumber: 24}
-	if _, err := port.Connect(-1, spi.Mode0, 8); err == nil {
+	p := SPI{f: &ioctlClose{}, busNumber: 24}
+	if _, err := p.Connect(-1, spi.Mode0, 8); err == nil {
 		t.Fatal("invalid speed")
 	}
-	if _, err := port.Connect(1, -1, 8); err == nil {
+	if _, err := p.Connect(1, -1, 8); err == nil {
 		t.Fatal("invalid mode")
 	}
-	if _, err := port.Connect(1, spi.Mode0, 0); err == nil {
+	if _, err := p.Connect(1, spi.Mode0, 0); err == nil {
 		t.Fatal("invalid bit")
 	}
-	c, err := port.Connect(1, spi.Mode0|spi.HalfDuplex|spi.NoCS|spi.LSBFirst, 8)
+	c, err := p.Connect(1, spi.Mode0|spi.HalfDuplex|spi.NoCS|spi.LSBFirst, 8)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := port.Connect(1, spi.Mode0, 8); err == nil {
+	if _, err := p.Connect(1, spi.Mode0, 8); err == nil {
 		t.Fatal("double initialization")
 	}
 	if d := c.Duplex(); d != conn.Half {
@@ -154,10 +154,10 @@ func TestSPI_Connect(t *testing.T) {
 	if err := c.Tx([]byte{0}, []byte{0}); err == nil {
 		t.Fatal("half duplex")
 	}
-	p := []spi.Packet{
+	pkt := []spi.Packet{
 		{W: []byte{0}, R: []byte{0}},
 	}
-	if err := c.TxPackets(p); err == nil {
+	if err := c.TxPackets(pkt); err == nil {
 		t.Fatal("half duplex")
 	}
 }

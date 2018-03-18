@@ -48,6 +48,12 @@ func ExampleOpen() {
 	_, _ = Open("/dev/spidev1.0")
 	_, _ = Open("SPI1.0")
 	_, _ = Open("1")
+
+	// Opens the first default SPI bus found:
+	_, _ = Open("")
+
+	// Wondering what to do the opened spi.PortCloser? Look at the package
+	// Example above.
 }
 
 //

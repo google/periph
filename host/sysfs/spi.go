@@ -35,7 +35,7 @@ import (
 // busNumber is the bus number as exported by devfs. For example if the path is
 // /dev/spidev0.1, busNumber should be 0 and chipSelect should be 1.
 //
-// Do not use sysfs.NewSPI() directly as the package sysfs is providing
+// Do not use sysfs.NewSPI() directly as the package sysfs is providing a
 // https://periph.io/x/periph/conn/spi Linux-specific implementation.
 //
 // periph.io works on many OSes!

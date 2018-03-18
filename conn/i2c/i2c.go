@@ -4,9 +4,15 @@
 
 // Package i2c defines interface to an I²C bus and an I²C device.
 //
-// It includes the adapter Dev to directly address an I²C device on a I²C bus
-// without having to continuously specify the address when doing I/O. This
-// enables the support of conn.Conn.
+// As described in https://periph.io/x/periph/conn#hdr-Concepts, periph.io uses
+// the concepts of Bus, Port and Conn.
+//
+// In the package i2c, 'Port' is not exposed, since once you know the I²C
+// device address, there's no unconfigured Port to configure.
+//
+// Instead, the package includes the adapter 'Dev' to directly convert an I²C
+// bus 'conn.Bus' into a connection 'conn.Conn' by only specifying the device
+// I²C address.
 package i2c
 
 import (

@@ -25,6 +25,9 @@ func Example() {
 	name := flag.String("spi", "", "SPI port to use")
 	flag.Parse()
 	p, err := spireg.Open(*name)
+	if err != nil {
+		log.Fatal(err)
+	}
 	defer p.Close()
 
 	// Convert the spi.Port into a spi.Conn so it can be used for communication.

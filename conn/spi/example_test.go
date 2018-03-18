@@ -21,6 +21,9 @@ func Example() {
 
 	// Use spireg SPI port registry to find the first available SPI bus.
 	p, err := spireg.Open("")
+	if err != nil {
+		log.Fatal(err)
+	}
 	defer p.Close()
 
 	// Convert the spi.Port into a spi.Conn so it can be used for communication.
@@ -47,6 +50,9 @@ func ExamplePins() {
 
 	// Use spireg SPI port registry to find the first available SPI bus.
 	p, err := spireg.Open("")
+	if err != nil {
+		log.Fatal(err)
+	}
 	defer p.Close()
 
 	// Convert the spi.Port into a spi.Conn so it can be used for communication.

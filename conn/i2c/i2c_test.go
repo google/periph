@@ -7,42 +7,10 @@ package i2c
 import (
 	"bytes"
 	"errors"
-	"fmt"
-	"log"
 	"testing"
 
 	"periph.io/x/periph/conn"
 )
-
-func ExampleDev() {
-	//b, err := i2creg.Open("")
-	//defer b.Close()
-	var b Bus
-
-	// Dev is a valid conn.Conn.
-	d := &Dev{Addr: 23, Bus: b}
-	var _ conn.Conn = d
-
-	// Send a command and expect a 5 bytes reply.
-	reply := [5]byte{}
-	if err := d.Tx([]byte("A command"), reply[:]); err != nil {
-		log.Fatal(err)
-	}
-}
-
-func ExamplePins() {
-	//b, err := i2creg.Open("")
-	//defer b.Close()
-	var b Bus
-
-	// Prints out the gpio pin used.
-	if p, ok := b.(Pins); ok {
-		fmt.Printf("SDA: %s", p.SDA())
-		fmt.Printf("SCL: %s", p.SCL())
-	}
-}
-
-//
 
 func TestDevString(t *testing.T) {
 	d := Dev{&fakeBus{}, 12}

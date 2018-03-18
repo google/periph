@@ -5,25 +5,10 @@
 package sysfs
 
 import (
-	"log"
 	"testing"
 
 	"periph.io/x/periph/conn/i2c/i2creg"
 )
-
-func ExampleNewI2C() {
-	b, err := NewI2C(1)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer b.Close()
-
-	if err := b.Tx(23, []byte{0x10}, nil); err != nil {
-		log.Fatal(err)
-	}
-}
-
-//
 
 func TestNewI2C(t *testing.T) {
 	if b, err := NewI2C(-1); b != nil || err == nil {

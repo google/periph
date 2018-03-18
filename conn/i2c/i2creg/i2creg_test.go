@@ -5,9 +5,7 @@
 package i2creg
 
 import (
-	"flag"
 	"fmt"
-	"log"
 	"sort"
 	"strings"
 	"testing"
@@ -42,24 +40,16 @@ func ExampleAll() {
 }
 
 func ExampleOpen() {
-	// On linux, the following calls will likely open the same bus.
+	// On Linux, the following calls will likely open the same bus.
 	_, _ = Open("/dev/i2c-1")
 	_, _ = Open("I2C1")
 	_, _ = Open("1")
 
-	// How a command line tool may let the user choose an I²C bus, yet default to
-	// the first bus known.
-	name := flag.String("i2c", "", "I²C bus to use")
-	flag.Parse()
-	b, err := Open(*name)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer b.Close()
-	// Use b...
-	if err := b.Tx(23, []byte("cmd"), nil); err != nil {
-		log.Fatal(err)
-	}
+	// Opens the first default I²C bus found:
+	_, _ = Open("")
+
+	// Wondering what to do the opened i2c.BusCloser? Look at the package
+	// Example above.
 }
 
 //
