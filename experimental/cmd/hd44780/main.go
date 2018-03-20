@@ -13,9 +13,11 @@ import (
 
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
-	lcd "periph.io/x/periph/experimental/devices/hd44780"
+	"periph.io/x/periph/experimental/devices/hd44780"
 	"periph.io/x/periph/host"
 )
+
+var pinPattern = "no %s pin specified. Please provide the pin via '%s' flag, for example '%s'"
 
 func mainFunc() error {
 	rsPin := flag.String("rs", "", "Register select pin")
@@ -24,24 +26,23 @@ func mainFunc() error {
 	text := flag.String("text", "", "Text to display, could be multiline")
 	flag.Parse()
 
-	host.Init()
+	if _, err := host.Init(); err != nil {
+		return err
+	}
 
 	if *rsPin == "" {
-		return errors.New("No register select pin configured")
+		return fmt.Errorf(pinPattern, "register select", "-rs", "-rs 25")
 	}
-
 	if *ePin == "" {
-		return errors.New("No strobe pin configured")
+		return fmt.Errorf(pinPattern, "strobe pin", "-e", "-e 26")
 	}
-
 	if *data == "" {
-		return errors.New("No data pins configured")
+		return fmt.Errorf(pinPattern, "data pins", "-data", "-data 6,13,17,22")
 	}
 
 	pinsStr := strings.Split(*data, ",")
-
 	if len(pinsStr) != 4 {
-		return errors.New("Please provide 4 pins for DB4-DB7 pins")
+		return errors.New("please provide 4 pins for DB4-DB7 pins")
 	}
 
 	rsPinReg := gpioreg.ByName(*rsPin)
@@ -53,17 +54,14 @@ func mainFunc() error {
 		return fmt.Errorf("Strobe pin %s can not be found", *ePin)
 	}
 
-	dataPins := make([]gpio.PinOut, 4)
+	var dataPins [4]gpio.PinOut
 	for i, pinName := range pinsStr {
-		tmp := gpioreg.ByName(pinName)
-		if tmp == nil {
-			return fmt.Errorf("Data pin %s can not be found", tmp)
+		if dataPins[i] = gpioreg.ByName(pinName); dataPins[i] == nil {
+			return fmt.Errorf("Data pin %s can not be found", pinName)
 		}
-		dataPins[i] = tmp
 	}
 
-	rpi, err := lcd.NewLCD4Bit(dataPins, rsPinReg, ePinReg)
-
+	dev, err := hd44780.New(dataPins[:], rsPinReg, ePinReg)
 	if err != nil {
 		return err
 	}
@@ -75,10 +73,10 @@ func mainFunc() error {
 	strs := strings.Split(*text, "\n")
 
 	for i := 0; i < len(strs) && i < 2; i++ {
-		if err := rpi.SetCursor(uint8(i), 0); err != nil {
+		if err := dev.SetCursor(uint8(i), 0); err != nil {
 			return err
 		}
-		if err := rpi.Print(strs[i]); err != nil {
+		if err := dev.Print(strs[i]); err != nil {
 			return err
 		}
 	}
