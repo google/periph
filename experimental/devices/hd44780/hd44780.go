@@ -117,6 +117,20 @@ func (r *Dev) Print(data string) error {
 	return nil
 }
 
+// PrintAt the data string at specified position
+//	data string to display
+func (r *Dev) PrintAt(row, column uint8, data string) error {
+	if err := r.SetCursor(row, column); err != nil {
+		return err
+	}
+	for _, v := range []byte(data) {
+		if err := r.WriteChar(v); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // WriteChar writes a single byte (character)
 //	data - character code
 func (r *Dev) WriteChar(data uint8) error {
