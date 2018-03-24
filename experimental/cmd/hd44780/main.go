@@ -67,7 +67,7 @@ func mainFunc() error {
 	}
 
 	if *text == "" {
-		return dev.Cls()
+		return dev.Halt()
 	}
 
 	strs := strings.Split(*text, "\n")
