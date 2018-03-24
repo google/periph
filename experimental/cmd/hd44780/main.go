@@ -17,8 +17,6 @@ import (
 	"periph.io/x/periph/host"
 )
 
-var pinPattern = "no %s pin specified. Please provide the pin via '%s' flag, for example '%s'"
-
 func mainFunc() error {
 	rsPin := flag.String("rs", "", "Register select pin")
 	ePin := flag.String("e", "", "Strobe pin")
@@ -29,6 +27,8 @@ func mainFunc() error {
 	if _, err := host.Init(); err != nil {
 		return err
 	}
+
+	const pinPattern = "no %s pin specified. Please provide the pin via '%s' flag, for example '%s'"
 
 	if *rsPin == "" {
 		return fmt.Errorf(pinPattern, "register select", "-rs", "-rs 25")
@@ -67,7 +67,7 @@ func mainFunc() error {
 	}
 
 	if *text == "" {
-		return nil
+		return dev.Cls()
 	}
 
 	strs := strings.Split(*text, "\n")

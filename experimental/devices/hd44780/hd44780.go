@@ -78,17 +78,12 @@ func (r *Dev) Init() error {
 	return nil
 }
 
-// Halt will re-initialize the display.
-func (r *Dev) Halt() error {
-	return r.Init()
-}
-
 func (r *Dev) String() string {
 	return "HD44870, 4 bit mode"
 }
 
 // Cls clears the LCD screen
-func (r *Dev) Cls() error {
+func (r *Dev) Halt() error {
 	if err := r.writeInstruction(0x01); err != nil {
 		return err
 	}
