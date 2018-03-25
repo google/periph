@@ -31,7 +31,7 @@ func ExampleDev8() {
 	defer b.Close()
 	c := &i2c.Dev{Bus: b, Addr: 0xD0}
 
-	d := mmr.Dev8{c, binary.BigEndian}
+	d := mmr.Dev8{Conn: c, Order: binary.BigEndian}
 	v, err := d.ReadUint8(0xD0)
 	if err != nil {
 		log.Fatal(err)
@@ -55,7 +55,7 @@ func ExampleDev8_ReadStruct() {
 	defer b.Close()
 	c := &i2c.Dev{Bus: b, Addr: 0xD0}
 
-	d := mmr.Dev8{c, binary.BigEndian}
+	d := mmr.Dev8{Conn: c, Order: binary.BigEndian}
 	flags := struct {
 		Flag16 uint16
 		Flag8  [2]uint8
@@ -80,7 +80,7 @@ func ExampleDev8_WriteStruct() {
 	defer b.Close()
 	c := &onewire.Dev{Bus: b, Addr: 0xD0}
 
-	d := mmr.Dev8{c, binary.LittleEndian}
+	d := mmr.Dev8{Conn: c, Order: binary.LittleEndian}
 	flags := struct {
 		Flag16 uint16
 		Flag8  [2]uint8

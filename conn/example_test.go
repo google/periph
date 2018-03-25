@@ -13,7 +13,7 @@ import (
 	"periph.io/x/periph/host"
 )
 
-func ExampleConn() {
+func Example() {
 	// Make sure periph is initialized.
 	if _, err := host.Init(); err != nil {
 		log.Fatal(err)
