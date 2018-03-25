@@ -63,8 +63,12 @@ type BlocksAccess struct {
 	B3         SectorTrailerAccess
 }
 
+func (ba *BlocksAccess) String() string {
+	return fmt.Sprintf("B0: %d, B1: %d, B2: %d, B3: %d", ba.B0, ba.B1, ba.B2, ba.B3)
+}
+
 // DefaultKey provides the default bytes for card authentication for method B.
-var DefaultKey = []byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
+var DefaultKey = [...]byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
 
 // Dev is an handle to an MFRC522 RFID reader.
 type Dev struct {
@@ -432,7 +436,7 @@ func (r *Dev) ReadBlock(sector int, block int) ([]byte, error) {
 // 	block - the block within the sector to write into.
 // 	data - 16 bytes if data to write
 // 	key - the key used to authenticate the card - depends on the used auth method.
-func (r *Dev) WriteBlock(auth byte, sector int, block int, data [16]byte, key []byte) (err error) {
+func (r *Dev) WriteBlock(auth byte, sector int, block int, data [16]byte, key [6]byte) (err error) {
 	defer func() {
 		if err == nil {
 			err = r.StopCrypto()
@@ -469,7 +473,7 @@ func (r *Dev) ReadSectorTrail(sector int) ([]byte, error) {
 // 	keyB - the key used for AuthB authentication schemd.
 // 	access - the block access structure.
 // 	key - the current key used to authenticate the provided sector.
-func (r *Dev) WriteSectorTrail(auth byte, sector int, keyA [6]byte, keyB [6]byte, access *BlocksAccess, key []byte) (err error) {
+func (r *Dev) WriteSectorTrail(auth byte, sector int, keyA [6]byte, keyB [6]byte, access *BlocksAccess, key [6]byte) (err error) {
 	defer func() {
 		if err == nil {
 			err = r.StopCrypto()
@@ -488,12 +492,13 @@ func (r *Dev) WriteSectorTrail(auth byte, sector int, keyA [6]byte, keyB [6]byte
 		return
 	}
 
-	data := make([]byte, 16)
-	copy(data, keyA[:])
+	var data [16]byte
+	copy(data[:], keyA[:])
 	accessData := CalculateBlockAccess(access)
 	copy(data[6:], accessData[:4])
 	copy(data[10:], keyB[:])
-	return r.write(calcBlockAddress(sector&0xFF, 3), data)
+	fmt.Printf("Data bytes %v\n", data)
+	return r.write(calcBlockAddress(sector&0xFF, 3), data[:])
 }
 
 // Auth authenticate the card fof the sector/block using the provided data.
@@ -503,7 +508,7 @@ func (r *Dev) WriteSectorTrail(auth byte, sector int, keyA [6]byte, keyB [6]byte
 // 	block - the block within sector to authenticate.
 // 	sectorKey - the key to be used for accessing the sector data.
 // 	serial - the serial of the card.
-func (r *Dev) Auth(mode byte, sector, block int, sectorKey []byte, serial []byte) (AuthStatus, error) {
+func (r *Dev) Auth(mode byte, sector, block int, sectorKey [6]byte, serial []byte) (AuthStatus, error) {
 	return r.auth(mode, calcBlockAddress(sector, block), sectorKey, serial)
 }
 
@@ -513,7 +518,7 @@ func (r *Dev) Auth(mode byte, sector, block int, sectorKey []byte, serial []byte
 // 	sector - the sector to authenticate on.
 // 	block - the block within sector to authenticate.
 // 	key - the key to be used for accessing the sector data.
-func (r *Dev) ReadCard(auth byte, sector int, block int, key []byte) (data []byte, err error) {
+func (r *Dev) ReadCard(auth byte, sector int, block int, key [6]byte) (data []byte, err error) {
 	defer func() {
 		if err == nil {
 			err = r.StopCrypto()
@@ -538,7 +543,7 @@ func (r *Dev) ReadCard(auth byte, sector int, block int, key []byte) (data []byt
 //
 // 	sector - the sector to authenticate on.
 // 	key - the key to be used for accessing the sector data.
-func (r *Dev) ReadAuth(auth byte, sector int, key []byte) (data []byte, err error) {
+func (r *Dev) ReadAuth(auth byte, sector int, key [6]byte) (data []byte, err error) {
 	defer func() {
 		if err == nil {
 			err = r.StopCrypto()
@@ -562,21 +567,21 @@ func (r *Dev) ReadAuth(auth byte, sector int, key []byte) (data []byte, err erro
 // CalculateBlockAccess calculates the block access.
 func CalculateBlockAccess(ba *BlocksAccess) []byte {
 	res := make([]byte, 4)
-	res[0] = (^ba.getBits(1) & 0x0F) | ((^ba.getBits(2) & 0x0F) << 4)
-	res[1] = (^ba.getBits(3) & 0x0F) | (ba.getBits(1) & 0x0F << 4)
-	res[2] = (ba.getBits(2) & 0x0F) | (ba.getBits(3) & 0x0F << 4)
+	res[0] = ((^ba.getBits(2) & 0x0F) << 4) | (^ba.getBits(1) & 0x0F)
+	res[1] = ((ba.getBits(1) & 0x0F) << 4) | (^ba.getBits(3) & 0x0F)
+	res[2] = ((ba.getBits(3) & 0x0F) << 4) | (ba.getBits(2) & 0x0F)
 	res[3] = res[0] ^ res[1] ^ res[2]
 	return res
 }
 
 // ParseBlockAccess parses the given byte array into the block access structure.
 func ParseBlockAccess(ad []byte) *BlocksAccess {
-	ba := new(BlocksAccess)
-	ba.B0 = BlockAccess(ad[1]&0x10>>4 | ad[2]&0x01<<1 | ad[2]&0x10>>2)
-	ba.B1 = BlockAccess(ad[1]&0x20>>5 | ad[2]&0x02 | ad[2]&0x20>>3)
-	ba.B2 = BlockAccess(ad[1]&0x40>>6 | ad[2]&0x04>>1 | ad[2]&0x40>>4)
-	ba.B3 = SectorTrailerAccess(ad[1]&0x80>>7 | ad[2]&0x08>>2 | ad[2]&0x80>>5)
-	return ba
+	return &BlocksAccess{
+		B0: BlockAccess(((ad[1] & 0x10) >> 2) | ((ad[2] & 0x01) << 1) | ((ad[2] & 0x10) >> 5)),
+		B1: BlockAccess(((ad[1] & 0x20) >> 3) | (ad[2] & 0x02) | ((ad[2] & 0x20) >> 5)),
+		B2: BlockAccess(((ad[1] & 0x40) >> 4) | ((ad[2] & 0x04) >> 1) | ((ad[2] & 0x40) >> 6)),
+		B3: SectorTrailerAccess(((ad[1] & 0x80) >> 5) | ((ad[2] & 0x08) >> 2) | ((ad[2] & 0x80) >> 7)),
+	}
 }
 
 func (r *Dev) String() string {
@@ -587,7 +592,7 @@ func (r *Dev) String() string {
 //		MFRC522 SPI Dev private/helper functions
 
 func (ba *BlocksAccess) getBits(bitNum uint) byte {
-	shift := bitNum - 1
+	shift := 3 - bitNum
 	bit := byte(1 << shift)
 	return (byte(ba.B0)&bit)>>shift | ((byte(ba.B1)&bit)>>shift)<<1 | ((byte(ba.B2)&bit)>>shift)<<2 | ((byte(ba.B3)&bit)>>shift)<<3
 }
@@ -651,11 +656,11 @@ func (r *Dev) write(blockAddr byte, data []byte) error {
 	return nil
 }
 
-func (r *Dev) auth(mode byte, blockAddress byte, sectorKey []byte, serial []byte) (AuthStatus, error) {
+func (r *Dev) auth(mode byte, blockAddress byte, sectorKey [6]byte, serial []byte) (AuthStatus, error) {
 	buffer := make([]byte, 2)
 	buffer[0] = mode
 	buffer[1] = blockAddress
-	buffer = append(buffer, sectorKey...)
+	buffer = append(buffer, sectorKey[:]...)
 	buffer = append(buffer, serial[:4]...)
 	_, _, err := r.CardWrite(commands.PCD_AUTHENT, buffer)
 	if err != nil {
@@ -749,6 +754,7 @@ var sequenceCommands = struct {
 
 var _ conn.Resource = &Dev{}
 var _ fmt.Stringer = &Dev{}
+var _ fmt.Stringer = &BlocksAccess{}
 
 func wrapf(format string, a ...interface{}) error {
 	return fmt.Errorf("mfrc522: "+format, a...)

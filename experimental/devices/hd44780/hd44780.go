@@ -38,7 +38,7 @@ type Dev struct {
 //	e - strobe pin
 func New(data []gpio.PinOut, rs, e gpio.PinOut) (*Dev, error) {
 	if len(data) != 4 {
-		return nil, fmt.Errorf("expected 4 data pins, passed %s", len(data))
+		return nil, fmt.Errorf("expected 4 data pins, passed %d", len(data))
 	}
 	dev := &Dev{
 		dataPins:  data,
