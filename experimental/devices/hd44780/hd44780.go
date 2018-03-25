@@ -45,15 +45,15 @@ func New(data []gpio.PinOut, rs, e gpio.PinOut) (*Dev, error) {
 		enablePin: e,
 		rsPin:     rs,
 	}
-	if err := dev.Init(); err != nil {
+	if err := dev.Reset(); err != nil {
 		return nil, err
 	}
 	return dev, nil
 }
 
-// Init initializes the HC-44780 chipset, clears the screen buffer and moves cursor to the
+// Reset resets the HC-44780 chipset, clears the screen buffer and moves cursor to the
 // home of screen (line 0, column 0).
-func (r *Dev) Init() error {
+func (r *Dev) Reset() error {
 	if err := r.clearBits(); err != nil {
 		return err
 	}
@@ -82,7 +82,7 @@ func (r *Dev) String() string {
 	return "HD44870, 4 bit mode"
 }
 
-// Cls clears the LCD screen
+// Halt clears the LCD screen
 func (r *Dev) Halt() error {
 	if err := r.writeInstruction(0x01); err != nil {
 		return err
@@ -112,21 +112,7 @@ func (r *Dev) Print(data string) error {
 	return nil
 }
 
-// PrintAt the data string at specified position
-//	data string to display
-func (r *Dev) PrintAt(row, column uint8, data string) error {
-	if err := r.SetCursor(row, column); err != nil {
-		return err
-	}
-	for _, v := range []byte(data) {
-		if err := r.WriteChar(v); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// WriteChar writes a single byte (character)
+// WriteChar writes a single byte (character) at the cursor position.
 //	data - character code
 func (r *Dev) WriteChar(data uint8) error {
 	if err := r.sendData(); err != nil {
