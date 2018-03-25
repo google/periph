@@ -44,15 +44,13 @@ func mainImpl() error {
 		return err
 	}
 
-	currentAccessKey := mfrc522.DefaultKey
+	var currentAccessKey [6]byte
 
 	if *key != "" {
 		keyBytes := strings.SplitN(*key, ",", 6)
 		if len(keyBytes) != 6 {
 			return errors.New("key should consist of 6 decimal numbers")
 		}
-		currentAccessKey = make([]byte, 6)
-
 		for i, v := range keyBytes {
 			intV, err := strconv.ParseUint(v, 10, 8)
 			if err != nil {
@@ -60,6 +58,8 @@ func mainImpl() error {
 			}
 			currentAccessKey[i] = byte(intV)
 		}
+	} else {
+		copy(currentAccessKey[:], mfrc522.DefaultKey[:])
 	}
 
 	currentAccessMethod := byte(commands.PICC_AUTHENT1B)
