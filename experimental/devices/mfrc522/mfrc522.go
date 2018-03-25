@@ -497,7 +497,6 @@ func (r *Dev) WriteSectorTrail(auth byte, sector int, keyA [6]byte, keyB [6]byte
 	accessData := CalculateBlockAccess(access)
 	copy(data[6:], accessData[:4])
 	copy(data[10:], keyB[:])
-	fmt.Printf("Data bytes %v\n", data)
 	return r.write(calcBlockAddress(sector&0xFF, 3), data[:])
 }
 
