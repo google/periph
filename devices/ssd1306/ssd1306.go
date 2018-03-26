@@ -77,33 +77,6 @@ const (
 	UpLeft  Orientation = 0x2A
 )
 
-// Dev is an open handle to the display controller.
-type Dev struct {
-	// Communication
-	c   conn.Conn
-	dc  gpio.PinOut
-	spi bool
-
-	// Display size controlled by the SSD1306.
-	rect image.Rectangle
-
-	// Mutable
-	// See page 25 for the GDDRAM pages structure.
-	// Narrow screen will waste the end of each page.
-	// Short screen will ignore the lower pages.
-	// There is 8 pages, each covering an horizontal band of 8 pixels high (1
-	// byte) for 128 bytes.
-	// 8*128 = 1024 bytes total for 128x64 display.
-	buffer []byte
-	// next is lazy initialized on first Draw(). Write() skips this buffer.
-	next               *image1bit.VerticalLSB
-	startPage, endPage int
-	startCol, endCol   int
-	scrolled           bool
-	halted             bool
-	err                error
-}
-
 // NewSPI returns a Dev object that communicates over SPI to a SSD1306 display
 // controller.
 //
@@ -149,76 +122,31 @@ func NewI2C(i i2c.Bus, w, h int, rotated bool) (*Dev, error) {
 	return newDev(&i2c.Dev{Bus: i, Addr: 0x3C}, w, h, rotated, false, nil)
 }
 
-// newDev is the common initialization code that is independent of the
-// communication protocol (I²C or SPI) being used.
-func newDev(c conn.Conn, w, h int, rotated, usingSPI bool, dc gpio.PinOut) (*Dev, error) {
-	if w < 8 || w > 128 || w&7 != 0 {
-		return nil, fmt.Errorf("ssd1306: invalid width %d", w)
-	}
-	if h < 8 || h > 64 || h&7 != 0 {
-		return nil, fmt.Errorf("ssd1306: invalid height %d", h)
-	}
+// Dev is an open handle to the display controller.
+type Dev struct {
+	// Communication
+	c   conn.Conn
+	dc  gpio.PinOut
+	spi bool
 
-	nbPages := h / 8
-	pageSize := w
-	d := &Dev{
-		c:         c,
-		spi:       usingSPI,
-		dc:        dc,
-		rect:      image.Rect(0, 0, int(w), int(h)),
-		buffer:    make([]byte, nbPages*pageSize),
-		startPage: 0,
-		endPage:   nbPages,
-		startCol:  0,
-		endCol:    w,
-		// Signal that the screen must be redrawn on first draw().
-		scrolled: true,
-	}
-	if err := d.sendCommand(getInitCmd(w, h, rotated)); err != nil {
-		return nil, err
-	}
-	return d, nil
-}
+	// Display size controlled by the SSD1306.
+	rect image.Rectangle
 
-func getInitCmd(w, h int, rotated bool) []byte {
-	// Set COM output scan direction; C0 means normal; C8 means reversed
-	comScan := byte(0xC8)
-	// See page 40.
-	columnAddr := byte(0xA1)
-	if rotated {
-		// Change order both horizontally and vertically.
-		comScan = 0xC0
-		columnAddr = byte(0xA0)
-	}
-	// Set the max frequency. The problem with I²C is that it creates visible
-	// tear down. On SPI at high speed this is not visible. Page 23 pictures how
-	// to avoid tear down. For now default to max frequency.
-	freq := byte(0xF0)
-
-	// Initialize the device by fully resetting all values.
-	// Page 64 has the full recommended flow.
-	// Page 28 lists all the commands.
-	return []byte{
-		0xAE,       // Display off
-		0xD3, 0x00, // Set display offset; 0
-		0x40,       // Start display start line; 0
-		columnAddr, // Set segment remap; RESET is column 127.
-		comScan,    //
-		0xDA, 0x12, // Set COM pins hardware configuration; see page 40
-		0x81, 0xFF, // Set max contrast
-		0xA4,       // Set display to use GDDRAM content
-		0xA6,       // Set normal display (0xA7 for inverted 0=lit, 1=dark)
-		0xD5, freq, // Set osc frequency and divide ratio; power on reset value is 0x80.
-		0x8D, 0x14, // Enable charge pump regulator; page 62
-		0xD9, 0xF1, // Set pre-charge period; from adafruit driver
-		0xDB, 0x40, // Set Vcomh deselect level; page 32
-		0x2E,              // Deactivate scroll
-		0xA8, byte(h - 1), // Set multiplex ratio (number of lines to display)
-		0x20, 0x00, // Set memory addressing mode to horizontal
-		0x21, 0, uint8(w - 1), // Set column address (Width)
-		0x22, 0, uint8(h/8 - 1), // Set page address (Pages)
-		0xAF, // Display on
-	}
+	// Mutable
+	// See page 25 for the GDDRAM pages structure.
+	// Narrow screen will waste the end of each page.
+	// Short screen will ignore the lower pages.
+	// There is 8 pages, each covering an horizontal band of 8 pixels high (1
+	// byte) for 128 bytes.
+	// 8*128 = 1024 bytes total for 128x64 display.
+	buffer []byte
+	// next is lazy initialized on first Draw(). Write() skips this buffer.
+	next               *image1bit.VerticalLSB
+	startPage, endPage int
+	startCol, endCol   int
+	scrolled           bool
+	halted             bool
+	err                error
 }
 
 func (d *Dev) String() string {
@@ -355,6 +283,78 @@ func (d *Dev) Invert(blackOnWhite bool) error {
 }
 
 //
+
+// newDev is the common initialization code that is independent of the
+// communication protocol (I²C or SPI) being used.
+func newDev(c conn.Conn, w, h int, rotated, usingSPI bool, dc gpio.PinOut) (*Dev, error) {
+	if w < 8 || w > 128 || w&7 != 0 {
+		return nil, fmt.Errorf("ssd1306: invalid width %d", w)
+	}
+	if h < 8 || h > 64 || h&7 != 0 {
+		return nil, fmt.Errorf("ssd1306: invalid height %d", h)
+	}
+
+	nbPages := h / 8
+	pageSize := w
+	d := &Dev{
+		c:         c,
+		spi:       usingSPI,
+		dc:        dc,
+		rect:      image.Rect(0, 0, int(w), int(h)),
+		buffer:    make([]byte, nbPages*pageSize),
+		startPage: 0,
+		endPage:   nbPages,
+		startCol:  0,
+		endCol:    w,
+		// Signal that the screen must be redrawn on first draw().
+		scrolled: true,
+	}
+	if err := d.sendCommand(getInitCmd(w, h, rotated)); err != nil {
+		return nil, err
+	}
+	return d, nil
+}
+
+func getInitCmd(w, h int, rotated bool) []byte {
+	// Set COM output scan direction; C0 means normal; C8 means reversed
+	comScan := byte(0xC8)
+	// See page 40.
+	columnAddr := byte(0xA1)
+	if rotated {
+		// Change order both horizontally and vertically.
+		comScan = 0xC0
+		columnAddr = byte(0xA0)
+	}
+	// Set the max frequency. The problem with I²C is that it creates visible
+	// tear down. On SPI at high speed this is not visible. Page 23 pictures how
+	// to avoid tear down. For now default to max frequency.
+	freq := byte(0xF0)
+
+	// Initialize the device by fully resetting all values.
+	// Page 64 has the full recommended flow.
+	// Page 28 lists all the commands.
+	return []byte{
+		0xAE,       // Display off
+		0xD3, 0x00, // Set display offset; 0
+		0x40,       // Start display start line; 0
+		columnAddr, // Set segment remap; RESET is column 127.
+		comScan,    //
+		0xDA, 0x12, // Set COM pins hardware configuration; see page 40
+		0x81, 0xFF, // Set max contrast
+		0xA4,       // Set display to use GDDRAM content
+		0xA6,       // Set normal display (0xA7 for inverted 0=lit, 1=dark)
+		0xD5, freq, // Set osc frequency and divide ratio; power on reset value is 0x80.
+		0x8D, 0x14, // Enable charge pump regulator; page 62
+		0xD9, 0xF1, // Set pre-charge period; from adafruit driver
+		0xDB, 0x40, // Set Vcomh deselect level; page 32
+		0x2E,              // Deactivate scroll
+		0xA8, byte(h - 1), // Set multiplex ratio (number of lines to display)
+		0x20, 0x00, // Set memory addressing mode to horizontal
+		0x21, 0, uint8(w - 1), // Set column address (Width)
+		0x22, 0, uint8(h/8 - 1), // Set page address (Pages)
+		0xAF, // Display on
+	}
+}
 
 func (d *Dev) calculateSubset(next []byte) (int, int, int, int, bool) {
 	w := d.rect.Dx()

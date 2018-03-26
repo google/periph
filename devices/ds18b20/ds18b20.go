@@ -31,6 +31,26 @@ import (
 	"periph.io/x/periph/devices"
 )
 
+// ConvertAll performs a conversion on all DS18B20 devices on the bus.
+//
+// During the conversion it places the bus in strong pull-up mode to power
+// parasitic devices and returns when the conversions have completed. This time
+// period is determined by the maximum resolution of all devices on the bus and
+// must be provided.
+//
+// ConvertAll uses time.Sleep to wait for the conversion to finish, which takes
+// from 94ms to 752ms.
+func ConvertAll(o onewire.Bus, maxResolutionBits int) error {
+	if maxResolutionBits < 9 || maxResolutionBits > 12 {
+		return errors.New("ds18b20: invalid maxResolutionBits")
+	}
+	if err := o.Tx([]byte{0xcc, 0x44}, nil, onewire.StrongPullup); err != nil {
+		return err
+	}
+	conversionSleep(maxResolutionBits)
+	return nil
+}
+
 // New returns an object that communicates over 1-wire to the DS18B20 sensor
 // with the specified 64-bit address.
 //
@@ -71,28 +91,6 @@ func New(o onewire.Bus, addr onewire.Address, resolutionBits int) (*Dev, error) 
 
 	return d, nil
 }
-
-// ConvertAll performs a conversion on all DS18B20 devices on the bus.
-//
-// During the conversion it places the bus in strong pull-up mode to power
-// parasitic devices and returns when the conversions have completed. This time
-// period is determined by the maximum resolution of all devices on the bus and
-// must be provided.
-//
-// ConvertAll uses time.Sleep to wait for the conversion to finish, which takes
-// from 94ms to 752ms.
-func ConvertAll(o onewire.Bus, maxResolutionBits int) error {
-	if maxResolutionBits < 9 || maxResolutionBits > 12 {
-		return errors.New("ds18b20: invalid maxResolutionBits")
-	}
-	if err := o.Tx([]byte{0xcc, 0x44}, nil, onewire.StrongPullup); err != nil {
-		return err
-	}
-	conversionSleep(maxResolutionBits)
-	return nil
-}
-
-//===== Dev
 
 // Dev is a handle to a Dallas Semi / Maxim DS18B20 temperature sensor on a
 // 1-wire bus.

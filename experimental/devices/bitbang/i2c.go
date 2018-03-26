@@ -23,6 +23,39 @@ import (
 // SkipAddr can be used to skip the address from being sent.
 const SkipAddr uint16 = 0xFFFF
 
+// New returns an object that communicates I²C over two pins.
+//
+// BUG(maruel): It is close to working but not yet, the signal is incorrect
+// during ACK.
+//
+// It has two special features:
+// - Special address SkipAddr can be used to skip the address from being
+//   communicated
+// - An arbitrary speed can be used
+func New(clk gpio.PinIO, data gpio.PinIO, speedHz int) (*I2C, error) {
+	// Spec calls to idle at high. Page 8, section 3.1.1.
+	// Set SCL as pull-up.
+	if err := clk.In(gpio.PullUp, gpio.NoEdge); err != nil {
+		return nil, err
+	}
+	if err := clk.Out(gpio.High); err != nil {
+		return nil, err
+	}
+	// Set SDA as pull-up.
+	if err := data.In(gpio.PullUp, gpio.NoEdge); err != nil {
+		return nil, err
+	}
+	if err := data.Out(gpio.High); err != nil {
+		return nil, err
+	}
+	i := &I2C{
+		scl:       clk,
+		sda:       data,
+		halfCycle: time.Second / time.Duration(speedHz) / time.Duration(2),
+	}
+	return i, nil
+}
+
 // I2C represents an I²C master implemented as bit-banging on 2 GPIO pins.
 type I2C struct {
 	mu        sync.Mutex
@@ -104,39 +137,6 @@ func (i *I2C) SCL() gpio.PinIO {
 // SDA implements i2c.Pins.
 func (i *I2C) SDA() gpio.PinIO {
 	return i.sda
-}
-
-// New returns an object that communicates I²C over two pins.
-//
-// BUG(maruel): It is close to working but not yet, the signal is incorrect
-// during ACK.
-//
-// It has two special features:
-// - Special address SkipAddr can be used to skip the address from being
-//   communicated
-// - An arbitrary speed can be used
-func New(clk gpio.PinIO, data gpio.PinIO, speedHz int) (*I2C, error) {
-	// Spec calls to idle at high. Page 8, section 3.1.1.
-	// Set SCL as pull-up.
-	if err := clk.In(gpio.PullUp, gpio.NoEdge); err != nil {
-		return nil, err
-	}
-	if err := clk.Out(gpio.High); err != nil {
-		return nil, err
-	}
-	// Set SDA as pull-up.
-	if err := data.In(gpio.PullUp, gpio.NoEdge); err != nil {
-		return nil, err
-	}
-	if err := data.Out(gpio.High); err != nil {
-		return nil, err
-	}
-	i := &I2C{
-		scl:       clk,
-		sda:       data,
-		halfCycle: time.Second / time.Duration(speedHz) / time.Duration(2),
-	}
-	return i, nil
 }
 
 //

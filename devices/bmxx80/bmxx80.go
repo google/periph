@@ -124,6 +124,99 @@ const (
 	F16      Filter = 4
 )
 
+// Opts is optional options to pass to the constructor.
+//
+// Recommended (and default) values are O4x for oversampling.
+//
+// Recommended sensing settings as per the datasheet:
+//
+// → Weather monitoring: manual sampling once per minute, all sensors O1x.
+// Power consumption: 0.16µA, filter NoFilter. RMS noise: 3.3Pa / 30cm, 0.07%RH.
+//
+// → Humidity sensing: manual sampling once per second, pressure Off, humidity
+// and temperature O1X, filter NoFilter. Power consumption: 2.9µA, 0.07%RH.
+//
+// → Indoor navigation: continuous sampling at 40ms with filter F16, pressure
+// O16x, temperature O2x, humidity O1x, filter F16. Power consumption 633µA.
+// RMS noise: 0.2Pa / 1.7cm.
+//
+// → Gaming: continuous sampling at 40ms with filter F16, pressure O4x,
+// temperature O1x, humidity Off, filter F16. Power consumption 581µA. RMS
+// noise: 0.3Pa / 2.5cm.
+//
+// See the datasheet for more details about the trade offs.
+type Opts struct {
+	// Temperature can only be oversampled on BME280/BMP280.
+	//
+	// Temperature must be measured for pressure and humidity to be measured.
+	Temperature Oversampling
+	// Pressure can be oversampled up to 8x on BMP180 and 16x on BME280/BMP280.
+	Pressure Oversampling
+	// Humidity sensing is only supported on BME280. The value is ignored on other
+	// devices.
+	Humidity Oversampling
+	// Filter is only used while using SenseContinuous() and is only supported on
+	// BMx280.
+	Filter Filter
+}
+
+func (o *Opts) delayTypical280() time.Duration {
+	// Page 51.
+	µs := 1000
+	if o.Temperature != Off {
+		µs += 2000 * o.Temperature.asValue()
+	}
+	if o.Pressure != Off {
+		µs += 2000*o.Pressure.asValue() + 500
+	}
+	if o.Humidity != Off {
+		µs += 2000*o.Humidity.asValue() + 500
+	}
+	return time.Microsecond * time.Duration(µs)
+}
+
+// NewI2C returns an object that communicates over I²C to BMP180/BME280/BMP280
+// environmental sensor.
+//
+// The address must be 0x76 or 0x77. BMP180 uses 0x77. BME280/BMP280 default to
+// 0x76 and can optionally use 0x77. The value used depends on HW
+// configuration of the sensor's SDO pin.
+//
+// It is recommended to call Halt() when done with the device so it stops
+// sampling.
+func NewI2C(b i2c.Bus, addr uint16, opts *Opts) (*Dev, error) {
+	switch addr {
+	case 0x76, 0x77:
+	default:
+		return nil, errors.New("bmxx80: given address not supported by device")
+	}
+	d := &Dev{d: &i2c.Dev{Bus: b, Addr: addr}, isSPI: false}
+	if err := d.makeDev(opts); err != nil {
+		return nil, err
+	}
+	return d, nil
+}
+
+// NewSPI returns an object that communicates over SPI to either a BME280 or
+// BMP280 environmental sensor.
+//
+// It is recommended to call Halt() when done with the device so it stops
+// sampling.
+//
+// When using SPI, the CS line must be used.
+func NewSPI(p spi.Port, opts *Opts) (*Dev, error) {
+	// It works both in Mode0 and Mode3.
+	c, err := p.Connect(10000000, spi.Mode3, 8)
+	if err != nil {
+		return nil, fmt.Errorf("bmxx80: %v", err)
+	}
+	d := &Dev{d: c, isSPI: true}
+	if err := d.makeDev(opts); err != nil {
+		return nil, err
+	}
+	return d, nil
+}
+
 // Dev is a handle to an initialized BMxx80 device.
 //
 // The actual device type was auto detected.
@@ -245,99 +338,6 @@ func (d *Dev) Halt() error {
 		})
 	}
 	return nil
-}
-
-// Opts is optional options to pass to the constructor.
-//
-// Recommended (and default) values are O4x for oversampling.
-//
-// Recommended sensing settings as per the datasheet:
-//
-// → Weather monitoring: manual sampling once per minute, all sensors O1x.
-// Power consumption: 0.16µA, filter NoFilter. RMS noise: 3.3Pa / 30cm, 0.07%RH.
-//
-// → Humidity sensing: manual sampling once per second, pressure Off, humidity
-// and temperature O1X, filter NoFilter. Power consumption: 2.9µA, 0.07%RH.
-//
-// → Indoor navigation: continuous sampling at 40ms with filter F16, pressure
-// O16x, temperature O2x, humidity O1x, filter F16. Power consumption 633µA.
-// RMS noise: 0.2Pa / 1.7cm.
-//
-// → Gaming: continuous sampling at 40ms with filter F16, pressure O4x,
-// temperature O1x, humidity Off, filter F16. Power consumption 581µA. RMS
-// noise: 0.3Pa / 2.5cm.
-//
-// See the datasheet for more details about the trade offs.
-type Opts struct {
-	// Temperature can only be oversampled on BME280/BMP280.
-	//
-	// Temperature must be measured for pressure and humidity to be measured.
-	Temperature Oversampling
-	// Pressure can be oversampled up to 8x on BMP180 and 16x on BME280/BMP280.
-	Pressure Oversampling
-	// Humidity sensing is only supported on BME280. The value is ignored on other
-	// devices.
-	Humidity Oversampling
-	// Filter is only used while using SenseContinuous() and is only supported on
-	// BMx280.
-	Filter Filter
-}
-
-func (o *Opts) delayTypical280() time.Duration {
-	// Page 51.
-	µs := 1000
-	if o.Temperature != Off {
-		µs += 2000 * o.Temperature.asValue()
-	}
-	if o.Pressure != Off {
-		µs += 2000*o.Pressure.asValue() + 500
-	}
-	if o.Humidity != Off {
-		µs += 2000*o.Humidity.asValue() + 500
-	}
-	return time.Microsecond * time.Duration(µs)
-}
-
-// NewI2C returns an object that communicates over I²C to BMP180/BME280/BMP280
-// environmental sensor.
-//
-// The address must be 0x76 or 0x77. BMP180 uses 0x77. BME280/BMP280 default to
-// 0x76 and can optionally use 0x77. The value used depends on HW
-// configuration of the sensor's SDO pin.
-//
-// It is recommended to call Halt() when done with the device so it stops
-// sampling.
-func NewI2C(b i2c.Bus, addr uint16, opts *Opts) (*Dev, error) {
-	switch addr {
-	case 0x76, 0x77:
-	default:
-		return nil, errors.New("bmxx80: given address not supported by device")
-	}
-	d := &Dev{d: &i2c.Dev{Bus: b, Addr: addr}, isSPI: false}
-	if err := d.makeDev(opts); err != nil {
-		return nil, err
-	}
-	return d, nil
-}
-
-// NewSPI returns an object that communicates over SPI to either a BME280 or
-// BMP280 environmental sensor.
-//
-// It is recommended to call Halt() when done with the device so it stops
-// sampling.
-//
-// When using SPI, the CS line must be used.
-func NewSPI(p spi.Port, opts *Opts) (*Dev, error) {
-	// It works both in Mode0 and Mode3.
-	c, err := p.Connect(10000000, spi.Mode3, 8)
-	if err != nil {
-		return nil, fmt.Errorf("bmxx80: %v", err)
-	}
-	d := &Dev{d: c, isSPI: true}
-	if err := d.makeDev(opts); err != nil {
-		return nil, err
-	}
-	return d, nil
 }
 
 //

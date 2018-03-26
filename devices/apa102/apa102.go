@@ -15,6 +15,121 @@ import (
 	"periph.io/x/periph/devices"
 )
 
+// ToRGB converts a slice of color.NRGBA to a byte stream of RGB pixels.
+//
+// Ignores alpha.
+func ToRGB(p []color.NRGBA) []byte {
+	b := make([]byte, 0, len(p)*3)
+	for _, c := range p {
+		b = append(b, c.R, c.G, c.B)
+	}
+	return b
+}
+
+// New returns a strip that communicates over SPI to APA102 LEDs.
+//
+// The SPI port speed should be high, at least in the Mhz range, as
+// there's 32 bits sent per LED, creating a staggered effect. See
+// https://cpldcpu.wordpress.com/2014/11/30/understanding-the-apa102-superled/
+//
+// Temperature is in °Kelvin and a reasonable default value is 6500°K.
+//
+// As per APA102-C spec, the chip's max refresh rate is 400hz.
+// https://en.wikipedia.org/wiki/Flicker_fusion_threshold is a recommended
+// reading.
+func New(p spi.Port, numPixels int, intensity uint8, temperature uint16) (*Dev, error) {
+	c, err := p.Connect(20000000, spi.Mode3, 8)
+	if err != nil {
+		return nil, err
+	}
+	// End frames are needed to be able to push enough SPI clock signals due to
+	// internal half-delay of data signal from each individual LED. See
+	// https://cpldcpu.wordpress.com/2014/11/30/understanding-the-apa102-superled/
+	buf := make([]byte, 4*(numPixels+1)+numPixels/2/8+1)
+	tail := buf[4+4*numPixels:]
+	for i := range tail {
+		tail[i] = 0xFF
+	}
+	return &Dev{
+		Intensity:   intensity,
+		Temperature: temperature,
+		s:           c,
+		numPixels:   numPixels,
+		rawBuf:      buf,
+		pixels:      buf[4 : 4+4*numPixels],
+	}, nil
+}
+
+// Dev represents a strip of APA-102 LEDs as a strip connected over a SPI port.
+// It accepts a stream of raw RGB pixels and converts it to the full dynamic
+// range as supported by APA102 protocol (nearly 8000:1 contrast ratio).
+//
+// Includes intensity and temperature correction.
+type Dev struct {
+	Intensity   uint8    // Set an intensity between 0 (off) and 255 (full brightness).
+	Temperature uint16   // In Kelvin.
+	s           spi.Conn //
+	l           lut      // Updated at each .Write() call.
+	numPixels   int      //
+	rawBuf      []byte   // Raw buffer sent over SPI. Cached to reduce heap fragmentation.
+	pixels      []byte   // Double buffer of pixels, to enable partial painting via Draw(). Effectively points inside rawBuf.
+}
+
+func (d *Dev) String() string {
+	return fmt.Sprintf("APA102{I:%d, T:%dK, %dLEDs, %s}", d.Intensity, d.Temperature, d.numPixels, d.s)
+}
+
+// ColorModel implements devices.Display. There's no surprise, it is
+// color.NRGBAModel.
+func (d *Dev) ColorModel() color.Model {
+	return color.NRGBAModel
+}
+
+// Bounds implements devices.Display. Min is guaranteed to be {0, 0}.
+func (d *Dev) Bounds() image.Rectangle {
+	return image.Rectangle{Max: image.Point{X: d.numPixels, Y: 1}}
+}
+
+// Draw implements devices.Display.
+//
+// Using something else than image.NRGBA is 10x slower. When using image.NRGBA,
+// the alpha channel is ignored.
+func (d *Dev) Draw(r image.Rectangle, src image.Image, sp image.Point) {
+	r = r.Intersect(d.Bounds())
+	srcR := src.Bounds()
+	srcR.Min = srcR.Min.Add(sp)
+	if dX := r.Dx(); dX < srcR.Dx() {
+		srcR.Max.X = srcR.Min.X + dX
+	}
+	if dY := r.Dy(); dY < srcR.Dy() {
+		srcR.Max.Y = srcR.Min.Y + dY
+	}
+	d.l.init(d.Intensity, d.Temperature)
+	d.l.rasterImg(d.pixels, r, src, srcR)
+	_ = d.s.Tx(d.rawBuf, nil)
+}
+
+// Write accepts a stream of raw RGB pixels and sends it as APA102 encoded
+// stream.
+func (d *Dev) Write(pixels []byte) (int, error) {
+	if len(pixels)%3 != 0 || len(pixels) > len(d.pixels) {
+		return 0, errors.New("apa102: invalid RGB stream length")
+	}
+	d.l.init(d.Intensity, d.Temperature)
+	// Do not touch header and footer.
+	d.l.raster(d.pixels, pixels)
+	err := d.s.Tx(d.rawBuf, nil)
+	return len(pixels), err
+}
+
+// Halt turns off all the lights.
+func (d *Dev) Halt() error {
+	_, err := d.Write(make([]byte, d.numPixels*3))
+	return err
+}
+
+//
+
 // maxOut is the maximum intensity of each channel on a APA102 LED.
 const maxOut = 0x1EE1
 
@@ -199,121 +314,6 @@ func (l *lut) rasterImg(dst []byte, r image.Rectangle, src image.Image, srcR ima
 		}
 	}
 }
-
-// ToRGB converts a slice of color.NRGBA to a byte stream of RGB pixels.
-//
-// Ignores alpha.
-func ToRGB(p []color.NRGBA) []byte {
-	b := make([]byte, 0, len(p)*3)
-	for _, c := range p {
-		b = append(b, c.R, c.G, c.B)
-	}
-	return b
-}
-
-// Dev represents a strip of APA-102 LEDs as a strip connected over a SPI port.
-// It accepts a stream of raw RGB pixels and converts it to the full dynamic
-// range as supported by APA102 protocol (nearly 8000:1 contrast ratio).
-//
-// Includes intensity and temperature correction.
-type Dev struct {
-	Intensity   uint8    // Set an intensity between 0 (off) and 255 (full brightness).
-	Temperature uint16   // In Kelvin.
-	s           spi.Conn //
-	l           lut      // Updated at each .Write() call.
-	numPixels   int      //
-	rawBuf      []byte   // Raw buffer sent over SPI. Cached to reduce heap fragmentation.
-	pixels      []byte   // Double buffer of pixels, to enable partial painting via Draw(). Effectively points inside rawBuf.
-}
-
-func (d *Dev) String() string {
-	return fmt.Sprintf("APA102{I:%d, T:%dK, %dLEDs, %s}", d.Intensity, d.Temperature, d.numPixels, d.s)
-}
-
-// ColorModel implements devices.Display. There's no surprise, it is
-// color.NRGBAModel.
-func (d *Dev) ColorModel() color.Model {
-	return color.NRGBAModel
-}
-
-// Bounds implements devices.Display. Min is guaranteed to be {0, 0}.
-func (d *Dev) Bounds() image.Rectangle {
-	return image.Rectangle{Max: image.Point{X: d.numPixels, Y: 1}}
-}
-
-// Draw implements devices.Display.
-//
-// Using something else than image.NRGBA is 10x slower. When using image.NRGBA,
-// the alpha channel is ignored.
-func (d *Dev) Draw(r image.Rectangle, src image.Image, sp image.Point) {
-	r = r.Intersect(d.Bounds())
-	srcR := src.Bounds()
-	srcR.Min = srcR.Min.Add(sp)
-	if dX := r.Dx(); dX < srcR.Dx() {
-		srcR.Max.X = srcR.Min.X + dX
-	}
-	if dY := r.Dy(); dY < srcR.Dy() {
-		srcR.Max.Y = srcR.Min.Y + dY
-	}
-	d.l.init(d.Intensity, d.Temperature)
-	d.l.rasterImg(d.pixels, r, src, srcR)
-	_ = d.s.Tx(d.rawBuf, nil)
-}
-
-// Write accepts a stream of raw RGB pixels and sends it as APA102 encoded
-// stream.
-func (d *Dev) Write(pixels []byte) (int, error) {
-	if len(pixels)%3 != 0 || len(pixels) > len(d.pixels) {
-		return 0, errors.New("apa102: invalid RGB stream length")
-	}
-	d.l.init(d.Intensity, d.Temperature)
-	// Do not touch header and footer.
-	d.l.raster(d.pixels, pixels)
-	err := d.s.Tx(d.rawBuf, nil)
-	return len(pixels), err
-}
-
-// Halt turns off all the lights.
-func (d *Dev) Halt() error {
-	_, err := d.Write(make([]byte, d.numPixels*3))
-	return err
-}
-
-// New returns a strip that communicates over SPI to APA102 LEDs.
-//
-// The SPI port speed should be high, at least in the Mhz range, as
-// there's 32 bits sent per LED, creating a staggered effect. See
-// https://cpldcpu.wordpress.com/2014/11/30/understanding-the-apa102-superled/
-//
-// Temperature is in °Kelvin and a reasonable default value is 6500°K.
-//
-// As per APA102-C spec, the chip's max refresh rate is 400hz.
-// https://en.wikipedia.org/wiki/Flicker_fusion_threshold is a recommended
-// reading.
-func New(p spi.Port, numPixels int, intensity uint8, temperature uint16) (*Dev, error) {
-	c, err := p.Connect(20000000, spi.Mode3, 8)
-	if err != nil {
-		return nil, err
-	}
-	// End frames are needed to be able to push enough SPI clock signals due to
-	// internal half-delay of data signal from each individual LED. See
-	// https://cpldcpu.wordpress.com/2014/11/30/understanding-the-apa102-superled/
-	buf := make([]byte, 4*(numPixels+1)+numPixels/2/8+1)
-	tail := buf[4+4*numPixels:]
-	for i := range tail {
-		tail[i] = 0xFF
-	}
-	return &Dev{
-		Intensity:   intensity,
-		Temperature: temperature,
-		s:           c,
-		numPixels:   numPixels,
-		rawBuf:      buf,
-		pixels:      buf[4 : 4+4*numPixels],
-	}, nil
-}
-
-//
 
 var _ conn.Resource = &Dev{}
 var _ devices.Display = &Dev{}

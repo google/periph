@@ -69,21 +69,6 @@ type SPI struct {
 	cs          gpio.PinOut
 }
 
-func newSPI(busNumber, chipSelect int) (*SPI, error) {
-	if busNumber < 0 || busNumber >= 1<<16 {
-		return nil, fmt.Errorf("sysfs-spi: invalid bus %d", busNumber)
-	}
-	if chipSelect < 0 || chipSelect > 255 {
-		return nil, fmt.Errorf("sysfs-spi: invalid chip select %d", chipSelect)
-	}
-	// Use the devfs path for now.
-	f, err := ioctlOpen(fmt.Sprintf("/dev/spidev%d.%d", busNumber, chipSelect), os.O_RDWR)
-	if err != nil {
-		return nil, fmt.Errorf("sysfs-spi: %v", err)
-	}
-	return &SPI{f: f, busNumber: busNumber, chipSelect: chipSelect}, nil
-}
-
 // Close closes the handle to the SPI driver. It is not a requirement to close
 // before process termination.
 func (s *SPI) Close() error {
@@ -194,6 +179,21 @@ func (s *SPI) CS() gpio.PinOut {
 }
 
 // Private details.
+
+func newSPI(busNumber, chipSelect int) (*SPI, error) {
+	if busNumber < 0 || busNumber >= 1<<16 {
+		return nil, fmt.Errorf("sysfs-spi: invalid bus %d", busNumber)
+	}
+	if chipSelect < 0 || chipSelect > 255 {
+		return nil, fmt.Errorf("sysfs-spi: invalid chip select %d", chipSelect)
+	}
+	// Use the devfs path for now.
+	f, err := ioctlOpen(fmt.Sprintf("/dev/spidev%d.%d", busNumber, chipSelect), os.O_RDWR)
+	if err != nil {
+		return nil, fmt.Errorf("sysfs-spi: %v", err)
+	}
+	return &SPI{f: f, busNumber: busNumber, chipSelect: chipSelect}, nil
+}
 
 func (s *SPI) txInternal(w, r []byte) (int, error) {
 	l := len(w)

@@ -52,6 +52,35 @@ func (i TouchStatus) String() string {
 	return touchStatusName[touchStatusIndex[i]:touchStatusIndex[i+1]]
 }
 
+// NewI2C returns a new device that communicates over I²C to cap1188.
+//
+// Use default options if nil is used.
+func NewI2C(b i2c.Bus, opts *Opts) (*Dev, error) {
+	if opts == nil {
+		opts = DefaultOpts()
+	}
+	addr, err := opts.i2cAddr()
+	if err != nil {
+		return nil, wrapf("%v", err)
+	}
+	d, err := makeDev(&i2c.Dev{Bus: b, Addr: addr}, false, opts)
+	if err != nil {
+		return nil, err
+	}
+	log.Printf("cap1188: Connected via I²C address: %#x", addr)
+	return d, nil
+}
+
+/*
+// NewSPI returns an object that communicates over SPI to cap1188 environmental
+// sensor.
+//
+// TODO(mattetti): Expose once implemented and tested.
+func NewSPI(p spi.Port, opts *Opts) (*Dev, error) {
+	return nil, fmt.Errorf("cap1188: not implemented")
+}
+*/
+
 // Dev is a handle to a cap1188.
 type Dev struct {
 	c     mmr.Dev8
@@ -214,35 +243,6 @@ func (d *Dev) ClearInterrupt() error {
 	}
 	return nil
 }
-
-// NewI2C returns a new device that communicates over I²C to cap1188.
-//
-// Use default options if nil is used.
-func NewI2C(b i2c.Bus, opts *Opts) (*Dev, error) {
-	if opts == nil {
-		opts = DefaultOpts()
-	}
-	addr, err := opts.i2cAddr()
-	if err != nil {
-		return nil, wrapf("%v", err)
-	}
-	d, err := makeDev(&i2c.Dev{Bus: b, Addr: addr}, false, opts)
-	if err != nil {
-		return nil, err
-	}
-	log.Printf("cap1188: Connected via I²C address: %#x", addr)
-	return d, nil
-}
-
-/*
-// NewSPI returns an object that communicates over SPI to cap1188 environmental
-// sensor.
-//
-// TODO(mattetti): Expose once implemented and tested.
-func NewSPI(p spi.Port, opts *Opts) (*Dev, error) {
-	return nil, fmt.Errorf("cap1188: not implemented")
-}
-*/
 
 //
 

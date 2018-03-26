@@ -15,11 +15,13 @@ import (
 // FIXME: Expose public symbols as relevant. Do not export more than needed!
 // See https://periph.io/x/periph/tree/master/doc/drivers#requirements
 // for the expectations.
-
-// Dev is a handle to the device. FIXME.
-type Dev struct {
-	c conn.Conn
-}
+//
+// Use the following layout for drivers:
+//  - exported support symbols
+//  - Opts struct
+//  - New func
+//  - Dev struct and methods
+//  - Private support code
 
 // New opens a handle to the device. FIXME.
 func New(i i2c.Bus) (*Dev, error) {
@@ -35,6 +37,11 @@ func New(i i2c.Bus) (*Dev, error) {
 	return d, nil
 }
 
+// Dev is a handle to the device. FIXME.
+type Dev struct {
+	c conn.Conn
+}
+
 // Read is a method on your device. FIXME.
 func (d *Dev) Read() string {
 	var b [12]byte
@@ -43,6 +50,8 @@ func (d *Dev) Read() string {
 	}
 	return string(b[:])
 }
+
+//
 
 // FIXME: A driver is generally only needed for host drivers. If you implement
 // a device driver, delete the remainder of this file.

@@ -18,16 +18,6 @@ import (
 	"periph.io/x/periph/conn/ir"
 )
 
-// Conn is an open port to lirc.
-type Conn struct {
-	w net.Conn
-	c chan ir.Message
-
-	mu          sync.Mutex
-	list        map[string][]string // list of remotes and associated keys
-	pendingList map[string][]string // list of remotes and associated keys being created.
-}
-
 // New returns a IR receiver / emitter handle.
 func New() (*Conn, error) {
 	w, err := net.Dial("unix", "/var/run/lirc/lircd")
@@ -42,6 +32,16 @@ func New() (*Conn, error) {
 	}
 	go c.loop(bufio.NewReader(w))
 	return c, nil
+}
+
+// Conn is an open port to lirc.
+type Conn struct {
+	w net.Conn
+	c chan ir.Message
+
+	mu          sync.Mutex
+	list        map[string][]string // list of remotes and associated keys
+	pendingList map[string][]string // list of remotes and associated keys being created.
 }
 
 func (c *Conn) String() string {

@@ -36,19 +36,6 @@ func SetSpeedHook(h func(hz int64) error) error {
 	return nil
 }
 
-// I2C is an open I²C bus via sysfs.
-//
-// It can be used to communicate with multiple devices from multiple goroutines.
-type I2C struct {
-	f         ioctlCloser
-	busNumber int
-
-	mu  sync.Mutex // In theory the kernel probably has an internal lock but not taking any chance.
-	fn  functionality
-	scl gpio.PinIO
-	sda gpio.PinIO
-}
-
 // NewI2C opens an I²C bus via its sysfs interface as described at
 // https://www.kernel.org/doc/Documentation/i2c/dev-interface.
 //
@@ -71,31 +58,17 @@ func NewI2C(busNumber int) (*I2C, error) {
 	return nil, errors.New("sysfs-i2c: is not supported on this platform")
 }
 
-func newI2C(busNumber int) (*I2C, error) {
-	// Use the devfs path for now instead of sysfs path.
-	f, err := ioctlOpen(fmt.Sprintf("/dev/i2c-%d", busNumber), os.O_RDWR)
-	if err != nil {
-		// Try to be helpful here. There are generally two cases:
-		// - /dev/i2c-X doesn't exist. In this case, /boot/config.txt has to be
-		//   edited to enable I²C then the device must be rebooted.
-		// - permission denied. In this case, the user has to be added to plugdev.
-		if os.IsNotExist(err) {
-			return nil, fmt.Errorf("sysfs-i2c: bus #%d is not configured: %v", busNumber, err)
-		}
-		// TODO(maruel): This is a debianism.
-		return nil, fmt.Errorf("sysfs-i2c: are you member of group 'plugdev'? %v", err)
-	}
-	i := &I2C{f: f, busNumber: busNumber}
+// I2C is an open I²C bus via sysfs.
+//
+// It can be used to communicate with multiple devices from multiple goroutines.
+type I2C struct {
+	f         ioctlCloser
+	busNumber int
 
-	// TODO(maruel): Changing the speed is currently doing this for all devices.
-	// https://github.com/raspberrypi/linux/issues/215
-	// Need to access /sys/module/i2c_bcm2708/parameters/baudrate
-
-	// Query to know if 10 bits addresses are supported.
-	if err = i.f.Ioctl(ioctlFuncs, uintptr(unsafe.Pointer(&i.fn))); err != nil {
-		return nil, fmt.Errorf("sysfs-i2c: %v", err)
-	}
-	return i, nil
+	mu  sync.Mutex // In theory the kernel probably has an internal lock but not taking any chance.
+	fn  functionality
+	scl gpio.PinIO
+	sda gpio.PinIO
 }
 
 // Close closes the handle to the I²C driver. It is not a requirement to close
@@ -178,6 +151,33 @@ func (i *I2C) SDA() gpio.PinIO {
 }
 
 // Private details.
+
+func newI2C(busNumber int) (*I2C, error) {
+	// Use the devfs path for now instead of sysfs path.
+	f, err := ioctlOpen(fmt.Sprintf("/dev/i2c-%d", busNumber), os.O_RDWR)
+	if err != nil {
+		// Try to be helpful here. There are generally two cases:
+		// - /dev/i2c-X doesn't exist. In this case, /boot/config.txt has to be
+		//   edited to enable I²C then the device must be rebooted.
+		// - permission denied. In this case, the user has to be added to plugdev.
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("sysfs-i2c: bus #%d is not configured: %v", busNumber, err)
+		}
+		// TODO(maruel): This is a debianism.
+		return nil, fmt.Errorf("sysfs-i2c: are you member of group 'plugdev'? %v", err)
+	}
+	i := &I2C{f: f, busNumber: busNumber}
+
+	// TODO(maruel): Changing the speed is currently doing this for all devices.
+	// https://github.com/raspberrypi/linux/issues/215
+	// Need to access /sys/module/i2c_bcm2708/parameters/baudrate
+
+	// Query to know if 10 bits addresses are supported.
+	if err = i.f.Ioctl(ioctlFuncs, uintptr(unsafe.Pointer(&i.fn))); err != nil {
+		return nil, fmt.Errorf("sysfs-i2c: %v", err)
+	}
+	return i, nil
+}
 
 func (i *I2C) initPins() {
 	i.mu.Lock()

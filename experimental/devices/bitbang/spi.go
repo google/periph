@@ -23,6 +23,41 @@ import (
 	"periph.io/x/periph/host/cpu"
 )
 
+// NewSPI returns an object that communicates SPI over 3 or 4 pins.
+//
+// BUG(maruel): Completely untested.
+//
+// cs can be nil.
+func NewSPI(clk, mosi gpio.PinOut, miso gpio.PinIn, cs gpio.PinOut, speedHz int64) (*SPI, error) {
+	if err := clk.Out(gpio.High); err != nil {
+		return nil, err
+	}
+	if err := mosi.Out(gpio.High); err != nil {
+		return nil, err
+	}
+	if miso != nil {
+		if err := miso.In(gpio.PullUp, gpio.NoEdge); err != nil {
+			return nil, err
+		}
+	}
+	if cs != nil {
+		// Low means active.
+		if err := cs.Out(gpio.High); err != nil {
+			return nil, err
+		}
+	}
+	s := &SPI{
+		sck:       clk,
+		sdi:       miso,
+		sdo:       mosi,
+		csn:       cs,
+		mode:      spi.Mode3,
+		bits:      8,
+		halfCycle: time.Second / time.Duration(speedHz) / time.Duration(2),
+	}
+	return s, nil
+}
+
 // SPI represents a SPI master implemented as bit-banging on 3 or 4 GPIO pins.
 type SPI struct {
 	sck gpio.PinOut // Clock
@@ -150,41 +185,6 @@ func (s *SPI) MISO() gpio.PinIn {
 // CS implements spi.Pins.
 func (s *SPI) CS() gpio.PinOut {
 	return s.csn
-}
-
-// NewSPI returns an object that communicates SPI over 3 or 4 pins.
-//
-// BUG(maruel): Completely untested.
-//
-// cs can be nil.
-func NewSPI(clk, mosi gpio.PinOut, miso gpio.PinIn, cs gpio.PinOut, speedHz int64) (*SPI, error) {
-	if err := clk.Out(gpio.High); err != nil {
-		return nil, err
-	}
-	if err := mosi.Out(gpio.High); err != nil {
-		return nil, err
-	}
-	if miso != nil {
-		if err := miso.In(gpio.PullUp, gpio.NoEdge); err != nil {
-			return nil, err
-		}
-	}
-	if cs != nil {
-		// Low means active.
-		if err := cs.Out(gpio.High); err != nil {
-			return nil, err
-		}
-	}
-	s := &SPI{
-		sck:       clk,
-		sdi:       miso,
-		sdo:       mosi,
-		csn:       cs,
-		mode:      spi.Mode3,
-		bits:      8,
-		halfCycle: time.Second / time.Duration(speedHz) / time.Duration(2),
-	}
-	return s, nil
 }
 
 //

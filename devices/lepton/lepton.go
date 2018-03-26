@@ -64,23 +64,6 @@ type Frame struct {
 	Metadata Metadata // Metadata that is sent along the pixels.
 }
 
-// Dev controls a FLIR Lepton.
-//
-// It assumes a specific breakout board. Sadly the breakout board doesn't
-// expose the PWR_DWN_L and RESET_L lines so it is impossible to shut down the
-// Lepton.
-type Dev struct {
-	*cci.Dev
-	s              spi.Conn
-	cs             gpio.PinOut
-	prevImg        *image.Gray16
-	frameA, frameB []byte
-	frameWidth     int // in bytes
-	frameLines     int
-	maxTxSize      int
-	delay          time.Duration
-}
-
 // New returns an initialized connection to the FLIR Lepton.
 //
 // The CS line is manually managed by using mode spi.NoCS when calling
@@ -148,6 +131,23 @@ func New(p spi.Port, i i2c.Bus, cs gpio.PinOut) (*Dev, error) {
 		return nil, err
 	}
 	return d, nil
+}
+
+// Dev controls a FLIR Lepton.
+//
+// It assumes a specific breakout board. Sadly the breakout board doesn't
+// expose the PWR_DWN_L and RESET_L lines so it is impossible to shut down the
+// Lepton.
+type Dev struct {
+	*cci.Dev
+	s              spi.Conn
+	cs             gpio.PinOut
+	prevImg        *image.Gray16
+	frameA, frameB []byte
+	frameWidth     int // in bytes
+	frameLines     int
+	maxTxSize      int
+	delay          time.Duration
 }
 
 func (d *Dev) String() string {

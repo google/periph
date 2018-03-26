@@ -46,7 +46,8 @@ const (
 	KeyA_RN_WN_BITS_RAB_WN_KeyB_RN_WN_EXTRA                     = 0x07
 )
 
-// AuthStatus indicates the authentication response, could be one of AuthOk, AuthReadFailure or AuthFailure
+// AuthStatus indicates the authentication response, could be one of AuthOk,
+// AuthReadFailure or AuthFailure
 type AuthStatus byte
 
 // Card authentication status enum.
@@ -56,8 +57,8 @@ const (
 	AuthFailure
 )
 
-// BlocksAccess defines the access structure for first 3 blocks of the sector and the access bits for the
-// sector trail.
+// BlocksAccess defines the access structure for first 3 blocks of the sector
+// and the access bits for the sector trail.
 type BlocksAccess struct {
 	B0, B1, B2 BlockAccess
 	B3         SectorTrailerAccess
@@ -67,18 +68,28 @@ func (ba *BlocksAccess) String() string {
 	return fmt.Sprintf("B0: %d, B1: %d, B2: %d, B3: %d", ba.B0, ba.B1, ba.B2, ba.B3)
 }
 
-// DefaultKey provides the default bytes for card authentication for method B.
-var DefaultKey = [...]byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
-
-// Dev is an handle to an MFRC522 RFID reader.
-type Dev struct {
-	resetPin         gpio.PinOut
-	irqPin           gpio.PinIn
-	operationTimeout time.Duration
-	spiDev           spi.Conn
+// CalculateBlockAccess calculates the block access.
+func CalculateBlockAccess(ba *BlocksAccess) []byte {
+	res := make([]byte, 4)
+	res[0] = ((^ba.getBits(2) & 0x0F) << 4) | (^ba.getBits(1) & 0x0F)
+	res[1] = ((ba.getBits(1) & 0x0F) << 4) | (^ba.getBits(3) & 0x0F)
+	res[2] = ((ba.getBits(3) & 0x0F) << 4) | (ba.getBits(2) & 0x0F)
+	res[3] = res[0] ^ res[1] ^ res[2]
+	return res
 }
 
-//		MFRC522 SPI Dev public API
+// ParseBlockAccess parses the given byte array into the block access structure.
+func ParseBlockAccess(ad []byte) *BlocksAccess {
+	return &BlocksAccess{
+		B0: BlockAccess(((ad[1] & 0x10) >> 2) | ((ad[2] & 0x01) << 1) | ((ad[2] & 0x10) >> 5)),
+		B1: BlockAccess(((ad[1] & 0x20) >> 3) | (ad[2] & 0x02) | ((ad[2] & 0x20) >> 5)),
+		B2: BlockAccess(((ad[1] & 0x40) >> 4) | ((ad[2] & 0x04) >> 1) | ((ad[2] & 0x40) >> 6)),
+		B3: SectorTrailerAccess(((ad[1] & 0x80) >> 5) | ((ad[2] & 0x08) >> 2) | ((ad[2] & 0x80) >> 7)),
+	}
+}
+
+// DefaultKey provides the default bytes for card authentication for method B.
+var DefaultKey = [...]byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
 
 // NewSPI creates and initializes the RFID card reader attached to SPI.
 //
@@ -114,8 +125,23 @@ func NewSPI(spiPort spi.Port, resetPin gpio.PinOut, irqPin gpio.PinIn) (*Dev, er
 	return dev, nil
 }
 
+// Dev is an handle to an MFRC522 RFID reader.
+type Dev struct {
+	resetPin         gpio.PinOut
+	irqPin           gpio.PinIn
+	operationTimeout time.Duration
+	spiDev           spi.Conn
+}
+
+func (r *Dev) String() string {
+	return fmt.Sprintf("Mifare MFRC522 [bus: %v, reset pin: %s, irq pin: %s]",
+		r.spiDev, r.resetPin.Name(), r.irqPin.Name())
+}
+
 // SetOperationtimeout updates the device timeout for card operations.
-// Effectively that sets the maximum time the RFID device will wait for IRQ from the proximity card detection.
+//
+// Effectively that sets the maximum time the RFID device will wait for IRQ
+// from the proximity card detection.
 //
 //	timeout the duration to wait for IRQ strobe.
 func (r *Dev) SetOperationtimeout(timeout time.Duration) {
@@ -458,7 +484,8 @@ func (r *Dev) WriteBlock(auth byte, sector int, block int, data [16]byte, key [6
 	return r.write(calcBlockAddress(sector, block%3), data[:])
 }
 
-// ReadSectorTrail reads the sector trail (the last sector that contains the sector access bits)
+// ReadSectorTrail reads the sector trail (the last sector that contains the
+// sector access bits)
 //
 // 	sector - the sector number to read the data from.
 func (r *Dev) ReadSectorTrail(sector int) ([]byte, error) {
@@ -561,31 +588,6 @@ func (r *Dev) ReadAuth(auth byte, sector int, key [6]byte) (data []byte, err err
 	}
 
 	return r.read(calcBlockAddress(sector, 3))
-}
-
-// CalculateBlockAccess calculates the block access.
-func CalculateBlockAccess(ba *BlocksAccess) []byte {
-	res := make([]byte, 4)
-	res[0] = ((^ba.getBits(2) & 0x0F) << 4) | (^ba.getBits(1) & 0x0F)
-	res[1] = ((ba.getBits(1) & 0x0F) << 4) | (^ba.getBits(3) & 0x0F)
-	res[2] = ((ba.getBits(3) & 0x0F) << 4) | (ba.getBits(2) & 0x0F)
-	res[3] = res[0] ^ res[1] ^ res[2]
-	return res
-}
-
-// ParseBlockAccess parses the given byte array into the block access structure.
-func ParseBlockAccess(ad []byte) *BlocksAccess {
-	return &BlocksAccess{
-		B0: BlockAccess(((ad[1] & 0x10) >> 2) | ((ad[2] & 0x01) << 1) | ((ad[2] & 0x10) >> 5)),
-		B1: BlockAccess(((ad[1] & 0x20) >> 3) | (ad[2] & 0x02) | ((ad[2] & 0x20) >> 5)),
-		B2: BlockAccess(((ad[1] & 0x40) >> 4) | ((ad[2] & 0x04) >> 1) | ((ad[2] & 0x40) >> 6)),
-		B3: SectorTrailerAccess(((ad[1] & 0x80) >> 5) | ((ad[2] & 0x08) >> 2) | ((ad[2] & 0x80) >> 7)),
-	}
-}
-
-func (r *Dev) String() string {
-	return fmt.Sprintf("Mifare MFRC522 [bus: %v, reset pin: %s, irq pin: %s]",
-		r.spiDev, r.resetPin.Name(), r.irqPin.Name())
 }
 
 //		MFRC522 SPI Dev private/helper functions

@@ -41,6 +41,32 @@ func NRZ(b byte) uint32 {
 	return out
 }
 
+// New opens a handle to a compatible LED strip.
+//
+// The speed (hz) should either be 800000 for fast ICs and 400000 for the slow
+// ones.
+//
+// channels should be either 1 (White only), 3 (RGB) or 4 (RGBW). For RGB and
+// RGBW, the encoding is respectively GRB and GRBW.
+func New(p gpiostream.PinOut, numPixels, hz int, channels int) (*Dev, error) {
+	if hz <= 0 || hz > 1000000000 {
+		return nil, errors.New("nrzled: specify valid speed in hz")
+	}
+	if channels != 3 && channels != 4 {
+		return nil, errors.New("nrzled: specify valid number of channels (3 or 4)")
+	}
+	return &Dev{
+		p:         p,
+		numPixels: numPixels,
+		channels:  channels,
+		b: gpiostream.BitStreamMSB{
+			Res: time.Second / time.Duration(hz),
+			// Each bit is encoded on 3 bits.
+			Bits: make(gpiostream.BitsMSB, numPixels*3*channels),
+		},
+	}, nil
+}
+
 // Dev is a handle to the LED strip.
 type Dev struct {
 	p         gpiostream.PinOut
@@ -150,32 +176,6 @@ func (d *Dev) Write(pixels []byte) (int, error) {
 		return 0, fmt.Errorf("nrzled: %v", err)
 	}
 	return len(pixels), nil
-}
-
-// New opens a handle to a compatible LED strip.
-//
-// The speed (hz) should either be 800000 for fast ICs and 400000 for the slow
-// ones.
-//
-// channels should be either 1 (White only), 3 (RGB) or 4 (RGBW). For RGB and
-// RGBW, the encoding is respectively GRB and GRBW.
-func New(p gpiostream.PinOut, numPixels, hz int, channels int) (*Dev, error) {
-	if hz <= 0 || hz > 1000000000 {
-		return nil, errors.New("nrzled: specify valid speed in hz")
-	}
-	if channels != 3 && channels != 4 {
-		return nil, errors.New("nrzled: specify valid number of channels (3 or 4)")
-	}
-	return &Dev{
-		p:         p,
-		numPixels: numPixels,
-		channels:  channels,
-		b: gpiostream.BitStreamMSB{
-			Res: time.Second / time.Duration(hz),
-			// Each bit is encoded on 3 bits.
-			Bits: make(gpiostream.BitsMSB, numPixels*3*channels),
-		},
-	}, nil
 }
 
 //

@@ -63,6 +63,19 @@ const (
 	Brightness14 Brightness = 0x8F // 14/16 PWM
 )
 
+// New returns an object that communicates over two pins to a TM1637.
+func New(clk gpio.PinOut, data gpio.PinIO) (*Dev, error) {
+	// Spec calls to idle at high.
+	if err := clk.Out(gpio.High); err != nil {
+		return nil, err
+	}
+	if err := data.Out(gpio.High); err != nil {
+		return nil, err
+	}
+	d := &Dev{clk: clk, data: data}
+	return d, nil
+}
+
 // Dev represents an handle to a tm1637.
 type Dev struct {
 	clk  gpio.PinOut
@@ -134,19 +147,6 @@ func (d *Dev) Halt() error {
 	b := [6]byte{}
 	_, err := d.Write(b[:])
 	return err
-}
-
-// New returns an object that communicates over two pins to a TM1637.
-func New(clk gpio.PinOut, data gpio.PinIO) (*Dev, error) {
-	// Spec calls to idle at high.
-	if err := clk.Out(gpio.High); err != nil {
-		return nil, err
-	}
-	if err := data.Out(gpio.High); err != nil {
-		return nil, err
-	}
-	d := &Dev{clk: clk, data: data}
-	return d, nil
 }
 
 //

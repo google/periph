@@ -139,22 +139,6 @@ type FFCMode struct {
 	ExplicitCommandToOpen   bool                    // Default: false
 }
 
-//
-
-// Dev is the Lepton specific Command and Control Interface (CCI).
-//
-//
-// Dev can safely accessed concurrently via multiple goroutines.
-//
-// This interface is accessed via I²C and provides access to view and modify
-// the internal state.
-//
-// Maximum I²C speed is 1Mhz.
-type Dev struct {
-	c      cciConn
-	serial uint64
-}
-
 // New returns a driver for the FLIR Lepton CCI protocol.
 func New(i i2c.Bus) (*Dev, error) {
 	d := &Dev{
@@ -171,6 +155,20 @@ func New(i i2c.Bus) (*Dev, error) {
 		// Polling rocks.
 		sleep(5 * time.Millisecond)
 	}
+}
+
+// Dev is the Lepton specific Command and Control Interface (CCI).
+//
+//
+// Dev can safely accessed concurrently via multiple goroutines.
+//
+// This interface is accessed via I²C and provides access to view and modify
+// the internal state.
+//
+// Maximum I²C speed is 1Mhz.
+type Dev struct {
+	c      cciConn
+	serial uint64
 }
 
 func (d *Dev) String() string {
