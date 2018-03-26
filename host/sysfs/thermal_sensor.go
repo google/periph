@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"periph.io/x/periph"
-	"periph.io/x/periph/devices"
+	"periph.io/x/periph/conn/rwio"
 )
 
 // ThermalSensors is all the sensors discovered on this host via sysfs.
@@ -79,8 +79,8 @@ func (t *ThermalSensor) Type() string {
 	return t.nameType
 }
 
-// Sense implements devices.Environmental.
-func (t *ThermalSensor) Sense(env *devices.Environment) error {
+// Sense implements rwio.SenseEnv.
+func (t *ThermalSensor) Sense(e *rwio.Env) error {
 	if err := t.open(); err != nil {
 		return err
 	}
@@ -101,12 +101,12 @@ func (t *ThermalSensor) Sense(env *devices.Environment) error {
 	if i < 100 {
 		i *= 1000
 	}
-	env.Temperature = devices.Celsius(i)
+	e.Temperature = rwio.Celsius(i)
 	return nil
 }
 
-// SenseContinuous implements devices.Environmental.
-func (t *ThermalSensor) SenseContinuous(interval time.Duration) (<-chan devices.Environment, error) {
+// SenseContinuous implements rwio.SenseEnv.
+func (t *ThermalSensor) SenseContinuous(interval time.Duration) (<-chan rwio.Env, error) {
 	// TODO(maruel): Manually poll in a loop via time.NewTicker.
 	return nil, errors.New("sysfs-thermal: not implemented")
 }
@@ -176,5 +176,5 @@ func init() {
 	}
 }
 
-var _ devices.Environmental = &ThermalSensor{}
+var _ rwio.SenseEnv = &ThermalSensor{}
 var _ fmt.Stringer = &ThermalSensor{}

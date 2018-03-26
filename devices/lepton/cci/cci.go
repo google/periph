@@ -31,7 +31,7 @@ import (
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/mmr"
-	"periph.io/x/periph/devices"
+	"periph.io/x/periph/conn/rwio"
 	"periph.io/x/periph/devices/lepton/internal"
 )
 
@@ -132,7 +132,7 @@ type FFCMode struct {
 	ShutterTempLockoutState ShutterTempLockoutState // Default: ShutterTempLockoutStateInactive
 	ElapsedTimeSinceLastFFC time.Duration           // Uptime
 	DesiredFFCPeriod        time.Duration           // Default: 300s
-	DesiredFFCTempDelta     devices.Celsius         // Default: 3°C
+	DesiredFFCTempDelta     rwio.Celsius            // Default: 3°C
 	ImminentDelay           uint16                  // Default: 52
 	VideoFreezeDuringFFC    bool                    // Default: true
 	FFCDesired              bool                    // Default: false
@@ -260,7 +260,7 @@ func (d *Dev) GetUptime() (time.Duration, error) {
 }
 
 // GetTemp returns the temperature inside the camera.
-func (d *Dev) GetTemp() (devices.Celsius, error) {
+func (d *Dev) GetTemp() (rwio.Celsius, error) {
 	var v internal.CentiK
 	if err := d.c.get(sysTemperature, &v); err != nil {
 		return 0, err
@@ -269,7 +269,7 @@ func (d *Dev) GetTemp() (devices.Celsius, error) {
 }
 
 // GetTempHousing returns the temperature of the camera housing.
-func (d *Dev) GetTempHousing() (devices.Celsius, error) {
+func (d *Dev) GetTempHousing() (rwio.Celsius, error) {
 	var v internal.CentiK
 	if err := d.c.get(sysHousingTemperature, &v); err != nil {
 		return 0, err
@@ -288,7 +288,7 @@ func (d *Dev) GetFFCModeControl() (*FFCMode, error) {
 		ShutterTempLockoutState: ShutterTempLockoutState(v.ShutterTempLockoutState),
 		ElapsedTimeSinceLastFFC: v.ElapsedTimeSinceLastFFC.ToD(),
 		DesiredFFCPeriod:        v.DesiredFFCPeriod.ToD(),
-		DesiredFFCTempDelta:     devices.Celsius(v.DesiredFFCTempDelta * 10),
+		DesiredFFCTempDelta:     rwio.Celsius(v.DesiredFFCTempDelta * 10),
 		ImminentDelay:           v.ImminentDelay,
 		VideoFreezeDuringFFC:    v.VideoFreezeDuringFFC == internal.Enabled,
 		FFCDesired:              v.FFCDesired == internal.Enabled,

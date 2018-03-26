@@ -8,7 +8,7 @@ import (
 	"encoding/binary"
 	"time"
 
-	"periph.io/x/periph/devices"
+	"periph.io/x/periph/conn/rwio"
 )
 
 // Flag is used in FFCMode.
@@ -36,9 +36,9 @@ func (d DurationMS) ToD() time.Duration {
 type CentiK uint16
 
 // ToC converts a Kelvin measurement to Celsius.
-func (c CentiK) ToC() devices.Celsius {
+func (c CentiK) ToC() rwio.Celsius {
 	v := (int(c) - 27315) * 10
-	return devices.Celsius(v)
+	return rwio.Celsius(v)
 }
 
 // Status returns the camera status as returned by the camera.

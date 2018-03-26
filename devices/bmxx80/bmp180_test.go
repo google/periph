@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"periph.io/x/periph/conn/i2c/i2ctest"
-	"periph.io/x/periph/devices"
+	"periph.io/x/periph/conn/rwio"
 )
 
 var opts180 = &Opts{Temperature: O1x, Pressure: O1x}
@@ -75,7 +75,7 @@ func TestSense180_success(t *testing.T) {
 	values := []struct {
 		o Oversampling
 		c byte
-		p devices.KPascal
+		p rwio.KPascal
 	}{
 		{Oversampling(42), 0x34, 100567},
 		{O1x, 0x34, 100567},
@@ -111,18 +111,18 @@ func TestSense180_success(t *testing.T) {
 		if s := dev.String(); s != "BMP180{playback(119)}" {
 			t.Fatal(s)
 		}
-		env := devices.Environment{}
-		if err := dev.Sense(&env); err != nil {
+		e := rwio.Env{}
+		if err := dev.Sense(&e); err != nil {
 			t.Fatal(err)
 		}
-		if env.Temperature != 25300 {
-			t.Fatalf("temp %d", env.Temperature)
+		if e.Temperature != 25300 {
+			t.Fatalf("temp %d", e.Temperature)
 		}
-		if env.Pressure != line.p {
-			t.Fatalf("pressure %d", env.Pressure)
+		if e.Pressure != line.p {
+			t.Fatalf("pressure %d", e.Pressure)
 		}
-		if env.Humidity != 0 {
-			t.Fatalf("humidity %d", env.Humidity)
+		if e.Humidity != 0 {
+			t.Fatalf("humidity %d", e.Humidity)
 		}
 		if err := dev.Halt(); err != nil {
 			t.Fatal(err)
@@ -152,8 +152,8 @@ func TestSense180_fail_1(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	env := devices.Environment{}
-	if dev.Sense(&env) == nil {
+	e := rwio.Env{}
+	if dev.Sense(&e) == nil {
 		t.Fatal("sensing should have failed")
 	}
 	if err := bus.Close(); err != nil {
@@ -182,8 +182,8 @@ func TestSense180_fail_2(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	env := devices.Environment{}
-	if dev.Sense(&env) == nil {
+	e := rwio.Env{}
+	if dev.Sense(&e) == nil {
 		t.Fatal("sensing should have failed")
 	}
 	if err := bus.Close(); err != nil {
@@ -214,8 +214,8 @@ func TestSense180_fail_3(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	env := devices.Environment{}
-	if dev.Sense(&env) == nil {
+	e := rwio.Env{}
+	if dev.Sense(&e) == nil {
 		t.Fatal("sensing should have failed")
 	}
 	if err := bus.Close(); err != nil {
@@ -248,8 +248,8 @@ func TestSense180_fail_4(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	env := devices.Environment{}
-	if dev.Sense(&env) == nil {
+	e := rwio.Env{}
+	if dev.Sense(&e) == nil {
 		t.Fatal("sensing should have failed")
 	}
 	if err := bus.Close(); err != nil {
@@ -295,18 +295,18 @@ func TestSenseContinuous180_success(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	env := <-c
-	if env.Temperature != 25300 {
-		t.Fatalf("temp %d", env.Temperature)
+	e := <-c
+	if e.Temperature != 25300 {
+		t.Fatalf("temp %d", e.Temperature)
 	}
-	if env.Pressure != 100567 {
-		t.Fatalf("pressure %d", env.Pressure)
+	if e.Pressure != 100567 {
+		t.Fatalf("pressure %d", e.Pressure)
 	}
-	if env.Humidity != 0 {
-		t.Fatalf("humidity %d", env.Humidity)
+	if e.Humidity != 0 {
+		t.Fatalf("humidity %d", e.Humidity)
 	}
 
-	if dev.Sense(&env) == nil {
+	if dev.Sense(&e) == nil {
 		t.Fatal("Sense() should have failed")
 	}
 
@@ -315,7 +315,7 @@ func TestSenseContinuous180_success(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	env = <-c2
+	e = <-c2
 
 	if _, ok := <-c; ok {
 		t.Fatal("c should be closed")

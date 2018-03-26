@@ -45,8 +45,8 @@ import (
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/i2c"
+	"periph.io/x/periph/conn/rwio"
 	"periph.io/x/periph/conn/spi"
-	"periph.io/x/periph/devices"
 	"periph.io/x/periph/devices/ssd1306/image1bit"
 )
 
@@ -156,19 +156,19 @@ func (d *Dev) String() string {
 	return fmt.Sprintf("ssd1360.Dev{%s, %s}", d.c, d.rect.Max)
 }
 
-// ColorModel implements devices.Display.
+// ColorModel implements rwio.Display.
 //
 // It is a one bit color model, as implemented by image1bit.Bit.
 func (d *Dev) ColorModel() color.Model {
 	return image1bit.BitModel
 }
 
-// Bounds implements devices.Display. Min is guaranteed to be {0, 0}.
+// Bounds implements rwio.Display. Min is guaranteed to be {0, 0}.
 func (d *Dev) Bounds() image.Rectangle {
 	return d.rect
 }
 
-// Draw implements devices.Display.
+// Draw implements rwio.Display.
 //
 // It draws synchronously, once this function returns, the display is updated.
 // It means that on slow bus  (I²C), it may be preferable to defer Draw() calls
@@ -489,5 +489,5 @@ const (
 )
 
 var _ conn.Resource = &Dev{}
-var _ devices.Display = &Dev{}
+var _ rwio.Display = &Dev{}
 var _ fmt.Stringer = &Dev{}

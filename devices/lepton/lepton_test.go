@@ -18,9 +18,9 @@ import (
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpiotest"
 	"periph.io/x/periph/conn/i2c/i2ctest"
+	"periph.io/x/periph/conn/rwio"
 	"periph.io/x/periph/conn/spi"
 	"periph.io/x/periph/conn/spi/spitest"
-	"periph.io/x/periph/devices"
 	"periph.io/x/periph/devices/lepton/internal"
 )
 
@@ -174,7 +174,7 @@ func TestReadImg(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if f.Metadata.TempHousing != devices.Celsius(2000) {
+	if f.Metadata.TempHousing != rwio.Celsius(2000) {
 		t.Fatal(f.Metadata.TempHousing)
 	}
 	// Compare the frame with the reference image. It should match.

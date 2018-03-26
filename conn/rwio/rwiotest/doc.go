@@ -2,6 +2,6 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package devicestest contains non-hardware devices implementations for
+// Package rwiotest contains non-hardware devices implementations for
 // testing or emulation purpose.
-package devicestest
+package rwiotest

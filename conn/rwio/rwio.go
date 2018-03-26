@@ -2,7 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-package devices
+package rwio
 
 import (
 	"image"
@@ -42,23 +42,23 @@ type Display interface {
 	Draw(r image.Rectangle, src image.Image, sp image.Point)
 }
 
-// Environment represents measurements from an environmental sensor.
-type Environment struct {
+// Env represents measurements from an environmental sensor.
+type Env struct {
 	Temperature Celsius
 	Pressure    KPascal
 	Humidity    RelativeHumidity
 }
 
-// Environmental represents an environmental sensor.
-type Environmental interface {
+// SenseEnv represents an environmental sensor.
+type SenseEnv interface {
 	conn.Resource
 
 	// Sense returns the value read from the sensor. Unsupported metrics are not
 	// modified.
-	Sense(env *Environment) error
+	Sense(env *Env) error
 	// SenseContinuous initiates a continuous sensing at the specified interval.
 	//
 	// It is important to call Halt() once done with the sensing, which will turn
 	// the device off and will close the channel.
-	SenseContinuous(interval time.Duration) (<-chan Environment, error)
+	SenseContinuous(interval time.Duration) (<-chan Env, error)
 }

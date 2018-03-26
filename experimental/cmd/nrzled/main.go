@@ -26,7 +26,7 @@ import (
 
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/gpio/gpiostream"
-	"periph.io/x/periph/devices"
+	"periph.io/x/periph/conn/rwio"
 	"periph.io/x/periph/experimental/devices/nrzled"
 	"periph.io/x/periph/host"
 )
@@ -87,7 +87,7 @@ func resize(src image.Image, width, height int) *image.NRGBA {
 	return dst
 }
 
-func showImage(display devices.Display, img image.Image, sleep time.Duration, loop bool, height int) {
+func showImage(display rwio.Display, img image.Image, sleep time.Duration, loop bool, height int) {
 	r := display.Bounds()
 	w := r.Dx()
 	orig := img.Bounds().Size()

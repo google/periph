@@ -13,7 +13,7 @@ import (
 
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio/gpiostream"
-	"periph.io/x/periph/devices"
+	"periph.io/x/periph/conn/rwio"
 )
 
 // NRZ converts a byte into the MSB-first Non-Return-to-Zero encoded 24 bits.
@@ -99,19 +99,19 @@ func (d *Dev) Halt() error {
 	return nil
 }
 
-// ColorModel implements devices.Display.
+// ColorModel implements rwio.Display.
 //
 // It is color.NRGBAModel.
 func (d *Dev) ColorModel() color.Model {
 	return color.NRGBAModel
 }
 
-// Bounds implements devices.Display. Min is guaranteed to be {0, 0}.
+// Bounds implements rwio.Display. Min is guaranteed to be {0, 0}.
 func (d *Dev) Bounds() image.Rectangle {
 	return image.Rectangle{Max: image.Point{X: d.numPixels, Y: 1}}
 }
 
-// Draw implements devices.Display.
+// Draw implements rwio.Display.
 //
 // Using something else than image.NRGBA is 10x slower and is not recommended.
 // When using image.NRGBA, the alpha channel is ignored in RGB mode and used as
@@ -218,5 +218,5 @@ func put(out []byte, v byte) {
 }
 
 var _ conn.Resource = &Dev{}
-var _ devices.Display = &Dev{}
+var _ rwio.Display = &Dev{}
 var _ fmt.Stringer = &Dev{}

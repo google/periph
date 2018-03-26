@@ -2,7 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-package devicestest
+package rwiotest
 
 import (
 	"errors"
@@ -12,10 +12,10 @@ import (
 	"image/draw"
 
 	"periph.io/x/periph/conn"
-	"periph.io/x/periph/devices"
+	"periph.io/x/periph/conn/rwio"
 )
 
-// Display is a fake devices.Display.
+// Display is a fake rwio.Display.
 type Display struct {
 	Img *image.NRGBA
 }
@@ -29,7 +29,7 @@ func (d *Display) Halt() error {
 	return nil
 }
 
-// Write implements devices.Display.
+// Write implements rwio.Display.
 func (d *Display) Write(pixels []byte) (int, error) {
 	if len(pixels)%3 != 0 {
 		return 0, errors.New("devicetest: invalid RGB stream length")
@@ -54,5 +54,5 @@ func (d *Display) Draw(r image.Rectangle, src image.Image, sp image.Point) {
 }
 
 var _ conn.Resource = &Display{}
-var _ devices.Display = &Display{}
+var _ rwio.Display = &Display{}
 var _ fmt.Stringer = &Display{}

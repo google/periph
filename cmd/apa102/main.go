@@ -21,9 +21,9 @@ import (
 	"strings"
 	"time"
 
+	"periph.io/x/periph/conn/rwio"
 	"periph.io/x/periph/conn/spi"
 	"periph.io/x/periph/conn/spi/spireg"
-	"periph.io/x/periph/devices"
 	"periph.io/x/periph/devices/apa102"
 )
 
@@ -82,7 +82,7 @@ func resize(src image.Image, width, height int) *image.NRGBA {
 	return dst
 }
 
-func showImage(display devices.Display, img image.Image, sleep time.Duration, loop bool, height int) {
+func showImage(display rwio.Display, img image.Image, sleep time.Duration, loop bool, height int) {
 	r := display.Bounds()
 	w := r.Dx()
 	orig := img.Bounds().Size()

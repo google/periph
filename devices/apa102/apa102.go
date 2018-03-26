@@ -11,8 +11,8 @@ import (
 	"image/color"
 
 	"periph.io/x/periph/conn"
+	"periph.io/x/periph/conn/rwio"
 	"periph.io/x/periph/conn/spi"
-	"periph.io/x/periph/devices"
 )
 
 // ToRGB converts a slice of color.NRGBA to a byte stream of RGB pixels.
@@ -79,18 +79,18 @@ func (d *Dev) String() string {
 	return fmt.Sprintf("APA102{I:%d, T:%dK, %dLEDs, %s}", d.Intensity, d.Temperature, d.numPixels, d.s)
 }
 
-// ColorModel implements devices.Display. There's no surprise, it is
+// ColorModel implements rwio.Display. There's no surprise, it is
 // color.NRGBAModel.
 func (d *Dev) ColorModel() color.Model {
 	return color.NRGBAModel
 }
 
-// Bounds implements devices.Display. Min is guaranteed to be {0, 0}.
+// Bounds implements rwio.Display. Min is guaranteed to be {0, 0}.
 func (d *Dev) Bounds() image.Rectangle {
 	return image.Rectangle{Max: image.Point{X: d.numPixels, Y: 1}}
 }
 
-// Draw implements devices.Display.
+// Draw implements rwio.Display.
 //
 // Using something else than image.NRGBA is 10x slower. When using image.NRGBA,
 // the alpha channel is ignored.
@@ -316,5 +316,5 @@ func (l *lut) rasterImg(dst []byte, r image.Rectangle, src image.Image, srcR ima
 }
 
 var _ conn.Resource = &Dev{}
-var _ devices.Display = &Dev{}
+var _ rwio.Display = &Dev{}
 var _ fmt.Stringer = &Dev{}
