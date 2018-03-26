@@ -26,18 +26,38 @@ func ToRGB(p []color.NRGBA) []byte {
 	return b
 }
 
+// DefaultOpts is the recommended default options.
+var DefaultOpts = Opts{
+	NumPixels:   150,  // 150 LEDs is a common strip length.
+	Intensity:   255,  // Full blinding power.
+	Temperature: 5000, // More pleasing white balance.
+}
+
+// Opts defines the options for the device.
+type Opts struct {
+	// NumPixels is the number of pixelsto control. If too short, the following
+	// pixels will be corrupted. If too long, the pixels will be drawn
+	// unnecessarily but not visible issue will occur.
+	NumPixels int
+	// Intensity is the maximum intensity level to use, on a logarithmic scale.
+	// This is useful to safely limit current draw.
+	Intensity uint8
+	// Temperature declares the white color to use, specified in Kelvin.
+	//
+	// This driver assumes the LEDs are emitting a 6500K white color.
+	Temperature uint16
+}
+
 // New returns a strip that communicates over SPI to APA102 LEDs.
 //
 // The SPI port speed should be high, at least in the Mhz range, as
 // there's 32 bits sent per LED, creating a staggered effect. See
 // https://cpldcpu.wordpress.com/2014/11/30/understanding-the-apa102-superled/
 //
-// Temperature is in Kelvin and a reasonable default value is 6500K.
-//
 // As per APA102-C spec, the chip's max refresh rate is 400hz.
 // https://en.wikipedia.org/wiki/Flicker_fusion_threshold is a recommended
 // reading.
-func New(p spi.Port, numPixels int, intensity uint8, temperature uint16) (*Dev, error) {
+func New(p spi.Port, o *Opts) (*Dev, error) {
 	c, err := p.Connect(20000000, spi.Mode3, 8)
 	if err != nil {
 		return nil, err
@@ -45,18 +65,18 @@ func New(p spi.Port, numPixels int, intensity uint8, temperature uint16) (*Dev, 
 	// End frames are needed to be able to push enough SPI clock signals due to
 	// internal half-delay of data signal from each individual LED. See
 	// https://cpldcpu.wordpress.com/2014/11/30/understanding-the-apa102-superled/
-	buf := make([]byte, 4*(numPixels+1)+numPixels/2/8+1)
-	tail := buf[4+4*numPixels:]
+	buf := make([]byte, 4*(o.NumPixels+1)+o.NumPixels/2/8+1)
+	tail := buf[4+4*o.NumPixels:]
 	for i := range tail {
 		tail[i] = 0xFF
 	}
 	return &Dev{
-		Intensity:   intensity,
-		Temperature: temperature,
+		Intensity:   o.Intensity,
+		Temperature: o.Temperature,
 		s:           c,
-		numPixels:   numPixels,
+		numPixels:   o.NumPixels,
 		rawBuf:      buf,
-		pixels:      buf[4 : 4+4*numPixels],
+		pixels:      buf[4 : 4+4*o.NumPixels],
 	}, nil
 }
 
@@ -66,13 +86,20 @@ func New(p spi.Port, numPixels int, intensity uint8, temperature uint16) (*Dev, 
 //
 // Includes intensity and temperature correction.
 type Dev struct {
-	Intensity   uint8    // Set an intensity between 0 (off) and 255 (full brightness).
-	Temperature uint16   // In Kelvin.
-	s           spi.Conn //
-	l           lut      // Updated at each .Write() call.
-	numPixels   int      //
-	rawBuf      []byte   // Raw buffer sent over SPI. Cached to reduce heap fragmentation.
-	pixels      []byte   // Double buffer of pixels, to enable partial painting via Draw(). Effectively points inside rawBuf.
+	// Intensity set the intensity between 0 (off) and 255 (full brightness).
+	//
+	// It can be changed, it will take effect on the next Draw() or Write() call.
+	Intensity uint8
+	// Temperature is the white adjustment in °Kelvin.
+	//
+	// It can be changed, it will take effect on the next Draw() or Write() call.
+	Temperature uint16
+
+	s         spi.Conn //
+	l         lut      // Updated at each .Write() call.
+	numPixels int      //
+	rawBuf    []byte   // Raw buffer sent over SPI. Cached to reduce heap fragmentation.
+	pixels    []byte   // Double buffer of pixels, to enable partial painting via Draw(). Effectively points inside rawBuf.
 }
 
 func (d *Dev) String() string {

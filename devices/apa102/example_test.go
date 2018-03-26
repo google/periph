@@ -27,9 +27,13 @@ func Example() {
 	}
 	defer p.Close()
 
-	// Opens a strip of 150 lights are 50% intensity with color temperature at
-	// 5000 Kelvin.
-	dev, err := apa102.New(p, 150, 127, 5000)
+	// Opens a 300 lights strip at 50% intensity with color temperature at
+	// 3500°Kelvin.
+	o := apa102.DefaultOpts
+	o.NumPixels = 300
+	o.Intensity = 127
+	o.Temperature = 3500
+	dev, err := apa102.New(p, &o)
 	if err != nil {
 		log.Fatalf("failed to open apa102: %v", err)
 	}
