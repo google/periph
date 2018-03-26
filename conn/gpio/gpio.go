@@ -138,6 +138,7 @@ func ParseDuty(s string) (Duty, error) {
 //
 // The driver may uses DMA controller underneath for zero CPU implementation.
 type PinPWM interface {
+	pin.Pin
 	// PWM sets the PWM output on supported pins.
 	//
 	// To use as a general purpose clock, set duty to DutyHalf. Some pins may
@@ -231,6 +232,7 @@ type PinIO interface {
 // time. This is useful to determine if the pin is acceptable for operation
 // with certain devices.
 type PinDefaultPull interface {
+	pin.Pin
 	// DefaultPull returns the pull that is initialized on CPU reset.
 	DefaultPull() Pull
 }

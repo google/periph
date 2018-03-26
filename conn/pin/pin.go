@@ -9,6 +9,8 @@
 // While not a protocol strictly speaking, these are "well known constants".
 package pin
 
+import "periph.io/x/periph/conn"
+
 // These are well known pins.
 var (
 	INVALID  *BasicPin // Either floating or invalid pin
@@ -23,6 +25,7 @@ var (
 // Pin is the minimal common interface shared between gpio.PinIO and
 // analog.PinIO.
 type Pin interface {
+	conn.Resource
 	// String() typically returns the pin name and number, ex: "PD6(45)"
 	String() string
 	// Name returns the name of the pin.
@@ -61,6 +64,11 @@ func (b *BasicPin) Number() int {
 // Function returns "" as pin function.
 func (b *BasicPin) Function() string {
 	return ""
+}
+
+// Halt implements conn.Resource.
+func (b *BasicPin) Halt() error {
+	return nil
 }
 
 func init() {
