@@ -23,7 +23,6 @@ import (
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/mmr"
-	"periph.io/x/periph/devices"
 )
 
 // TouchStatus is the status of an input sensor.
@@ -515,4 +514,4 @@ func wrapf(format string, a ...interface{}) error {
 	return fmt.Errorf("cap1188: "+format, a...)
 }
 
-var _ devices.Device = &Dev{}
+var _ conn.Resource = &Dev{}

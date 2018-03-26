@@ -9,12 +9,13 @@ import (
 	"image/color"
 	"io"
 	"time"
+
+	"periph.io/x/periph/conn"
 )
 
 // Device is a basic device.
 //
-// This interface is deprecated and will be removed in v3. Use conn.Resource
-// instead.
+// Deprecated: This interface will be removed in v3. Use conn.Resource instead.
 type Device interface {
 	Halt() error
 }
@@ -24,7 +25,7 @@ type Device interface {
 // What Display represents can be as varied as a 1 bit OLED display or a strip
 // of LED lights.
 type Display interface {
-	Device
+	conn.Resource
 
 	// Writer can be used when the native display pixel format is known. Each
 	// write must cover exactly the whole screen as a single packed stream of
@@ -57,7 +58,7 @@ type Environment struct {
 
 // Environmental represents an environmental sensor.
 type Environmental interface {
-	Device
+	conn.Resource
 
 	// Sense returns the value read from the sensor. Unsupported metrics are not
 	// modified.
