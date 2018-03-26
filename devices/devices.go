@@ -13,13 +13,6 @@ import (
 	"periph.io/x/periph/conn"
 )
 
-// Device is a basic device.
-//
-// Deprecated: This interface will be removed in v3. Use conn.Resource instead.
-type Device interface {
-	Halt() error
-}
-
 // Display represents a pixel output device. It is a write-only interface.
 //
 // What Display represents can be as varied as a 1 bit OLED display or a strip
