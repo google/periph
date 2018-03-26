@@ -153,7 +153,11 @@ func mainImpl() error {
 		// TODO(maruel): Print where the pins are located.
 		log.Printf("Using pins CLK: %s  MOSI: %s  MISO: %s", p.CLK(), p.MOSI(), p.MISO())
 	}
-	display, err := apa102.New(s, *numPixels, uint8(*intensity), uint16(*temperature))
+	o := apa102.DefaultOpts
+	o.NumPixels = *numPixels
+	o.Intensity = uint8(*intensity)
+	o.Temperature = uint16(*temperature)
+	display, err := apa102.New(s, &o)
 	if err != nil {
 		return err
 	}
