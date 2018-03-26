@@ -14,7 +14,7 @@ import (
 
 // uint32ToBit packs a bit offset found on slice `d` (that is actually uint32)
 // back into a densely packed Bits stream.
-func uint32ToBit(w gpiostream.BitsLSB, d []uint8, bit uint8, skip int) {
+func uint32ToBit(w gpiostream.BitsLSBF, d []uint8, bit uint8, skip int) {
 	// Little endian.
 	x := bit / 8
 	d = d[x:]
@@ -47,10 +47,10 @@ func raster32Bits(s gpiostream.Stream, skip int, clear, set []uint32, mask uint3
 	var msb bool
 	var bits []byte
 	switch b := s.(type) {
-	case *gpiostream.BitStreamLSB:
+	case *gpiostream.BitStreamLSBF:
 		msb = false
 		bits = b.Bits
-	case *gpiostream.BitStreamMSB:
+	case *gpiostream.BitStreamMSBF:
 		msb = true
 		bits = b.Bits
 	default:
@@ -97,9 +97,9 @@ func raster32(s gpiostream.Stream, skip int, clear, set []uint32, mask uint32) e
 		return errors.New("bcm283x: clear and set buffers have different length")
 	}
 	switch x := s.(type) {
-	case *gpiostream.BitStreamLSB:
+	case *gpiostream.BitStreamLSBF:
 		return raster32Bits(x, skip, clear, set, mask)
-	case *gpiostream.BitStreamMSB:
+	case *gpiostream.BitStreamMSBF:
 		return raster32Bits(x, skip, clear, set, mask)
 	case *gpiostream.EdgeStream:
 		return errors.New("bcm283x: EdgeStream is not supported yet")
@@ -113,7 +113,7 @@ func raster32(s gpiostream.Stream, skip int, clear, set []uint32, mask uint32) e
 // PCM/PWM DMA buf is encoded as little-endian and MSB first.
 func copyStreamToDMABuf(w gpiostream.Stream, dst []uint32) error {
 	switch v := w.(type) {
-	case *gpiostream.BitStreamMSB:
+	case *gpiostream.BitStreamMSBF:
 		// This is big-endian and MSB first.
 		i := 0
 		for ; i < len(v.Bits)/4; i++ {
@@ -127,9 +127,9 @@ func copyStreamToDMABuf(w gpiostream.Stream, dst []uint32) error {
 			dst[i] = last
 		}
 		return nil
-	case *gpiostream.BitStreamLSB:
+	case *gpiostream.BitStreamLSBF:
 		// This is big-endian and LSB first.
-		return errors.New("TODO(simokawa): handle BitStreamLSB")
+		return errors.New("TODO(simokawa): handle BitStreamLSBF")
 	case *gpiostream.EdgeStream:
 		return errors.New("TODO(simokawa): handle EdgeStream")
 	default:

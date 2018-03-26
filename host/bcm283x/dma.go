@@ -808,7 +808,7 @@ func overSamples(s gpiostream.Stream) (int, error) {
 }
 
 // dmaReadStream streams input from a pin.
-func dmaReadStream(p *Pin, b *gpiostream.BitStreamLSB) error {
+func dmaReadStream(p *Pin, b *gpiostream.BitStreamLSBF) error {
 	skip, err := overSamples(b)
 	if err != nil {
 		return err
@@ -865,10 +865,10 @@ func dmaWriteStreamEdges(p *Pin, w gpiostream.Stream) error {
 	var bits []byte
 	var msb bool
 	switch v := w.(type) {
-	case *gpiostream.BitStreamLSB:
+	case *gpiostream.BitStreamLSBF:
 		bits = v.Bits
 		msb = false
-	case *gpiostream.BitStreamMSB:
+	case *gpiostream.BitStreamMSBF:
 		bits = v.Bits
 		msb = true
 	default:

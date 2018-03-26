@@ -15,9 +15,9 @@ import (
 	"periph.io/x/periph/host"
 )
 
-func ExampleBitsLSB() {
-	// Format is LSB; least significant bit first.
-	stream := gpiostream.Bits{0x80, 0x01, 0xAA, 0x55}
+func ExampleBitsLSBF() {
+	// Format is LSB-first; least significant bit first.
+	stream := gpiostream.BitsLSBF{0x80, 0x01, 0xAA, 0x55}
 	for _, l := range stream {
 		fmt.Printf("0x%02X: ", l)
 		for j := 0; j < 8; j++ {
@@ -36,9 +36,9 @@ func ExampleBitsLSB() {
 	// 0x55: High,  Low, High,  Low, High,  Low, High,  Low,
 }
 
-func ExampleBitsMSB() {
-	// Format is MSB; most significant bit first.
-	stream := gpiostream.Bits{0x80, 0x01, 0xAA, 0x55}
+func ExampleBitsMSBF() {
+	// Format is MSB-first; most significant bit first.
+	stream := gpiostream.BitsMSBF{0x80, 0x01, 0xAA, 0x55}
 	for _, l := range stream {
 		fmt.Printf("0x%02X: ", l)
 		for j := 7; j >= 0; j-- {
@@ -69,7 +69,7 @@ func ExamplePinIn() {
 	if !ok {
 		log.Fatalf("pin streaming is not supported on pin %s", p)
 	}
-	b := gpiostream.BitStream{Res: time.Millisecond, Bits: make(gpiostream.Bits, 1000/8)}
+	b := gpiostream.BitStreamMSBF{Res: time.Millisecond, Bits: make(gpiostream.BitsMSBF, 1000/8)}
 	if err := r.StreamIn(gpio.PullNoChange, &b); err != nil {
 		log.Fatal(err)
 	}

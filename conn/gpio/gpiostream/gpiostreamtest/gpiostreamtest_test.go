@@ -14,14 +14,14 @@ import (
 	"periph.io/x/periph/conn/gpio/gpiostream"
 )
 
-// PinInLSB
+// PinInLSBF
 
-func TestPinInLSB(t *testing.T) {
-	p := &PinInLSB{
+func TestPinInLSBF(t *testing.T) {
+	p := &PinInLSBF{
 		N:   "Yo",
-		Ops: []InOpLSB{{BitStreamLSB: gpiostream.BitStreamLSB{Res: time.Second, Bits: gpiostream.BitsLSB{0xCC}}, Pull: gpio.PullNoChange}},
+		Ops: []InOpLSBF{{BitStreamLSBF: gpiostream.BitStreamLSBF{Res: time.Second, Bits: gpiostream.BitsLSBF{0xCC}}, Pull: gpio.PullNoChange}},
 	}
-	b := gpiostream.BitStreamLSB{Res: time.Second, Bits: make(gpiostream.BitsLSB, 1)}
+	b := gpiostream.BitStreamLSBF{Res: time.Second, Bits: make(gpiostream.BitsLSBF, 1)}
 	if err := p.StreamIn(gpio.PullNoChange, &b); err != nil {
 		t.Fatal(err)
 	}
@@ -33,12 +33,12 @@ func TestPinInLSB(t *testing.T) {
 	}
 }
 
-func TestPinInLSB_fail_res(t *testing.T) {
-	p := &PinInLSB{
-		Ops:       []InOpLSB{{BitStreamLSB: gpiostream.BitStreamLSB{Res: time.Second, Bits: gpiostream.BitsLSB{0xCC}}, Pull: gpio.PullNoChange}},
+func TestPinInLSBF_fail_res(t *testing.T) {
+	p := &PinInLSBF{
+		Ops:       []InOpLSBF{{BitStreamLSBF: gpiostream.BitStreamLSBF{Res: time.Second, Bits: gpiostream.BitsLSBF{0xCC}}, Pull: gpio.PullNoChange}},
 		DontPanic: true,
 	}
-	b := gpiostream.BitStreamLSB{Res: time.Minute, Bits: make(gpiostream.BitsLSB, 1)}
+	b := gpiostream.BitStreamLSBF{Res: time.Minute, Bits: make(gpiostream.BitsLSBF, 1)}
 	if p.StreamIn(gpio.PullNoChange, &b) == nil {
 		t.Fatal("different res")
 	}
@@ -47,23 +47,23 @@ func TestPinInLSB_fail_res(t *testing.T) {
 	}
 }
 
-func TestPinInLSB_fail_len(t *testing.T) {
-	p := &PinInLSB{
-		Ops:       []InOpLSB{{BitStreamLSB: gpiostream.BitStreamLSB{Res: time.Second, Bits: gpiostream.BitsLSB{0xCC}}, Pull: gpio.PullNoChange}},
+func TestPinInLSBF_fail_len(t *testing.T) {
+	p := &PinInLSBF{
+		Ops:       []InOpLSBF{{BitStreamLSBF: gpiostream.BitStreamLSBF{Res: time.Second, Bits: gpiostream.BitsLSBF{0xCC}}, Pull: gpio.PullNoChange}},
 		DontPanic: true,
 	}
-	b := gpiostream.BitStreamLSB{Res: time.Second, Bits: make(gpiostream.BitsLSB, 2)}
+	b := gpiostream.BitStreamLSBF{Res: time.Second, Bits: make(gpiostream.BitsLSBF, 2)}
 	if p.StreamIn(gpio.PullNoChange, &b) == nil {
 		t.Fatal("different len")
 	}
 }
 
-func TestPinInLSB_fail_pull(t *testing.T) {
-	p := &PinInLSB{
-		Ops:       []InOpLSB{{BitStreamLSB: gpiostream.BitStreamLSB{Res: time.Second, Bits: gpiostream.BitsLSB{0xCC}}, Pull: gpio.PullNoChange}},
+func TestPinInLSBF_fail_pull(t *testing.T) {
+	p := &PinInLSBF{
+		Ops:       []InOpLSBF{{BitStreamLSBF: gpiostream.BitStreamLSBF{Res: time.Second, Bits: gpiostream.BitsLSBF{0xCC}}, Pull: gpio.PullNoChange}},
 		DontPanic: true,
 	}
-	b := gpiostream.BitStreamLSB{Res: time.Second, Bits: make(gpiostream.BitsLSB, 1)}
+	b := gpiostream.BitStreamLSBF{Res: time.Second, Bits: make(gpiostream.BitsLSBF, 1)}
 	if p.StreamIn(gpio.PullDown, &b) == nil {
 		t.Fatal("different pull")
 	}
@@ -72,21 +72,21 @@ func TestPinInLSB_fail_pull(t *testing.T) {
 	}
 }
 
-func TestPinInLSB_fail_count(t *testing.T) {
-	p := &PinInLSB{
-		Ops:       []InOpLSB{{BitStreamLSB: gpiostream.BitStreamLSB{Res: time.Second, Bits: gpiostream.BitsLSB{0xCC}}, Pull: gpio.PullNoChange}},
+func TestPinInLSBF_fail_count(t *testing.T) {
+	p := &PinInLSBF{
+		Ops:       []InOpLSBF{{BitStreamLSBF: gpiostream.BitStreamLSBF{Res: time.Second, Bits: gpiostream.BitsLSBF{0xCC}}, Pull: gpio.PullNoChange}},
 		Count:     1,
 		DontPanic: true,
 	}
-	b := gpiostream.BitStreamLSB{Res: time.Second, Bits: make(gpiostream.BitsLSB, 1)}
+	b := gpiostream.BitStreamLSBF{Res: time.Second, Bits: make(gpiostream.BitsLSBF, 1)}
 	if p.StreamIn(gpio.PullNoChange, &b) == nil {
 		t.Fatal("count too large")
 	}
 }
 
-func TestPinInLSB_panic_res(t *testing.T) {
-	p := &PinInLSB{
-		Ops: []InOpLSB{{BitStreamLSB: gpiostream.BitStreamLSB{Res: time.Second, Bits: gpiostream.BitsLSB{0xCC}}, Pull: gpio.PullNoChange}},
+func TestPinInLSBF_panic_res(t *testing.T) {
+	p := &PinInLSBF{
+		Ops: []InOpLSBF{{BitStreamLSBF: gpiostream.BitStreamLSBF{Res: time.Second, Bits: gpiostream.BitsLSBF{0xCC}}, Pull: gpio.PullNoChange}},
 	}
 	defer func() {
 		if err, ok := recover().(error); !ok {
@@ -95,20 +95,20 @@ func TestPinInLSB_panic_res(t *testing.T) {
 			t.Fatalf("expected conntest error, got %v", err)
 		}
 	}()
-	b := gpiostream.BitStreamLSB{Res: time.Minute, Bits: make(gpiostream.BitsLSB, 1)}
+	b := gpiostream.BitStreamLSBF{Res: time.Minute, Bits: make(gpiostream.BitsLSBF, 1)}
 	if p.StreamIn(gpio.PullNoChange, &b) == nil {
 		t.Fatal("different res")
 	}
 }
 
-// PinInMSB
+// PinInMSBF
 
-func TestPinInMSB(t *testing.T) {
-	p := &PinInMSB{
+func TestPinInMSBF(t *testing.T) {
+	p := &PinInMSBF{
 		N:   "Yo",
-		Ops: []InOpMSB{{BitStreamMSB: gpiostream.BitStreamMSB{Res: time.Second, Bits: gpiostream.BitsMSB{0xCC}}, Pull: gpio.PullNoChange}},
+		Ops: []InOpMSBF{{BitStreamMSBF: gpiostream.BitStreamMSBF{Res: time.Second, Bits: gpiostream.BitsMSBF{0xCC}}, Pull: gpio.PullNoChange}},
 	}
-	b := gpiostream.BitStreamMSB{Res: time.Second, Bits: make(gpiostream.BitsMSB, 1)}
+	b := gpiostream.BitStreamMSBF{Res: time.Second, Bits: make(gpiostream.BitsMSBF, 1)}
 	if err := p.StreamIn(gpio.PullNoChange, &b); err != nil {
 		t.Fatal(err)
 	}
@@ -120,12 +120,12 @@ func TestPinInMSB(t *testing.T) {
 	}
 }
 
-func TestPinInMSB_fail_res(t *testing.T) {
-	p := &PinInMSB{
-		Ops:       []InOpMSB{{BitStreamMSB: gpiostream.BitStreamMSB{Res: time.Second, Bits: gpiostream.BitsMSB{0xCC}}, Pull: gpio.PullNoChange}},
+func TestPinInMSBF_fail_res(t *testing.T) {
+	p := &PinInMSBF{
+		Ops:       []InOpMSBF{{BitStreamMSBF: gpiostream.BitStreamMSBF{Res: time.Second, Bits: gpiostream.BitsMSBF{0xCC}}, Pull: gpio.PullNoChange}},
 		DontPanic: true,
 	}
-	b := gpiostream.BitStreamMSB{Res: time.Minute, Bits: make(gpiostream.BitsMSB, 1)}
+	b := gpiostream.BitStreamMSBF{Res: time.Minute, Bits: make(gpiostream.BitsMSBF, 1)}
 	if p.StreamIn(gpio.PullNoChange, &b) == nil {
 		t.Fatal("different res")
 	}
@@ -134,23 +134,23 @@ func TestPinInMSB_fail_res(t *testing.T) {
 	}
 }
 
-func TestPinInMSB_fail_len(t *testing.T) {
-	p := &PinInMSB{
-		Ops:       []InOpMSB{{BitStreamMSB: gpiostream.BitStreamMSB{Res: time.Second, Bits: gpiostream.BitsMSB{0xCC}}, Pull: gpio.PullNoChange}},
+func TestPinInMSBF_fail_len(t *testing.T) {
+	p := &PinInMSBF{
+		Ops:       []InOpMSBF{{BitStreamMSBF: gpiostream.BitStreamMSBF{Res: time.Second, Bits: gpiostream.BitsMSBF{0xCC}}, Pull: gpio.PullNoChange}},
 		DontPanic: true,
 	}
-	b := gpiostream.BitStreamMSB{Res: time.Second, Bits: make(gpiostream.BitsMSB, 2)}
+	b := gpiostream.BitStreamMSBF{Res: time.Second, Bits: make(gpiostream.BitsMSBF, 2)}
 	if p.StreamIn(gpio.PullNoChange, &b) == nil {
 		t.Fatal("different len")
 	}
 }
 
-func TestPinInMSB_fail_pull(t *testing.T) {
-	p := &PinInMSB{
-		Ops:       []InOpMSB{{BitStreamMSB: gpiostream.BitStreamMSB{Res: time.Second, Bits: gpiostream.BitsMSB{0xCC}}, Pull: gpio.PullNoChange}},
+func TestPinInMSBF_fail_pull(t *testing.T) {
+	p := &PinInMSBF{
+		Ops:       []InOpMSBF{{BitStreamMSBF: gpiostream.BitStreamMSBF{Res: time.Second, Bits: gpiostream.BitsMSBF{0xCC}}, Pull: gpio.PullNoChange}},
 		DontPanic: true,
 	}
-	b := gpiostream.BitStreamMSB{Res: time.Second, Bits: make(gpiostream.BitsMSB, 1)}
+	b := gpiostream.BitStreamMSBF{Res: time.Second, Bits: make(gpiostream.BitsMSBF, 1)}
 	if p.StreamIn(gpio.PullDown, &b) == nil {
 		t.Fatal("different pull")
 	}
@@ -159,21 +159,21 @@ func TestPinInMSB_fail_pull(t *testing.T) {
 	}
 }
 
-func TestPinIn_fail_count(t *testing.T) {
-	p := &PinInMSB{
-		Ops:       []InOpMSB{{BitStreamMSB: gpiostream.BitStreamMSB{Res: time.Second, Bits: gpiostream.BitsMSB{0xCC}}, Pull: gpio.PullNoChange}},
+func TestPinInMSBF_fail_count(t *testing.T) {
+	p := &PinInMSBF{
+		Ops:       []InOpMSBF{{BitStreamMSBF: gpiostream.BitStreamMSBF{Res: time.Second, Bits: gpiostream.BitsMSBF{0xCC}}, Pull: gpio.PullNoChange}},
 		Count:     1,
 		DontPanic: true,
 	}
-	b := gpiostream.BitStreamMSB{Res: time.Second, Bits: make(gpiostream.BitsMSB, 1)}
+	b := gpiostream.BitStreamMSBF{Res: time.Second, Bits: make(gpiostream.BitsMSBF, 1)}
 	if p.StreamIn(gpio.PullNoChange, &b) == nil {
 		t.Fatal("count too large")
 	}
 }
 
-func TestPinInMSB_panic_res(t *testing.T) {
-	p := &PinInMSB{
-		Ops: []InOpMSB{{BitStreamMSB: gpiostream.BitStreamMSB{Res: time.Second, Bits: gpiostream.BitsMSB{0xCC}}, Pull: gpio.PullNoChange}},
+func TestPinInMSBF_panic_res(t *testing.T) {
+	p := &PinInMSBF{
+		Ops: []InOpMSBF{{BitStreamMSBF: gpiostream.BitStreamMSBF{Res: time.Second, Bits: gpiostream.BitsMSBF{0xCC}}, Pull: gpio.PullNoChange}},
 	}
 	defer func() {
 		if err, ok := recover().(error); !ok {
@@ -182,7 +182,7 @@ func TestPinInMSB_panic_res(t *testing.T) {
 			t.Fatalf("expected conntest error, got %v", err)
 		}
 	}()
-	b := gpiostream.BitStreamMSB{Res: time.Minute, Bits: make(gpiostream.BitsMSB, 1)}
+	b := gpiostream.BitStreamMSBF{Res: time.Minute, Bits: make(gpiostream.BitsMSBF, 1)}
 	if p.StreamIn(gpio.PullNoChange, &b) == nil {
 		t.Fatal("different res")
 	}
@@ -191,8 +191,8 @@ func TestPinInMSB_panic_res(t *testing.T) {
 // PinOutPlayback
 
 func TestPinOutPlayback(t *testing.T) {
-	p := &PinOutPlayback{N: "Yo", Ops: []gpiostream.Stream{&gpiostream.BitStream{Res: time.Second, Bits: gpiostream.Bits{0xCC}}}}
-	if err := p.StreamOut(&gpiostream.BitStream{Res: time.Second, Bits: gpiostream.Bits{0xCC}}); err != nil {
+	p := &PinOutPlayback{N: "Yo", Ops: []gpiostream.Stream{&gpiostream.BitStreamLSBF{Res: time.Second, Bits: gpiostream.BitsLSBF{0xCC}}}}
+	if err := p.StreamOut(&gpiostream.BitStreamLSBF{Res: time.Second, Bits: gpiostream.BitsLSBF{0xCC}}); err != nil {
 		t.Fatal(err)
 	}
 	if s := p.String(); s != "Yo" {
@@ -205,14 +205,14 @@ func TestPinOutPlayback(t *testing.T) {
 
 func TestPinOutPlayback_fail(t *testing.T) {
 	p := &PinOutPlayback{DontPanic: true}
-	if p.StreamOut(&gpiostream.BitStream{Res: time.Second, Bits: gpiostream.Bits{0xCC}}) == nil {
+	if p.StreamOut(&gpiostream.BitStreamLSBF{Res: time.Second, Bits: gpiostream.BitsLSBF{0xCC}}) == nil {
 		t.Fatal("expected failure")
 	}
-	p = &PinOutPlayback{DontPanic: true, Ops: []gpiostream.Stream{&gpiostream.BitStream{Res: time.Second, Bits: gpiostream.Bits{0xCC}}}}
-	if p.StreamOut(&gpiostream.BitStream{Res: time.Minute, Bits: gpiostream.Bits{0xCC}}) == nil {
+	p = &PinOutPlayback{DontPanic: true, Ops: []gpiostream.Stream{&gpiostream.BitStreamLSBF{Res: time.Second, Bits: gpiostream.BitsLSBF{0xCC}}}}
+	if p.StreamOut(&gpiostream.BitStreamLSBF{Res: time.Minute, Bits: gpiostream.BitsLSBF{0xCC}}) == nil {
 		t.Fatal("different Res")
 	}
-	p = &PinOutPlayback{DontPanic: true, Ops: []gpiostream.Stream{&gpiostream.BitStream{Res: time.Second, Bits: gpiostream.Bits{0xCC}}}}
+	p = &PinOutPlayback{DontPanic: true, Ops: []gpiostream.Stream{&gpiostream.BitStreamLSBF{Res: time.Second, Bits: gpiostream.BitsLSBF{0xCC}}}}
 	if p.Close() == nil {
 		t.Fatal("expected failure")
 	}
@@ -223,10 +223,10 @@ func TestPinOutPlayback_fail(t *testing.T) {
 func TestPinOutRecord(t *testing.T) {
 	p := &PinOutRecord{N: "Yo"}
 	data := []gpiostream.Stream{
-		&gpiostream.BitStreamLSB{Res: time.Second, Bits: gpiostream.BitsLSB{0xCC}},
-		&gpiostream.BitStreamMSB{Res: time.Second, Bits: gpiostream.BitsMSB{0xCC}},
+		&gpiostream.BitStreamLSBF{Res: time.Second, Bits: gpiostream.BitsLSBF{0xCC}},
+		&gpiostream.BitStreamMSBF{Res: time.Second, Bits: gpiostream.BitsMSBF{0xCC}},
 		&gpiostream.EdgeStream{Res: time.Second, Edges: []time.Duration{time.Minute, 2 * time.Minute}},
-		&gpiostream.Program{Parts: []gpiostream.Stream{&gpiostream.BitStreamLSB{Res: time.Second, Bits: gpiostream.BitsLSB{0xCC}}}, Loops: 2},
+		&gpiostream.Program{Parts: []gpiostream.Stream{&gpiostream.BitStreamLSBF{Res: time.Second, Bits: gpiostream.BitsLSBF{0xCC}}}, Loops: 2},
 	}
 	for _, line := range data {
 		if err := p.StreamOut(line); err != nil {

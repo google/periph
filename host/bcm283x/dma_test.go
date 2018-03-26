@@ -148,7 +148,7 @@ func TestStructSizes(t *testing.T) {
 
 func TestCopyStreamToDMAbuf(t *testing.T) {
 	buf := make([]uint32, 2)
-	stream := gpiostream.BitStreamMSB{
+	stream := gpiostream.BitStreamMSBF{
 		Bits: []byte{1, 2, 3, 4, 5, 6, 7},
 		Res:  time.Microsecond,
 	}

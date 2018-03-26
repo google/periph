@@ -18,31 +18,31 @@ import (
 	"periph.io/x/periph/conn/gpio/gpiostream"
 )
 
-// InOpLSB represents an expected replay StreamIn operation in PinInLSB.
-type InOpLSB struct {
+// InOpLSBF represents an expected replay StreamIn operation in PinInLSBF.
+type InOpLSBF struct {
 	gpio.Pull
-	gpiostream.BitStreamLSB
+	gpiostream.BitStreamLSBF
 }
 
-// InOpMSB represents an expected replay StreamIn operation in PinInMSB.
-type InOpMSB struct {
+// InOpMSBF represents an expected replay StreamIn operation in PinInMSBF.
+type InOpMSBF struct {
 	gpio.Pull
-	gpiostream.BitStreamMSB
+	gpiostream.BitStreamMSBF
 }
 
-// PinInLSB implements gpiostream.PinIn that accepts BitStreamLSB only.
+// PinInLSBF implements gpiostream.PinIn that accepts BitStreamLSBF only.
 //
 // Embed in a struct with gpiotest.Pin for more functionality.
-type PinInLSB struct {
+type PinInLSBF struct {
 	sync.Mutex
 	N         string
 	DontPanic bool
-	Ops       []InOpLSB
+	Ops       []InOpLSBF
 	Count     int
 }
 
 // Close verifies that all the expected Ops have been consumed.
-func (p *PinInLSB) Close() error {
+func (p *PinInLSBF) Close() error {
 	p.Lock()
 	defer p.Unlock()
 	if len(p.Ops) != p.Count {
@@ -51,15 +51,15 @@ func (p *PinInLSB) Close() error {
 	return nil
 }
 
-func (p *PinInLSB) String() string {
+func (p *PinInLSBF) String() string {
 	p.Lock()
 	defer p.Unlock()
 	return p.N
 }
 
 // StreamIn implements gpiostream.PinIn.
-func (p *PinInLSB) StreamIn(pull gpio.Pull, b gpiostream.Stream) error {
-	s, ok := b.(*gpiostream.BitStreamLSB)
+func (p *PinInLSBF) StreamIn(pull gpio.Pull, b gpiostream.Stream) error {
+	s, ok := b.(*gpiostream.BitStreamLSBF)
 	if !ok {
 		return errorf(p.DontPanic, "gpiostreamtest: unexpected StreamIn(%t)", b)
 	}
@@ -82,19 +82,19 @@ func (p *PinInLSB) StreamIn(pull gpio.Pull, b gpiostream.Stream) error {
 	return nil
 }
 
-// PinInMSB implements gpiostream.PinIn that accepts BitStreamMSB only.
+// PinInMSBF implements gpiostream.PinIn that accepts BitStreamMSBF only.
 //
 // Embed in a struct with gpiotest.Pin for more functionality.
-type PinInMSB struct {
+type PinInMSBF struct {
 	sync.Mutex
 	N         string
 	DontPanic bool
-	Ops       []InOpMSB
+	Ops       []InOpMSBF
 	Count     int
 }
 
 // Close verifies that all the expected Ops have been consumed.
-func (p *PinInMSB) Close() error {
+func (p *PinInMSBF) Close() error {
 	p.Lock()
 	defer p.Unlock()
 	if len(p.Ops) != p.Count {
@@ -103,15 +103,15 @@ func (p *PinInMSB) Close() error {
 	return nil
 }
 
-func (p *PinInMSB) String() string {
+func (p *PinInMSBF) String() string {
 	p.Lock()
 	defer p.Unlock()
 	return p.N
 }
 
 // StreamIn implements gpiostream.PinIn.
-func (p *PinInMSB) StreamIn(pull gpio.Pull, b gpiostream.Stream) error {
-	s, ok := b.(*gpiostream.BitStreamMSB)
+func (p *PinInMSBF) StreamIn(pull gpio.Pull, b gpiostream.Stream) error {
+	s, ok := b.(*gpiostream.BitStreamMSBF)
 	if !ok {
 		return errorf(p.DontPanic, "gpiostreamtest: unexpected StreamIn(%t)", b)
 	}
@@ -214,12 +214,12 @@ func errorf(dontPanic bool, format string, a ...interface{}) error {
 
 func deepCopy(s gpiostream.Stream) (gpiostream.Stream, error) {
 	switch t := s.(type) {
-	case *gpiostream.BitStreamLSB:
-		o := &gpiostream.BitStreamLSB{Bits: make(gpiostream.BitsLSB, len(t.Bits)), Res: t.Res}
+	case *gpiostream.BitStreamLSBF:
+		o := &gpiostream.BitStreamLSBF{Bits: make(gpiostream.BitsLSBF, len(t.Bits)), Res: t.Res}
 		copy(o.Bits, t.Bits)
 		return o, nil
-	case *gpiostream.BitStreamMSB:
-		o := &gpiostream.BitStreamMSB{Bits: make(gpiostream.BitsMSB, len(t.Bits)), Res: t.Res}
+	case *gpiostream.BitStreamMSBF:
+		o := &gpiostream.BitStreamMSBF{Bits: make(gpiostream.BitsMSBF, len(t.Bits)), Res: t.Res}
 		copy(o.Bits, t.Bits)
 		return o, nil
 	case *gpiostream.EdgeStream:
@@ -241,14 +241,14 @@ func deepCopy(s gpiostream.Stream) (gpiostream.Stream, error) {
 	}
 }
 
-var _ io.Closer = &PinInLSB{}
-var _ io.Closer = &PinInMSB{}
+var _ io.Closer = &PinInLSBF{}
+var _ io.Closer = &PinInMSBF{}
 var _ io.Closer = &PinOutPlayback{}
-var _ fmt.Stringer = &PinInLSB{}
-var _ fmt.Stringer = &PinInMSB{}
+var _ fmt.Stringer = &PinInLSBF{}
+var _ fmt.Stringer = &PinInMSBF{}
 var _ fmt.Stringer = &PinOutPlayback{}
 var _ fmt.Stringer = &PinOutRecord{}
-var _ gpiostream.PinIn = &PinInLSB{}
-var _ gpiostream.PinIn = &PinInMSB{}
+var _ gpiostream.PinIn = &PinInLSBF{}
+var _ gpiostream.PinIn = &PinInMSBF{}
 var _ gpiostream.PinOut = &PinOutPlayback{}
 var _ gpiostream.PinOut = &PinOutRecord{}

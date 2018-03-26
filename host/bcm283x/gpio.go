@@ -491,9 +491,9 @@ func (p *Pin) PWM(duty gpio.Duty, period time.Duration) error {
 // DMA driven StreamOut is available for GPIO0 to GPIO31 pin and the maximum
 // resolution is 200kHz.
 func (p *Pin) StreamIn(pull gpio.Pull, s gpiostream.Stream) error {
-	b, ok := s.(*gpiostream.BitStreamLSB)
+	b, ok := s.(*gpiostream.BitStreamLSBF)
 	if !ok {
-		return errors.New("bcm283x: other Stream than BitStreamLSB are not implemented")
+		return errors.New("bcm283x: other Stream than BitStreamLSBF are not implemented")
 	}
 	if err := p.In(pull, gpio.NoEdge); err != nil {
 		return err

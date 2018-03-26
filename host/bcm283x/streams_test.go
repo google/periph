@@ -13,7 +13,7 @@ import (
 )
 
 func TestRaster32Bits(t *testing.T) {
-	b := gpiostream.BitStreamLSB{
+	b := gpiostream.BitStreamLSBF{
 		Res:  time.Second,
 		Bits: []byte{0x1, 0x40}}
 	d32Clear := make([]uint32, 8*2)

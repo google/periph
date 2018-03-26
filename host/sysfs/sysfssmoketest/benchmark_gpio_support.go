@@ -90,14 +90,14 @@ func (s *Benchmark) benchmarkInSliceLevel(b *testing.B) {
 	b.StopTimer()
 }
 
-// benchmarkInBitsLSBLoop reads into a []gpiostream.BitsLSB using a loop to
+// benchmarkInBitsLSBLoop reads into a []gpiostream.BitsLSBF using a loop to
 // iterate over the bits.
 func (s *Benchmark) benchmarkInBitsLSBLoop(b *testing.B) {
 	p := s.p
 	if err := p.In(s.pull, gpio.NoEdge); err != nil {
 		b.Fatal(err)
 	}
-	buf := make(gpiostream.BitsLSB, (b.N+7)/8)
+	buf := make(gpiostream.BitsLSBF, (b.N+7)/8)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		if p.Read() {
@@ -108,14 +108,14 @@ func (s *Benchmark) benchmarkInBitsLSBLoop(b *testing.B) {
 	b.StopTimer()
 }
 
-// benchmarkInBitsMSBLoop reads into a []gpiostream.BitsMSB using a loop to
+// benchmarkInBitsMSBLoop reads into a []gpiostream.BitsMSBF using a loop to
 // iterate over the bits.
 func (s *Benchmark) benchmarkInBitsMSBLoop(b *testing.B) {
 	p := s.p
 	if err := p.In(s.pull, gpio.NoEdge); err != nil {
 		b.Fatal(err)
 	}
-	buf := make(gpiostream.BitsMSB, (b.N+7)/8)
+	buf := make(gpiostream.BitsMSBF, (b.N+7)/8)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		if p.Read() {
@@ -126,7 +126,7 @@ func (s *Benchmark) benchmarkInBitsMSBLoop(b *testing.B) {
 	b.StopTimer()
 }
 
-// benchmarkInBitsLSBUnroll reads into a []gpiostream.BitsLSB using an unrolled
+// benchmarkInBitsLSBUnroll reads into a []gpiostream.BitsLSBF using an unrolled
 // loop to iterate over the bits.
 //
 // It is expected to be slightly faster than benchmarkInBitsLSBLoop.
@@ -135,7 +135,7 @@ func (s *Benchmark) benchmarkInBitsLSBUnroll(b *testing.B) {
 	if err := p.In(s.pull, gpio.NoEdge); err != nil {
 		b.Fatal(err)
 	}
-	buf := make(gpiostream.BitsLSB, (b.N+7)/8)
+	buf := make(gpiostream.BitsLSBF, (b.N+7)/8)
 	b.ResetTimer()
 	for i := range buf {
 		l := byte(0)
@@ -168,7 +168,7 @@ func (s *Benchmark) benchmarkInBitsLSBUnroll(b *testing.B) {
 	b.StopTimer()
 }
 
-// benchmarkInBitsMSBUnroll reads into a []gpiostream.BitsMSB using an unrolled
+// benchmarkInBitsMSBUnroll reads into a []gpiostream.BitsMSBF using an unrolled
 // loop to iterate over the bits.
 //
 // It is expected to be slightly faster than benchmarkInBitsMSBLoop.
@@ -177,7 +177,7 @@ func (s *Benchmark) benchmarkInBitsMSBUnroll(b *testing.B) {
 	if err := p.In(s.pull, gpio.NoEdge); err != nil {
 		b.Fatal(err)
 	}
-	buf := make(gpiostream.BitsMSB, (b.N+7)/8)
+	buf := make(gpiostream.BitsMSBF, (b.N+7)/8)
 	b.ResetTimer()
 	for i := range buf {
 		l := byte(0)
@@ -249,14 +249,14 @@ func (s *Benchmark) benchmarkOutSliceLevel(b *testing.B) {
 	b.StopTimer()
 }
 
-// benchmarkOutBitsLSBLoop writes into a []gpiostream.BitsLSB using a loop to
+// benchmarkOutBitsLSBLoop writes into a []gpiostream.BitsLSBF using a loop to
 // iterate over the bits.
 func (s *Benchmark) benchmarkOutBitsLSBLoop(b *testing.B) {
 	p := s.p
 	if err := p.Out(gpio.Low); err != nil {
 		b.Fatal(err)
 	}
-	buf := make(gpiostream.BitsLSB, (b.N+7)/8)
+	buf := make(gpiostream.BitsLSBF, (b.N+7)/8)
 	for i := 0; i < len(buf); i += 2 {
 		buf[i] = 0x55
 	}
@@ -270,14 +270,14 @@ func (s *Benchmark) benchmarkOutBitsLSBLoop(b *testing.B) {
 	b.StopTimer()
 }
 
-// benchmarkOutBitsMSBLoop writes into a []gpiostream.BitsMSB using a loop to
+// benchmarkOutBitsMSBLoop writes into a []gpiostream.BitsMSBF using a loop to
 // iterate over the bits.
 func (s *Benchmark) benchmarkOutBitsMSBLoop(b *testing.B) {
 	p := s.p
 	if err := p.Out(gpio.Low); err != nil {
 		b.Fatal(err)
 	}
-	buf := make(gpiostream.BitsMSB, (b.N+7)/8)
+	buf := make(gpiostream.BitsMSBF, (b.N+7)/8)
 	for i := 0; i < len(buf); i += 2 {
 		buf[i] = 0xAA
 	}
@@ -291,7 +291,7 @@ func (s *Benchmark) benchmarkOutBitsMSBLoop(b *testing.B) {
 	b.StopTimer()
 }
 
-// benchmarkOutBitsLSBUnroll writes into a []gpiostream.BitsLSB using an
+// benchmarkOutBitsLSBUnroll writes into a []gpiostream.BitsLSBF using an
 // unrolled loop to iterate over the bits.
 //
 // It is expected to be slightly faster than benchmarkOutBitsLSBLoop.
@@ -300,7 +300,7 @@ func (s *Benchmark) benchmarkOutBitsLSBUnroll(b *testing.B) {
 	if err := p.Out(gpio.Low); err != nil {
 		b.Fatal(err)
 	}
-	buf := make(gpiostream.BitsLSB, (b.N+7)/8)
+	buf := make(gpiostream.BitsLSBF, (b.N+7)/8)
 	for i := 0; i < len(buf); i += 2 {
 		buf[i] = 0x55
 	}
@@ -318,7 +318,7 @@ func (s *Benchmark) benchmarkOutBitsLSBUnroll(b *testing.B) {
 	b.StopTimer()
 }
 
-// benchmarkOutBitsMSBUnroll writes into a []gpiostream.BitsMSB using an
+// benchmarkOutBitsMSBUnroll writes into a []gpiostream.BitsMSBF using an
 // unrolled loop to iterate over the bits.
 //
 // It is expected to be slightly faster than benchmarkOutBitsMSBLoop.
@@ -327,7 +327,7 @@ func (s *Benchmark) benchmarkOutBitsMSBUnroll(b *testing.B) {
 	if err := p.Out(gpio.Low); err != nil {
 		b.Fatal(err)
 	}
-	buf := make(gpiostream.BitsMSB, (b.N+7)/8)
+	buf := make(gpiostream.BitsMSBF, (b.N+7)/8)
 	for i := 0; i < len(buf); i += 2 {
 		buf[i] = 0xAA
 	}

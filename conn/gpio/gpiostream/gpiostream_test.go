@@ -9,43 +9,29 @@ import (
 	"time"
 )
 
-func TestBitStreamLSB(t *testing.T) {
-	s := BitStreamLSB{Res: time.Second, Bits: make(BitsLSB, 100)}
+func TestBitStreamLSBF(t *testing.T) {
+	s := BitStreamLSBF{Res: time.Second, Bits: make(BitsLSBF, 100)}
 	if r := s.Resolution(); r != time.Second {
 		t.Fatal(r)
 	}
 	if d := s.Duration(); d != 100*8*time.Second {
 		t.Fatal(d)
 	}
-	s = BitStreamLSB{Res: time.Second}
+	s = BitStreamLSBF{Res: time.Second}
 	if r := s.Resolution(); r != 0 {
 		t.Fatal(r)
 	}
 }
 
-func TestBitStreamMSB(t *testing.T) {
-	s := BitStreamMSB{Res: time.Second, Bits: make(BitsMSB, 100)}
+func TestBitStreamMSBF(t *testing.T) {
+	s := BitStreamMSBF{Res: time.Second, Bits: make(BitsMSBF, 100)}
 	if r := s.Resolution(); r != time.Second {
 		t.Fatal(r)
 	}
 	if d := s.Duration(); d != 100*8*time.Second {
 		t.Fatal(d)
 	}
-	s = BitStreamMSB{Res: time.Second}
-	if r := s.Resolution(); r != 0 {
-		t.Fatal(r)
-	}
-}
-
-func TestBitStream(t *testing.T) {
-	s := BitStream{Res: time.Second, Bits: make(Bits, 100)}
-	if r := s.Resolution(); r != time.Second {
-		t.Fatal(r)
-	}
-	if d := s.Duration(); d != 100*time.Second {
-		t.Fatal(d)
-	}
-	s = BitStream{Res: time.Second}
+	s = BitStreamMSBF{Res: time.Second}
 	if r := s.Resolution(); r != 0 {
 		t.Fatal(r)
 	}
@@ -73,7 +59,7 @@ func TestProgram(t *testing.T) {
 	s := Program{
 		Parts: []Stream{
 			&EdgeStream{Res: time.Second, Edges: []time.Duration{time.Second, time.Millisecond}},
-			&BitStreamLSB{Res: time.Second, Bits: make(BitsLSB, 100)},
+			&BitStreamLSBF{Res: time.Second, Bits: make(BitsLSBF, 100)},
 		},
 		Loops: 2,
 	}
@@ -102,9 +88,9 @@ func TestProgram(t *testing.T) {
 func TestProgram_Nyquist(t *testing.T) {
 	s := Program{
 		Parts: []Stream{
-			&BitStreamLSB{Res: time.Second + 2*time.Millisecond, Bits: make(BitsLSB, 1)},
-			&BitStreamLSB{Res: time.Second, Bits: make(BitsLSB, 1)},
-			&BitStreamLSB{Res: 5 * time.Second, Bits: make(BitsLSB, 1)},
+			&BitStreamLSBF{Res: time.Second + 2*time.Millisecond, Bits: make(BitsLSBF, 1)},
+			&BitStreamLSBF{Res: time.Second, Bits: make(BitsLSBF, 1)},
+			&BitStreamLSBF{Res: 5 * time.Second, Bits: make(BitsLSBF, 1)},
 		},
 		Loops: 1,
 	}

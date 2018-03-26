@@ -25,7 +25,7 @@ type Stream interface {
 	Duration() time.Duration
 }
 
-// BitsLSB is a densely packed LSB-first bitstream.
+// BitsLSBF is a densely packed LSB-first bitstream.
 //
 // The format is LSB-first, the first bit processed is the least significant
 // one (0x01).
@@ -34,9 +34,9 @@ type Stream interface {
 // word level.
 //
 // The stream is required to be a multiple of 8 samples.
-type BitsLSB []byte
+type BitsLSBF []byte
 
-// BitsMSB is a densely packed MSB-first bitstream.
+// BitsMSBF is a densely packed MSB-first bitstream.
 //
 // The format is MSB-first, the first bit processed is the most significant one
 // (0x80).
@@ -45,17 +45,17 @@ type BitsLSB []byte
 // requires to pack words correctly.
 //
 // The stream is required to be a multiple of 8 samples.
-type BitsMSB []byte
+type BitsMSBF []byte
 
-// BitStreamLSB is a stream of BitsLSB to be written or read.
-type BitStreamLSB struct {
-	Bits BitsLSB
+// BitStreamLSBF is a stream of BitsLSBF to be written or read.
+type BitStreamLSBF struct {
+	Bits BitsLSBF
 	// The duration each bit represents.
 	Res time.Duration
 }
 
 // Resolution implement Stream.
-func (b *BitStreamLSB) Resolution() time.Duration {
+func (b *BitStreamLSBF) Resolution() time.Duration {
 	if len(b.Bits) == 0 {
 		return 0
 	}
@@ -63,19 +63,19 @@ func (b *BitStreamLSB) Resolution() time.Duration {
 }
 
 // Duration implement Stream.
-func (b *BitStreamLSB) Duration() time.Duration {
+func (b *BitStreamLSBF) Duration() time.Duration {
 	return b.Res * time.Duration(len(b.Bits)*8)
 }
 
-// BitStreamMSB is a stream of Bits.MSB to be written or read.
-type BitStreamMSB struct {
-	Bits BitsMSB
+// BitStreamMSBF is a stream of Bits.MSB to be written or read.
+type BitStreamMSBF struct {
+	Bits BitsMSBF
 	// The duration each bit represents.
 	Res time.Duration
 }
 
 // Resolution implement Stream.
-func (b *BitStreamMSB) Resolution() time.Duration {
+func (b *BitStreamMSBF) Resolution() time.Duration {
 	if len(b.Bits) == 0 {
 		return 0
 	}
@@ -83,41 +83,8 @@ func (b *BitStreamMSB) Resolution() time.Duration {
 }
 
 // Duration implement Stream.
-func (b *BitStreamMSB) Duration() time.Duration {
+func (b *BitStreamMSBF) Duration() time.Duration {
 	return b.Res * time.Duration(len(b.Bits)*8)
-}
-
-//
-
-// Bits is a densely packed LSB-first bitstream.
-//
-// Warning
-//
-// This type will be removed in the next major version.
-type Bits []byte
-
-// BitStream is a stream of Bits to be written or read.
-//
-// Warning
-//
-// This struct will be removed in the next major version.
-type BitStream struct {
-	Bits Bits
-	// The duration each bit represents.
-	Res time.Duration
-}
-
-// Resolution implement Stream.
-func (b *BitStream) Resolution() time.Duration {
-	if len(b.Bits) == 0 {
-		return 0
-	}
-	return b.Res
-}
-
-// Duration implement Stream.
-func (b *BitStream) Duration() time.Duration {
-	return b.Res * time.Duration(len(b.Bits))
 }
 
 //
@@ -265,8 +232,7 @@ func search(n int, f func(int) bool) int {
 	return lo
 }
 
-var _ Stream = &BitStreamLSB{}
-var _ Stream = &BitStreamMSB{}
-var _ Stream = &BitStream{}
+var _ Stream = &BitStreamLSBF{}
+var _ Stream = &BitStreamMSBF{}
 var _ Stream = &EdgeStream{}
 var _ Stream = &Program{}

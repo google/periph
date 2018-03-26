@@ -65,14 +65,14 @@ func (s *Benchmark) benchmarkFastOutSliceLevel(b *testing.B) {
 	b.StopTimer()
 }
 
-// benchmarkFastOutBitsLSBLoop writes into a []gpiostream.BitsLSB using a loop
+// benchmarkFastOutBitsLSBLoop writes into a []gpiostream.BitsLSBF using a loop
 // to iterate over the bits.
 func (s *Benchmark) benchmarkFastOutBitsLSBLoop(b *testing.B) {
 	p := s.p
 	if err := p.Out(gpio.Low); err != nil {
 		b.Fatal(err)
 	}
-	buf := make(gpiostream.BitsLSB, (b.N+7)/8)
+	buf := make(gpiostream.BitsLSBF, (b.N+7)/8)
 	for i := 0; i < len(buf); i += 2 {
 		buf[i] = 0x55
 	}
@@ -86,14 +86,14 @@ func (s *Benchmark) benchmarkFastOutBitsLSBLoop(b *testing.B) {
 	b.StopTimer()
 }
 
-// benchmarkFastOutBitsMSBLoop writes into a []gpiostream.BitsMSB using a loop
+// benchmarkFastOutBitsMSBLoop writes into a []gpiostream.BitsMSBF using a loop
 // to iterate over the bits.
 func (s *Benchmark) benchmarkFastOutBitsMSBLoop(b *testing.B) {
 	p := s.p
 	if err := p.Out(gpio.Low); err != nil {
 		b.Fatal(err)
 	}
-	buf := make(gpiostream.BitsMSB, (b.N+7)/8)
+	buf := make(gpiostream.BitsMSBF, (b.N+7)/8)
 	for i := 0; i < len(buf); i += 2 {
 		buf[i] = 0xAA
 	}
@@ -116,7 +116,7 @@ func (s *Benchmark) benchmarkFastOutBitsLSBUnroll(b *testing.B) {
 	if err := p.Out(gpio.Low); err != nil {
 		b.Fatal(err)
 	}
-	buf := make(gpiostream.BitsLSB, (b.N+7)/8)
+	buf := make(gpiostream.BitsLSBF, (b.N+7)/8)
 	for i := 0; i < len(buf); i += 2 {
 		buf[i] = 0x55
 	}
@@ -134,7 +134,7 @@ func (s *Benchmark) benchmarkFastOutBitsLSBUnroll(b *testing.B) {
 	b.StopTimer()
 }
 
-// benchmarkFastOutBitsMSBUnroll writes into a []gpiostream.BitsMSB using an
+// benchmarkFastOutBitsMSBUnroll writes into a []gpiostream.BitsMSBF using an
 // unrolled loop to iterate over the bits.
 //
 // It is expected to be slightly faster than benchmarkFastOutBitsMSBLoop.
@@ -143,7 +143,7 @@ func (s *Benchmark) benchmarkFastOutBitsMSBUnroll(b *testing.B) {
 	if err := p.Out(gpio.Low); err != nil {
 		b.Fatal(err)
 	}
-	buf := make(gpiostream.BitsMSB, (b.N+7)/8)
+	buf := make(gpiostream.BitsMSBF, (b.N+7)/8)
 	for i := 0; i < len(buf); i += 2 {
 		buf[i] = 0xAA
 	}
@@ -173,7 +173,7 @@ func (s *Benchmark) benchmarkFastOutInterface(b *testing.B) {
 	if err := p.Out(gpio.Low); err != nil {
 		b.Fatal(err)
 	}
-	buf := make(gpiostream.BitsMSB, (b.N+7)/8)
+	buf := make(gpiostream.BitsMSBF, (b.N+7)/8)
 	for i := 0; i < len(buf); i += 2 {
 		buf[i] = 0xAA
 	}
@@ -199,7 +199,7 @@ func (s *Benchmark) benchmarkFastOutMemberVariabl(b *testing.B) {
 	if err := s.p.Out(gpio.Low); err != nil {
 		b.Fatal(err)
 	}
-	buf := make(gpiostream.BitsMSB, (b.N+7)/8)
+	buf := make(gpiostream.BitsMSBF, (b.N+7)/8)
 	for i := 0; i < len(buf); i += 2 {
 		buf[i] = 0xAA
 	}

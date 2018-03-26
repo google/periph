@@ -169,8 +169,8 @@ func (s *SmokeTest) testStreamIn(p1, p2 *loggingPin) error {
 	}
 	// Gather 0.1 second of readings at 10kHz sampling rate.
 	// TODO(maruel): Support >64kb buffer.
-	b := &gpiostream.BitStreamLSB{
-		Bits: make(gpiostream.BitsLSB, 1000),
+	b := &gpiostream.BitStreamLSBF{
+		Bits: make(gpiostream.BitsLSBF, 1000),
 		Res:  period / 2,
 	}
 	if err := p1.StreamIn(gpio.PullDown, b); err != nil {
