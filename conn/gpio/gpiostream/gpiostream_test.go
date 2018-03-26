@@ -9,43 +9,15 @@ import (
 	"time"
 )
 
-func TestBitStreamLSB(t *testing.T) {
-	s := BitStreamLSB{Res: time.Second, Bits: make(BitsLSB, 100)}
-	if r := s.Resolution(); r != time.Second {
-		t.Fatal(r)
-	}
-	if d := s.Duration(); d != 100*8*time.Second {
-		t.Fatal(d)
-	}
-	s = BitStreamLSB{Res: time.Second}
-	if r := s.Resolution(); r != 0 {
-		t.Fatal(r)
-	}
-}
-
-func TestBitStreamMSB(t *testing.T) {
-	s := BitStreamMSB{Res: time.Second, Bits: make(BitsMSB, 100)}
-	if r := s.Resolution(); r != time.Second {
-		t.Fatal(r)
-	}
-	if d := s.Duration(); d != 100*8*time.Second {
-		t.Fatal(d)
-	}
-	s = BitStreamMSB{Res: time.Second}
-	if r := s.Resolution(); r != 0 {
-		t.Fatal(r)
-	}
-}
-
 func TestBitStream(t *testing.T) {
-	s := BitStream{Res: time.Second, Bits: make(Bits, 100)}
+	s := BitStream{Res: time.Second, Bits: make([]byte, 100), LSBF: true}
 	if r := s.Resolution(); r != time.Second {
 		t.Fatal(r)
 	}
-	if d := s.Duration(); d != 100*time.Second {
+	if d := s.Duration(); d != 100*8*time.Second {
 		t.Fatal(d)
 	}
-	s = BitStream{Res: time.Second}
+	s = BitStream{Res: time.Second, LSBF: true}
 	if r := s.Resolution(); r != 0 {
 		t.Fatal(r)
 	}
@@ -73,7 +45,7 @@ func TestProgram(t *testing.T) {
 	s := Program{
 		Parts: []Stream{
 			&EdgeStream{Res: time.Second, Edges: []time.Duration{time.Second, time.Millisecond}},
-			&BitStreamLSB{Res: time.Second, Bits: make(BitsLSB, 100)},
+			&BitStream{Res: time.Second, Bits: make([]byte, 100)},
 		},
 		Loops: 2,
 	}
@@ -102,9 +74,9 @@ func TestProgram(t *testing.T) {
 func TestProgram_Nyquist(t *testing.T) {
 	s := Program{
 		Parts: []Stream{
-			&BitStreamLSB{Res: time.Second + 2*time.Millisecond, Bits: make(BitsLSB, 1)},
-			&BitStreamLSB{Res: time.Second, Bits: make(BitsLSB, 1)},
-			&BitStreamLSB{Res: 5 * time.Second, Bits: make(BitsLSB, 1)},
+			&BitStream{Res: time.Second + 2*time.Millisecond, Bits: make([]byte, 1)},
+			&BitStream{Res: time.Second, Bits: make([]byte, 1)},
+			&BitStream{Res: 5 * time.Second, Bits: make([]byte, 1)},
 		},
 		Loops: 1,
 	}

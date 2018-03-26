@@ -13,9 +13,11 @@ import (
 )
 
 func TestRaster32Bits(t *testing.T) {
-	b := gpiostream.BitStreamLSB{
+	b := gpiostream.BitStream{
 		Res:  time.Second,
-		Bits: []byte{0x1, 0x40}}
+		Bits: []byte{0x1, 0x40},
+		LSBF: true,
+	}
 	d32Clear := make([]uint32, 8*2)
 	d32Set := make([]uint32, 8*2)
 	if err := raster32Bits(&b, 1, d32Clear, d32Set, 2); err != nil {

@@ -59,10 +59,11 @@ func New(p gpiostream.PinOut, numPixels, hz int, channels int) (*Dev, error) {
 		p:         p,
 		numPixels: numPixels,
 		channels:  channels,
-		b: gpiostream.BitStreamMSB{
+		b: gpiostream.BitStream{
 			Res: time.Second / time.Duration(hz),
 			// Each bit is encoded on 3 bits.
-			Bits: make(gpiostream.BitsMSB, numPixels*3*channels),
+			Bits: make([]byte, numPixels*3*channels),
+			LSBF: false,
 		},
 	}, nil
 }
@@ -71,9 +72,9 @@ func New(p gpiostream.PinOut, numPixels, hz int, channels int) (*Dev, error) {
 type Dev struct {
 	p         gpiostream.PinOut
 	numPixels int
-	channels  int                     // Number of channels per pixel
-	b         gpiostream.BitStreamMSB // NRZ encoded bits; cached to reduce heap fragmentation
-	buf       []byte                  // Double buffer of RGB/RGBW pixels; enables partial Draw()
+	channels  int                  // Number of channels per pixel
+	b         gpiostream.BitStream // NRZ encoded bits; cached to reduce heap fragmentation
+	buf       []byte               // Double buffer of RGB/RGBW pixels; enables partial Draw()
 }
 
 func (d *Dev) String() string {

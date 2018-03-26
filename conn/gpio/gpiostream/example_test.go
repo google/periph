@@ -15,10 +15,14 @@ import (
 	"periph.io/x/periph/host"
 )
 
-func ExampleBitsLSB() {
-	// Format is LSB; least significant bit first.
-	stream := gpiostream.Bits{0x80, 0x01, 0xAA, 0x55}
-	for _, l := range stream {
+func ExampleBitStream() {
+	fmt.Printf("Format is LSB-first; least significant bit first:\n")
+	stream := gpiostream.BitStream{
+		Bits: []byte{0x80, 0x01, 0xAA, 0x55},
+		Res:  time.Microsecond,
+		LSBF: true,
+	}
+	for _, l := range stream.Bits {
 		fmt.Printf("0x%02X: ", l)
 		for j := 0; j < 8; j++ {
 			mask := byte(1) << uint(j)
@@ -29,17 +33,15 @@ func ExampleBitsLSB() {
 		}
 		fmt.Printf("\n")
 	}
-	// Output:
-	// 0x80:  Low,  Low,  Low,  Low,  Low,  Low,  Low, High,
-	// 0x01: High,  Low,  Low,  Low,  Low,  Low,  Low,  Low,
-	// 0xAA:  Low, High,  Low, High,  Low, High,  Low, High,
-	// 0x55: High,  Low, High,  Low, High,  Low, High,  Low,
-}
+	fmt.Printf("\n")
 
-func ExampleBitsMSB() {
-	// Format is MSB; most significant bit first.
-	stream := gpiostream.Bits{0x80, 0x01, 0xAA, 0x55}
-	for _, l := range stream {
+	fmt.Printf("Format is MSB-first; most significant bit first:\n")
+	stream = gpiostream.BitStream{
+		Bits: []byte{0x80, 0x01, 0xAA, 0x55},
+		Res:  time.Microsecond,
+		LSBF: false,
+	}
+	for _, l := range stream.Bits {
 		fmt.Printf("0x%02X: ", l)
 		for j := 7; j >= 0; j-- {
 			mask := byte(1) << uint(j)
@@ -51,6 +53,13 @@ func ExampleBitsMSB() {
 		fmt.Printf("\n")
 	}
 	// Output:
+	// Format is LSB-first; least significant bit first:
+	// 0x80:  Low,  Low,  Low,  Low,  Low,  Low,  Low, High,
+	// 0x01: High,  Low,  Low,  Low,  Low,  Low,  Low,  Low,
+	// 0xAA:  Low, High,  Low, High,  Low, High,  Low, High,
+	// 0x55: High,  Low, High,  Low, High,  Low, High,  Low,
+	//
+	// Format is MSB-first; most significant bit first:
 	// 0x80: High,  Low,  Low,  Low,  Low,  Low,  Low,  Low,
 	// 0x01:  Low,  Low,  Low,  Low,  Low,  Low,  Low, High,
 	// 0xAA: High,  Low, High,  Low, High,  Low, High,  Low,
@@ -69,7 +78,7 @@ func ExamplePinIn() {
 	if !ok {
 		log.Fatalf("pin streaming is not supported on pin %s", p)
 	}
-	b := gpiostream.BitStream{Res: time.Millisecond, Bits: make(gpiostream.Bits, 1000/8)}
+	b := gpiostream.BitStream{Res: time.Millisecond, Bits: make([]byte, 1000/8)}
 	if err := r.StreamIn(gpio.PullNoChange, &b); err != nil {
 		log.Fatal(err)
 	}

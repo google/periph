@@ -800,7 +800,7 @@ func overSamples(s gpiostream.Stream) (int, error) {
 }
 
 // dmaReadStream streams input from a pin.
-func dmaReadStream(p *Pin, b *gpiostream.BitStreamLSB) error {
+func dmaReadStream(p *Pin, b *gpiostream.BitStream) error {
 	skip, err := overSamples(b)
 	if err != nil {
 		return err
@@ -831,7 +831,7 @@ func dmaReadStream(p *Pin, b *gpiostream.BitStreamLSB) error {
 		return err
 	}
 	err = runIO(pCB, l <= maxLite)
-	uint32ToBit(b.Bits, buf.Bytes(), uint8(p.number&31), skip*4)
+	uint32ToBitLSBF(b.Bits, buf.Bytes(), uint8(p.number&31), skip*4)
 	return err
 }
 
@@ -857,12 +857,9 @@ func dmaWriteStreamEdges(p *Pin, w gpiostream.Stream) error {
 	var bits []byte
 	var msb bool
 	switch v := w.(type) {
-	case *gpiostream.BitStreamLSB:
+	case *gpiostream.BitStream:
 		bits = v.Bits
-		msb = false
-	case *gpiostream.BitStreamMSB:
-		bits = v.Bits
-		msb = true
+		msb = !v.LSBF
 	default:
 		return fmt.Errorf("Unknown type: %T", v)
 	}
