@@ -124,9 +124,16 @@ const (
 	F16      Filter = 4
 )
 
-// Opts is optional options to pass to the constructor.
+// DefaultsOpts returns the default options used.
 //
-// Recommended (and default) values are O4x for oversampling.
+// Defaults to use O4x (4x oversampling) for all measurements.
+var DefaultOpts = Opts{
+	Temperature: O4x,
+	Pressure:    O4x,
+	Humidity:    O4x,
+}
+
+// Opts defines the options for the device.
 //
 // Recommended sensing settings as per the datasheet:
 //
@@ -343,9 +350,6 @@ func (d *Dev) Halt() error {
 //
 
 func (d *Dev) makeDev(opts *Opts) error {
-	if opts == nil {
-		opts = &defaults
-	}
 	d.opts = *opts
 	d.measDelay = d.opts.delayTypical280()
 
@@ -503,12 +507,6 @@ func (d *Dev) writeCommands(b []byte) error {
 
 func (d *Dev) wrap(err error) error {
 	return fmt.Errorf("%s: %v", strings.ToLower(d.name), err)
-}
-
-var defaults = Opts{
-	Temperature: O4x,
-	Pressure:    O4x,
-	Humidity:    O4x,
 }
 
 var doSleep = time.Sleep

@@ -126,7 +126,7 @@ func TestNewSPIBME280_fail_len(t *testing.T) {
 			DontPanic: true,
 		},
 	}
-	if dev, err := NewSPI(&s, nil); dev != nil || err == nil {
+	if dev, err := NewSPI(&s, &DefaultOpts); dev != nil || err == nil {
 		t.Fatal("read failed")
 	}
 	// The I/O didn't occur.
@@ -148,7 +148,7 @@ func TestNewSPIBME280_fail_chipid(t *testing.T) {
 			},
 		},
 	}
-	if dev, err := NewSPI(&s, nil); dev != nil || err == nil {
+	if dev, err := NewSPI(&s, &DefaultOpts); dev != nil || err == nil {
 		t.Fatal("read failed")
 	}
 	if err := s.Close(); err != nil {
@@ -164,7 +164,7 @@ func TestNewI2CBME280_fail_io(t *testing.T) {
 		},
 		DontPanic: true,
 	}
-	if dev, err := NewI2C(&bus, 0x76, nil); dev != nil || err == nil {
+	if dev, err := NewI2C(&bus, 0x76, &DefaultOpts); dev != nil || err == nil {
 		t.Fatal("read failed")
 	}
 	// The I/O didn't occur.
@@ -182,7 +182,7 @@ func TestNewI2CBME280_fail_read_calib1(t *testing.T) {
 		},
 		DontPanic: true,
 	}
-	if dev, err := NewI2C(&bus, 0x76, nil); dev != nil || err == nil {
+	if dev, err := NewI2C(&bus, 0x76, &DefaultOpts); dev != nil || err == nil {
 		t.Fatal("invalid chip id")
 	}
 	if err := bus.Close(); err != nil {
@@ -229,7 +229,7 @@ func TestNewI2C280_write_config(t *testing.T) {
 		},
 		DontPanic: true,
 	}
-	if dev, err := NewI2C(&bus, 0x76, nil); dev != nil || err == nil {
+	if dev, err := NewI2C(&bus, 0x76, &DefaultOpts); dev != nil || err == nil {
 		t.Fatal("3rd calib read failed")
 	}
 	if err := bus.Close(); err != nil {
@@ -254,7 +254,7 @@ func TestNewI2C280Opts_temperature(t *testing.T) {
 
 func TestNewI2C280_bad_addr(t *testing.T) {
 	bus := i2ctest.Playback{}
-	if dev, err := NewI2C(&bus, 1, nil); dev != nil || err == nil {
+	if dev, err := NewI2C(&bus, 1, &DefaultOpts); dev != nil || err == nil {
 		t.Fatal("bad addr")
 	}
 	if err := bus.Close(); err != nil {
@@ -283,7 +283,7 @@ func TestI2CSenseBME280_fail(t *testing.T) {
 		},
 		DontPanic: true,
 	}
-	dev, err := NewI2C(&bus, 0x76, nil)
+	dev, err := NewI2C(&bus, 0x76, &DefaultOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -320,7 +320,7 @@ func TestI2CSenseBMP280_success(t *testing.T) {
 			{Addr: 0x76, W: []byte{0xf7}, R: []byte{0x4a, 0x52, 0xc0, 0x80, 0x96, 0xc0}},
 		},
 	}
-	dev, err := NewI2C(&bus, 0x76, nil)
+	dev, err := NewI2C(&bus, 0x76, &DefaultOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -373,7 +373,7 @@ func TestI2CSenseBME280_success(t *testing.T) {
 			{Addr: 0x76, W: []byte{0xf7}, R: []byte{0x4a, 0x52, 0xc0, 0x80, 0x96, 0xc0, 0x7a, 0x76}},
 		},
 	}
-	dev, err := NewI2C(&bus, 0x76, nil)
+	dev, err := NewI2C(&bus, 0x76, &DefaultOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -422,7 +422,7 @@ func TestI2CSense280_idle_fail(t *testing.T) {
 		},
 		DontPanic: true,
 	}
-	dev, err := NewI2C(&bus, 0x76, nil)
+	dev, err := NewI2C(&bus, 0x76, &DefaultOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -458,7 +458,7 @@ func TestI2CSense280_command_fail(t *testing.T) {
 		},
 		DontPanic: true,
 	}
-	dev, err := NewI2C(&bus, 0x76, nil)
+	dev, err := NewI2C(&bus, 0x76, &DefaultOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -502,7 +502,7 @@ func TestI2CSenseContinuous280_success(t *testing.T) {
 			{Addr: 0x76, W: []byte{0xF5, 0xa0, 0xf4, 0x6c}},
 		},
 	}
-	dev, err := NewI2C(&bus, 0x76, nil)
+	dev, err := NewI2C(&bus, 0x76, &DefaultOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -600,7 +600,7 @@ func TestI2CSenseContinuous280_command_fail(t *testing.T) {
 		},
 		DontPanic: true,
 	}
-	dev, err := NewI2C(&bus, 0x76, nil)
+	dev, err := NewI2C(&bus, 0x76, &DefaultOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -634,7 +634,7 @@ func TestI2CSenseContinuous280_sense_fail(t *testing.T) {
 		},
 		DontPanic: true,
 	}
-	dev, err := NewI2C(&bus, 0x76, nil)
+	dev, err := NewI2C(&bus, 0x76, &DefaultOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
