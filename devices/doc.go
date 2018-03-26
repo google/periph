@@ -4,7 +4,7 @@
 
 // Package devices contains interfaces for classes of devices.
 //
-// Subpackages contain the concrete implementations. Devices accept bus
+// Subpackages contain the concrete implementations. Devices accept port
 // interface, constructors return concrete type.
 //
 // Subpackage devicestest contains fake implementations for testing.
