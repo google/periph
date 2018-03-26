@@ -8,7 +8,7 @@ import (
 	"encoding/binary"
 	"time"
 
-	"periph.io/x/periph/devices"
+	"periph.io/x/periph/conn/physic"
 )
 
 // Flag is used in FFCMode.
@@ -25,8 +25,8 @@ const (
 // It is an implementation detail of the protocol.
 type DurationMS uint32
 
-// ToD converts a millisecond based timing to time.Duration.
-func (d DurationMS) ToD() time.Duration {
+// Duration converts a millisecond based timing to time.Duration.
+func (d DurationMS) Duration() time.Duration {
 	return time.Duration(d) * time.Millisecond
 }
 
@@ -35,10 +35,9 @@ func (d DurationMS) ToD() time.Duration {
 // It is an implementation detail of the protocol.
 type CentiK uint16
 
-// ToC converts a Kelvin measurement to Celsius.
-func (c CentiK) ToC() devices.Celsius {
-	v := (int(c) - 27315) * 10
-	return devices.Celsius(v)
+// Temperature converts a Kelvin measurement to Temperature.
+func (c CentiK) Temperature() physic.Temperature {
+	return physic.Temperature(c) * 10 * physic.MilliKelvin
 }
 
 // Status returns the camera status as returned by the camera.
@@ -57,7 +56,7 @@ type FFCMode struct {
 	ElapsedTimeSinceLastFFC DurationMS // Uptime in ms.
 	DesiredFFCPeriod        DurationMS // Default: 300000
 	ExplicitCommandToOpen   Flag       // Default: Disabled
-	DesiredFFCTempDelta     uint16     // Default: 300
+	DesiredFFCTempDelta     CentiK     // Default: 300
 	ImminentDelay           uint16     // Default: 52
 
 	// These are documented at page 51 but not listed in the structure.

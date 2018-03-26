@@ -28,7 +28,7 @@ import (
 
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/onewire"
-	"periph.io/x/periph/devices"
+	"periph.io/x/periph/conn/physic"
 )
 
 // ConvertAll performs a conversion on all DS18B20 devices on the bus.
@@ -109,7 +109,7 @@ func (d *Dev) Halt() error {
 }
 
 // Temperature performs a conversion and returns the temperature.
-func (d *Dev) Temperature() (devices.Celsius, error) {
+func (d *Dev) Temperature() (physic.Temperature, error) {
 	if err := d.onewire.TxPower([]byte{0x44}, nil); err != nil {
 		return 0, err
 	}
@@ -121,7 +121,7 @@ func (d *Dev) Temperature() (devices.Celsius, error) {
 // device.
 //
 // It is useful in combination with ConvertAll.
-func (d *Dev) LastTemp() (devices.Celsius, error) {
+func (d *Dev) LastTemp() (physic.Temperature, error) {
 	// Read the scratchpad memory.
 	spad, err := d.readScratchpad()
 	if err != nil {
@@ -129,9 +129,10 @@ func (d *Dev) LastTemp() (devices.Celsius, error) {
 	}
 
 	// spad[1] is MSB, spad[0] is LSB and has 4 fractional bits. Need to do sign
-	// extension multiply by 1000 to get devices.Millis, divide by 16 due to 4
-	// fractional bits.  Datasheet p.4.
-	c := (devices.Celsius(int8(spad[1]))<<8 + devices.Celsius(spad[0])) * 1000 / 16
+	// extension multiply by 1000 to get Millis, divide by 16 due to 4 fractional
+	// bits. Datasheet p.4.
+	v := (int(int8(spad[1]))<<8 + int(spad[0])) * 1000 / 16
+	c := physic.Temperature(v)*physic.MilliKelvin + physic.ZeroCelsius
 
 	// The device powers up with a value of 85°C, so if we read that odds are
 	// very high that either no conversion was performed or that the conversion

@@ -8,7 +8,6 @@ import (
 	"image"
 	"image/color"
 	"io"
-	"time"
 
 	"periph.io/x/periph/conn"
 )
@@ -40,23 +39,4 @@ type Display interface {
 	//
 	// To be compatible with draw.Drawer, this function doesn't return an error.
 	Draw(r image.Rectangle, src image.Image, sp image.Point)
-}
-
-// Environment represents measurements from an environmental sensor.
-//
-// Deprecated: This interface will be removed in v3. Use physic.Env instead.
-type Environment struct {
-	Temperature Celsius
-	Pressure    KPascal
-	Humidity    RelativeHumidity
-}
-
-// Environmental represents an environmental sensor.
-//
-// Deprecated: This interface will be removed in v3. Use physic.SenseEnv
-// instead.
-type Environmental interface {
-	conn.Resource
-	Sense(env *Environment) error
-	SenseContinuous(interval time.Duration) (<-chan Environment, error)
 }

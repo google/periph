@@ -38,8 +38,8 @@ import (
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/mmr"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/spi"
-	"periph.io/x/periph/devices"
 )
 
 // Oversampling affects how much time is taken to measure each of temperature,
@@ -245,7 +245,7 @@ func (d *Dev) String() string {
 // Sense requests a one time measurement as °C, kPa and % of relative humidity.
 //
 // The very first measurements may be of poor quality.
-func (d *Dev) Sense(env *devices.Environment) error {
+func (d *Dev) Sense(e *physic.Env) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	if d.stop != nil {
@@ -266,9 +266,9 @@ func (d *Dev) Sense(env *devices.Environment) error {
 				return d.wrap(err)
 			}
 		}
-		return d.sense280(env)
+		return d.sense280(e)
 	}
-	return d.sense180(env)
+	return d.sense180(e)
 }
 
 // SenseContinuous returns measurements as °C, kPa and % of relative humidity
@@ -279,7 +279,7 @@ func (d *Dev) Sense(env *devices.Environment) error {
 //
 // It's the responsibility of the caller to retrieve the values from the
 // channel as fast as possible, otherwise the interval may not be respected.
-func (d *Dev) SenseContinuous(interval time.Duration) (<-chan devices.Environment, error) {
+func (d *Dev) SenseContinuous(interval time.Duration) (<-chan physic.Env, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	if d.stop != nil {
@@ -302,7 +302,7 @@ func (d *Dev) SenseContinuous(interval time.Duration) (<-chan devices.Environmen
 		}
 	}
 
-	sensing := make(chan devices.Environment)
+	sensing := make(chan physic.Env)
 	d.stop = make(chan struct{})
 	d.wg.Add(1)
 	go func() {
@@ -433,14 +433,14 @@ func (d *Dev) makeDev(opts *Opts) error {
 	return nil
 }
 
-func (d *Dev) sensingContinuous(interval time.Duration, sensing chan<- devices.Environment, stop <-chan struct{}) {
+func (d *Dev) sensingContinuous(interval time.Duration, sensing chan<- physic.Env, stop <-chan struct{}) {
 	t := time.NewTicker(interval)
 	defer t.Stop()
 
 	var err error
 	for {
 		// Do one initial sensing right away.
-		var e devices.Environment
+		e := physic.Env{}
 		d.mu.Lock()
 		if d.is280 {
 			err = d.sense280(&e)
@@ -514,5 +514,5 @@ var defaults = Opts{
 var doSleep = time.Sleep
 
 var _ conn.Resource = &Dev{}
-var _ devices.Environmental = &Dev{}
+var _ physic.SenseEnv = &Dev{}
 var _ fmt.Stringer = &Dev{}

@@ -31,7 +31,7 @@ import (
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/mmr"
-	"periph.io/x/periph/devices"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/devices/lepton/internal"
 )
 
@@ -132,7 +132,7 @@ type FFCMode struct {
 	ShutterTempLockoutState ShutterTempLockoutState // Default: ShutterTempLockoutStateInactive
 	ElapsedTimeSinceLastFFC time.Duration           // Uptime
 	DesiredFFCPeriod        time.Duration           // Default: 300s
-	DesiredFFCTempDelta     devices.Celsius         // Default: 3K
+	DesiredFFCTempDelta     physic.Temperature      // Default: 3K
 	ImminentDelay           uint16                  // Default: 52
 	VideoFreezeDuringFFC    bool                    // Default: true
 	FFCDesired              bool                    // Default: false
@@ -256,25 +256,25 @@ func (d *Dev) GetUptime() (time.Duration, error) {
 	if err := d.c.get(sysUptime, &v); err != nil {
 		return 0, err
 	}
-	return v.ToD(), nil
+	return v.Duration(), nil
 }
 
 // GetTemp returns the temperature inside the camera.
-func (d *Dev) GetTemp() (devices.Celsius, error) {
+func (d *Dev) GetTemp() (physic.Temperature, error) {
 	var v internal.CentiK
 	if err := d.c.get(sysTemperature, &v); err != nil {
 		return 0, err
 	}
-	return v.ToC(), nil
+	return v.Temperature(), nil
 }
 
 // GetTempHousing returns the temperature of the camera housing.
-func (d *Dev) GetTempHousing() (devices.Celsius, error) {
+func (d *Dev) GetTempHousing() (physic.Temperature, error) {
 	var v internal.CentiK
 	if err := d.c.get(sysHousingTemperature, &v); err != nil {
 		return 0, err
 	}
-	return v.ToC(), nil
+	return v.Temperature(), nil
 }
 
 // GetFFCModeControl returns the internal state with regards to calibration.
@@ -286,9 +286,9 @@ func (d *Dev) GetFFCModeControl() (*FFCMode, error) {
 	return &FFCMode{
 		FFCShutterMode:          FFCShutterMode(v.FFCShutterMode),
 		ShutterTempLockoutState: ShutterTempLockoutState(v.ShutterTempLockoutState),
-		ElapsedTimeSinceLastFFC: v.ElapsedTimeSinceLastFFC.ToD(),
-		DesiredFFCPeriod:        v.DesiredFFCPeriod.ToD(),
-		DesiredFFCTempDelta:     devices.Celsius(v.DesiredFFCTempDelta * 10),
+		ElapsedTimeSinceLastFFC: v.ElapsedTimeSinceLastFFC.Duration(),
+		DesiredFFCPeriod:        v.DesiredFFCPeriod.Duration(),
+		DesiredFFCTempDelta:     v.DesiredFFCTempDelta.Temperature(),
 		ImminentDelay:           v.ImminentDelay,
 		VideoFreezeDuringFFC:    v.VideoFreezeDuringFFC == internal.Enabled,
 		FFCDesired:              v.FFCDesired == internal.Enabled,

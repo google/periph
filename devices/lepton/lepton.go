@@ -29,27 +29,27 @@ import (
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/i2c"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/spi"
-	"periph.io/x/periph/devices"
 	"periph.io/x/periph/devices/lepton/cci"
 	"periph.io/x/periph/devices/lepton/internal"
 )
 
 // Metadata is constructed from telemetry data, which is sent with each frame.
 type Metadata struct {
-	SinceStartup   time.Duration   //
-	FrameCount     uint32          // Number of frames since the start of the camera, in 27fps (not 9fps).
-	AvgValue       uint16          // Average value of the buffer.
-	Temp           devices.Celsius // Temperature inside the camera.
-	TempHousing    devices.Celsius // Camera housing temperature.
-	RawTemp        uint16          //
-	RawTempHousing uint16          //
-	FFCSince       time.Duration   // Time since last internal calibration.
-	FFCTemp        devices.Celsius // Temperature at last internal calibration.
-	FFCTempHousing devices.Celsius //
-	FFCState       cci.FFCState    // Current calibration state.
-	FFCDesired     bool            // Asserted at start-up, after period (default 3m) or after temperature change (default 3K). Indicates that a calibration should be triggered as soon as possible.
-	Overtemp       bool            // true 10s before self-shutdown.
+	SinceStartup   time.Duration      //
+	FrameCount     uint32             // Number of frames since the start of the camera, in 27fps (not 9fps).
+	AvgValue       uint16             // Average value of the buffer.
+	Temp           physic.Temperature // Temperature inside the camera.
+	TempHousing    physic.Temperature // Camera housing temperature.
+	RawTemp        uint16             //
+	RawTempHousing uint16             //
+	FFCSince       time.Duration      // Time since last internal calibration.
+	FFCTemp        physic.Temperature // Temperature at last internal calibration.
+	FFCTempHousing physic.Temperature //
+	FFCState       cci.FFCState       // Current calibration state.
+	FFCDesired     bool               // Asserted at start-up, after period (default 3m) or after temperature change (default 3K). Indicates that a calibration should be triggered as soon as possible.
+	Overtemp       bool               // true 10s before self-shutdown.
 }
 
 // Frame is a FLIR Lepton frame, containing 14 bits resolution intensity stored
@@ -334,16 +334,16 @@ func (m *Metadata) parseTelemetry(data []byte) error {
 	if err := binary.Read(bytes.NewBuffer(data), internal.Big16, &rowA); err != nil {
 		return err
 	}
-	m.SinceStartup = rowA.TimeCounter.ToD()
+	m.SinceStartup = rowA.TimeCounter.Duration()
 	m.FrameCount = rowA.FrameCounter
 	m.AvgValue = rowA.FrameMean
-	m.Temp = rowA.FPATemp.ToC()
-	m.TempHousing = rowA.HousingTemp.ToC()
+	m.Temp = rowA.FPATemp.Temperature()
+	m.TempHousing = rowA.HousingTemp.Temperature()
 	m.RawTemp = rowA.FPATempCounts
 	m.RawTempHousing = rowA.HousingTempCounts
-	m.FFCSince = rowA.TimeCounterLastFFC.ToD()
-	m.FFCTemp = rowA.FPATempLastFFC.ToC()
-	m.FFCTempHousing = rowA.HousingTempLastFFC.ToC()
+	m.FFCSince = rowA.TimeCounterLastFFC.Duration()
+	m.FFCTemp = rowA.FPATempLastFFC.Temperature()
+	m.FFCTempHousing = rowA.HousingTempLastFFC.Temperature()
 	if rowA.StatusBits&statusMaskNil != 0 {
 		return fmt.Errorf("lepton: (Status: 0x%08X) & (Mask: 0x%08X) = (Extra: 0x%08X) in 0x%08X", rowA.StatusBits, statusMask, rowA.StatusBits&statusMaskNil, statusMaskNil)
 	}

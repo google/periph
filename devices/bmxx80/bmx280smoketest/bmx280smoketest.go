@@ -15,10 +15,10 @@ import (
 	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/conn/i2c/i2ctest"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/spi"
 	"periph.io/x/periph/conn/spi/spireg"
 	"periph.io/x/periph/conn/spi/spitest"
-	"periph.io/x/periph/devices"
 	"periph.io/x/periph/devices/bmxx80"
 )
 
@@ -154,8 +154,8 @@ func run(i2cBus i2c.Bus, i2cAddr uint16, spiPort spi.PortCloser) (err error) {
 		}
 	}()
 
-	i2cEnv := devices.Environment{}
-	spiEnv := devices.Environment{}
+	i2cEnv := physic.Env{}
+	spiEnv := physic.Env{}
 	if err2 := i2cDev.Sense(&i2cEnv); err2 != nil {
 		return err2
 	}
@@ -164,7 +164,7 @@ func run(i2cBus i2c.Bus, i2cAddr uint16, spiPort spi.PortCloser) (err error) {
 		return err2
 	}
 	printEnv(spiDev, &spiEnv)
-	delta := devices.Environment{
+	delta := physic.Env{
 		Temperature: i2cEnv.Temperature - spiEnv.Temperature,
 		Pressure:    i2cEnv.Pressure - spiEnv.Pressure,
 		Humidity:    i2cEnv.Humidity - spiEnv.Humidity,
@@ -186,6 +186,6 @@ func run(i2cBus i2c.Bus, i2cAddr uint16, spiPort spi.PortCloser) (err error) {
 	return nil
 }
 
-func printEnv(dev interface{}, env *devices.Environment) {
-	fmt.Printf("%-18s: %8s %10s %9s\n", dev, env.Temperature, env.Pressure, env.Humidity)
+func printEnv(dev interface{}, e *physic.Env) {
+	fmt.Printf("%-18s: %8s %10s %9s\n", dev, e.Temperature, e.Pressure, e.Humidity)
 }

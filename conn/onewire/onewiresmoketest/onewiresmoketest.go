@@ -20,6 +20,7 @@ import (
 
 	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/conn/onewire"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/devices/ds18b20"
 	"periph.io/x/periph/devices/ds248x"
 )
@@ -121,11 +122,11 @@ func (s *SmokeTest) ds18b20(bus onewire.Bus, addr onewire.Address) error {
 	if err != nil {
 		return err
 	}
-	if t > 50*1000 || t <= 0 {
-		return fmt.Errorf("ds18b20: expected temperature in the 0°C..50°C range, got %.2f°C", t.Float64())
+	if t <= physic.ZeroCelsius || t > 50*physic.Celsius+physic.ZeroCelsius {
+		return fmt.Errorf("ds18b20: expected temperature in the 0°C..50°C range, got %s", t)
 	}
 
-	log.Printf("%s: temperature is %.2f°C", s, t.Float64())
+	log.Printf("%s: temperature is %s", s, t)
 	return nil
 }
 

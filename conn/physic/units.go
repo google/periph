@@ -92,9 +92,9 @@ const (
 	Pascal               = 1000 * MilliPascal
 	KiloPascal           = 1000 * Pascal
 
-	MicroRH   RelativeHumidity = 1
-	MilliRH                    = 1000 * MicroRH
-	PercentRH                  = 10 * MilliRH
+	MicroRH   RelativeHumidity = 1              // 0.001%rH
+	MilliRH                    = 1000 * MicroRH // 0.1%rH
+	PercentRH                  = 10 * MilliRH   // 1%rH
 
 	NanoKelvin  Temperature = 1
 	MicroKelvin             = 1000 * NanoKelvin

@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"periph.io/x/periph"
-	"periph.io/x/periph/devices"
+	"periph.io/x/periph/conn/physic"
 )
 
 // ThermalSensors is all the sensors discovered on this host via sysfs.
@@ -79,8 +79,8 @@ func (t *ThermalSensor) Type() string {
 	return t.nameType
 }
 
-// Sense implements devices.Environmental.
-func (t *ThermalSensor) Sense(env *devices.Environment) error {
+// Sense implements physic.SenseEnv.
+func (t *ThermalSensor) Sense(e *physic.Env) error {
 	if err := t.open(); err != nil {
 		return err
 	}
@@ -101,12 +101,12 @@ func (t *ThermalSensor) Sense(env *devices.Environment) error {
 	if i < 100 {
 		i *= 1000
 	}
-	env.Temperature = devices.Celsius(i)
+	e.Temperature = physic.Temperature(i)*physic.MilliCelsius + physic.ZeroCelsius
 	return nil
 }
 
-// SenseContinuous implements devices.Environmental.
-func (t *ThermalSensor) SenseContinuous(interval time.Duration) (<-chan devices.Environment, error) {
+// SenseContinuous implements physic.SenseEnv.
+func (t *ThermalSensor) SenseContinuous(interval time.Duration) (<-chan physic.Env, error) {
 	// TODO(maruel): Manually poll in a loop via time.NewTicker.
 	return nil, errors.New("sysfs-thermal: not implemented")
 }
@@ -178,5 +178,5 @@ func init() {
 
 var drvThermalSensor driverThermalSensor
 
-var _ devices.Environmental = &ThermalSensor{}
+var _ physic.SenseEnv = &ThermalSensor{}
 var _ fmt.Stringer = &ThermalSensor{}

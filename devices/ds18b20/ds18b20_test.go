@@ -11,7 +11,7 @@ import (
 
 	"periph.io/x/periph/conn/onewire"
 	"periph.io/x/periph/conn/onewire/onewiretest"
-	"periph.io/x/periph/devices"
+	"periph.io/x/periph/conn/physic"
 )
 
 func TestNew_fail_resolution(t *testing.T) {
@@ -52,7 +52,7 @@ func TestTemperature(t *testing.T) {
 		},
 	}
 	var addr onewire.Address = 0x740000070e41ac28
-	var temp devices.Celsius = 30000 // 30.000°C
+	temp := 30*physic.Celsius + physic.ZeroCelsius
 	bus := onewiretest.Playback{Ops: ops}
 	dev, err := New(&bus, addr, 10)
 	if err != nil {
@@ -187,7 +187,7 @@ func TestRecordTemp(t *testing.T) {
 		t.Logf("  %#v,", op)
 	}
 	t.Log("}")
-	t.Logf("var temp devices.Celsius = %d // %s", temp, temp.String())
+	t.Logf("var temp physic.Temperature = %d  // %s", temp, temp.String())
 }
 
 //

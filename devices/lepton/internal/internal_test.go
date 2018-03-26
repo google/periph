@@ -8,16 +8,18 @@ import (
 	"bytes"
 	"testing"
 	"time"
+
+	"periph.io/x/periph/conn/physic"
 )
 
 func TestDuration(t *testing.T) {
-	if d := DurationMS(100).ToD(); d != 100*time.Millisecond {
+	if d := DurationMS(100).Duration(); d != 100*time.Millisecond {
 		t.Fatal(d)
 	}
 }
 
 func TestCentiK(t *testing.T) {
-	if c := CentiK(100).ToC(); c != -272150 {
+	if c := CentiK(100).Temperature(); c != physic.Kelvin {
 		t.Fatal(c)
 	}
 }

@@ -9,7 +9,7 @@ import (
 	"log"
 
 	"periph.io/x/periph/conn/i2c/i2creg"
-	"periph.io/x/periph/devices"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/devices/bmxx80"
 	"periph.io/x/periph/host"
 )
@@ -30,7 +30,7 @@ func Example() {
 	if err != nil {
 		log.Fatalf("failed to initialize bme280: %v", err)
 	}
-	e := devices.Environment{}
+	e := physic.Env{}
 	if err := d.Sense(&e); err != nil {
 		log.Fatal(err)
 	}

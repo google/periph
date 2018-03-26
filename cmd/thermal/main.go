@@ -13,7 +13,7 @@ import (
 	"log"
 	"os"
 
-	"periph.io/x/periph/devices"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/host"
 	"periph.io/x/periph/host/sysfs"
 )
@@ -33,11 +33,11 @@ func mainImpl() error {
 		return err
 	}
 	for _, t := range sysfs.ThermalSensors {
-		var env devices.Environment
-		if err := t.Sense(&env); err != nil {
+		e := physic.Env{}
+		if err := t.Sense(&e); err != nil {
 			return err
 		}
-		fmt.Printf("%s: %s: %s\n", t, t.Type(), env.Temperature)
+		fmt.Printf("%s: %s: %s\n", t, t.Type(), e.Temperature)
 	}
 	return nil
 }

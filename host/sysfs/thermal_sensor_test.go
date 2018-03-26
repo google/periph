@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"periph.io/x/periph/devices"
+	"periph.io/x/periph/conn/physic"
 )
 
 func TestThermalSensorByName_not_present(t *testing.T) {
@@ -51,8 +51,8 @@ func TestThermalSensor_fail(t *testing.T) {
 	if s := d.Type(); s != "sysfs-thermal: file I/O is inhibited" {
 		t.Fatal(s)
 	}
-	env := devices.Environment{}
-	if err := d.Sense(&env); err == nil || err.Error() != "sysfs-thermal: file I/O is inhibited" {
+	e := physic.Env{}
+	if err := d.Sense(&e); err == nil || err.Error() != "sysfs-thermal: file I/O is inhibited" {
 		t.Fatal("should have failed")
 	}
 	if _, err := d.SenseContinuous(time.Second); err == nil || err.Error() != "sysfs-thermal: not implemented" {
@@ -135,12 +135,12 @@ func TestThermalSensor_Sense_success(t *testing.T) {
 		}
 	}
 	d := ThermalSensor{name: "cpu", root: "//\000/"}
-	env := devices.Environment{}
-	if err := d.Sense(&env); err != nil {
+	e := physic.Env{}
+	if err := d.Sense(&e); err != nil {
 		t.Fatal(err)
 	}
-	if env.Temperature != 42000 {
-		t.Fatal(env.Temperature)
+	if e.Temperature != 42*physic.Celsius+physic.ZeroCelsius {
+		t.Fatal(e.Temperature)
 	}
 }
 
@@ -159,8 +159,8 @@ func TestThermalSensor_Sense_fail_1(t *testing.T) {
 		}
 	}
 	d := ThermalSensor{name: "cpu", root: "//\000/"}
-	env := devices.Environment{}
-	if err := d.Sense(&env); err == nil || err.Error() != "sysfs-thermal: not implemented" {
+	e := physic.Env{}
+	if err := d.Sense(&e); err == nil || err.Error() != "sysfs-thermal: not implemented" {
 		t.Fatal(err)
 	}
 }
@@ -180,8 +180,8 @@ func TestThermalSensor_Sense_fail_2(t *testing.T) {
 		}
 	}
 	d := ThermalSensor{name: "cpu", root: "//\000/"}
-	env := devices.Environment{}
-	if err := d.Sense(&env); err == nil || err.Error() != "sysfs-thermal: failed to read temperature" {
+	e := physic.Env{}
+	if err := d.Sense(&e); err == nil || err.Error() != "sysfs-thermal: failed to read temperature" {
 		t.Fatal(err)
 	}
 }
@@ -201,8 +201,8 @@ func TestThermalSensor_Sense_fail_3(t *testing.T) {
 		}
 	}
 	d := ThermalSensor{name: "cpu", root: "//\000/"}
-	env := devices.Environment{}
-	if err := d.Sense(&env); err == nil || err.Error() != "sysfs-thermal: strconv.Atoi: parsing \"aa\": invalid syntax" {
+	e := physic.Env{}
+	if err := d.Sense(&e); err == nil || err.Error() != "sysfs-thermal: strconv.Atoi: parsing \"aa\": invalid syntax" {
 		t.Fatal(err)
 	}
 }

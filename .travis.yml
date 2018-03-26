@@ -10,6 +10,7 @@ script:
   - echo 'Check Code is well formatted'; ! gofmt -s -d . | read
   - echo 'Looking for external dependencies:'; go list -f '{{join .Imports "\n"}}' periph.io/x/periph/... | sort | uniq | grep -v ^periph.io/x/periph | xargs go list -f '{{if not .Standard}}- {{.ImportPath}}{{end}}'
   - echo 'Erroring on external dependencies:'; ! go list -f '{{join .Imports "\n"}}' periph.io/x/periph/... | sort | uniq | grep -v ^periph.io/x/periph | xargs go list -f '{{if not .Standard}}Remove {{.ImportPath}}{{end}}' | grep -q Remove
+  - echo 'Erroring on /host dependencing on /devices:'; ! go list -f '{{.ImportPath}}: {{join .Imports ", "}}' periph.io/x/periph/host/... | sort | uniq | grep periph.io/x/periph/devices
   - go test -race ./...
   - bash -c 'set -e; echo "" > coverage.txt; for d in $(go list ./...); do go test -covermode=count -coverprofile=p.out $d; if [ -f p.out ]; then cat p.out >> coverage.txt; rm p.out; fi; done'
 after_success:

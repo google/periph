@@ -8,13 +8,13 @@ import (
 	"encoding/binary"
 	"time"
 
-	"periph.io/x/periph/devices"
+	"periph.io/x/periph/conn/physic"
 )
 
 // sense180 reads the device's registers for bmp180.
 //
 // It must be called with d.mu lock held.
-func (d *Dev) sense180(env *devices.Environment) error {
+func (d *Dev) sense180(e *physic.Env) error {
 	// Request temperature conversion and read measurement.
 	if err := d.writeCommands([]byte{0xF4, 0x20 | 0x0E}); err != nil {
 		return d.wrap(err)
@@ -38,8 +38,9 @@ func (d *Dev) sense180(env *devices.Environment) error {
 	}
 	up := (int32(pressureBuf[0])<<16 + int32(pressureBuf[1])<<8 | int32(pressureBuf[2])) >> (8 - d.os)
 	pressure := d.cal180.compensatePressure(up, int32(rawTemp), uint(d.os))
-	env.Temperature = devices.Celsius(temp * 100)
-	env.Pressure = devices.KPascal(pressure)
+	// Convert DeciCelsius to Kelvin.
+	e.Temperature = physic.Temperature(temp)*100*physic.MilliCelsius + physic.ZeroCelsius
+	e.Pressure = physic.Pressure(pressure) * physic.Pascal
 	return nil
 }
 
