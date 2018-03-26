@@ -5,6 +5,7 @@
 package gpio
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -12,14 +13,24 @@ import (
 )
 
 func TestStrings(t *testing.T) {
-	if Low.String() != "Low" || High.String() != "High" {
-		t.Fail()
+	data := []struct {
+		t fmt.Stringer
+		s string
+	}{
+		{Low, "Low"},
+		{High, "High"},
+		{PullNoChange, "PullNoChange"},
+		{Float, "Float"},
+		{PullDown, "PullDown"},
+		{PullUp, "PullUp"},
+		{Pull(100), "Pull(100)"},
+		{NoEdge, "NoEdge"},
+		{Edge(100), "Edge(100)"},
 	}
-	if Float.String() != "Float" || Pull(100).String() != "Pull(100)" {
-		t.Fail()
-	}
-	if NoEdge.String() != "NoEdge" || Edge(100).String() != "Edge(100)" {
-		t.Fail()
+	for i, l := range data {
+		if a := l.t.String(); a != l.s {
+			t.Fatalf("#%d: %s != %s", i, l.s, a)
+		}
 	}
 }
 

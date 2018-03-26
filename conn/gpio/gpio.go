@@ -41,15 +41,15 @@ type Pull uint8
 
 // Acceptable pull values.
 const (
-	Float        Pull = 0 // Let the input float
-	PullDown     Pull = 1 // Apply pull-down
-	PullUp       Pull = 2 // Apply pull-up
-	PullNoChange Pull = 3 // Do not change the previous pull resistor setting or an unknown value
+	PullNoChange Pull = 0 // Do not change the previous pull resistor setting or an unknown value
+	Float        Pull = 1 // Let the input float
+	PullDown     Pull = 2 // Apply pull-down
+	PullUp       Pull = 3 // Apply pull-up
 )
 
-const pullName = "FloatPullDownPullUpPullNoChange"
+const pullName = "PullNoChangeFloatPullDownPullUp"
 
-var pullIndex = [...]uint8{0, 5, 13, 19, 31}
+var pullIndex = [...]uint8{0, 12, 17, 25, 31}
 
 func (i Pull) String() string {
 	if i >= Pull(len(pullIndex)-1) {
