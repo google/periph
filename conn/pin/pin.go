@@ -9,8 +9,6 @@
 // While not a protocol strictly speaking, these are "well known constants".
 package pin
 
-import "fmt"
-
 // These are well known pins.
 var (
 	INVALID  *BasicPin // Either floating or invalid pin
@@ -26,7 +24,7 @@ var (
 // analog.PinIO.
 type Pin interface {
 	// String() typically returns the pin name and number, ex: "PD6(45)"
-	fmt.Stringer
+	String() string
 	// Name returns the name of the pin.
 	Name() string
 	// Number returns the logical pin number or a negative number if the pin is

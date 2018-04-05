@@ -4,7 +4,7 @@
 
 package conn
 
-import "fmt"
+import "strconv"
 
 // Resource is a basic resource (like a gpio pin) or a device.
 //
@@ -49,7 +49,7 @@ var duplexIndex = [...]uint8{0, 13, 17, 21}
 
 func (i Duplex) String() string {
 	if i < 0 || i >= Duplex(len(duplexIndex)-1) {
-		return fmt.Sprintf("Duplex(%d)", i)
+		return "Duplex(" + strconv.Itoa(int(i)) + ")"
 	}
 	return duplexName[duplexIndex[i]:duplexIndex[i+1]]
 }

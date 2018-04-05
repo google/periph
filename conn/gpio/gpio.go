@@ -10,7 +10,6 @@ package gpio
 
 import (
 	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -54,7 +53,7 @@ var pullIndex = [...]uint8{0, 5, 13, 19, 31}
 
 func (i Pull) String() string {
 	if i >= Pull(len(pullIndex)-1) {
-		return fmt.Sprintf("Pull(%d)", i)
+		return "Pull(" + strconv.Itoa(int(i)) + ")"
 	}
 	return pullName[pullIndex[i]:pullIndex[i+1]]
 }
@@ -78,7 +77,7 @@ var edgeIndex = [...]uint8{0, 6, 16, 27, 36}
 
 func (i Edge) String() string {
 	if i >= Edge(len(edgeIndex)-1) {
-		return fmt.Sprintf("Edge(%d)", i)
+		return "Edge(" + strconv.Itoa(int(i)) + ")"
 	}
 	return edgeName[edgeIndex[i]:edgeIndex[i+1]]
 }
@@ -97,7 +96,7 @@ type Duty int32
 
 func (d Duty) String() string {
 	// TODO(maruel): Implement one fractional number.
-	return fmt.Sprintf("%d%%", (d+50)/(DutyMax/100))
+	return strconv.Itoa(int((d+50)/(DutyMax/100))) + "%"
 }
 
 // Valid returns true if the Duty cycle value is valid.
@@ -130,7 +129,7 @@ func ParseDuty(s string) (Duty, error) {
 		return 0, errors.New("duty must be >= 0")
 	}
 	if i > DutyMax {
-		return 0, fmt.Errorf("duty must be <= %d", DutyMax)
+		return 0, errors.New("duty must be <= " + strconv.Itoa(int(DutyMax)))
 	}
 	return i, nil
 }
