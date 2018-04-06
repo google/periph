@@ -130,6 +130,7 @@ type Conn interface {
 // The device driver, that is the driver for the peripheral connected over
 // this port, calls Connect() to retrieve a configured connection as Conn.
 type Port interface {
+	String() string
 	// Connect sets the communication parameters of the connection for use by a
 	// device.
 	//

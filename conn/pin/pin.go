@@ -26,8 +26,6 @@ var (
 // analog.PinIO.
 type Pin interface {
 	conn.Resource
-	// String() typically returns the pin name and number, ex: "PD6(45)"
-	String() string
 	// Name returns the name of the pin.
 	Name() string
 	// Number returns the logical pin number or a negative number if the pin is

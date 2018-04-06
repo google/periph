@@ -22,7 +22,7 @@
 package onewire
 
 import (
-	"fmt"
+	"strconv"
 
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio"
@@ -34,6 +34,7 @@ import (
 // specified for each transaction. Use onewire.Dev as an adapter to get a
 // conn.Conn compatible object.
 type Bus interface {
+	String() string
 	// Tx performs a bus transaction, sending and receiving bytes, and
 	// ending by pulling the bus high either weakly or strongly depending
 	// on the value of power.
@@ -157,7 +158,17 @@ type Dev struct {
 
 // String prints the bus name followed by the device address in parenthesis.
 func (d *Dev) String() string {
-	return fmt.Sprintf("%s(%#016x)", d.Bus, d.Addr)
+	s := "<nil>"
+	if d.Bus != nil {
+		s = d.Bus.String()
+	}
+	a := strconv.FormatUint(uint64(d.Addr), 16)
+	for len(a) < 16 {
+		// O(n²) but since digits is expected to run for a few loops, it doesn't
+		// matter.
+		a = "0" + a
+	}
+	return s + "(0x" + a + ")"
 }
 
 // Tx performs a "match ROM" command on the bus to select the device
