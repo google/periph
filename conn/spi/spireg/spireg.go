@@ -9,7 +9,7 @@
 package spireg
 
 import (
-	"fmt"
+	"errors"
 	"sort"
 	"strconv"
 	"strings"
@@ -70,7 +70,7 @@ func Open(name string) (spi.PortCloser, error) {
 		mu.Lock()
 		defer mu.Unlock()
 		if len(byName) == 0 {
-			err = wrapf("no port found; did you forget to call Init()?")
+			err = errors.New("spireg: no port found; did you forget to call Init()?")
 			return
 		}
 		if len(name) == 0 {
@@ -90,7 +90,7 @@ func Open(name string) (spi.PortCloser, error) {
 		return nil, err
 	}
 	if r == nil {
-		return nil, wrapf("can't open unknown port: %q", name)
+		return nil, errors.New("spireg: can't open unknown port: " + strconv.Quote(name))
 	}
 	return r.Open()
 }
@@ -126,54 +126,54 @@ func All() []*Ref {
 // Only ports with the CS #0 are registered with their number.
 func Register(name string, aliases []string, number int, o Opener) error {
 	if len(name) == 0 {
-		return wrapf("can't register a port with no name")
+		return errors.New("spireg: can't register a port with no name")
 	}
 	if o == nil {
-		return wrapf("can't register port %q with nil Opener", name)
+		return errors.New("spireg: can't register port " + strconv.Quote(name) + " with nil Opener")
 	}
 	if number < -1 {
-		return wrapf("can't register port %q with invalid port number %d", name, number)
+		return errors.New("spireg: can't register port " + strconv.Quote(name) + " with invalid port number " + strconv.Itoa(number))
 	}
 	if _, err := strconv.Atoi(name); err == nil {
-		return wrapf("can't register port %q with name being only a number", name)
+		return errors.New("spireg: can't register port " + strconv.Quote(name) + " with name being only a number")
 	}
 	if strings.Contains(name, ":") {
-		return wrapf("can't register port %q with name containing ':'", name)
+		return errors.New("spireg: can't register port " + strconv.Quote(name) + " with name containing ':'")
 	}
 	for _, alias := range aliases {
 		if len(alias) == 0 {
-			return wrapf("can't register port %q with an empty alias", name)
+			return errors.New("spireg: can't register port " + strconv.Quote(name) + " with an empty alias")
 		}
 		if name == alias {
-			return wrapf("can't register port %q with an alias the same as the port name", name)
+			return errors.New("spireg: can't register port " + strconv.Quote(name) + " with an alias the same as the port name")
 		}
 		if _, err := strconv.Atoi(alias); err == nil {
-			return wrapf("can't register port %q with an alias that is a number: %q", name, alias)
+			return errors.New("spireg: can't register port " + strconv.Quote(name) + " with an alias that is a number: " + strconv.Quote(alias))
 		}
 		if strings.Contains(alias, ":") {
-			return wrapf("can't register port %q with an alias containing ':': %q", name, alias)
+			return errors.New("spireg: can't register port " + strconv.Quote(name) + " with an alias containing ':': " + strconv.Quote(alias))
 		}
 	}
 
 	mu.Lock()
 	defer mu.Unlock()
 	if _, ok := byName[name]; ok {
-		return wrapf("can't register port %q twice", name)
+		return errors.New("spireg: can't register port " + strconv.Quote(name) + " twice")
 	}
 	if _, ok := byAlias[name]; ok {
-		return wrapf("can't register port %q twice; it is already an alias", name)
+		return errors.New("spireg: can't register port " + strconv.Quote(name) + " twice; it is already an alias")
 	}
 	if number != -1 {
 		if _, ok := byNumber[number]; ok {
-			return wrapf("can't register port %q; port number %d is already registered", name, number)
+			return errors.New("spireg: can't register port " + strconv.Quote(name) + "; port number " + strconv.Itoa(number) + " is already registered")
 		}
 	}
 	for _, alias := range aliases {
 		if _, ok := byName[alias]; ok {
-			return wrapf("can't register port %q twice; alias %q is already a port", name, alias)
+			return errors.New("spireg: can't register port " + strconv.Quote(name) + " twice; alias " + strconv.Quote(alias) + " is already a port")
 		}
 		if _, ok := byAlias[alias]; ok {
-			return wrapf("can't register port %q twice; alias %q is already an alias", name, alias)
+			return errors.New("spireg: can't register port " + strconv.Quote(name) + " twice; alias " + strconv.Quote(alias) + " is already an alias")
 		}
 	}
 
@@ -198,7 +198,7 @@ func Unregister(name string) error {
 	defer mu.Unlock()
 	r := byName[name]
 	if r == nil {
-		return wrapf("can't unregister unknown port name %q", name)
+		return errors.New("spireg: can't unregister unknown port name " + strconv.Quote(name))
 	}
 	delete(byName, name)
 	delete(byNumber, r.Number)
@@ -240,11 +240,6 @@ func getDefault() *Ref {
 		}
 	}
 	return o
-}
-
-// wrapf returns an error that is wrapped with the package name.
-func wrapf(format string, a ...interface{}) error {
-	return fmt.Errorf("spireg: "+format, a...)
 }
 
 type refList []*Ref

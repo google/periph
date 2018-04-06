@@ -6,7 +6,7 @@
 package i2creg
 
 import (
-	"fmt"
+	"errors"
 	"sort"
 	"strconv"
 	"strings"
@@ -62,7 +62,7 @@ func Open(name string) (i2c.BusCloser, error) {
 		mu.Lock()
 		defer mu.Unlock()
 		if len(byName) == 0 {
-			err = wrapf("no bus found; did you forget to call Init()?")
+			err = errors.New("i2creg: no bus found; did you forget to call Init()?")
 			return
 		}
 		if len(name) == 0 {
@@ -82,7 +82,7 @@ func Open(name string) (i2c.BusCloser, error) {
 		return nil, err
 	}
 	if r == nil {
-		return nil, wrapf("can't open unknown bus: %q", name)
+		return nil, errors.New("i2creg: can't open unknown bus: " + strconv.Quote(name))
 	}
 	return r.Open()
 }
@@ -116,54 +116,54 @@ func All() []*Ref {
 // device for unique identification.
 func Register(name string, aliases []string, number int, o Opener) error {
 	if len(name) == 0 {
-		return wrapf("can't register a bus with no name")
+		return errors.New("i2creg: can't register a bus with no name")
 	}
 	if o == nil {
-		return wrapf("can't register bus %q with nil Opener", name)
+		return errors.New("i2creg: can't register bus " + strconv.Quote(name) + " with nil Opener")
 	}
 	if number < -1 {
-		return wrapf("can't register bus %q with invalid bus number %d", name, number)
+		return errors.New("i2creg: can't register bus " + strconv.Quote(name) + " with invalid bus number " + strconv.Itoa(number))
 	}
 	if _, err := strconv.Atoi(name); err == nil {
-		return wrapf("can't register bus %q with name being only a number", name)
+		return errors.New("i2creg: can't register bus " + strconv.Quote(name) + " with name being only a number")
 	}
 	if strings.Contains(name, ":") {
-		return wrapf("can't register bus %q with name containing ':'", name)
+		return errors.New("i2creg: can't register bus " + strconv.Quote(name) + " with name containing ':'")
 	}
 	for _, alias := range aliases {
 		if len(alias) == 0 {
-			return wrapf("can't register bus %q with an empty alias", name)
+			return errors.New("i2creg: can't register bus " + strconv.Quote(name) + " with an empty alias")
 		}
 		if name == alias {
-			return wrapf("can't register bus %q with an alias the same as the bus name", name)
+			return errors.New("i2creg: can't register bus " + strconv.Quote(name) + " with an alias the same as the bus name")
 		}
 		if _, err := strconv.Atoi(alias); err == nil {
-			return wrapf("can't register bus %q with an alias that is a number: %q", name, alias)
+			return errors.New("i2creg: can't register bus " + strconv.Quote(name) + " with an alias that is a number: " + strconv.Quote(alias))
 		}
 		if strings.Contains(alias, ":") {
-			return wrapf("can't register bus %q with an alias containing ':': %q", name, alias)
+			return errors.New("i2creg: can't register bus " + strconv.Quote(name) + " with an alias containing ':': " + strconv.Quote(alias))
 		}
 	}
 
 	mu.Lock()
 	defer mu.Unlock()
 	if _, ok := byName[name]; ok {
-		return wrapf("can't register bus %q twice", name)
+		return errors.New("i2creg: can't register bus " + strconv.Quote(name) + " twice")
 	}
 	if _, ok := byAlias[name]; ok {
-		return wrapf("can't register bus %q twice; it is already an alias", name)
+		return errors.New("i2creg: can't register bus " + strconv.Quote(name) + " twice; it is already an alias")
 	}
 	if number != -1 {
 		if _, ok := byNumber[number]; ok {
-			return wrapf("can't register bus %q; bus number %d is already registered", name, number)
+			return errors.New("i2creg: can't register bus " + strconv.Quote(name) + "; bus number " + strconv.Itoa(number) + " is already registered")
 		}
 	}
 	for _, alias := range aliases {
 		if _, ok := byName[alias]; ok {
-			return wrapf("can't register bus %q twice; alias %q is already a bus", name, alias)
+			return errors.New("i2creg: can't register bus " + strconv.Quote(name) + " twice; alias " + strconv.Quote(alias) + " is already a bus")
 		}
 		if _, ok := byAlias[alias]; ok {
-			return wrapf("can't register bus %q twice; alias %q is already an alias", name, alias)
+			return errors.New("i2creg: can't register bus " + strconv.Quote(name) + " twice; alias " + strconv.Quote(alias) + " is already an alias")
 		}
 	}
 
@@ -188,7 +188,7 @@ func Unregister(name string) error {
 	defer mu.Unlock()
 	r := byName[name]
 	if r == nil {
-		return wrapf("can't unregister unknown bus name %q", name)
+		return errors.New("i2creg: can't unregister unknown bus name " + strconv.Quote(name))
 	}
 	delete(byName, name)
 	delete(byNumber, r.Number)
@@ -230,11 +230,6 @@ func getDefault() *Ref {
 		}
 	}
 	return o
-}
-
-// wrapf returns an error that is wrapped with the package name.
-func wrapf(format string, a ...interface{}) error {
-	return fmt.Errorf("i2creg: "+format, a...)
 }
 
 type refList []*Ref
