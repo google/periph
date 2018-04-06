@@ -16,8 +16,8 @@
 package i2c
 
 import (
-	"fmt"
 	"io"
+	"strconv"
 
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio"
@@ -31,6 +31,11 @@ import (
 // specified. Use i2cdev.Dev as an adapter to get a conn.Conn compatible
 // object.
 type Bus interface {
+	String() string
+	// Tx does a transaction at the specified device address.
+	//
+	// Write is done first, then read. One of 'w' or 'r' can be omitted for a
+	// unidirectional operation.
 	Tx(addr uint16, w, r []byte) error
 	// SetSpeed changes the bus speed, if supported.
 	//
@@ -71,7 +76,11 @@ type Dev struct {
 }
 
 func (d *Dev) String() string {
-	return fmt.Sprintf("%s(%d)", d.Bus, d.Addr)
+	s := "<nil>"
+	if d.Bus != nil {
+		s = d.Bus.String()
+	}
+	return s + "(" + strconv.Itoa(int(d.Addr)) + ")"
 }
 
 // Tx does a transaction by adding the device's address to each command.

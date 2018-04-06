@@ -32,7 +32,10 @@ type Dev8 struct {
 }
 
 func (d *Dev8) String() string {
-	return fmt.Sprintf("%s", d.Conn)
+	if d.Conn == nil {
+		return "<nil>"
+	}
+	return d.Conn.String()
 }
 
 // ReadUint8 reads a 8 bit register.
@@ -167,7 +170,10 @@ type Dev16 struct {
 }
 
 func (d *Dev16) String() string {
-	return fmt.Sprintf("%s", d.Conn)
+	if d.Conn == nil {
+		return "<nil>"
+	}
+	return d.Conn.String()
 }
 
 // ReadUint8 reads a 8 bit register.

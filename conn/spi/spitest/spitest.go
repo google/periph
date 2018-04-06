@@ -322,27 +322,27 @@ func (p *playbackConn) CS() gpio.PinOut {
 
 // Log logs all operations done on an spi.PortCloser.
 type Log struct {
-	Port spi.PortCloser
+	spi.PortCloser
 }
 
 // Close implements spi.PortCloser.
 func (l *Log) Close() error {
-	err := l.Port.Close()
-	log.Printf("%s.Close() = %v", l.Port, err)
+	err := l.PortCloser.Close()
+	log.Printf("%s.Close() = %v", l.PortCloser, err)
 	return err
 }
 
 // LimitSpeed implements spi.PortCloser.
 func (l *Log) LimitSpeed(maxHz int64) error {
-	err := l.Port.LimitSpeed(maxHz)
-	log.Printf("%s.LimitSpeed(%d) = %v", l.Port, maxHz, err)
+	err := l.PortCloser.LimitSpeed(maxHz)
+	log.Printf("%s.LimitSpeed(%d) = %v", l.PortCloser, maxHz, err)
 	return err
 }
 
 // Connect implements spi.PortCloser.
 func (l *Log) Connect(maxHz int64, mode spi.Mode, bits int) (spi.Conn, error) {
-	c, err := l.Port.Connect(maxHz, mode, bits)
-	log.Printf("%s.Connect(%d, %d, %d) = %v", l.Port, maxHz, mode, bits, err)
+	c, err := l.PortCloser.Connect(maxHz, mode, bits)
+	log.Printf("%s.Connect(%d, %d, %d) = %v", l.PortCloser, maxHz, mode, bits, err)
 	return &LogConn{c}, err
 }
 
@@ -350,7 +350,7 @@ func (l *Log) Connect(maxHz int64, mode spi.Mode, bits int) (spi.Conn, error) {
 
 // LogConn logs all operations done on an spi.Conn.
 type LogConn struct {
-	Conn spi.Conn
+	spi.Conn
 }
 
 // Tx implements spi.Conn.
@@ -363,11 +363,6 @@ func (l *LogConn) Tx(w, r []byte) error {
 // TxPackets is not yet implemented.
 func (l *LogConn) TxPackets(p []spi.Packet) error {
 	return conntest.Errorf("spitest: TxPackets is not implemented")
-}
-
-// Duplex implements spi.Conn.
-func (l *LogConn) Duplex() conn.Duplex {
-	return l.Conn.Duplex()
 }
 
 //

@@ -230,7 +230,7 @@ func TestRecord_Playback(t *testing.T) {
 
 func TestLog_Playback(t *testing.T) {
 	r := Log{
-		Port: &Playback{
+		PortCloser: &Playback{
 			Playback: conntest.Playback{
 				Ops:       []conntest.IO{{W: []byte{10}, R: []byte{12}}},
 				D:         conn.Full,

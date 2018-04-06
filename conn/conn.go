@@ -7,11 +7,10 @@ package conn
 import "strconv"
 
 // Resource is a basic resource (like a gpio pin) or a device.
-//
-// Implementers are expected to also implement fmt.Stringer. In this case,
-// String() must return a name representing this resource in a descriptive way
-// for the user.
 type Resource interface {
+	// String returns a human readable identifier representing this resource in a
+	// descriptive way for the user. It is the same signature as fmt.Stringer.
+	String() string
 	// Halt stops the resource.
 	//
 	// Unlike a Conn, a Resource may not be closable, On the other hand, a
@@ -74,6 +73,7 @@ func (i Duplex) String() string {
 //
 // - io.Closer for the owner of the communication channel.
 type Conn interface {
+	String() string
 	// Tx does a single transaction.
 	//
 	// For full duplex protocols (generally SPI, UART), the two buffers must have
