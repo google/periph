@@ -373,6 +373,10 @@ type spiStream struct {
 	err    error
 }
 
+func (s *spiStream) String() string {
+	return "spi"
+}
+
 func (s *spiStream) Connect(maxHz int64, mode spi.Mode, bits int) (spi.Conn, error) {
 	if maxHz != 20000000 {
 		s.t.Fatal(maxHz)
