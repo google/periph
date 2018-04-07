@@ -60,11 +60,11 @@ func TestKPascal(t *testing.T) {
 }
 
 func TestRelativeHumidity(t *testing.T) {
-	o := RelativeHumidity(5010)
-	if s := o.String(); s != "50.10%rH" {
+	o := RelativeHumidity(5006)
+	if s := o.String(); s != "50.06%rH" {
 		t.Fatalf("%#v", s)
 	}
-	if f := o.Float64(); f > 50.11 || f < 50.09 {
+	if f := o.Float64(); f >= 50.07 || f <= 50.05 {
 		t.Fatalf("%f", f)
 	}
 }
@@ -74,7 +74,7 @@ func TestRelativeHumidity_neg(t *testing.T) {
 	if s := o.String(); s != "-50.10%rH" {
 		t.Fatalf("%#v", s)
 	}
-	if f := o.Float64(); f < -50.11 || f > -50.09 {
+	if f := o.Float64(); f <= -50.11 || f >= -50.09 {
 		t.Fatalf("%f", f)
 	}
 }

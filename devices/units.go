@@ -5,7 +5,7 @@
 package devices
 
 import (
-	"fmt"
+	"strconv"
 )
 
 // Milli is a fixed point value with 0.001 precision.
@@ -22,7 +22,7 @@ func (m Milli) String() string {
 	if d < 0 {
 		d = -d
 	}
-	return fmt.Sprintf("%d.%03d", m/1000, d)
+	return strconv.Itoa(int(m)/1000) + "." + prefixZeros(3, int(d))
 }
 
 // Celsius is a temperature at a precision of 0.001°C.
@@ -87,5 +87,17 @@ func (r RelativeHumidity) String() string {
 	if m < 0 {
 		m = -m
 	}
-	return fmt.Sprintf("%d.%02d%%rH", r/100, m)
+	return strconv.Itoa(int(r)/100) + "." + prefixZeros(2, int(m)) + "%rH"
+}
+
+//
+
+func prefixZeros(digits, v int) string {
+	// digits is expected to be around 2~3.
+	s := strconv.Itoa(v)
+	for len(s) < digits {
+		// O(n²) but since digits is expected to run 2~3 times at most, it doesn't matter.
+		s = "0" + s
+	}
+	return s
 }
