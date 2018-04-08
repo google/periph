@@ -47,8 +47,7 @@ package periph // import "periph.io/x/periph"
 
 import (
 	"errors"
-	"fmt"
-	"sort"
+	"strconv"
 	"sync"
 )
 
@@ -87,7 +86,13 @@ type DriverFailure struct {
 }
 
 func (d DriverFailure) String() string {
-	return fmt.Sprintf("%s: %v", d.D, d.Err)
+	out := d.D.String() + ": "
+	if d.Err != nil {
+		out += d.Err.Error()
+	} else {
+		out += "<nil>"
+	}
+	return out
 }
 
 // State is the state of loaded device drivers.
@@ -123,21 +128,21 @@ func Init() (*State, error) {
 	go func() {
 		defer wg.Done()
 		for d := range cD {
-			state.Loaded = append(state.Loaded, d)
+			state.Loaded = insertDriver(state.Loaded, d)
 		}
 	}()
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for d := range cS {
-			state.Skipped = append(state.Skipped, d)
+		for f := range cS {
+			state.Skipped = insertDriverFailure(state.Skipped, f)
 		}
 	}()
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		for f := range cE {
-			state.Failed = append(state.Failed, f)
+			state.Failed = insertDriverFailure(state.Failed, f)
 		}
 	}()
 
@@ -153,15 +158,6 @@ func Init() (*State, error) {
 	close(cS)
 	close(cE)
 	wg.Wait()
-	d := drivers(state.Loaded)
-	sort.Sort(d)
-	state.Loaded = d
-	f := failures(state.Skipped)
-	sort.Sort(f)
-	state.Skipped = f
-	f = failures(state.Failed)
-	sort.Sort(f)
-	state.Failed = f
 	return state, nil
 }
 
@@ -179,7 +175,7 @@ func Register(d Driver) error {
 
 	n := d.String()
 	if _, ok := byName[n]; ok {
-		return fmt.Errorf("periph: driver with same name %q was already registered", d)
+		return errors.New("periph: driver with same name " + strconv.Quote(d.String()) + " was already registered")
 	}
 	byName[n] = d
 	allDrivers = append(allDrivers, d)
@@ -218,7 +214,7 @@ func explodeStages(drvs []Driver) ([][]Driver, error) {
 		name := d.String()
 		for _, depName := range d.Prerequisites() {
 			if _, ok := byName[depName]; !ok {
-				return nil, fmt.Errorf("periph: unsatisfied dependency %q->%q; it is missing; skipping", name, depName)
+				return nil, errors.New("periph: unsatisfied dependency " + strconv.Quote(name) + "->" + strconv.Quote(depName) + "; it is missing; skipping")
 			}
 			// Dependency between two drivers of the same type. This can happen
 			// when there's a process class driver and a processor specialization
@@ -240,7 +236,8 @@ func explodeStages(drvs []Driver) ([][]Driver, error) {
 			}
 		}
 		if len(stage) == 0 {
-			return nil, fmt.Errorf("periph: found cycle(s) in drivers dependencies; %v", dependencies)
+			// TODO(maruel): Print the dependency cycle.
+			return nil, errors.New("periph: found cycle(s) in drivers dependencies")
 		}
 		stages = append(stages, l)
 
@@ -264,7 +261,7 @@ func loadStage(drvs []Driver, loaded map[string]struct{}, cD chan<- Driver, cS c
 		// guaranteed to be in a previous stage by explodeStages().
 		for _, dep := range d.Prerequisites() {
 			if _, ok := loaded[dep]; !ok {
-				skip[i] = fmt.Errorf("dependency not loaded: %q", dep)
+				skip[i] = errors.New("dependency not loaded: " + strconv.Quote(dep))
 				break
 			}
 		}
@@ -304,14 +301,35 @@ func loadStage(drvs []Driver, loaded map[string]struct{}, cD chan<- Driver, cS c
 	}
 }
 
-type drivers []Driver
+func insertDriver(l []Driver, d Driver) []Driver {
+	n := d.String()
+	i := search(len(l), func(i int) bool { return l[i].String() > n })
+	l = append(l, nil)
+	copy(l[i+1:], l[i:])
+	l[i] = d
+	return l
+}
 
-func (d drivers) Len() int           { return len(d) }
-func (d drivers) Less(i, j int) bool { return d[i].String() < d[j].String() }
-func (d drivers) Swap(i, j int)      { d[i], d[j] = d[j], d[i] }
+func insertDriverFailure(l []DriverFailure, f DriverFailure) []DriverFailure {
+	n := f.String()
+	i := search(len(l), func(i int) bool { return l[i].String() > n })
+	l = append(l, DriverFailure{})
+	copy(l[i+1:], l[i:])
+	l[i] = f
+	return l
+}
 
-type failures []DriverFailure
-
-func (f failures) Len() int           { return len(f) }
-func (f failures) Less(i, j int) bool { return f[i].D.String() < f[j].D.String() }
-func (f failures) Swap(i, j int)      { f[i], f[j] = f[j], f[i] }
+// search implements the same algorithm as sort.Search().
+//
+// It was extracted to to not depend on sort, which depends on reflect.
+func search(n int, f func(int) bool) int {
+	lo := 0
+	for hi := n; lo < hi; {
+		if i := int(uint(lo+hi) >> 1); !f(i) {
+			lo = i + 1
+		} else {
+			hi = i
+		}
+	}
+	return lo
+}

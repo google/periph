@@ -6,7 +6,6 @@ package periph
 
 import (
 	"errors"
-	"sort"
 	"testing"
 )
 
@@ -320,18 +319,28 @@ func TestExplodeStages3Dep(t *testing.T) {
 }
 
 func TestDrivers(t *testing.T) {
-	d := drivers{&driver{name: "b"}, &driver{name: "a"}}
-	sort.Sort(d)
-	if d[0].String() != "a" || d[1].String() != "b" {
-		t.Fatal(d)
+	var d []Driver
+	d = insertDriver(d, &driver{name: "b"})
+	d = insertDriver(d, &driver{name: "d"})
+	d = insertDriver(d, &driver{name: "c"})
+	d = insertDriver(d, &driver{name: "a"})
+	for i, l := range []string{"a", "b", "c", "d"} {
+		if d[i].String() != l {
+			t.Fatal(d)
+		}
 	}
 }
 
 func TestFailures(t *testing.T) {
-	f := failures{DriverFailure{D: &driver{name: "b"}}, DriverFailure{D: &driver{name: "a"}}}
-	sort.Sort(f)
-	if f[0].String() != "a: <nil>" || f[1].String() != "b: <nil>" {
-		t.Fatal(f)
+	var d []DriverFailure
+	d = insertDriverFailure(d, DriverFailure{D: &driver{name: "b"}})
+	d = insertDriverFailure(d, DriverFailure{D: &driver{name: "d"}})
+	d = insertDriverFailure(d, DriverFailure{D: &driver{name: "c"}})
+	d = insertDriverFailure(d, DriverFailure{D: &driver{name: "a"}})
+	for i, l := range []string{"a", "b", "c", "d"} {
+		if d[i].D.String() != l {
+			t.Fatal(d)
+		}
 	}
 }
 
