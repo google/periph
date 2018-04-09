@@ -10,7 +10,6 @@
 package gpiostream
 
 import (
-	"sort"
 	"time"
 
 	"periph.io/x/periph/conn/gpio"
@@ -176,13 +175,12 @@ func (p *Program) Resolution() time.Duration {
 	var rates []time.Duration
 	for _, part := range p.Parts {
 		if r := part.Resolution(); r != 0 {
-			rates = append(rates, r)
+			rates = insertTime(rates, r)
 		}
 	}
 	if len(rates) == 0 {
 		return 0
 	}
-	sort.Slice(rates, func(i, j int) bool { return rates[i] < rates[j] })
 	res := rates[0]
 	for i := 1; i < len(rates); i++ {
 		r := rates[i]
@@ -243,6 +241,29 @@ type PinOut interface {
 }
 
 //
+
+func insertTime(l []time.Duration, t time.Duration) []time.Duration {
+	i := search(len(l), func(i int) bool { return l[i] > t })
+	l = append(l, 0)
+	copy(l[i+1:], l[i:])
+	l[i] = t
+	return l
+}
+
+// search implements the same algorithm as sort.Search().
+//
+// It was extracted to to not depend on sort, which depends on reflect.
+func search(n int, f func(int) bool) int {
+	lo := 0
+	for hi := n; lo < hi; {
+		if i := int(uint(lo+hi) >> 1); !f(i) {
+			lo = i + 1
+		} else {
+			hi = i
+		}
+	}
+	return lo
+}
 
 var _ Stream = &BitStreamLSB{}
 var _ Stream = &BitStreamMSB{}
