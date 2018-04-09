@@ -6,7 +6,6 @@ package spireg
 
 import (
 	"errors"
-	"sort"
 	"testing"
 
 	"periph.io/x/periph/conn"
@@ -61,11 +60,15 @@ func TestAll(t *testing.T) {
 	}
 }
 
-func TestRefList(t *testing.T) {
-	l := refList{&Ref{Name: "b"}, &Ref{Name: "a"}}
-	sort.Sort(l)
-	if l[0].Name != "a" || l[1].Name != "b" {
-		t.Fatal(l)
+func TestRef(t *testing.T) {
+	out := insertRef(nil, &Ref{Name: "b"})
+	out = insertRef(out, &Ref{Name: "d"})
+	out = insertRef(out, &Ref{Name: "c"})
+	out = insertRef(out, &Ref{Name: "a"})
+	for i, l := range []string{"a", "b", "c", "d"} {
+		if out[i].Name != l {
+			t.Fatal(byName)
+		}
 	}
 }
 

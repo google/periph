@@ -10,7 +10,6 @@ package spireg
 
 import (
 	"errors"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -100,18 +99,14 @@ func Open(name string) (spi.PortCloser, error) {
 //
 // The list is sorted by the port name.
 func All() []*Ref {
-	var out refList
-	func() {
-		mu.Lock()
-		defer mu.Unlock()
-		out = make(refList, 0, len(byName))
-		for _, v := range byName {
-			r := &Ref{Name: v.Name, Aliases: make([]string, len(v.Aliases)), Number: v.Number, Open: v.Open}
-			copy(r.Aliases, v.Aliases)
-			out = append(out, r)
-		}
-	}()
-	sort.Sort(out)
+	mu.Lock()
+	defer mu.Unlock()
+	out := make([]*Ref, 0, len(byName))
+	for _, v := range byName {
+		r := &Ref{Name: v.Name, Aliases: make([]string, len(v.Aliases)), Number: v.Number, Open: v.Open}
+		copy(r.Aliases, v.Aliases)
+		out = insertRef(out, r)
+	}
 	return out
 }
 
@@ -242,8 +237,26 @@ func getDefault() *Ref {
 	return o
 }
 
-type refList []*Ref
+func insertRef(l []*Ref, r *Ref) []*Ref {
+	n := r.Name
+	i := search(len(l), func(i int) bool { return l[i].Name > n })
+	l = append(l, nil)
+	copy(l[i+1:], l[i:])
+	l[i] = r
+	return l
+}
 
-func (r refList) Len() int           { return len(r) }
-func (r refList) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
-func (r refList) Less(i, j int) bool { return r[i].Name < r[j].Name }
+// search implements the same algorithm as sort.Search().
+//
+// It was extracted to to not depend on sort, which depends on reflect.
+func search(n int, f func(int) bool) int {
+	lo := 0
+	for hi := n; lo < hi; {
+		if i := int(uint(lo+hi) >> 1); !f(i) {
+			lo = i + 1
+		} else {
+			hi = i
+		}
+	}
+	return lo
+}
