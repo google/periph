@@ -5,7 +5,6 @@
 package gpioreg
 
 import (
-	"sort"
 	"testing"
 
 	"periph.io/x/periph/conn/gpio"
@@ -137,11 +136,27 @@ func TestRegisterAlias_fail(t *testing.T) {
 	}
 }
 
-func TestPinList(t *testing.T) {
-	l := pinList{&basicPin{PinIO: gpio.INVALID, num: 1}, &basicPin{PinIO: gpio.INVALID}}
-	sort.Sort(l)
-	if l[0].(*basicPin).num != 0 || l[1].(*basicPin).num != 1 {
-		t.Fatal(l)
+func TestInsertPinByNumber(t *testing.T) {
+	out := insertPinByNumber(nil, &basicPin{name: "b", num: 1})
+	out = insertPinByNumber(out, &basicPin{name: "d", num: 3})
+	out = insertPinByNumber(out, &basicPin{name: "c", num: 2})
+	out = insertPinByNumber(out, &basicPin{name: "a", num: 0})
+	for i := 0; i < 4; i++ {
+		if out[i].Number() != i {
+			t.Fatal(out)
+		}
+	}
+}
+
+func TestInsertPinByName(t *testing.T) {
+	out := insertPinByName(nil, &basicPin{name: "b"})
+	out = insertPinByName(out, &basicPin{name: "d"})
+	out = insertPinByName(out, &basicPin{name: "c"})
+	out = insertPinByName(out, &basicPin{name: "a"})
+	for i, l := range []string{"a", "b", "c", "d"} {
+		if out[i].Name() != l {
+			t.Fatal(out)
+		}
 	}
 }
 

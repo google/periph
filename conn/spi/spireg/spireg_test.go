@@ -67,7 +67,7 @@ func TestRef(t *testing.T) {
 	out = insertRef(out, &Ref{Name: "a"})
 	for i, l := range []string{"a", "b", "c", "d"} {
 		if out[i].Name != l {
-			t.Fatal(byName)
+			t.Fatal(out)
 		}
 	}
 }

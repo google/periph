@@ -7,7 +7,6 @@ package gpioreg
 
 import (
 	"errors"
-	"sort"
 	"strconv"
 	"sync"
 
@@ -38,20 +37,19 @@ func ByName(name string) gpio.PinIO {
 func All() []gpio.PinIO {
 	mu.Lock()
 	defer mu.Unlock()
-	out := make(pinList, 0, len(byNumber))
+	out := make([]gpio.PinIO, 0, len(byNumber))
 	seen := make(map[int]struct{}, len(byNumber[0]))
 	// Memory-mapped pins have highest priority, include all of them.
 	for _, p := range byNumber[0] {
-		out = append(out, p)
+		out = insertPinByNumber(out, p)
 		seen[p.Number()] = struct{}{}
 	}
 	// Add in OS accessible pins that cannot be accessed via memory-map.
 	for _, p := range byNumber[1] {
 		if _, ok := seen[p.Number()]; !ok {
-			out = append(out, p)
+			out = insertPinByNumber(out, p)
 		}
 	}
-	sort.Sort(out)
 	return out
 }
 
@@ -61,7 +59,7 @@ func All() []gpio.PinIO {
 func Aliases() []gpio.PinIO {
 	mu.Lock()
 	defer mu.Unlock()
-	out := make(pinList, 0, len(byAlias))
+	out := make([]gpio.PinIO, 0, len(byAlias))
 	for _, p := range byAlias {
 		// Skip aliases that were not resolved. This requires resolving all aliases.
 		if p.PinIO == nil {
@@ -69,9 +67,8 @@ func Aliases() []gpio.PinIO {
 				continue
 			}
 		}
-		out = append(out, p)
+		out = insertPinByName(out, p)
 	}
-	sort.Sort(out)
 	return out
 }
 
@@ -231,8 +228,35 @@ func getByName(name string) gpio.PinIO {
 	return nil
 }
 
-type pinList []gpio.PinIO
+func insertPinByNumber(l []gpio.PinIO, p gpio.PinIO) []gpio.PinIO {
+	n := p.Number()
+	i := search(len(l), func(i int) bool { return l[i].Number() > n })
+	l = append(l, nil)
+	copy(l[i+1:], l[i:])
+	l[i] = p
+	return l
+}
 
-func (p pinList) Len() int           { return len(p) }
-func (p pinList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
-func (p pinList) Less(i, j int) bool { return p[i].Number() < p[j].Number() }
+func insertPinByName(l []gpio.PinIO, p gpio.PinIO) []gpio.PinIO {
+	n := p.Name()
+	i := search(len(l), func(i int) bool { return l[i].Name() > n })
+	l = append(l, nil)
+	copy(l[i+1:], l[i:])
+	l[i] = p
+	return l
+}
+
+// search implements the same algorithm as sort.Search().
+//
+// It was extracted to to not depend on sort, which depends on reflect.
+func search(n int, f func(int) bool) int {
+	lo := 0
+	for hi := n; lo < hi; {
+		if i := int(uint(lo+hi) >> 1); !f(i) {
+			lo = i + 1
+		} else {
+			hi = i
+		}
+	}
+	return lo
+}
