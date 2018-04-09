@@ -292,13 +292,13 @@ func (d *Dev16) WriteStruct(reg uint16, b interface{}) error {
 
 func (d *Dev16) check() error {
 	if d.Conn == nil {
-		return errors.New("reg: missing connection")
+		return errors.New("mmr: missing connection")
 	}
 	if d.Conn.Duplex() != conn.Half {
-		return errors.New("reg: connection must be half-duplex")
+		return errors.New("mmr: connection must be half-duplex")
 	}
 	if d.Order == nil {
-		return errors.New("reg: don't know if big or little endian")
+		return errors.New("mmr: don't know if big or little endian")
 	}
 	return nil
 }
@@ -307,18 +307,18 @@ func (d *Dev16) check() error {
 
 func readReg(c conn.Conn, order binary.ByteOrder, reg []byte, b interface{}) error {
 	if b == nil {
-		return errors.New("reg: ReadRegStruct() requires a pointer or slice to an int or struct, got nil")
+		return errors.New("mmr: ReadRegStruct() requires a pointer or slice to an int or struct, got nil")
 	}
 	v := reflect.ValueOf(b)
 	if !isAcceptableRead(v.Type()) {
-		return fmt.Errorf("reg: ReadRegStruct() requires a slice or a pointer to a int or struct, got %s as %T", v.Kind(), b)
+		return fmt.Errorf("mmr: ReadRegStruct() requires a slice or a pointer to a int or struct, got %s as %T", v.Kind(), b)
 	}
 	buf := make([]byte, int(getSize(v)))
 	if err := c.Tx(reg, buf); err != nil {
 		return err
 	}
 	if err := binary.Read(bytes.NewReader(buf), order, b); err != nil {
-		return fmt.Errorf("reg: decoding failed: %s", err)
+		return errors.New("mmr: decoding failed: " + err.Error())
 	}
 	return nil
 }
@@ -328,15 +328,15 @@ func readReg(c conn.Conn, order binary.ByteOrder, reg []byte, b interface{}) err
 // Warning: reg is modified.
 func writeReg(c conn.Conn, order binary.ByteOrder, reg []byte, b interface{}) error {
 	if b == nil {
-		return errors.New("reg: WriteRegStruct() requires a pointer or slice to an int or struct, got nil")
+		return errors.New("mmr: WriteRegStruct() requires a pointer or slice to an int or struct, got nil")
 	}
 	t := reflect.TypeOf(b)
 	if !isAcceptableWrite(t) {
-		return fmt.Errorf("reg: WriteRegStruct() requires a slice or a pointer to a int or struct, got %s as %T", t.Kind(), b)
+		return fmt.Errorf("mmr: WriteRegStruct() requires a slice or a pointer to a int or struct, got %s as %T", t.Kind(), b)
 	}
 	buf := bytes.NewBuffer(reg)
 	if err := binary.Write(buf, order, b); err != nil {
-		return fmt.Errorf("reg: encoding failed: %s", err)
+		return errors.New("mmr: encoding failed: " + err.Error())
 	}
 	return c.Tx(buf.Bytes(), nil)
 }
