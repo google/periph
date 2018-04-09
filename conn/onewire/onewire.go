@@ -22,9 +22,7 @@
 package onewire
 
 import (
-	"encoding/binary"
 	"fmt"
-	"io"
 
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio"
@@ -88,7 +86,7 @@ func (p Pullup) String() string {
 // It is expected that an implementer of Bus also implement BusCloser, but
 // this is not required.
 type BusCloser interface {
-	io.Closer
+	Close() error
 	Bus
 }
 
@@ -172,7 +170,7 @@ func (d *Dev) Tx(w, r []byte) error {
 	// bytes being written.
 	ww := make([]byte, 9, len(w)+9)
 	ww[0] = 0x55 // Match ROM
-	binary.LittleEndian.PutUint64(ww[1:], uint64(d.Addr))
+	putUint64(ww[1:], d.Addr)
 	ww = append(ww, w...)
 	return d.Bus.Tx(ww, r, WeakPullup)
 }
@@ -193,9 +191,27 @@ func (d *Dev) TxPower(w, r []byte) error {
 	// bytes being written.
 	ww := make([]byte, 9, len(w)+9)
 	ww[0] = 0x55 // Match ROM
-	binary.LittleEndian.PutUint64(ww[1:], uint64(d.Addr))
+	putUint64(ww[1:], d.Addr)
 	ww = append(ww, w...)
 	return d.Bus.Tx(ww, r, StrongPullup)
+}
+
+//
+
+// putUint64 is littleEndian.PutUint64().
+//
+// It was extracted to to not depend on encoding/binary, which depends on
+// reflect.
+func putUint64(b []byte, v Address) {
+	_ = b[7]
+	b[0] = byte(v)
+	b[1] = byte(v >> 8)
+	b[2] = byte(v >> 16)
+	b[3] = byte(v >> 24)
+	b[4] = byte(v >> 32)
+	b[5] = byte(v >> 40)
+	b[6] = byte(v >> 48)
+	b[7] = byte(v >> 56)
 }
 
 // Ensure that the appropriate interfaces are implemented.

@@ -4,7 +4,10 @@
 
 package onewire
 
-import "fmt"
+import (
+	"errors"
+	"strconv"
+)
 
 // BusSearcher provides the basic bus transaction necessary to search a 1-wire
 // bus for devices. Buses that implement this interface can be searched with
@@ -80,7 +83,7 @@ func Search(bus BusSearcher, alarmOnly bool) ([]Address, error) {
 			// Check for the absence of devices on the bus. This is a 1-wire
 			// bus error condition and we return a partial result.
 			if !result.GotZero && !result.GotOne {
-				return devices, fmt.Errorf("onewire: devices disappeared during search")
+				return devices, errors.New("onewire: devices disappeared during search")
 			}
 
 			// Check whether we have devices responding for 0 and 1 and we
@@ -101,7 +104,14 @@ func Search(bus BusSearcher, alarmOnly bool) ([]Address, error) {
 		// Verify the CRC and record device if we got it right.
 		if !CheckCRC(idBytes[:]) {
 			// CRC error: return partial result. This is a transient error.
-			return devices, busError(fmt.Sprintf("onewire: CRC error during search, addr=%+v", idBytes))
+			msg := "onewire: CRC error during search, addr=["
+			for i, b := range idBytes {
+				msg += strconv.Itoa(int(b))
+				if i != len(idBytes)-1 {
+					msg += " "
+				}
+			}
+			return devices, busError(msg + "]")
 		}
 		devices = append(devices, Address(device))
 		lastDevice = device
