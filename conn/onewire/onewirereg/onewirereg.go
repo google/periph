@@ -6,8 +6,7 @@
 package onewirereg
 
 import (
-	"fmt"
-	"sort"
+	"errors"
 	"strconv"
 	"strings"
 	"sync"
@@ -62,7 +61,7 @@ func Open(name string) (onewire.BusCloser, error) {
 		mu.Lock()
 		defer mu.Unlock()
 		if len(byName) == 0 {
-			err = wrapf("no bus found; did you forget to call Init()?")
+			err = errors.New("onewirereg: no bus found; did you forget to call Init()?")
 			return
 		}
 		if len(name) == 0 {
@@ -82,7 +81,7 @@ func Open(name string) (onewire.BusCloser, error) {
 		return nil, err
 	}
 	if r == nil {
-		return nil, wrapf("can't open unknown bus: %q", name)
+		return nil, errors.New("onewirereg: can't open unknown bus: " + strconv.Quote(name))
 	}
 	return r.Open()
 }
@@ -92,18 +91,14 @@ func Open(name string) (onewire.BusCloser, error) {
 //
 // The list is sorted by the bus name.
 func All() []*Ref {
-	var out refList
-	func() {
-		mu.Lock()
-		defer mu.Unlock()
-		out = make(refList, 0, len(byName))
-		for _, v := range byName {
-			r := &Ref{Name: v.Name, Aliases: make([]string, len(v.Aliases)), Number: v.Number, Open: v.Open}
-			copy(r.Aliases, v.Aliases)
-			out = append(out, r)
-		}
-	}()
-	sort.Sort(out)
+	mu.Lock()
+	defer mu.Unlock()
+	out := make([]*Ref, 0, len(byName))
+	for _, v := range byName {
+		r := &Ref{Name: v.Name, Aliases: make([]string, len(v.Aliases)), Number: v.Number, Open: v.Open}
+		copy(r.Aliases, v.Aliases)
+		out = insertRef(out, r)
+	}
 	return out
 }
 
@@ -116,54 +111,54 @@ func All() []*Ref {
 // device for unique identification.
 func Register(name string, aliases []string, number int, o Opener) error {
 	if len(name) == 0 {
-		return wrapf("can't register a bus with no name")
+		return errors.New("onewirereg: can't register a bus with no name")
 	}
 	if o == nil {
-		return wrapf("can't register bus %q with nil Opener", name)
+		return errors.New("onewirereg: can't register bus " + strconv.Quote(name) + " with nil Opener")
 	}
 	if number < -1 {
-		return wrapf("can't register bus %q with invalid bus number %d", name, number)
+		return errors.New("onewirereg: can't register bus " + strconv.Quote(name) + " with invalid bus number " + strconv.Itoa(number))
 	}
 	if _, err := strconv.Atoi(name); err == nil {
-		return wrapf("can't register bus %q with name being only a number", name)
+		return errors.New("onewirereg: can't register bus " + strconv.Quote(name) + " with name being only a number")
 	}
 	if strings.Contains(name, ":") {
-		return wrapf("can't register bus %q with name containing ':'", name)
+		return errors.New("onewirereg: can't register bus " + strconv.Quote(name) + " with name containing ':'")
 	}
 	for _, alias := range aliases {
 		if len(alias) == 0 {
-			return wrapf("can't register bus %q with an empty alias", name)
+			return errors.New("onewirereg: can't register bus " + strconv.Quote(name) + " with an empty alias")
 		}
 		if name == alias {
-			return wrapf("can't register bus %q with an alias the same as the bus name", name)
+			return errors.New("onewirereg: can't register bus " + strconv.Quote(name) + " with an alias the same as the bus name")
 		}
 		if _, err := strconv.Atoi(alias); err == nil {
-			return wrapf("can't register bus %q with an alias that is a number: %q", name, alias)
+			return errors.New("onewirereg: can't register bus " + strconv.Quote(name) + " with an alias that is a number: " + strconv.Quote(alias))
 		}
 		if strings.Contains(alias, ":") {
-			return wrapf("can't register bus %q with an alias containing ':': %q", name, alias)
+			return errors.New("onewirereg: can't register bus " + strconv.Quote(name) + " with an alias containing ':': " + strconv.Quote(alias))
 		}
 	}
 
 	mu.Lock()
 	defer mu.Unlock()
 	if _, ok := byName[name]; ok {
-		return wrapf("can't register bus %q twice", name)
+		return errors.New("onewirereg: can't register bus " + strconv.Quote(name) + " twice")
 	}
 	if _, ok := byAlias[name]; ok {
-		return wrapf("can't register bus %q twice; it is already an alias", name)
+		return errors.New("onewirereg: can't register bus " + strconv.Quote(name) + " twice; it is already an alias")
 	}
 	if number != -1 {
 		if _, ok := byNumber[number]; ok {
-			return wrapf("can't register bus %q; bus number %d is already registered", name, number)
+			return errors.New("onewirereg: can't register bus " + strconv.Quote(name) + "; bus number " + strconv.Itoa(number) + " is already registered")
 		}
 	}
 	for _, alias := range aliases {
 		if _, ok := byName[alias]; ok {
-			return wrapf("can't register bus %q twice; alias %q is already a bus", name, alias)
+			return errors.New("onewirereg: can't register bus " + strconv.Quote(name) + " twice; alias " + strconv.Quote(alias) + " is already a bus")
 		}
 		if _, ok := byAlias[alias]; ok {
-			return wrapf("can't register bus %q twice; alias %q is already an alias", name, alias)
+			return errors.New("onewirereg: can't register bus " + strconv.Quote(name) + " twice; alias " + strconv.Quote(alias) + " is already an alias")
 		}
 	}
 
@@ -188,7 +183,7 @@ func Unregister(name string) error {
 	defer mu.Unlock()
 	r := byName[name]
 	if r == nil {
-		return wrapf("can't unregister unknown bus name %q", name)
+		return errors.New("onewirereg: can't unregister unknown bus name " + strconv.Quote(name))
 	}
 	delete(byName, name)
 	delete(byNumber, r.Number)
@@ -232,13 +227,26 @@ func getDefault() *Ref {
 	return o
 }
 
-// wrapf returns an error that is wrapped with the package name.
-func wrapf(format string, a ...interface{}) error {
-	return fmt.Errorf("onewirereg: "+format, a...)
+func insertRef(l []*Ref, r *Ref) []*Ref {
+	n := r.Name
+	i := search(len(l), func(i int) bool { return l[i].Name > n })
+	l = append(l, nil)
+	copy(l[i+1:], l[i:])
+	l[i] = r
+	return l
 }
 
-type refList []*Ref
-
-func (r refList) Len() int           { return len(r) }
-func (r refList) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
-func (r refList) Less(i, j int) bool { return r[i].Name < r[j].Name }
+// search implements the same algorithm as sort.Search().
+//
+// It was extracted to to not depend on sort, which depends on reflect.
+func search(n int, f func(int) bool) int {
+	lo := 0
+	for hi := n; lo < hi; {
+		if i := int(uint(lo+hi) >> 1); !f(i) {
+			lo = i + 1
+		} else {
+			hi = i
+		}
+	}
+	return lo
+}
