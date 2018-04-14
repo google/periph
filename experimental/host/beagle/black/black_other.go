@@ -4,6 +4,6 @@
 
 // +build !arm
 
-package beagle
+package black
 
 const isArm = false
