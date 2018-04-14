@@ -1,4 +1,4 @@
-// Copyright 2017 The Periph Authors. All rights reserved.
+// Copyright 2018 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -97,6 +97,7 @@ var (
 // Beagleboard present.
 func Present() bool {
 	if isArm {
+		// TODO: check for beaglebone black in particular
 		_, err := os.Stat("/sys/firmware/devicetree/base/bone_capemgr")
 
 		return err == nil
