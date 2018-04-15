@@ -433,7 +433,11 @@ func (d *driverGPIO) parseGPIOChip(path string) error {
 		if err := gpioreg.Register(p, false); err != nil {
 			return err
 		}
-		// We cannot use gpio.MapFunction() since there is no API to determine this.
+		// If there is a CPU memory mapped gpio pin with the same number, the
+		// driver has to unregister this pin and map its own after.
+		if err := gpioreg.RegisterAlias(strconv.Itoa(i), p.name); err != nil {
+			return err
+		}
 	}
 	return nil
 }

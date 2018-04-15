@@ -605,16 +605,18 @@ func initPins() error {
 		// Unregister the pin if already registered. This happens with sysfs-gpio.
 		// Do not error on it, since sysfs-gpio may have failed to load.
 		_ = gpioreg.Unregister(gpion)
+		_ = gpioreg.Unregister(num)
 
 		// Register the pin with gpio.
 		if err := gpioreg.Register(cpupins[i], true); err != nil {
 			return err
 		}
-		// Register the alias GPIOn.
 		if err := gpioreg.RegisterAlias(gpion, name); err != nil {
 			return err
 		}
-
+		if err := gpioreg.RegisterAlias(num, name); err != nil {
+			return err
+		}
 		// Iterate through alternate functions and register function->pin mapping.
 		// TODO(maruel): There's a problem where multiple pins may be set to the
 		// same function. Need investigation. For now just ignore errors.

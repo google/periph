@@ -119,6 +119,10 @@ func testChipGpioNumbers() error {
 		if pin == nil {
 			return fmt.Errorf("could not get gpio pin %d (should be %s)", number, name)
 		}
+		// Resolve the alias if necessary.
+		if r, ok := pin.(gpio.RealPin); ok {
+			pin = r.Real()
+		}
 		if pin.Name() != name {
 			return fmt.Errorf("expected gpio pin %d to be %s but it's %s",
 				number, name, pin.Name())

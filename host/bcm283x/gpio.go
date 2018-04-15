@@ -960,11 +960,12 @@ func (d *driverGPIO) Init() (bool, error) {
 		// Unregister the pin if already registered. This happens with sysfs-gpio.
 		// Do not error on it, since sysfs-gpio may have failed to load.
 		_ = gpioreg.Unregister(gpion)
+		_ = gpioreg.Unregister(num)
 
 		if err := gpioreg.Register(&cpuPins[i], true); err != nil {
 			return true, err
 		}
-		if err := gpioreg.RegisterAlias(gpion, name); err != nil {
+		if err := gpioreg.RegisterAlias(num, name); err != nil {
 			return true, err
 		}
 		// A pin set in alternate function but not described in `mapping` will

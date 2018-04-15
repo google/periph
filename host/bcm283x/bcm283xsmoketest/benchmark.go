@@ -48,10 +48,16 @@ func (s *Benchmark) Run(f *flag.FlagSet, args []string) error {
 		f.Usage()
 		return errors.New("-p is required")
 	}
-	ok := false
-	s.p, ok = gpioreg.ByName(*name).(*bcm283x.Pin)
-	if !ok {
+	p := gpioreg.ByName(*name)
+	if p == nil {
 		return fmt.Errorf("invalid pin %q", *name)
+	}
+	if r, ok := p.(gpio.RealPin); ok {
+		p = r.Real()
+	}
+	ok := false
+	if s.p, ok = p.(*bcm283x.Pin); !ok {
+		return fmt.Errorf("pin is not bcm283x %q", *name)
 	}
 	s.pull = gpio.PullDown
 	s.runFastGPIOBenchmark()
