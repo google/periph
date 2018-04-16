@@ -114,12 +114,35 @@ func TestRegisterAlias(t *testing.T) {
 	if Register(&basicPin{PinIO: gpio.INVALID, name: "alias0", num: 1}, false) == nil {
 		t.Fatal("alias0 is already registered as an alias")
 	}
-	if Register(&pinAlias{PinIO: &basicPin{PinIO: gpio.INVALID, name: "GPIO1", num: 1}, name: "alias1", dest: "GPIO2"}, false) == nil {
+	if Register(&pinAlias{PinIO: &basicPin{PinIO: gpio.INVALID, name: "GPIO1", num: 1}, name: "alias1"}, false) == nil {
 		t.Fatal("can't register a pin implementing RealPin")
 	}
 
 	if ByName("0") == nil {
 		t.Fatal("getByName for low priority pin")
+	}
+}
+
+func TestRegisterAlias_chain(t *testing.T) {
+	defer reset()
+	if err := RegisterAlias("a0", "a1"); err != nil {
+		t.Fatal(err)
+	}
+	if err := RegisterAlias("a1", "a2"); err != nil {
+		t.Fatal(err)
+	}
+	if err := RegisterAlias("a2", "GPIO0"); err != nil {
+		t.Fatal(err)
+	}
+	if err := Register(&basicPin{PinIO: gpio.INVALID, name: "GPIO0", num: 0}, false); err != nil {
+		t.Fatal(err)
+	}
+	p := ByName("a0")
+	if p == nil {
+		t.Fatal("ByName(\"a0\") didn't find pin")
+	}
+	if s := p.String(); s != "a0(GPIO0)" {
+		t.Fatalf("unexpected pin name: %q", s)
 	}
 }
 
@@ -186,5 +209,5 @@ func reset() {
 	defer mu.Unlock()
 	byNumber = [2]map[int]gpio.PinIO{{}, {}}
 	byName = [2]map[string]gpio.PinIO{{}, {}}
-	byAlias = map[string]*pinAlias{}
+	byAlias = map[string]string{}
 }

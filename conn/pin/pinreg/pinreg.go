@@ -108,11 +108,8 @@ var (
 
 // realPin returns the real pin from an alias.
 func realPin(p pin.Pin) pin.Pin {
-	for {
-		if r, ok := p.(gpio.RealPin); ok {
-			p = r.Real()
-		} else {
-			return p
-		}
+	if r, ok := p.(gpio.RealPin); ok {
+		p = r.Real()
 	}
+	return p
 }
