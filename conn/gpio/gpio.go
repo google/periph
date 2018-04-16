@@ -241,8 +241,13 @@ var INVALID PinIO
 // RealPin is implemented by aliased pin and allows the retrieval of the real
 // pin underlying an alias.
 //
+// Aliases are created by RegisterAlias. Aliases permits presenting a user
+// friendly GPIO pin name while representing the underlying real pin.
+//
 // The purpose of the RealPin is to be able to cleanly test whether an arbitrary
-// gpio.PinIO returned by ByName is really an alias for another pin.
+// gpio.PinIO returned by ByName is an alias for another pin, and resolve it.
+// This is needed to be able to test for other interfaces, like PinPWM,
+// PinDefaultPull, etc.
 type RealPin interface {
 	Real() PinIO // Real returns the real pin behind an Alias
 }

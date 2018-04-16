@@ -94,6 +94,10 @@ func ExamplePinPWM() {
 	if p == nil {
 		log.Fatal("Failed to find GPIO6")
 	}
+	// Resolve alias if necessary.
+	if r, ok := p.(gpio.RealPin); ok {
+		p = r.Real()
+	}
 
 	pwm, ok := p.(gpio.PinPWM)
 	if !ok {
@@ -117,12 +121,20 @@ func ExampleRealPin() {
 	if p == nil {
 		log.Fatal("Failed to find P1_3")
 	}
+	fmt.Printf("P1_3: %s", p)
 
-	r, ok := p.(gpio.RealPin)
-	if !ok {
-		log.Fatalf("Pin %s is not an alias", p)
+	// Resolve the real underlying pin.
+	if r, ok := p.(gpio.RealPin); ok {
+		// On Raspberry Pis, pin #3 on header P1 is an alias for GPIO2.
+		fmt.Printf("%s is in fact %s", p, r.Real())
+		p = r.Real()
+	} else {
+		log.Printf("%s is not an alias", p)
 	}
 
-	// On Raspberry Pis, pin #3 on header P1 is an alias for GPIO2.
-	fmt.Printf("%s", r.Real())
+	// Then this is possible to find if the pin implements another interface.
+	if d, ok := p.(gpio.PinDefaultPull); ok {
+		fmt.Printf("%s default pull is %s", d, d.DefaultPull())
+	}
+
 }

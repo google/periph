@@ -7,6 +7,8 @@ package gpio
 import (
 	"testing"
 	"time"
+
+	"periph.io/x/periph/conn"
 )
 
 func TestStrings(t *testing.T) {
@@ -98,5 +100,8 @@ func TestInvalid(t *testing.T) {
 	}
 	if INVALID.Out(Low) != errInvalidPin {
 		t.Fail()
+	}
+	if err := INVALID.(conn.Resource).Halt(); err != nil {
+		t.Fatal(err)
 	}
 }
