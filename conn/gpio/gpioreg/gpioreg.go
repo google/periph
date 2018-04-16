@@ -239,7 +239,7 @@ func insertPinByNumber(l []gpio.PinIO, p gpio.PinIO) []gpio.PinIO {
 
 func insertPinByName(l []gpio.PinIO, p gpio.PinIO) []gpio.PinIO {
 	n := p.Name()
-	i := search(len(l), func(i int) bool { return l[i].Name() > n })
+	i := search(len(l), func(i int) bool { return lessNatural(n, l[i].Name()) })
 	l = append(l, nil)
 	copy(l[i+1:], l[i:])
 	l[i] = p
