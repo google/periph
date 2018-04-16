@@ -162,6 +162,32 @@ func RegisterAlias(alias string, dest string) error {
 	return nil
 }
 
+// Unregister removes a previously registered GPIO pin or alias from the GPIO
+// pin registry.
+//
+// This can happen when a GPIO pin is exposed via an USB device and the device
+// is unplugged, or when a generic OS provided pin is superseded by a CPU
+// specific implementation.
+func Unregister(name string) error {
+	mu.Lock()
+	defer mu.Unlock()
+	if p, ok := byName[1][name]; ok {
+		delete(byNumber[1], p.Number())
+		delete(byName[1], name)
+		return nil
+	}
+	if p, ok := byName[0][name]; ok {
+		delete(byNumber[0], p.Number())
+		delete(byName[0], name)
+		return nil
+	}
+	if _, ok := byAlias[name]; ok {
+		delete(byAlias, name)
+		return nil
+	}
+	return errors.New("gpioreg: can't unregister unknown pin name " + strconv.Quote(name))
+}
+
 //
 
 var (

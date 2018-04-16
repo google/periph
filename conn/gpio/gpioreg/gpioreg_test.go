@@ -159,6 +159,34 @@ func TestRegisterAlias_fail(t *testing.T) {
 	}
 }
 
+func TestUnRegister(t *testing.T) {
+	defer reset()
+	if err := RegisterAlias("Alias", "GPIO0"); err != nil {
+		t.Fatal(err)
+	}
+	if err := Unregister("Alias"); err != nil {
+		t.Fatal(err)
+	}
+	if err := Register(&basicPin{PinIO: gpio.INVALID, name: "GPIO0", num: 0}, false); err != nil {
+		t.Fatal(err)
+	}
+	if err := Unregister("GPIO0"); err != nil {
+		t.Fatal(err)
+	}
+	if err := Register(&basicPin{PinIO: gpio.INVALID, name: "GPIO0", num: 0}, true); err != nil {
+		t.Fatal(err)
+	}
+	if err := Unregister("GPIO0"); err != nil {
+		t.Fatal(err)
+	}
+	if a := All(); len(a) != 0 {
+		t.Fatalf("Expected no pin, got %v", a)
+	}
+	if err := Unregister("Unknown"); err == nil {
+		t.Fatal("Can't unregister unknown pin")
+	}
+}
+
 func TestInsertPinByNumber(t *testing.T) {
 	out := insertPinByNumber(nil, &basicPin{name: "b", num: 1})
 	out = insertPinByNumber(out, &basicPin{name: "d", num: 3})
