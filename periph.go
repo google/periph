@@ -48,6 +48,7 @@ package periph // import "periph.io/x/periph"
 import (
 	"errors"
 	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -120,6 +121,7 @@ func Init() (*State, error) {
 		return state, nil
 	}
 	state = &State{}
+	// At this point, byName is guaranteed to be immutable.
 	cD := make(chan Driver)
 	cS := make(chan DriverFailure)
 	cE := make(chan DriverFailure)
@@ -146,13 +148,13 @@ func Init() (*State, error) {
 		}
 	}()
 
-	stages, err := explodeStages(allDrivers)
+	stages, err := explodeStages()
 	if err != nil {
 		return state, err
 	}
-	loaded := map[string]struct{}{}
-	for _, drvs := range stages {
-		loadStage(drvs, loaded, cD, cS, cE)
+	loaded := make(map[string]struct{}, len(byName))
+	for _, s := range stages {
+		s.load(loaded, cD, cS, cE)
 	}
 	close(cD)
 	close(cS)
@@ -175,10 +177,9 @@ func Register(d Driver) error {
 
 	n := d.String()
 	if _, ok := byName[n]; ok {
-		return errors.New("periph: driver with same name " + strconv.Quote(d.String()) + " was already registered")
+		return errors.New("periph: driver with same name " + strconv.Quote(n) + " was already registered")
 	}
 	byName[n] = d
-	allDrivers = append(allDrivers, d)
 	return nil
 }
 
@@ -194,111 +195,124 @@ func MustRegister(d Driver) {
 //
 
 var (
-	mu         sync.Mutex
-	allDrivers []Driver
-	byName     = map[string]Driver{}
-	state      *State
+	// mu guards byName and state.
+	// - byName is only mutated by Register().
+	// - state is only mutated by Init().
+	//
+	// Once Init() is called, Register() refuses registering more drivers, thus
+	// byName is immutable once Init() started.
+	mu     sync.Mutex
+	byName = map[string]Driver{}
+	state  *State
 )
 
-// explodeStages creates multiple stages if needed.
+// stage is a set of drivers that can be loaded in parallel.
+type stage struct {
+	// Subset of byName drivers, for the ones in this stage.
+	drvs map[string]Driver
+}
+
+// load loads all the drivers for this stage in parallel.
 //
-// It searches if there's any driver than has dependency on another driver from
-// this stage and creates intermediate stage if so.
-func explodeStages(drvs []Driver) ([][]Driver, error) {
-	dependencies := map[string]map[string]struct{}{}
-	for _, d := range drvs {
-		dependencies[d.String()] = map[string]struct{}{}
-	}
-	// TODO(maruel): Lower number of stages by merging parallel dependencies.
-	for _, d := range drvs {
-		name := d.String()
-		for _, depName := range d.Prerequisites() {
-			if _, ok := byName[depName]; !ok {
-				return nil, errors.New("periph: unsatisfied dependency " + strconv.Quote(name) + "->" + strconv.Quote(depName) + "; it is missing; skipping")
+// Updates loaded in a safe way.
+func (s *stage) load(loaded map[string]struct{}, cD chan<- Driver, cS, cE chan<- DriverFailure) {
+	success := make(chan string)
+	go func() {
+		defer close(success)
+		wg := sync.WaitGroup{}
+	loop:
+		for name, drv := range s.drvs {
+			for _, dep := range drv.Prerequisites() {
+				if _, ok := loaded[dep]; !ok {
+					cS <- DriverFailure{drv, errors.New("dependency not loaded: " + strconv.Quote(dep))}
+					continue loop
+				}
 			}
-			// Dependency between two drivers of the same type. This can happen
-			// when there's a process class driver and a processor specialization
-			// driver. As an example, allwinner->R8, allwinner->A64, etc.
-			dependencies[name][depName] = struct{}{}
+
+			// Not skipped driver, attempt loading in a goroutine.
+			wg.Add(1)
+			go func(n string, d Driver) {
+				defer wg.Done()
+				if ok, err := d.Init(); ok {
+					if err == nil {
+						cD <- d
+						success <- n
+						return
+					}
+					cE <- DriverFailure{d, err}
+				} else {
+					// Do not assert that err != nil, as this is hard to test thoroughly.
+					if err != nil {
+						err = errors.New("no reason was given")
+					}
+					cS <- DriverFailure{d, err}
+				}
+			}(name, drv)
 		}
+		wg.Wait()
+	}()
+	for s := range success {
+		loaded[s] = struct{}{}
+	}
+}
+
+// explodeStages creates one or multiple stages by processing byName.
+//
+// It searches if there's any driver than has dependency on another driver and
+// create stages from this DAG.
+//
+// It also verifies that there is not cycle in the DAG.
+//
+// When this function starts, allDriver and byName are guaranteed to be
+// immutable. state must not be touched by this function.
+func explodeStages() ([]*stage, error) {
+	// First, create the DAG.
+	dag := map[string]map[string]struct{}{}
+	for name, d := range byName {
+		m := map[string]struct{}{}
+		for _, p := range d.Prerequisites() {
+			if _, ok := byName[p]; !ok {
+				return nil, errors.New("periph: unsatisfied dependency " + strconv.Quote(name) + "->" + strconv.Quote(p) + "; it is missing; skipping")
+			}
+			m[p] = struct{}{}
+		}
+		dag[name] = m
 	}
 
-	var stages [][]Driver
-	for len(dependencies) != 0 {
-		// Create a stage.
-		var stage []string
-		var l []Driver
-		for name, deps := range dependencies {
+	// Create stages.
+	var stages []*stage
+	for len(dag) != 0 {
+		s := &stage{drvs: map[string]Driver{}}
+		for name, deps := range dag {
+			// This driver has no dependency, add it to the current stage.
 			if len(deps) == 0 {
-				stage = append(stage, name)
-				l = append(l, byName[name])
-				delete(dependencies, name)
+				s.drvs[name] = byName[name]
+				delete(dag, name)
 			}
 		}
-		if len(stage) == 0 {
-			// TODO(maruel): Print the dependency cycle.
-			return nil, errors.New("periph: found cycle(s) in drivers dependencies")
+		if len(s.drvs) == 0 {
+			// Print out the remaining DAG so users can diagnose.
+			// It'd probably be nicer if it were done in Register()?
+			s := make([]string, 0, len(dag))
+			for name, deps := range dag {
+				x := make([]string, 0, len(deps))
+				for d := range deps {
+					x = insertString(x, d)
+				}
+				s = insertString(s, name+": "+strings.Join(x, ", "))
+			}
+			return nil, errors.New("periph: found cycle(s) in drivers dependencies:\n" + strings.Join(s, "\n"))
 		}
-		stages = append(stages, l)
+		stages = append(stages, s)
 
-		// Trim off.
-		for _, passed := range stage {
-			for name := range dependencies {
-				delete(dependencies[name], passed)
+		// Trim the dependencies for the items remaining in the dag.
+		for passed := range s.drvs {
+			for name := range dag {
+				delete(dag[name], passed)
 			}
 		}
 	}
 	return stages, nil
-}
-
-// loadStage loads all the drivers in this stage concurrently.
-func loadStage(drvs []Driver, loaded map[string]struct{}, cD chan<- Driver, cS chan<- DriverFailure, cE chan<- DriverFailure) {
-	var wg sync.WaitGroup
-	// Use int for concurrent access.
-	skip := make([]error, len(drvs))
-	for i, d := range drvs {
-		// Load only the driver if prerequisites were loaded. They are
-		// guaranteed to be in a previous stage by explodeStages().
-		for _, dep := range d.Prerequisites() {
-			if _, ok := loaded[dep]; !ok {
-				skip[i] = errors.New("dependency not loaded: " + strconv.Quote(dep))
-				break
-			}
-		}
-	}
-
-	for i, drv := range drvs {
-		if err := skip[i]; err != nil {
-			cS <- DriverFailure{drv, err}
-			continue
-		}
-		wg.Add(1)
-		go func(d Driver, j int) {
-			defer wg.Done()
-			if ok, err := d.Init(); ok {
-				if err == nil {
-					cD <- d
-					return
-				}
-				cE <- DriverFailure{d, err}
-			} else {
-				// Do not assert that err != nil, as this is hard to test thoroughly.
-				cS <- DriverFailure{d, err}
-				if err != nil {
-					err = errors.New("no reason was given")
-				}
-				skip[j] = err
-			}
-		}(drv, i)
-	}
-	wg.Wait()
-
-	for i, d := range drvs {
-		if skip[i] != nil {
-			continue
-		}
-		loaded[d.String()] = struct{}{}
-	}
 }
 
 func insertDriver(l []Driver, d Driver) []Driver {
@@ -316,6 +330,14 @@ func insertDriverFailure(l []DriverFailure, f DriverFailure) []DriverFailure {
 	l = append(l, DriverFailure{})
 	copy(l[i+1:], l[i:])
 	l[i] = f
+	return l
+}
+
+func insertString(l []string, s string) []string {
+	i := search(len(l), func(i int) bool { return l[i] > s })
+	l = append(l, "")
+	copy(l[i+1:], l[i:])
+	l[i] = s
 	return l
 }
 

@@ -20,9 +20,6 @@ func TestInitSimple(t *testing.T) {
 			err:     nil,
 		},
 	})
-	if len(allDrivers) != 1 {
-		t.Fatal(allDrivers)
-	}
 	if len(byName) != 1 {
 		t.Fatal(byName)
 	}
@@ -98,6 +95,9 @@ func TestInitCircular(t *testing.T) {
 	state, err := Init()
 	if err == nil || len(state.Loaded) != 0 {
 		t.Fatal(state, err)
+	}
+	if err.Error() != "periph: found cycle(s) in drivers dependencies:\nBoard: CPU\nCPU: Board" {
+		t.Fatal(err)
 	}
 }
 
@@ -211,8 +211,8 @@ func TestExplodeStagesSimple(t *testing.T) {
 		},
 	}
 	registerDrivers(d)
-	actual, err := explodeStages(d)
-	if len(actual) != 1 || len(actual[0]) != 1 {
+	actual, err := explodeStages()
+	if len(actual) != 1 || len(actual[0].drvs) != 1 {
 		t.Fatal(actual)
 	}
 	if err != nil {
@@ -239,8 +239,8 @@ func TestExplodeStages1Dep(t *testing.T) {
 		},
 	}
 	registerDrivers(d)
-	actual, err := explodeStages(d)
-	if len(actual) != 2 || len(actual[0]) != 1 || actual[0][0] != d[1] || len(actual[1]) != 1 || actual[1][0] != d[0] || err != nil {
+	actual, err := explodeStages()
+	if len(actual) != 2 || len(actual[0].drvs) != 1 || actual[0].drvs["CPU-generic"] != d[1] || len(actual[1].drvs) != 1 || actual[1].drvs["CPU-specialized"] != d[0] || err != nil {
 		t.Fatal(actual, err)
 	}
 }
@@ -269,7 +269,7 @@ func TestExplodeStagesCycle(t *testing.T) {
 		},
 	}
 	registerDrivers(d)
-	actual, err := explodeStages(d)
+	actual, err := explodeStages()
 	if len(actual) != 0 {
 		t.Fatal(actual)
 	}
@@ -309,8 +309,8 @@ func TestExplodeStages3Dep(t *testing.T) {
 		},
 	}
 	registerDrivers(d)
-	actual, err := explodeStages(d)
-	if len(actual) != 3 || len(actual[0]) != 1 || len(actual[1]) != 2 || len(actual[2]) != 1 {
+	actual, err := explodeStages()
+	if len(actual) != 3 || len(actual[0].drvs) != 1 || len(actual[1].drvs) != 2 || len(actual[2].drvs) != 1 {
 		t.Fatal(actual)
 	}
 	if err != nil {
@@ -347,7 +347,6 @@ func TestFailures(t *testing.T) {
 //
 
 func reset() {
-	allDrivers = []Driver{}
 	byName = map[string]Driver{}
 	state = nil
 }
