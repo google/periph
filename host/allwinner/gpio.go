@@ -598,23 +598,30 @@ func init() {
 // functions of each pin, and registers all the pins with gpio.
 func initPins() error {
 	for i := range cpupins {
+		name := cpupins[i].Name()
+		num := strconv.Itoa(cpupins[i].Number())
+		gpion := "GPIO" + num
+
+		// Unregister the pin if already registered. This happens with sysfs-gpio.
+		// Do not error on it, since sysfs-gpio may have failed to load.
+		_ = gpioreg.Unregister(gpion)
+
 		// Register the pin with gpio.
 		if err := gpioreg.Register(cpupins[i], true); err != nil {
 			return err
 		}
+		// Register the alias GPIOn.
+		if err := gpioreg.RegisterAlias(gpion, name); err != nil {
+			return err
+		}
+
 		// Iterate through alternate functions and register function->pin mapping.
 		// TODO(maruel): There's a problem where multiple pins may be set to the
 		// same function. Need investigation. For now just ignore errors.
 		for _, f := range cpupins[i].altFunc {
 			if f != "" && f[0] != '<' && f[:2] != "In" && f[:3] != "Out" {
-				// TODO(maruel): Stop ignoring errors by not registering the same
-				// function multiple times.
-				gpioreg.RegisterAlias(f, cpupins[i].Name())
-				/*
-					if err := gpioreg.RegisterAlias(f, cpupins[i].Number()); err != nil {
-						return true, err
-					}
-				*/
+				// Multiple pins may have the same function. The first wins.
+				_ = gpioreg.RegisterAlias(f, name)
 			}
 		}
 	}

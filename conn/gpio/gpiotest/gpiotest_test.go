@@ -89,16 +89,12 @@ func TestByName(t *testing.T) {
 //
 
 var (
-	gpio2  = &Pin{N: "GPIO2", Num: 2, Fn: "I2C1_SDA"}
-	gpio2a = &Pin{N: "GPIO2", Num: 2}
-	gpio3  = &Pin{N: "GPIO3", Num: 3, Fn: "I2C1_SCL"}
+	gpio2 = &Pin{N: "GPIO2", Num: 2, Fn: "I2C1_SDA"}
+	gpio3 = &Pin{N: "GPIO3", Num: 3, Fn: "I2C1_SCL"}
 )
 
 func init() {
 	if err := gpioreg.Register(gpio2, true); err != nil {
-		panic(err)
-	}
-	if err := gpioreg.Register(gpio2a, false); err != nil {
 		panic(err)
 	}
 	if err := gpioreg.Register(gpio3, false); err != nil {

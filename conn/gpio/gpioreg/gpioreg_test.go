@@ -29,8 +29,8 @@ func TestRegister(t *testing.T) {
 	if Register(&basicPin{PinIO: gpio.INVALID, name: "a", num: 2}, true) == nil {
 		t.Fatal("same name, different numbers")
 	}
-	if err := Register(&basicPin{PinIO: gpio.INVALID, name: "a", num: 0}, true); err != nil {
-		t.Fatal(err)
+	if err := Register(&basicPin{PinIO: gpio.INVALID, name: "a", num: 0}, true); err == nil {
+		t.Fatal("preferred is now ignored")
 	}
 	if err := Register(&basicPin{PinIO: gpio.INVALID, name: "b", num: 0}, true); err == nil {
 		t.Fatalf("#0 already registered as a")
@@ -235,7 +235,7 @@ func (b *basicPin) Number() int {
 func reset() {
 	mu.Lock()
 	defer mu.Unlock()
-	byNumber = [2]map[int]gpio.PinIO{{}, {}}
-	byName = [2]map[string]gpio.PinIO{{}, {}}
+	byNumber = map[int]gpio.PinIO{}
+	byName = map[string]gpio.PinIO{}
 	byAlias = map[string]string{}
 }

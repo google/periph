@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -953,7 +954,17 @@ func (d *driverGPIO) Init() (bool, error) {
 
 	functions := map[string]struct{}{}
 	for i := range cpuPins {
+		name := cpuPins[i].Name()
+		num := strconv.Itoa(cpuPins[i].Number())
+		gpion := "GPIO" + num
+		// Unregister the pin if already registered. This happens with sysfs-gpio.
+		// Do not error on it, since sysfs-gpio may have failed to load.
+		_ = gpioreg.Unregister(gpion)
+
 		if err := gpioreg.Register(&cpuPins[i], true); err != nil {
+			return true, err
+		}
+		if err := gpioreg.RegisterAlias(gpion, name); err != nil {
 			return true, err
 		}
 		// A pin set in alternate function but not described in `mapping` will
@@ -966,7 +977,7 @@ func (d *driverGPIO) Init() (bool, error) {
 			// functionality is changed.
 			if _, ok := functions[f]; !ok {
 				functions[f] = struct{}{}
-				if err := gpioreg.RegisterAlias(f, fmt.Sprintf("GPIO%d", i)); err != nil {
+				if err := gpioreg.RegisterAlias(f, gpion); err != nil {
 					return true, err
 				}
 			}
