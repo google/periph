@@ -70,6 +70,12 @@ func (d *driver) Prerequisites() []string {
 	return nil
 }
 
+func (d *driver) After() []string {
+	// FIXME: Declare drivers that should be loaded before, if present, but are
+	// not required.
+	return nil
+}
+
 func (d *driver) Init() (bool, error) {
 	// FIXME: If the driver is not needed, do the following:
 	// return false, errors.New("not running on a skeleton")

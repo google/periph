@@ -898,6 +898,10 @@ func (d *driverGPIO) Prerequisites() []string {
 	return nil
 }
 
+func (d *driverGPIO) After() []string {
+	return []string{"sysfs-gpio"}
+}
+
 func (d *driverGPIO) Init() (bool, error) {
 	if !Present() {
 		return false, errors.New("bcm283x CPU not detected")

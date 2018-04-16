@@ -662,6 +662,10 @@ func (d *driverGPIO) Prerequisites() []string {
 	return nil
 }
 
+func (d *driverGPIO) After() []string {
+	return []string{"sysfs-gpio"}
+}
+
 // Init does nothing if an allwinner processor is not detected. If one is
 // detected, it memory maps gpio CPU registers and then sets up the pin mapping
 // for the exact processor model detected.

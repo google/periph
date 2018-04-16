@@ -79,6 +79,20 @@ type Driver interface {
 	Init() (bool, error)
 }
 
+// driverAfter is an optional interface for Driver implementation (as of v2).
+//
+// TODO(maruel): Move the function back to Driver before releasing v3.
+type driverAfter interface {
+	// After returns a list of drivers that must be loaded first before
+	// attempting to load this driver.
+	//
+	// Unlike Prerequisites(), this driver will still be attempted even if the
+	// listed driver is missing or failed to load.
+	//
+	// This permits serialization without hard requirement.
+	After() []string
+}
+
 // DriverFailure is a driver that wasn't loaded, either because it was skipped
 // or because it failed to load.
 type DriverFailure struct {
@@ -222,6 +236,7 @@ func (s *stage) load(loaded map[string]struct{}, cD chan<- Driver, cS, cE chan<-
 		wg := sync.WaitGroup{}
 	loop:
 		for name, drv := range s.drvs {
+			// Intentionally do not look at After(), only Prerequisites().
 			for _, dep := range drv.Prerequisites() {
 				if _, ok := loaded[dep]; !ok {
 					cS <- DriverFailure{drv, errors.New("dependency not loaded: " + strconv.Quote(dep))}
@@ -275,6 +290,14 @@ func explodeStages() ([]*stage, error) {
 				return nil, errors.New("periph: unsatisfied dependency " + strconv.Quote(name) + "->" + strconv.Quote(p) + "; it is missing; skipping")
 			}
 			m[p] = struct{}{}
+		}
+		if a, ok := d.(driverAfter); ok {
+			for _, p := range a.After() {
+				// Skip undefined drivers silently, unlike Prerequisites().
+				if _, ok := byName[p]; ok {
+					m[p] = struct{}{}
+				}
+			}
 		}
 		dag[name] = m
 	}

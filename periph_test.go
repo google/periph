@@ -75,7 +75,7 @@ func TestInitErr(t *testing.T) {
 	}
 }
 
-func TestInitCircular(t *testing.T) {
+func TestInitPrerequisitesCircular(t *testing.T) {
 	defer reset()
 	reset()
 	registerDrivers([]Driver{
@@ -101,7 +101,7 @@ func TestInitCircular(t *testing.T) {
 	}
 }
 
-func TestInitMissing(t *testing.T) {
+func TestInitPrerequisitesMissing(t *testing.T) {
 	defer reset()
 	reset()
 	registerDrivers([]Driver{
@@ -114,6 +114,23 @@ func TestInitMissing(t *testing.T) {
 	})
 	state, err := Init()
 	if err == nil || len(state.Loaded) != 0 {
+		t.Fatal(state, err)
+	}
+}
+
+func TestInitAfterMissing(t *testing.T) {
+	defer reset()
+	reset()
+	registerDrivers([]Driver{
+		&driver{
+			name:  "CPU",
+			after: []string{"Board"},
+			ok:    true,
+			err:   nil,
+		},
+	})
+	state, err := Init()
+	if err != nil || len(state.Loaded) != 1 {
 		t.Fatal(state, err)
 	}
 }
@@ -199,7 +216,7 @@ func TestMustRegisterPanic(t *testing.T) {
 	}
 }
 
-func TestExplodeStagesSimple(t *testing.T) {
+func TestPrerequisitesExplodeStagesSimple(t *testing.T) {
 	defer reset()
 	reset()
 	d := []Driver{
@@ -220,7 +237,7 @@ func TestExplodeStagesSimple(t *testing.T) {
 	}
 }
 
-func TestExplodeStages1Dep(t *testing.T) {
+func TestPrerequisitesExplodeStages1Dep(t *testing.T) {
 	defer reset()
 	reset()
 	// This explodes the stage into two.
@@ -245,7 +262,7 @@ func TestExplodeStages1Dep(t *testing.T) {
 	}
 }
 
-func TestExplodeStagesCycle(t *testing.T) {
+func TestPrerequisitesExplodeStagesCycle(t *testing.T) {
 	defer reset()
 	reset()
 	d := []Driver{
@@ -278,7 +295,7 @@ func TestExplodeStagesCycle(t *testing.T) {
 	}
 }
 
-func TestExplodeStages3Dep(t *testing.T) {
+func TestPrerequisitesExplodeStages3Dep(t *testing.T) {
 	defer reset()
 	reset()
 	// This explodes the stage into 3 due to diamond shaped DAG.
@@ -306,6 +323,46 @@ func TestExplodeStages3Dep(t *testing.T) {
 			prereqs: []string{"base1", "base2"},
 			ok:      true,
 			err:     nil,
+		},
+	}
+	registerDrivers(d)
+	actual, err := explodeStages()
+	if len(actual) != 3 || len(actual[0].drvs) != 1 || len(actual[1].drvs) != 2 || len(actual[2].drvs) != 1 {
+		t.Fatal(actual)
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestAfterExplodeStages3Dep(t *testing.T) {
+	defer reset()
+	reset()
+	// This explodes the stage into 3 due to diamond shaped DAG.
+	d := []Driver{
+		&driver{
+			name:  "base2",
+			after: []string{"root"},
+			ok:    true,
+			err:   nil,
+		},
+		&driver{
+			name:  "base1",
+			after: []string{"root"},
+			ok:    true,
+			err:   nil,
+		},
+		&driver{
+			name:    "root",
+			prereqs: nil,
+			ok:      true,
+			err:     nil,
+		},
+		&driver{
+			name:  "super",
+			after: []string{"base1", "base2"},
+			ok:    true,
+			err:   nil,
 		},
 	}
 	registerDrivers(d)
@@ -360,6 +417,7 @@ func registerDrivers(drivers []Driver) {
 type driver struct {
 	name    string
 	prereqs []string
+	after   []string
 	ok      bool
 	err     error
 }
@@ -370,6 +428,10 @@ func (d *driver) String() string {
 
 func (d *driver) Prerequisites() []string {
 	return d.prereqs
+}
+
+func (d *driver) After() []string {
+	return d.after
 }
 
 func (d *driver) Init() (bool, error) {
