@@ -256,10 +256,6 @@ func (s *stage) load(loaded map[string]struct{}, cD chan<- Driver, cS, cE chan<-
 					}
 					cE <- DriverFailure{d, err}
 				} else {
-					// Do not assert that err != nil, as this is hard to test thoroughly.
-					if err != nil {
-						err = errors.New("no reason was given")
-					}
 					cS <- DriverFailure{d, err}
 				}
 			}(name, drv)
