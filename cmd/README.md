@@ -1,7 +1,21 @@
 # periph/cmd - read-to-use executables
 
-This directory contains directly usable tools installable via `go get
-periph.io/x/periph/cmd/...`.
+This directory contains directly usable tools installable via:
+
+```
+go get periph.io/x/periph/cmd/...
+```
+
+Most of the tools can optionally leverage drivers in
+[hostextra](https://periph.io/x/extra/hostextra) when the build tag
+`periphextra` is defined:
+
+```
+go get -u -tags periphextra periph.io/x/periph/cmd/...
+```
+
+This permits taking advantage of drivers like FTDI's
+[D2XX](https://periph.io/x/extra/hostextra/d2xx).
 
 
 ## Push
