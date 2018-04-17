@@ -113,10 +113,10 @@ var (
 )
 
 func init() {
-	if err := gpioreg.Register(gpio2, true); err != nil {
+	if err := gpioreg.Register(gpio2); err != nil {
 		panic(err)
 	}
-	if err := gpioreg.Register(gpio3, false); err != nil {
+	if err := gpioreg.Register(gpio3); err != nil {
 		panic(err)
 	}
 	if err := gpioreg.RegisterAlias("2", "GPIO2"); err != nil {

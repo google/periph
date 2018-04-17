@@ -962,7 +962,7 @@ func (d *driverGPIO) Init() (bool, error) {
 		_ = gpioreg.Unregister(gpion)
 		_ = gpioreg.Unregister(num)
 
-		if err := gpioreg.Register(&cpuPins[i], true); err != nil {
+		if err := gpioreg.Register(&cpuPins[i]); err != nil {
 			return true, err
 		}
 		if err := gpioreg.RegisterAlias(num, name); err != nil {

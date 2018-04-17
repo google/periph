@@ -75,11 +75,8 @@ func Aliases() []gpio.PinIO {
 //
 // Registering the same pin number or name twice is an error.
 //
-// Deprecated: `preferred` is now ignored.
-//
 // The pin registered cannot implement the interface RealPin.
-func Register(p gpio.PinIO, preferred bool) error {
-	// TODO(maruel): Remove preferred in v3.
+func Register(p gpio.PinIO) error {
 	name := p.Name()
 	if len(name) == 0 {
 		return errors.New("gpioreg: can't register a pin with no name")

@@ -13,7 +13,7 @@ import (
 func TestRegister(t *testing.T) {
 	defer reset()
 	// Low priority pin.
-	if err := Register(&basicPin{PinIO: gpio.INVALID, name: "a", num: 0}, false); err != nil {
+	if err := Register(&basicPin{PinIO: gpio.INVALID, name: "a", num: 0}); err != nil {
 		t.Fatal(err)
 	}
 	if a := All(); len(a) != 1 {
@@ -26,13 +26,13 @@ func TestRegister(t *testing.T) {
 		t.Fatal("failed to get pin 'a'")
 	}
 	// High priority pin.
-	if Register(&basicPin{PinIO: gpio.INVALID, name: "a", num: 2}, true) == nil {
+	if Register(&basicPin{PinIO: gpio.INVALID, name: "a", num: 2}) == nil {
 		t.Fatal("same name, different numbers")
 	}
-	if err := Register(&basicPin{PinIO: gpio.INVALID, name: "a", num: 0}, true); err == nil {
+	if err := Register(&basicPin{PinIO: gpio.INVALID, name: "a", num: 0}); err == nil {
 		t.Fatal("preferred is now ignored")
 	}
-	if err := Register(&basicPin{PinIO: gpio.INVALID, name: "b", num: 0}, true); err != nil {
+	if err := Register(&basicPin{PinIO: gpio.INVALID, name: "b", num: 0}); err != nil {
 		t.Fatalf("It is fine to register two gpios with the same number: %v", err)
 	}
 	if a := All(); len(a) != 2 {
@@ -57,13 +57,13 @@ func TestRegister(t *testing.T) {
 
 func TestRegister_fail(t *testing.T) {
 	defer reset()
-	if err := Register(&basicPin{PinIO: gpio.INVALID}, false); err == nil {
+	if err := Register(&basicPin{PinIO: gpio.INVALID}); err == nil {
 		t.Fatal("pin with no name")
 	}
-	if err := Register(&basicPin{PinIO: gpio.INVALID, name: "a", num: -1}, false); err != nil {
+	if err := Register(&basicPin{PinIO: gpio.INVALID, name: "a", num: -1}); err != nil {
 		t.Fatalf("Now valid to register negative pin number: %v", err)
 	}
-	if err := Register(&basicPin{PinIO: gpio.INVALID, name: "1", num: 0}, false); err != nil {
+	if err := Register(&basicPin{PinIO: gpio.INVALID, name: "1", num: 0}); err != nil {
 		t.Fatalf("Now valid to register pin with name is a number: %v", err)
 	}
 }
@@ -88,7 +88,7 @@ func TestRegisterAlias(t *testing.T) {
 	if a := Aliases(); len(a) != 0 {
 		t.Fatalf("Expected zero alias, got %v", a)
 	}
-	if err := Register(&basicPin{PinIO: gpio.INVALID, name: "GPIO0", num: 0}, false); err != nil {
+	if err := Register(&basicPin{PinIO: gpio.INVALID, name: "GPIO0", num: 0}); err != nil {
 		t.Fatal(err)
 	}
 	if a := All(); len(a) != 1 {
@@ -112,16 +112,16 @@ func TestRegisterAlias(t *testing.T) {
 		t.Fatal(s)
 	}
 
-	if err := Register(&basicPin{PinIO: gpio.INVALID, name: "GPIO1", num: 0}, false); err != nil {
+	if err := Register(&basicPin{PinIO: gpio.INVALID, name: "GPIO1", num: 0}); err != nil {
 		t.Fatalf("Now valid to register two pins with the same number: %v", err)
 	}
-	if Register(&basicPin{PinIO: gpio.INVALID, name: "GPIO0", num: 1}, false) == nil {
+	if Register(&basicPin{PinIO: gpio.INVALID, name: "GPIO0", num: 1}) == nil {
 		t.Fatal("GPIO0 is already registered")
 	}
-	if Register(&basicPin{PinIO: gpio.INVALID, name: "alias0", num: 1}, false) == nil {
+	if Register(&basicPin{PinIO: gpio.INVALID, name: "alias0", num: 1}) == nil {
 		t.Fatal("alias0 is already registered as an alias")
 	}
-	if Register(&pinAlias{PinIO: &basicPin{PinIO: gpio.INVALID, name: "GPIO1", num: 1}, name: "alias1"}, false) == nil {
+	if Register(&pinAlias{PinIO: &basicPin{PinIO: gpio.INVALID, name: "GPIO1", num: 1}, name: "alias1"}) == nil {
 		t.Fatal("can't register a pin implementing RealPin")
 	}
 
@@ -141,7 +141,7 @@ func TestRegisterAlias_chain(t *testing.T) {
 	if err := RegisterAlias("a2", "GPIO0"); err != nil {
 		t.Fatal(err)
 	}
-	if err := Register(&basicPin{PinIO: gpio.INVALID, name: "GPIO0", num: 0}, false); err != nil {
+	if err := Register(&basicPin{PinIO: gpio.INVALID, name: "GPIO0", num: 0}); err != nil {
 		t.Fatal(err)
 	}
 	p := ByName("a0")
@@ -164,7 +164,7 @@ func TestRegisterAlias_fail(t *testing.T) {
 	if err := RegisterAlias("0", "dest"); err != nil {
 		t.Fatalf("alias as a number is supported: %v", err)
 	}
-	if err := Register(&basicPin{PinIO: gpio.INVALID, name: "gpio0", num: 1}, false); err != nil {
+	if err := Register(&basicPin{PinIO: gpio.INVALID, name: "gpio0", num: 1}); err != nil {
 		t.Fatal(err)
 	}
 	if err := RegisterAlias("gpio0", "dest"); err == nil {
@@ -180,13 +180,13 @@ func TestUnRegister(t *testing.T) {
 	if err := Unregister("Alias"); err != nil {
 		t.Fatal(err)
 	}
-	if err := Register(&basicPin{PinIO: gpio.INVALID, name: "GPIO0", num: 0}, false); err != nil {
+	if err := Register(&basicPin{PinIO: gpio.INVALID, name: "GPIO0", num: 0}); err != nil {
 		t.Fatal(err)
 	}
 	if err := Unregister("GPIO0"); err != nil {
 		t.Fatal(err)
 	}
-	if err := Register(&basicPin{PinIO: gpio.INVALID, name: "GPIO0", num: 0}, true); err != nil {
+	if err := Register(&basicPin{PinIO: gpio.INVALID, name: "GPIO0", num: 0}); err != nil {
 		t.Fatal(err)
 	}
 	if err := Unregister("GPIO0"); err != nil {
