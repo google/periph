@@ -4,45 +4,56 @@
 
 // Package periph is a peripheral I/O library.
 //
-// It contains host and device drivers, and test packages to emulate the
-// hardware.
-//
-// You will find API documentation in godoc, to learn more about the goals and
-// design, visit https://periph.io/
-//
 // Package periph acts as a registry of drivers. It is focused on providing
 // high quality host drivers that provide high-speed access to the hardware on
 // the host computer itself.
 //
-// It is less concerned about implementing all possible device drivers that may
-// be attached to the host's I²C, SPI, or other buses and pio pins.
+// To learn more about the goals and design, visit https://periph.io/
 //
 // Every device driver should register itself in its package init() function by
 // calling periph.MustRegister().
 //
-// The user must call periph.Init() on startup to initialize all the registered
-// drivers in the correct order all at once.
+// User shall call either host.Init() or hostextra.Init() on startup to
+// initialize all the registered drivers.
 //
-// → cmd/ contains executables to communicate directly with the devices or the
-// buses using raw protocols.
+// Cmd
 //
-// → conn/ contains interfaces and registries for all the supported protocols
-// and connections (I²C, SPI, GPIO, etc).
+// cmd/ contains executable tools to communicate directly with the devices or
+// the buses.
 //
-// → devices/ contains devices drivers that are connected to a bus (i.e I²C,
-// SPI, GPIO) that can be controlled by the host, i.e. ssd1306 (display
-// controller), bm280 (environmental sensor), etc. 'devices' contains the
-// interfaces and subpackages contain contain concrete types.
+// cmd/ is allowed to import from conn/, devices/ and host/.
 //
-// → experimental/ contains the drivers that are in the experimental area, not
+// Conn
+//
+// conn/ contains interfaces and registries for all the supported protocols and
+// connections (I²C, SPI, GPIO, etc).
+//
+// conn/ is not allowed to import from any other package.
+//
+// Devices
+//
+// devices/ contains devices drivers that are connected to bus, port or
+// connection (i.e I²C, SPI, 1-wire, GPIO) that can be controlled by the host,
+// i.e. ssd1306 (display controller), bm280 (environmental sensor), etc.
+//
+// devices/ is allowed to import from conn/ and host/.
+//
+// Experimental
+//
+// experimental/ contains the drivers that are in the experimental area, not
 // yet considered stable. See
 // https://periph.io/project/#driver-lifetime-management for the process to
 // move drivers out of this area.
 //
-// → host/ contains all the implementations relating to the host itself, the
-// CPU and buses that are exposed by the host onto which devices can be
-// connected, i.e. I²C, SPI, GPIO, etc. 'host' contains the interfaces and
-// subpackages contain contain concrete types.
+// experimental/ is allowed to import from conn/, devices/ and host/.
+//
+// Host
+//
+// host/ contains all the implementations relating to the host itself, the CPU
+// and buses that are exposed by the host onto which devices can be connected,
+// i.e. I²C, SPI, GPIO, etc.
+//
+// host/ is allowed to import from conn/ only.
 package periph // import "periph.io/x/periph"
 
 import (

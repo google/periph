@@ -12,8 +12,11 @@ import (
 )
 
 func Example() {
-	// You normally want host.Init() instead of periph.Init(), as it registers
-	// all the periph-provided host drivers automatically.
+	// host.Init() registers all the periph-provided host driver automatically,
+	// so it is preferable to use than periph.Init().
+	//
+	// You can also use periph.io/x/extra/hostextra.Init() for additional drivers
+	// that depends on cgo and/or third party packages.
 	state, err := host.Init()
 	if err != nil {
 		log.Fatalf("failed to initialize periph: %v", err)
