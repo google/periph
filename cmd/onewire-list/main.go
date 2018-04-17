@@ -16,7 +16,6 @@ import (
 	"periph.io/x/periph/conn/onewire"
 	"periph.io/x/periph/conn/onewire/onewirereg"
 	"periph.io/x/periph/conn/pin/pinreg"
-	"periph.io/x/periph/host"
 )
 
 func mainImpl() error {
@@ -30,7 +29,7 @@ func mainImpl() error {
 		return errors.New("unexpected argument, try -help")
 	}
 
-	if _, err := host.Init(); err != nil {
+	if _, err := hostInit(); err != nil {
 		return err
 	}
 	for _, ref := range onewirereg.All() {

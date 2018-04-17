@@ -18,7 +18,6 @@ import (
 	"periph.io/x/periph"
 	"periph.io/x/periph/conn/pin"
 	"periph.io/x/periph/conn/pin/pinreg"
-	"periph.io/x/periph/host"
 )
 
 func printFailures(state *periph.State) {
@@ -100,7 +99,7 @@ func mainImpl() error {
 		return errors.New("unexpected argument, try -help")
 	}
 
-	state, err := host.Init()
+	state, err := hostInit()
 	if err != nil {
 		return err
 	}

@@ -14,7 +14,6 @@ import (
 	"os"
 
 	"periph.io/x/periph"
-	"periph.io/x/periph/host"
 )
 
 // driverAfter is an optional function.
@@ -50,7 +49,7 @@ func mainImpl() error {
 		return errors.New("unexpected argument, try -help")
 	}
 
-	state, err := host.Init()
+	state, err := hostInit()
 	if err != nil {
 		return err
 	}

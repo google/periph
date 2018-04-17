@@ -17,7 +17,6 @@ import (
 	"periph.io/x/periph/conn/pin/pinreg"
 	"periph.io/x/periph/conn/spi"
 	"periph.io/x/periph/conn/spi/spireg"
-	"periph.io/x/periph/host"
 )
 
 func printPin(fn string, p pin.Pin) {
@@ -40,7 +39,7 @@ func mainImpl() error {
 		return errors.New("unexpected argument, try -help")
 	}
 
-	if _, err := host.Init(); err != nil {
+	if _, err := hostInit(); err != nil {
 		return err
 	}
 	for _, ref := range spireg.All() {

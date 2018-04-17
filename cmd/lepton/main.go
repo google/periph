@@ -22,7 +22,6 @@ import (
 	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/conn/spi/spireg"
 	"periph.io/x/periph/devices/lepton"
-	"periph.io/x/periph/host"
 )
 
 var palette = []color.NRGBA{
@@ -408,7 +407,7 @@ func mainImpl() error {
 	}
 
 	// Initialization.
-	if _, err := host.Init(); err != nil {
+	if _, err := hostInit(); err != nil {
 		return err
 	}
 	spiPort, err := spireg.Open(*spiID)

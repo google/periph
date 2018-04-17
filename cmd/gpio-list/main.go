@@ -17,7 +17,6 @@ import (
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/pin/pinreg"
-	"periph.io/x/periph/host"
 )
 
 func printAliases(invalid bool) {
@@ -91,7 +90,7 @@ func mainImpl() error {
 		*gpios = true
 	}
 
-	if _, err := host.Init(); err != nil {
+	if _, err := hostInit(); err != nil {
 		return err
 	}
 	if *aliases {

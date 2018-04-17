@@ -25,7 +25,6 @@ import (
 	"periph.io/x/periph/conn/spi/spireg"
 	"periph.io/x/periph/devices"
 	"periph.io/x/periph/devices/apa102"
-	"periph.io/x/periph/host"
 )
 
 func access(name string) bool {
@@ -135,7 +134,7 @@ func mainImpl() error {
 	if *temperature > 65535 {
 		return errors.New("max temperature is 65535")
 	}
-	if _, err := host.Init(); err != nil {
+	if _, err := hostInit(); err != nil {
 		return err
 	}
 
