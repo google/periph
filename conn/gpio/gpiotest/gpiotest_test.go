@@ -35,6 +35,9 @@ func TestPin(t *testing.T) {
 	if err := p.Out(gpio.Low); err != nil {
 		t.Fatal(err)
 	}
+	if err := p.Halt(); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestPin_edge(t *testing.T) {
