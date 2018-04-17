@@ -78,11 +78,27 @@ func TestByName(t *testing.T) {
 	if gpioreg.ByName("GPIO2") != gpio2 {
 		t.Fatal("GPIO2 should have been found")
 	}
-	if gpioreg.ByName("1") != nil {
+	if gpioreg.ByName("p1") != nil {
 		t.Fatal("1 exist")
 	}
-	if gpioreg.ByName("2") != gpio2 {
-		t.Fatal("2 missing")
+	p := gpioreg.ByName("p2")
+	if p == nil {
+		t.Fatal("p2 missing")
+	}
+	if r, ok := p.(gpio.RealPin); !ok {
+		t.Fatalf("unexpected alias: %v", r)
+	}
+	p = gpioreg.ByName("p3")
+	if p == nil {
+		t.Fatal("p3 missing")
+	}
+	r, ok := p.(gpio.RealPin)
+	if !ok || r.Real().Name() != "GPIO3" {
+		t.Fatalf("expected alias, got: %T", p)
+	}
+	p = r.Real()
+	if err := p.(gpio.PinPWM).PWM(gpio.DutyHalf, time.Millisecond); err != nil {
+		t.Fatalf("unexpected failure: %v", err)
 	}
 }
 
@@ -90,7 +106,7 @@ func TestByName(t *testing.T) {
 
 var (
 	gpio2 = &Pin{N: "GPIO2", Num: 2, Fn: "I2C1_SDA"}
-	gpio3 = &Pin{N: "GPIO3", Num: 3, Fn: "I2C1_SCL"}
+	gpio3 = &PinPWM{Pin: Pin{N: "GPIO3", Num: 3, Fn: "I2C1_SCL"}}
 )
 
 func init() {
@@ -98,6 +114,12 @@ func init() {
 		panic(err)
 	}
 	if err := gpioreg.Register(gpio3, false); err != nil {
+		panic(err)
+	}
+	if err := gpioreg.RegisterAlias("p2", "GPIO2"); err != nil {
+		panic(err)
+	}
+	if err := gpioreg.RegisterAlias("p3", "GPIO3"); err != nil {
 		panic(err)
 	}
 	if err := gpioreg.RegisterAlias(gpio2.Function(), gpio2.Name()); err != nil {

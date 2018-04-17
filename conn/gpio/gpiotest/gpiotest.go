@@ -112,4 +112,21 @@ func (p *Pin) Out(l gpio.Level) error {
 	return nil
 }
 
+// PinPWM implements gpio.PinPWM.
+type PinPWM struct {
+	Pin
+
+	D gpio.Duty     // duty
+	P time.Duration // period
+}
+
+func (p *PinPWM) PWM(duty gpio.Duty, period time.Duration) error {
+	p.Lock()
+	defer p.Unlock()
+	p.D = duty
+	p.P = period
+	return nil
+}
+
 var _ gpio.PinIO = &Pin{}
+var _ gpio.PinPWM = &PinPWM{}
