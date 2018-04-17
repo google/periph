@@ -415,7 +415,7 @@ func (d *driverGPIOPL) Init() (bool, error) {
 		_ = gpioreg.Unregister(num)
 
 		// Register the pin with gpio.
-		if err := gpioreg.Register(&cpuPinsPL[i], true); err != nil {
+		if err := gpioreg.Register(&cpuPinsPL[i]); err != nil {
 			return true, err
 		}
 		if err := gpioreg.RegisterAlias(gpion, name); err != nil {

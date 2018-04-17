@@ -655,7 +655,7 @@ func initPins() error {
 		_ = gpioreg.Unregister(num)
 
 		// Register the pin with gpio.
-		if err := gpioreg.Register(cpupins[i], true); err != nil {
+		if err := gpioreg.Register(cpupins[i]); err != nil {
 			return err
 		}
 		if err := gpioreg.RegisterAlias(gpion, name); err != nil {

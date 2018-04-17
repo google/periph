@@ -433,7 +433,7 @@ func (d *driverGPIO) parseGPIOChip(path string) error {
 			root:   fmt.Sprintf("/sys/class/gpio/gpio%d/", i),
 		}
 		Pins[i] = p
-		if err := gpioreg.Register(p, false); err != nil {
+		if err := gpioreg.Register(p); err != nil {
 			return err
 		}
 		// If there is a CPU memory mapped gpio pin with the same number, the
