@@ -368,21 +368,28 @@ func (d *driverGPIOPL) Init() (bool, error) {
 	}
 
 	for i := range cpuPinsPL {
-		p := &cpuPinsPL[i]
-		if err := gpioreg.Register(p, true); err != nil {
+		name := cpuPinsPL[i].Name()
+		num := strconv.Itoa(cpuPinsPL[i].Number())
+		gpion := "GPIO" + num
+
+		// Unregister the pin if already registered. This happens with sysfs-gpio.
+		// Do not error on it, since sysfs-gpio may have failed to load.
+		_ = gpioreg.Unregister(gpion)
+		_ = gpioreg.Unregister(num)
+
+		// Register the pin with gpio.
+		if err := gpioreg.Register(&cpuPinsPL[i], true); err != nil {
 			return true, err
 		}
-		// TODO(maruel): There's a problem where multiple pins may be set to the
-		// same function. Need investigation. For now just ignore errors.
-		if f := p.Function(); f[0] != '<' && f[:2] != "In" && f[:3] != "Out" {
-			// TODO(maruel): Stop ignoring errors by not registering the same
-			// function multiple times.
-			gpioreg.RegisterAlias(f, p.Name())
-			/*
-				if err := gpioreg.RegisterAlias(f, p.Number()); err != nil {
-					return true, err
-				}
-			*/
+		if err := gpioreg.RegisterAlias(gpion, name); err != nil {
+			return true, err
+		}
+		if err := gpioreg.RegisterAlias(num, name); err != nil {
+			return true, err
+		}
+		if f := cpuPinsPL[i].Function(); f[0] != '<' && f[:2] != "In" && f[:3] != "Out" {
+			// Multiple pins may have the same function. The first wins.
+			_ = gpioreg.RegisterAlias(f, name)
 		}
 	}
 	return true, nil

@@ -146,9 +146,7 @@ func Unregister(name string) error {
 //
 
 var (
-	mu sync.Mutex
-	// The first map is preferred pins, the second is for more limited pins,
-	// usually going through OS-provided abstraction layer.
+	mu      sync.Mutex
 	byName  = map[string]gpio.PinIO{}
 	byAlias = map[string]string{}
 )
