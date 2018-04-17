@@ -118,6 +118,10 @@ func (d *driver) Prerequisites() []string {
 	return []string{"sysfs-gpio"}
 }
 
+func (d *driver) After() []string {
+	return nil
+}
+
 func (d *driver) Init() (bool, error) {
 	if !Present() {
 		return false, errors.New("Hardkernel ODROID-C0/C1/C1+ board not detected")

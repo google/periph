@@ -139,6 +139,10 @@ func (d *driverThermalSensor) Prerequisites() []string {
 	return nil
 }
 
+func (d *driverThermalSensor) After() []string {
+	return nil
+}
+
 // Init initializes thermal sysfs handling code.
 //
 // Uses sysfs as described* at

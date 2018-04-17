@@ -110,11 +110,15 @@ type driver struct {
 }
 
 func (d *driver) String() string {
-	return "beagle"
+	return "black"
 }
 
 func (d *driver) Prerequisites() []string {
-	return []string{"sysfs"}
+	return []string{"beagle"}
+}
+
+func (d *driver) After() []string {
+	return nil
 }
 
 func (d *driver) Init() (bool, error) {

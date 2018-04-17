@@ -511,6 +511,10 @@ func (d *driverSPI) Prerequisites() []string {
 	return nil
 }
 
+func (d *driverSPI) After() []string {
+	return nil
+}
+
 func (d *driverSPI) Init() (bool, error) {
 	// This driver is only registered on linux, so there is no legitimate time to
 	// skip it.

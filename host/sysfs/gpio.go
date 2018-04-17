@@ -375,6 +375,10 @@ func (d *driverGPIO) Prerequisites() []string {
 	return nil
 }
 
+func (d *driverGPIO) After() []string {
+	return nil
+}
+
 // Init initializes GPIO sysfs handling code.
 //
 // Uses gpio sysfs as described at

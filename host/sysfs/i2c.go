@@ -332,6 +332,10 @@ func (d *driverI2C) Prerequisites() []string {
 	return nil
 }
 
+func (d *driverI2C) After() []string {
+	return nil
+}
+
 func (d *driverI2C) Init() (bool, error) {
 	// Do not use "/sys/bus/i2c/devices/i2c-" as Raspbian's provided udev rules
 	// only modify the ACL of /dev/i2c-* but not the ones in /sys/bus/...

@@ -171,6 +171,10 @@ func (d *driver) Prerequisites() []string {
 	return []string{"allwinner-gpio-pl"}
 }
 
+func (d *driver) After() []string {
+	return nil
+}
+
 func (d *driver) Init() (bool, error) {
 	if !Present() {
 		return false, errors.New("pine64 board not detected")

@@ -382,6 +382,10 @@ func (d *driverDMA) Prerequisites() []string {
 	return []string{"allwinner-gpio"}
 }
 
+func (d *driverDMA) After() []string {
+	return nil
+}
+
 func (d *driverDMA) Init() (bool, error) {
 	if IsA64() {
 		// Page 198.

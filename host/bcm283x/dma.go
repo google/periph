@@ -1113,6 +1113,10 @@ func (d *driverDMA) Prerequisites() []string {
 	return []string{"bcm283x-gpio"}
 }
 
+func (d *driverDMA) After() []string {
+	return nil
+}
+
 func (d *driverDMA) Init() (bool, error) {
 	// baseAddr is initialized by prerequisite driver bcm283x-gpio.
 	if err := pmem.MapAsPOD(uint64(baseAddr+0x7000), &dmaMemory); err != nil {

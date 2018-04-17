@@ -170,6 +170,10 @@ func (d *driverLED) Prerequisites() []string {
 	return nil
 }
 
+func (d *driverLED) After() []string {
+	return nil
+}
+
 // Init initializes LEDs sysfs handling code.
 //
 // Uses led sysfs as described* at

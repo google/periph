@@ -254,6 +254,10 @@ func (d *driver) Prerequisites() []string {
 	return []string{"allwinner-gpio", "sysfs-gpio"}
 }
 
+func (d *driver) After() []string {
+	return nil
+}
+
 func (d *driver) Init() (bool, error) {
 	if !Present() {
 		return false, errors.New("NextThing Co. CHIP board not detected")

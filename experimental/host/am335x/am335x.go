@@ -32,6 +32,10 @@ func (d *driver) Prerequisites() []string {
 	return nil
 }
 
+func (d *driver) After() []string {
+	return nil
+}
+
 func (d *driver) Init() (bool, error) {
 	if !Present() {
 		return false, errors.New("am335x CPU not detected")

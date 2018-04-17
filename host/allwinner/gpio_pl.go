@@ -351,6 +351,10 @@ func (d *driverGPIOPL) Prerequisites() []string {
 	return []string{"allwinner-gpio"}
 }
 
+func (d *driverGPIOPL) After() []string {
+	return nil
+}
+
 func (d *driverGPIOPL) Init() (bool, error) {
 	// BUG(maruel): H3 supports group PL too.
 	if !IsA64() {
