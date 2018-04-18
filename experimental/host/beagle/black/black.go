@@ -5,8 +5,9 @@
 package black
 
 import (
+	"bytes"
 	"errors"
-	"os"
+	"io/ioutil"
 
 	"periph.io/x/periph"
 	"periph.io/x/periph/conn/pin"
@@ -97,10 +98,15 @@ var (
 // Beagleboard present.
 func Present() bool {
 	if isArm {
-		// TODO: check for beaglebone black in particular
-		_, err := os.Stat("/sys/firmware/devicetree/base/bone_capemgr")
+		buf, err := ioutil.ReadFile("/sys/firmware/devicetree/base/model")
 
-		return err == nil
+		if err != nil {
+			return false
+		}
+		// last byte of buf is a NULL character
+		str := string(bytes.Trim(buf, "\x00"))
+
+		return str == "TI AM335x BeagleBone Black"
 	}
 	return false
 }
