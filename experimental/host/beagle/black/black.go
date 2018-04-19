@@ -5,13 +5,12 @@
 package black
 
 import (
-	"bytes"
 	"errors"
-	"io/ioutil"
 
 	"periph.io/x/periph"
 	"periph.io/x/periph/conn/pin"
 	"periph.io/x/periph/conn/pin/pinreg"
+	"periph.io/x/periph/host/distro"
 	"periph.io/x/periph/host/sysfs"
 )
 
@@ -98,15 +97,7 @@ var (
 // Beagleboard present.
 func Present() bool {
 	if isArm {
-		buf, err := ioutil.ReadFile("/sys/firmware/devicetree/base/model")
-
-		if err != nil {
-			return false
-		}
-		// last byte of buf is a NULL character
-		str := string(bytes.Trim(buf, "\x00"))
-
-		return str == "TI AM335x BeagleBone Black"
+		return distro.DTModel() == "TI AM335x BeagleBone Black"
 	}
 	return false
 }
