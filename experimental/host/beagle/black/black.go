@@ -6,11 +6,11 @@ package black
 
 import (
 	"errors"
-	"os"
 
 	"periph.io/x/periph"
 	"periph.io/x/periph/conn/pin"
 	"periph.io/x/periph/conn/pin/pinreg"
+	"periph.io/x/periph/host/distro"
 	"periph.io/x/periph/host/sysfs"
 )
 
@@ -97,10 +97,7 @@ var (
 // Beagleboard present.
 func Present() bool {
 	if isArm {
-		// TODO: check for beaglebone black in particular
-		_, err := os.Stat("/sys/firmware/devicetree/base/bone_capemgr")
-
-		return err == nil
+		return distro.DTModel() == "TI AM335x BeagleBone Black"
 	}
 	return false
 }
