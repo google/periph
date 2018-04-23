@@ -6,7 +6,12 @@
 // processor family.
 //
 // This processor family is found on the BeagleBone. PRU-ICSS functionality is
-// implemented in package pruicss.
+// implemented in package pru.
+//
+// The GPIO pins of the AM335x CPU are grouped into 3 groups of 32 pins: GPIO0,
+// GPIO1, and GPIO2. The CPU documentation refers to GPIO in the form of
+// GPIOx_y. To get the absolute number, as exposed by sysfs, use 32*x+y to get
+// the absolute number.
 //
 // Datasheet
 //

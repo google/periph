@@ -3,7 +3,7 @@
 // that can be found in the LICENSE file.
 
 // Package pru exposes the Programmable Real-Time Unit Subsystem and Industrial
-// Communication Subsystem (PRUICSS) functionality found on many Texas
+// Communication Subsystem (PRU-ICSS) functionality found on many Texas
 // Instruments processors.
 //
 // This one of the rare way of doing true realtime on a linux microcomputer.

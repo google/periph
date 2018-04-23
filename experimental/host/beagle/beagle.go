@@ -5,51 +5,15 @@
 package beagle
 
 import (
-	"errors"
-	"os"
+	"strings"
 
-	"periph.io/x/periph"
+	"periph.io/x/periph/host/distro"
 )
 
-// Present returns true if there is evidence that we have a
-// Beagleboard present.
+// Present returns true if the host is a BeagleBone.
 func Present() bool {
 	if isArm {
-		_, err := os.Stat("/sys/firmware/devicetree/base/bone_capemgr")
-
-		return err == nil
+		return strings.HasPrefix(distro.DTModel(), "TI AM335x BeagleBone")
 	}
 	return false
 }
-
-// driver implements periph.Driver.
-type driver struct {
-}
-
-func (d *driver) String() string {
-	return "beagle"
-}
-
-func (d *driver) Prerequisites() []string {
-	return []string{"sysfs-gpio"}
-}
-
-func (d *driver) After() []string {
-	return nil
-}
-
-func (d *driver) Init() (bool, error) {
-	if !Present() {
-		return false, errors.New("BeagleBoard board not detected")
-	}
-
-	return true, nil
-}
-
-func init() {
-	if isArm {
-		periph.MustRegister(&driver{})
-	}
-}
-
-var _ periph.Driver = &driver{}

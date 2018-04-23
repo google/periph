@@ -6,16 +6,16 @@ package am335x
 
 import (
 	"errors"
+	"strings"
 
 	"periph.io/x/periph"
+	"periph.io/x/periph/host/distro"
 )
 
-// Present returns true if an am335x processor is detected.
-//
-// TODO(maruel): Implement.
+// Present returns true if a TM AM335x processor is detected.
 func Present() bool {
 	if isArm {
-		return false
+		return strings.HasPrefix(distro.DTModel(), "TI AM335x")
 	}
 	return false
 }
