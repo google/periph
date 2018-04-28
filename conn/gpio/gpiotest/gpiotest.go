@@ -145,7 +145,7 @@ func (p *LogPinIO) In(pull gpio.Pull, edge gpio.Edge) error {
 	return p.PinIO.In(pull, edge)
 }
 
-// Out mplements gpio.PinIO.
+// Out implements gpio.PinIO.
 func (p *LogPinIO) Out(l gpio.Level) error {
 	log.Printf("%s.Out(%s)", p, l)
 	return p.PinIO.Out(l)

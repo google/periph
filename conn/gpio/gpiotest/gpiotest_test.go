@@ -17,6 +17,9 @@ func TestPin(t *testing.T) {
 	if s := p.String(); s != "GPIO1(10)" {
 		t.Fatal(s)
 	}
+	if n := p.Number(); n != 10 {
+		t.Fatal(n)
+	}
 	if err := p.In(gpio.PullDown, gpio.NoEdge); err != nil {
 		t.Fatal(err)
 	}
@@ -65,6 +68,29 @@ func TestPin_fail(t *testing.T) {
 	p := &Pin{N: "GPIO1", Num: 1, Fn: "I2C1_SDA"}
 	if err := p.In(gpio.Float, gpio.BothEdges); err == nil {
 		t.Fatal()
+	}
+}
+
+func TestLogPinIO(t *testing.T) {
+	p := &Pin{}
+	l := &LogPinIO{p}
+	if l.Real() != p {
+		t.Fatal("unexpected real pin")
+	}
+	if err := l.Out(gpio.High); err != nil {
+		t.Fatal(err)
+	}
+	if err := l.In(gpio.PullNoChange, gpio.NoEdge); err != nil {
+		t.Fatal(err)
+	}
+	if l.Read() != gpio.High {
+		t.Fatal("unexpected level")
+	}
+	if l.Pull() != gpio.PullNoChange {
+		t.Fatal("unexpected pull")
+	}
+	if l.WaitForEdge(0) {
+		t.Fatal("unexpected edge")
 	}
 }
 
