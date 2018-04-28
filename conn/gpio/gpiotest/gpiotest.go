@@ -8,6 +8,7 @@ package gpiotest
 import (
 	"errors"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -126,6 +127,49 @@ func (p *PinPWM) PWM(duty gpio.Duty, period time.Duration) error {
 	p.D = duty
 	p.P = period
 	return nil
+}
+
+// LogPinIO logs when its state changes.
+type LogPinIO struct {
+	gpio.PinIO
+}
+
+// Real implements gpio.RealPin.
+func (p *LogPinIO) Real() gpio.PinIO {
+	return p.PinIO
+}
+
+// In implements gpio.PinIO.
+func (p *LogPinIO) In(pull gpio.Pull, edge gpio.Edge) error {
+	log.Printf("%s.In(%s, %s)", p, pull, edge)
+	return p.PinIO.In(pull, edge)
+}
+
+// Out mplements gpio.PinIO.
+func (p *LogPinIO) Out(l gpio.Level) error {
+	log.Printf("%s.Out(%s)", p, l)
+	return p.PinIO.Out(l)
+}
+
+// Read implements gpio.PinIO.
+func (p *LogPinIO) Read() gpio.Level {
+	l := p.PinIO.Read()
+	log.Printf("%s.Read() %s", p, l)
+	return l
+}
+
+// Pull implements gpio.PinIO.
+func (p *LogPinIO) Pull() gpio.Pull {
+	log.Printf("%s.Read()", p)
+	return p.PinIO.Pull()
+}
+
+// WaitForEdge implements gpio.PinIO.
+func (p *LogPinIO) WaitForEdge(timeout time.Duration) bool {
+	s := time.Now()
+	r := p.PinIO.WaitForEdge(timeout)
+	log.Printf("%s.WaitForEdge(%s) -> %t after %s", p, timeout, r, time.Since(s))
+	return r
 }
 
 var _ gpio.PinIO = &Pin{}
