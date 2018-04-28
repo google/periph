@@ -67,6 +67,9 @@ const (
 	periphBus  = 0x7E000000
 	// maxLite is the maximum transfer allowed by a lite channel.
 	maxLite = 65535
+	// dmaChosenChannel is the DMA channel to use. That's the one used by pi-blaster.
+	// It is a lite channel though so it is limited in performance.
+	dmaChosenChannel = 14
 )
 
 // Pages 47-50
@@ -599,50 +602,11 @@ func (d *dmaMap) GoString() string {
 	return strings.Join(out, "\n")
 }
 
-// pickChannel searches for a free DMA channel.
-func pickChannel(blacklist ...int) (int, *dmaChannel) {
-	// Try the lite ones first.
-	if dmaMemory != nil {
-		// TODO(maruel): Trying to use channel #15 always fails.
-		/*
-			if dmaChannel15 != nil {
-				if dmaChannel15.isAvailable() {
-					dmaChannel15.reset()
-					return 15, dmaChannel15
-				}
-			}
-		*/
-		// TODO(maruel): May as well use a lookup table.
-		for i := len(dmaMemory.channels) - 1; i >= 0; i-- {
-			for _, exclude := range blacklist {
-				if i == exclude {
-					goto skip
-				}
-			}
-			if dmaMemory.channels[i].isAvailable() {
-				dmaMemory.channels[i].reset()
-				return i, &dmaMemory.channels[i]
-			}
-		skip:
-		}
-	}
-	// Uncomment to understand the state of the DMA channels.
-	//log.Printf("%#v", dmaMemory)
-	return -1, nil
-}
-
-// runIO picks a DMA channel, initialize it and runs a transfer.
+// runIO runs a transfer using DMA channel dmaChosenChannel.
 //
 // It tries to release the channel as soon as it can.
-func runIO(pCB pmem.Mem, liteOk bool) error {
-	var blacklist []int
-	if !liteOk {
-		blacklist = []int{7, 8, 9, 10, 11, 12, 13, 14, 15}
-	}
-	_, ch := pickChannel(blacklist...)
-	if ch == nil {
-		return errors.New("bcm283x-dma: no channel available")
-	}
+func runIO(pCB pmem.Mem) error {
+	ch := &dmaMemory.channels[dmaChosenChannel]
 	defer ch.reset()
 	ch.startIO(uint32(pCB.PhysAddr()))
 	return ch.wait()
@@ -707,7 +671,7 @@ func dmaWriteStreamPCM(p *Pin, w gpiostream.Stream) error {
 	defer pcmMemory.reset()
 	// Start transfer
 	pcmMemory.set()
-	runIO(pCB, l <= maxLite)
+	runIO(pCB)
 	// We have to wait PCM to be finished even after DMA finished.
 	for pcmMemory.cs&pcmTXErr == 0 {
 		Nanospin(10 * time.Nanosecond)
@@ -735,11 +699,7 @@ func dmaWritePWMFIFO() (*dmaChannel, *videocore.Mem, error) {
 	}
 	cb[0].nextCB = physBuf // Loop back to self.
 
-	_, ch := pickChannel()
-	if ch == nil {
-		_ = buf.Close()
-		return nil, nil, errors.New("bcm283x-dma: no channel available")
-	}
+	ch := &dmaMemory.channels[dmaChosenChannel]
 	ch.startIO(physBuf)
 
 	return ch, buf, nil
@@ -776,17 +736,7 @@ func startPWMbyDMA(p *Pin, rng, data uint32) (*dmaChannel, *videocore.Mem, error
 	}
 	cb[1].nextCB = physBuf // Loop back to cb[0]
 
-	var blacklist []int
-	if data*4 >= 1<<16 || (rng-data)*4 >= 1<<16 {
-		// Don't use lite channels.
-		blacklist = []int{7, 8, 9, 10, 11, 12, 13, 14, 15}
-	}
-	_, ch := pickChannel(blacklist...)
-
-	if ch == nil {
-		_ = buf.Close()
-		return nil, nil, errors.New("bcm283x-dma: no channel available")
-	}
+	ch := &dmaMemory.channels[dmaChosenChannel]
 	ch.startIO(physBuf)
 
 	return ch, buf, nil
@@ -838,7 +788,7 @@ func dmaReadStream(p *Pin, b *gpiostream.BitStreamLSB) error {
 	if err := cb[0].initBlock(reg, uint32(buf.PhysAddr()), uint32(l), true, false, false, true, dmaPWM); err != nil {
 		return err
 	}
-	err = runIO(pCB, l <= maxLite)
+	err = runIO(pCB)
 	uint32ToBit(b.Bits, buf.Bytes(), uint8(p.number&31), skip*4)
 	return err
 }
@@ -944,85 +894,7 @@ func dmaWriteStreamEdges(p *Pin, w gpiostream.Stream) error {
 	if err != nil {
 		return err
 	}
-	return runIO(buf, true)
-}
-
-// dmaWriteStreamDualChannel streams data to a pin using two DMA channels.
-//
-// In practice this leads to a glitchy stream.
-func dmaWriteStreamDualChannel(p *Pin, w gpiostream.Stream) error {
-	// TODO(maruel): Analyse 'w' to figure out the programs to load, and create
-	// the number of controlBlock needed to reduce memory usage.
-	// TODO(maruel): When only one channel is needed, it is much more memory
-	// efficient to use DMA to write to PWM FIFO.
-	skip, err := overSamples(w)
-	if err != nil {
-		return err
-	}
-	l := int(w.Duration()/w.Resolution()) * skip * 4 // Bytes
-	bufLen := (l + 0xFFF) &^ 0xFFF
-	bufSet, err := dmaBufAllocator(bufLen)
-	if err != nil {
-		return err
-	}
-	defer bufSet.Close()
-	bufClear, err := dmaBufAllocator(bufLen)
-	if err != nil {
-		return err
-	}
-	defer bufClear.Close()
-	cb, pCB, err := allocateCB(4096)
-	if err != nil {
-		return err
-	}
-	defer pCB.Close()
-
-	// Needs 64x the memory since each write is 2 full uint32. On the other
-	// hand one could write 32 contiguous pins simultaneously at no cost.
-	mask := uint32(1) << uint(p.number&31)
-	if err := raster32(w, skip, bufClear.Uint32(), bufSet.Uint32(), mask); err != nil {
-		return err
-	}
-
-	// Start clock before DMA start
-	_, err = setPWMClockSource()
-	if err != nil {
-		return err
-	}
-
-	regSet := gpioBaseAddr + 0x1C + 4*uint32(p.number/32)
-	if err := cb[0].initBlock(uint32(bufSet.PhysAddr()), regSet, uint32(l), false, true, true, false, dmaPWM); err != nil {
-		return err
-	}
-	regClear := gpioBaseAddr + 0x28 + 4*uint32(p.number/32)
-	if err := cb[1].initBlock(uint32(bufClear.PhysAddr()), regClear, uint32(l), false, true, true, false, dmaPWM); err != nil {
-		return err
-	}
-
-	// The first channel must be a full bandwidth one. The "light" ones are
-	// effectively a single one, which means that they are interleaved. If both
-	// are "light" then the jitter is largely increased.
-	x, chSet := pickChannel(6, 7, 8, 9, 10, 11, 12, 13, 14, 15)
-	if chSet == nil {
-		return errors.New("bcm283x-dma: no channel available")
-	}
-	defer chSet.reset()
-	_, chClear := pickChannel(x)
-	if chClear == nil {
-		return errors.New("bcm283x-dma: no secondary channel available")
-	}
-	defer chClear.reset()
-
-	// Two channel need to be synchronized but there is not such a mechanism.
-	chSet.startIO(uint32(pCB.PhysAddr()))        // cb[0]
-	chClear.startIO(uint32(pCB.PhysAddr()) + 32) // cb[1]
-
-	err1 := chSet.wait()
-	err2 := chClear.wait()
-	if err1 == nil {
-		return err2
-	}
-	return err1
+	return runIO(buf)
 }
 
 // physToUncachedPhys returns the uncached physical memory address backing a
@@ -1092,7 +964,7 @@ func smokeTest() error {
 				return err
 			}
 		}
-		return runIO(pCB, size-2*holeSize <= maxLite)
+		return runIO(pCB)
 	}
 
 	return pmem.TestCopy(size, holeSize, alloc, copyMem)
@@ -1144,7 +1016,9 @@ func (d *driverDMA) Init() (bool, error) {
 	if err := pmem.MapAsPOD(uint64(baseAddr+0x3000), &timerMemory); err != nil {
 		return true, err
 	}
-	return true, smokeTest()
+	// Do not run the smoke test unless it's clear it is not dangerous.
+	// smokeTest()
+	return true, nil
 }
 
 func (d *driverDMA) Close() error {
