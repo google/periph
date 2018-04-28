@@ -20,9 +20,9 @@ import (
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/pin"
 	"periph.io/x/periph/conn/pin/pinreg"
-	_ "periph.io/x/periph/experimental/host/am335x"
-	"periph.io/x/periph/experimental/host/beagle/black"
-	"periph.io/x/periph/experimental/host/beagle/green"
+	_ "periph.io/x/periph/host/am335x"
+	"periph.io/x/periph/host/beagle/black"
+	"periph.io/x/periph/host/beagle/green"
 	"periph.io/x/periph/host/sysfs"
 )
 
