@@ -1,6 +1,24 @@
 # See https://github.com/periph/gohci
 version: 1
 workers:
+- name: beaglebone-4373
+  checks:
+  - cmd:
+    - go
+    - install
+    - -v
+    - ./cmd/headers-list
+    - ./cmd/i2c-list
+    - ./cmd/periph-info
+    - ./cmd/spi-list
+  - cmd:
+    - periph-info
+  - cmd:
+    - headers-list
+  - cmd:
+    - i2c-list
+  - cmd:
+    - spi-list
 - name: chip-a87d
   checks:
   - cmd:
