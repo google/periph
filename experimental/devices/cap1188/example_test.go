@@ -42,12 +42,12 @@ func Example() {
 
 	// We will configure the cap1188 by setting some options, we can start by the
 	// defaults.
-	opts := cap1188.DefaultOpts()
+	opts := cap1188.DefaultOpts
 	opts.AlertPin = alertPin
 	opts.ResetPin = resetPin
 
 	// Open the device so we can detect touch events.
-	dev, err := cap1188.NewI2C(i2cBus, opts)
+	dev, err := cap1188.NewI2C(i2cBus, &opts)
 	if err != nil {
 		log.Fatalf("couldn't open cap1188: %v", err)
 	}
@@ -57,8 +57,8 @@ func Example() {
 	for maxTouches > 0 {
 		if alertPin.WaitForEdge(-1) {
 			maxTouches--
-			statuses, err := dev.InputStatus()
-			if err != nil {
+			var statuses [8]cap1188.TouchStatus
+			if err := dev.InputStatus(statuses[:]); err != nil {
 				fmt.Printf("Error reading inputs: %v\n", err)
 				continue
 			}

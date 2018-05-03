@@ -17,6 +17,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"periph.io/x/periph/conn"
@@ -47,7 +48,7 @@ var touchStatusIndex = [...]uint8{0, 9, 22, 32, 46}
 
 func (i TouchStatus) String() string {
 	if i < 0 || i >= TouchStatus(len(touchStatusIndex)-1) {
-		return fmt.Sprintf("TouchStatus(%d)", i)
+		return "TouchStatus(" + strconv.Itoa(int(i)) + ")"
 	}
 	return touchStatusName[touchStatusIndex[i]:touchStatusIndex[i+1]]
 }
@@ -57,7 +58,7 @@ func (i TouchStatus) String() string {
 // Use default options if nil is used.
 func NewI2C(b i2c.Bus, opts *Opts) (*Dev, error) {
 	if opts == nil {
-		opts = DefaultOpts()
+		opts = &DefaultOpts
 	}
 	addr, err := opts.i2cAddr()
 	if err != nil {
@@ -100,13 +101,13 @@ func (d *Dev) Halt() error {
 	return nil
 }
 
-// InputStatus reads and returns the status of the 8 inputs.
-func (d *Dev) InputStatus() ([8]TouchStatus, error) {
+// InputStatus reads and returns the status of the inputs.
+func (d *Dev) InputStatus(t []TouchStatus) error {
 	d.resetSinceAtLeast(200 * time.Millisecond)
 	// Read inputs.
 	status, err := d.c.ReadUint8(0x3)
 	if err != nil {
-		return d.inputStatuses, wrapf("failed to read the input values: %v", err)
+		return wrapf("failed to read the input values: %v", err)
 	}
 
 	// Read deltas (in two's complement, capped at -128 to 127).
@@ -143,8 +144,8 @@ func (d *Dev) InputStatus() ([8]TouchStatus, error) {
 			d.inputStatuses[i] = OffStatus
 		}
 	}
-
-	return d.inputStatuses, nil
+	copy(t, d.inputStatuses[:])
+	return nil
 }
 
 // LinkLEDs links the behavior of the LEDs to the touch sensors.
