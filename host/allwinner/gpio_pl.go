@@ -280,10 +280,6 @@ var cpuPinsPL = []PinPL{
 	{offset: 12, name: "PL12", defaultPull: gpio.Float},
 }
 
-// gpioMemoryPL is only the PL group in that case. Note that groups PI, PJ, PK
-// do not exist.
-var gpioMemoryPL *gpioGroup
-
 // See ../allwinner/allwinner.go for details.
 // TODO(maruel): Figure out what the S_ prefix means.
 var mapping = [13][5]string{
@@ -341,6 +337,9 @@ func getBaseAddressPL() uint64 {
 
 // driverGPIOPL implements periph.Driver.
 type driverGPIOPL struct {
+	// gpioMemoryPL is only the PL group in that case. Note that groups PI, PJ, PK
+	// do not exist.
+	gpioMemoryPL *gpioGroup
 }
 
 func (d *driverGPIOPL) String() string {

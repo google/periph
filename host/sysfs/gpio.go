@@ -323,8 +323,6 @@ func (p *Pin) wrap(err error) error {
 
 //
 
-var exportHandle io.Writer // handle to /sys/class/gpio/export
-
 type direction int
 
 const (
@@ -365,6 +363,7 @@ func readInt(path string) (int, error) {
 
 // driverGPIO implements periph.Driver.
 type driverGPIO struct {
+	exportHandle io.Writer // handle to /sys/class/gpio/export
 }
 
 func (d *driverGPIO) String() string {

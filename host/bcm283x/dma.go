@@ -54,14 +54,6 @@ import (
 	"periph.io/x/periph/host/videocore"
 )
 
-var (
-	pcmBaseAddr     uint32
-	pwmBaseAddr     uint32
-	dmaMemory       *dmaMap
-	dmaChannel15    *dmaChannel
-	dmaBufAllocator func(s int) (*videocore.Mem, error) = videocore.Alloc
-)
-
 const (
 	periphMask = 0x00FFFFFF
 	periphBus  = 0x7E000000
@@ -127,6 +119,9 @@ const (
 	// ie. after a NEXTCONBK = 0x0000_0000 has been loaded.
 	dmaActive dmaStatus = 1 << 0 // ACTIVE
 )
+
+// dmaBufAllocator is overriden for unit testing.
+var dmaBufAllocator func(s int) (*videocore.Mem, error) = videocore.Alloc
 
 var dmaStatusMap = []struct {
 	v dmaStatus
@@ -1103,6 +1098,10 @@ func smokeTest() error {
 // It implements much more than the DMA controller, it also exposes the clocks,
 // the PWM and PCM controllers.
 type driverDMA struct {
+	pcmBaseAddr  uint32
+	pwmBaseAddr  uint32
+	dmaMemory    *dmaMap
+	dmaChannel15 *dmaChannel
 }
 
 func (d *driverDMA) String() string {

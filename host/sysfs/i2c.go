@@ -312,16 +312,13 @@ type i2cMsg struct {
 	buf    uintptr
 }
 
-var (
-	i2cMu    sync.Mutex
-	setSpeed func(hz int64) error
-)
-
 //
 
 // driverI2C implements periph.Driver.
 type driverI2C struct {
-	buses []string
+	mu       sync.Mutex
+	buses    []string
+	setSpeed func(hz int64) error
 }
 
 func (d *driverI2C) String() string {

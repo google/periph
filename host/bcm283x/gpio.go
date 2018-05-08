@@ -625,20 +625,6 @@ const (
 	alt5 function = 2
 )
 
-var (
-	// baseAddr is the base for all the CPU registers.
-	//
-	// It is initialized by driverGPIO.Init().
-	baseAddr uint32
-	// dramBus is high bits to address uncached memory. See virtToUncachedPhys()
-	// in dma.go.
-	dramBus uint32
-	// gpioMemory is the memory map of the CPU GPIO registers.
-	gpioMemory *gpioMap
-	// gpioBaseAddr is needed for DMA transfers.
-	gpioBaseAddr uint32
-)
-
 // cpuPins is all the pins as supported by the CPU. There is no guarantee that
 // they are actually connected to anything on the board.
 var cpuPins = []Pin{
@@ -889,6 +875,17 @@ func sleep150cycles() uint32 {
 
 // driverGPIO implements periph.Driver.
 type driverGPIO struct {
+	// baseAddr is the base for all the CPU registers.
+	//
+	// It is initialized by driverGPIO.Init().
+	baseAddr uint32
+	// dramBus is high bits to address uncached memory. See virtToUncachedPhys()
+	// in dma.go.
+	dramBus uint32
+	// gpioMemory is the memory map of the CPU GPIO registers.
+	gpioMemory *gpioMap
+	// gpioBaseAddr is needed for DMA transfers.
+	gpioBaseAddr uint32
 }
 
 func (d *driverGPIO) String() string {

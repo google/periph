@@ -342,13 +342,6 @@ const (
 	disabled function = 7
 )
 
-var (
-	// gpioMemory is the memory map of the CPU GPIO registers.
-	gpioMemory *gpioMap
-	// gpioBaseAddr is the physical base address of the GPIO registers.
-	gpioBaseAddr uint32
-)
-
 // cpupins that may be implemented by a generic Allwinner CPU. Not all pins
 // will be present on all models and even if the CPU model supports them they
 // may not be connected to anything on the board. The net effect is that it may
@@ -661,6 +654,10 @@ type gpioMap struct {
 
 // driverGPIO implements periph.Driver.
 type driverGPIO struct {
+	// gpioMemory is the memory map of the CPU GPIO registers.
+	gpioMemory *gpioMap
+	// gpioBaseAddr is the physical base address of the GPIO registers.
+	gpioBaseAddr uint32
 }
 
 func (d *driverGPIO) String() string {

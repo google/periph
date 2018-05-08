@@ -25,13 +25,6 @@ import (
 	"periph.io/x/periph/host/pmem"
 )
 
-var (
-	// dmaMemory is the memory map of the CPU DMA registers.
-	dmaMemory *dmaMap
-	// dmaBaseAddr is the physical base address of the DMA registers.
-	dmaBaseAddr uint32
-)
-
 // dmaMap represents the DMA memory mapped CPU registers.
 //
 // This map is specific to the currently supported CPUs and will have to be
@@ -373,6 +366,10 @@ func smokeTest() error {
 // It implements much more than the DMA controller, it also exposes the clocks,
 // the PWM and PCM controllers.
 type driverDMA struct {
+	// dmaMemory is the memory map of the CPU DMA registers.
+	dmaMemory *dmaMap
+	// dmaBaseAddr is the physical base address of the DMA registers.
+	dmaBaseAddr uint32
 }
 
 func (d *driverDMA) String() string {

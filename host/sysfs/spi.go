@@ -494,13 +494,12 @@ type spiIOCTransfer struct {
 	pad         uint16
 }
 
-// spiBufSize is the maximum number of bytes allowed per I/O on the SPI port.
-var spiBufSize = 0
-
 //
 
 // driverSPI implements periph.Driver.
 type driverSPI struct {
+	// bufSize is the maximum number of bytes allowed per I/O on the SPI port.
+	bufSize int
 }
 
 func (d *driverSPI) String() string {
