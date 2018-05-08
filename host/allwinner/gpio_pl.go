@@ -108,7 +108,7 @@ func (p *PinPL) Halt() error {
 
 // In implements gpio.PinIn. See Pin.In for more information.
 func (p *PinPL) In(pull gpio.Pull, edge gpio.Edge) error {
-	if gpioMemoryPL == nil {
+	if drvGPIOPL.gpioMemoryPL == nil {
 		return p.wrap(errors.New("subsystem not initialized"))
 	}
 	if p.usingEdge && edge == gpio.NoEdge {
@@ -124,12 +124,12 @@ func (p *PinPL) In(pull gpio.Pull, edge gpio.Edge) error {
 		off := p.offset / 16
 		shift := 2 * (p.offset % 16)
 		// Do it in a way that is concurrent safe.
-		gpioMemoryPL.pull[off] &^= 3 << shift
+		drvGPIOPL.gpioMemoryPL.pull[off] &^= 3 << shift
 		switch pull {
 		case gpio.PullDown:
-			gpioMemoryPL.pull[off] = 2 << shift
+			drvGPIOPL.gpioMemoryPL.pull[off] = 2 << shift
 		case gpio.PullUp:
-			gpioMemoryPL.pull[off] = 1 << shift
+			drvGPIOPL.gpioMemoryPL.pull[off] = 1 << shift
 		default:
 		}
 	}
@@ -151,7 +151,7 @@ func (p *PinPL) In(pull gpio.Pull, edge gpio.Edge) error {
 
 // Read implements gpio.PinIn. See Pin.Read for more information.
 func (p *PinPL) Read() gpio.Level {
-	return gpio.Level(gpioMemoryPL.data&(1<<p.offset) != 0)
+	return gpio.Level(drvGPIOPL.gpioMemoryPL.data&(1<<p.offset) != 0)
 }
 
 // WaitForEdge implements gpio.PinIn. See Pin.WaitForEdge for more information.
@@ -164,10 +164,10 @@ func (p *PinPL) WaitForEdge(timeout time.Duration) bool {
 
 // Pull implements gpio.PinIn. See Pin.Pull for more information.
 func (p *PinPL) Pull() gpio.Pull {
-	if gpioMemoryPL == nil {
+	if drvGPIOPL.gpioMemoryPL == nil {
 		return gpio.PullNoChange
 	}
-	switch (gpioMemoryPL.pull[p.offset/16] >> (2 * (p.offset % 16))) & 3 {
+	switch (drvGPIOPL.gpioMemoryPL.pull[p.offset/16] >> (2 * (p.offset % 16))) & 3 {
 	case 0:
 		return gpio.Float
 	case 1:
@@ -182,7 +182,7 @@ func (p *PinPL) Pull() gpio.Pull {
 
 // Out implements gpio.PinOut. See Pin.Out for more information.
 func (p *PinPL) Out(l gpio.Level) error {
-	if gpioMemoryPL == nil {
+	if drvGPIOPL.gpioMemoryPL == nil {
 		return p.wrap(errors.New("subsystem not initialized"))
 	}
 	if p.usingEdge {
@@ -205,9 +205,9 @@ func (p *PinPL) Out(l gpio.Level) error {
 func (p *PinPL) FastOut(l gpio.Level) {
 	bit := uint32(1 << p.offset)
 	if l {
-		gpioMemoryPL.data |= bit
+		drvGPIOPL.gpioMemoryPL.data |= bit
 	} else {
-		gpioMemoryPL.data &^= bit
+		drvGPIOPL.gpioMemoryPL.data &^= bit
 	}
 }
 
@@ -222,11 +222,11 @@ func (p *PinPL) DefaultPull() gpio.Pull {
 
 // function returns the current GPIO pin function.
 func (p *PinPL) function() function {
-	if gpioMemoryPL == nil {
+	if drvGPIOPL.gpioMemoryPL == nil {
 		return disabled
 	}
 	shift := 4 * (p.offset % 8)
-	return function((gpioMemoryPL.cfg[p.offset/8] >> shift) & 7)
+	return function((drvGPIOPL.gpioMemoryPL.cfg[p.offset/8] >> shift) & 7)
 }
 
 // setFunction changes the GPIO pin function.
@@ -248,8 +248,8 @@ func (p *PinPL) setFunction(f function) bool {
 	mask := uint32(disabled) << shift
 	v := (uint32(f) << shift) ^ mask
 	// First disable, then setup. This is concurrent safe.
-	gpioMemoryPL.cfg[off] |= mask
-	gpioMemoryPL.cfg[off] &^= v
+	drvGPIOPL.gpioMemoryPL.cfg[off] |= mask
+	drvGPIOPL.gpioMemoryPL.cfg[off] &^= v
 	if p.function() != f {
 		panic(f)
 	}
@@ -366,7 +366,7 @@ func (d *driverGPIOPL) Init() (bool, error) {
 		}
 		return true, err
 	}
-	if err := m.AsPOD(&gpioMemoryPL); err != nil {
+	if err := m.AsPOD(&d.gpioMemoryPL); err != nil {
 		return true, err
 	}
 

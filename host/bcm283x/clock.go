@@ -11,8 +11,6 @@ import (
 	"time"
 )
 
-var clockMemory *clockMap
-
 // Clock sources frequency in hertz.
 const (
 	clk19dot2MHz = 19200000

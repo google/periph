@@ -4,13 +4,6 @@
 
 package allwinner
 
-var (
-	// clockMemory is the memory mapping for the clock CPU registers.
-	clockMemory *clockMap
-	// clockBaseAddr is the physical base address of the clock registers.
-	clockBaseAddr uint32
-)
-
 const (
 	clockSPIEnable clockSPI = 1 << 31 // SCLK_GATING
 	// 30:26 reserved

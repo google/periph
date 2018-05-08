@@ -11,13 +11,6 @@ import (
 	"time"
 )
 
-var (
-	// spiMemory is the memory mapping for the spi CPU registers.
-	spiMemory *spiMap
-	// spiBaseAddr is the physical base address of the clock registers.
-	spiBaseAddr uint32
-)
-
 const (
 	// 31:20 reserved
 	// Set this bit to ‘1’ to make the internal read sample point with a delay of
@@ -169,14 +162,14 @@ type spiMap struct {
 
 // spi2Write do a write on SPI2_MOSI via polling.
 func spi2Write(w []byte) error {
-	if clockMemory == nil || spiMemory == nil {
+	if drvDMA.clockMemory == nil || drvDMA.spiMemory == nil {
 		return errors.New("subsystem not initialized")
 	}
 	// Make sure the source clock is disabled. Set it at 250kHz.
-	//clockMemory.spi2Clk &^= clockSPIEnable
-	clockMemory.spi2Clk |= clockSPIEnable
-	clockMemory.spi2Clk = clockSPIDiv8a | clockSPIDiv12b
-	ch := &spiMemory.groups[2]
+	//drvDMA.clockMemory.spi2Clk &^= clockSPIEnable
+	drvDMA.clockMemory.spi2Clk |= clockSPIEnable
+	drvDMA.clockMemory.spi2Clk = clockSPIDiv8a | clockSPIDiv12b
+	ch := &drvDMA.spiMemory.groups[2]
 	ch.setup()
 	fmt.Printf("Setup done\n")
 	for i := 0; i < len(w)/4; i++ {
@@ -193,14 +186,14 @@ func spi2Write(w []byte) error {
 
 // spi2Read do a read on SPI2_MISO via polling.
 func spi2Read(r []byte) error {
-	if clockMemory == nil || spiMemory == nil {
+	if drvDMA.clockMemory == nil || drvDMA.spiMemory == nil {
 		return errors.New("subsystem not initialized")
 	}
 	// Make sure the source clock is disabled. Set it at 250kHz.
-	//clockMemory.spi2Clk &^= clockSPIEnable
-	clockMemory.spi2Clk |= clockSPIEnable
-	clockMemory.spi2Clk = clockSPIDiv8a | clockSPIDiv12b
-	ch := &spiMemory.groups[2]
+	//drvDMA.clockMemory.spi2Clk &^= clockSPIEnable
+	drvDMA.clockMemory.spi2Clk |= clockSPIEnable
+	drvDMA.clockMemory.spi2Clk = clockSPIDiv8a | clockSPIDiv12b
+	ch := &drvDMA.spiMemory.groups[2]
 	ch.setup()
 	for i := 0; i < len(r)/4; i++ {
 		ch.tx = 0

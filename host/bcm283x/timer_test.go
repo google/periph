@@ -15,9 +15,9 @@ func TestReadTime(t *testing.T) {
 	}
 
 	defer func() {
-		timerMemory = nil
+		drvDMA.timerMemory = nil
 	}()
-	timerMemory = &timerMap{low: 1}
+	drvDMA.timerMemory = &timerMap{low: 1}
 	if d := ReadTime(); d != time.Microsecond {
 		t.Fatal(d)
 	}

@@ -12,8 +12,6 @@ import (
 	"time"
 )
 
-var pcmMemory *pcmMap
-
 type pcmCS uint32
 
 // Pages 126-129
@@ -219,15 +217,15 @@ func (p *pcmMap) set() {
 //
 // Other potentially good clock sources are PWM, SPI and UART.
 func setPCMClockSource(hz uint64) (uint64, uint32, error) {
-	if pcmMemory == nil {
+	if drvDMA.pcmMemory == nil {
 		return 0, 0, errors.New("subsystem PCM not initialized")
 	}
-	if clockMemory == nil {
+	if drvDMA.clockMemory == nil {
 		return 0, 0, errors.New("subsystem Clock not initialized")
 	}
-	actual, divs, err := clockMemory.pcm.set(hz, 1)
+	actual, divs, err := drvDMA.clockMemory.pcm.set(hz, 1)
 	if err == nil {
-		pcmMemory.cs = 0
+		drvDMA.pcmMemory.cs = 0
 	}
 	// Convert divisor into wait cycles.
 	return actual, divs, err

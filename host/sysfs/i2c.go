@@ -27,12 +27,12 @@ func SetSpeedHook(h func(hz int64) error) error {
 	if h == nil {
 		return errors.New("sysfs-i2c: hook must not be nil")
 	}
-	i2cMu.Lock()
-	defer i2cMu.Unlock()
-	if setSpeed != nil {
+	drvI2C.mu.Lock()
+	defer drvI2C.mu.Unlock()
+	if drvI2C.setSpeed != nil {
 		return errors.New("sysfs-i2c: a speed hook was already set")
 	}
-	setSpeed = h
+	drvI2C.setSpeed = h
 	return nil
 }
 
@@ -130,10 +130,10 @@ func (i *I2C) SetSpeed(hz int64) error {
 	if hz < 1 || hz >= 1<<32 {
 		return fmt.Errorf("sysfs-i2c: invalid speed %d", hz)
 	}
-	i2cMu.Lock()
-	defer i2cMu.Unlock()
-	if setSpeed != nil {
-		return setSpeed(hz)
+	drvI2C.mu.Lock()
+	defer drvI2C.mu.Unlock()
+	if drvI2C.setSpeed != nil {
+		return drvI2C.setSpeed(hz)
 	}
 	return errors.New("sysfs-i2c: not supported")
 }

@@ -8,27 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"time"
-
-	"periph.io/x/periph/host/videocore"
-)
-
-var (
-	// Page 138
-	// - Two independent bit-streams
-	// - Each channel either a PWM or serialised version of a 32-bit word
-	// - Variable input and output resolutions.
-	// - Load data from a FIFO storage block, to extent to 8 32-bit words (256
-	//   bits).
-	//
-	// Author note: 100Mhz base resolution with a 256 bits 1-bit stream is actually
-	// good enough to generate a DAC.
-	pwmMemory *pwmMap
-
-	// These clocks are shared with hardware PWM, DMA driven PWM and BitStream.
-	pwmBaseFreq uint64 = 25 * 1000 * 1000 // 25MHz
-	pwmDMAFreq  uint64 = 200 * 1000       // 200KHz
-	pwmDMACh    *dmaChannel
-	pwmDMABuf   *videocore.Mem
 )
 
 // PWENi is used to enable/disable the corresponding channel. Setting this bit
@@ -232,59 +211,59 @@ func (p *pwmMap) reset() {
 //
 // Other potentially good clock sources are PCM, SPI and UART.
 func setPWMClockSource() (uint64, error) {
-	if pwmMemory == nil {
+	if drvDMA.pwmMemory == nil {
 		return 0, errors.New("subsystem PWM not initialized")
 	}
-	if clockMemory == nil {
+	if drvDMA.clockMemory == nil {
 		return 0, errors.New("subsystem Clock not initialized")
 	}
-	if pwmDMACh != nil {
+	if drvDMA.pwmDMACh != nil {
 		// Already initialized
-		return pwmDMAFreq, nil
+		return drvDMA.pwmDMAFreq, nil
 	}
 
 	// divs * div must fit in rng1 registor.
-	div := uint32(pwmBaseFreq / pwmDMAFreq)
-	actual, divs, err := clockMemory.pwm.set(pwmBaseFreq, div)
+	div := uint32(drvDMA.pwmBaseFreq / drvDMA.pwmDMAFreq)
+	actual, divs, err := drvDMA.clockMemory.pwm.set(drvDMA.pwmBaseFreq, div)
 	if err != nil {
 		return 0, err
 	}
-	if pwmDMAFreq != actual/uint64(divs*div) {
-		return 0, fmt.Errorf("Unexpected DMA frequency (%d != %d/%d/%d)", pwmDMAFreq, actual, divs, div)
+	if drvDMA.pwmDMAFreq != actual/uint64(divs*div) {
+		return 0, fmt.Errorf("Unexpected DMA frequency (%d != %d/%d/%d)", drvDMA.pwmDMAFreq, actual, divs, div)
 	}
 	// It acts as a clock multiplier, since this amount of data is sent per
 	// clock tick.
-	pwmMemory.rng1 = divs * div
+	drvDMA.pwmMemory.rng1 = divs * div
 	Nanospin(10 * time.Microsecond)
 	// Periph data (?)
 
 	// Use low priority.
-	pwmMemory.dmaCfg = pwmDMAEnable | pwmDMACfg(15<<pwmPanicShift|15)
+	drvDMA.pwmMemory.dmaCfg = pwmDMAEnable | pwmDMACfg(15<<pwmPanicShift|15)
 	Nanospin(10 * time.Microsecond)
-	pwmMemory.ctl |= pwmClearFIFO
+	drvDMA.pwmMemory.ctl |= pwmClearFIFO
 	Nanospin(10 * time.Microsecond)
-	old := pwmMemory.ctl
-	pwmMemory.ctl = (old & ^pwmControl(0xff)) | pwm1UseFIFO | pwm1Enable
+	old := drvDMA.pwmMemory.ctl
+	drvDMA.pwmMemory.ctl = (old & ^pwmControl(0xff)) | pwm1UseFIFO | pwm1Enable
 
 	// Start DMA
-	if pwmDMACh, pwmDMABuf, err = dmaWritePWMFIFO(); err != nil {
+	if drvDMA.pwmDMACh, drvDMA.pwmDMABuf, err = dmaWritePWMFIFO(); err != nil {
 		return 0, err
 	}
 
-	return pwmDMAFreq, nil
+	return drvDMA.pwmDMAFreq, nil
 }
 
 func resetPWMClockSource() error {
-	if pwmDMACh != nil {
-		pwmDMACh.reset()
-		pwmDMACh = nil
+	if drvDMA.pwmDMACh != nil {
+		drvDMA.pwmDMACh.reset()
+		drvDMA.pwmDMACh = nil
 	}
-	if pwmDMABuf != nil {
-		if err := pwmDMABuf.Close(); err != nil {
+	if drvDMA.pwmDMABuf != nil {
+		if err := drvDMA.pwmDMABuf.Close(); err != nil {
 			return err
 		}
-		pwmDMABuf = nil
+		drvDMA.pwmDMABuf = nil
 	}
-	_, _, err := clockMemory.pwm.set(0, 0)
+	_, _, err := drvDMA.clockMemory.pwm.set(0, 0)
 	return err
 }

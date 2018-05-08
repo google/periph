@@ -14,10 +14,10 @@ import (
 //
 // It only works if allwinner-dma successfully loaded. Otherwise it returns 0.
 func ReadTime() time.Duration {
-	if timerMemory == nil {
+	if drvDMA.timerMemory == nil {
 		return 0
 	}
-	v := uint64(timerMemory.counterHigh)<<32 | uint64(timerMemory.counterLow)
+	v := uint64(drvDMA.timerMemory.counterHigh)<<32 | uint64(drvDMA.timerMemory.counterLow)
 	if v == 0 {
 		// BUG(maruel): Implement using AVS_CNT0_REG on A64.
 		return 0
@@ -40,13 +40,6 @@ func Nanospin(t time.Duration) {
 }
 
 //
-
-var (
-	// timerMemory is the timer mapping
-	timerMemory *timerMap
-	// timerBaseAddr is the physical base address of the timer registers.
-	timerBaseAddr uint32
-)
 
 const (
 	// 31:3 reserved

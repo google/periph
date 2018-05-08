@@ -10,13 +10,6 @@ import (
 	"time"
 )
 
-var (
-	// pwmMemory is the memory map of the CPU PWM registers.
-	pwmMemory *pwmMap
-	// pwmBaseAddr is the physical base address of the PWM registers.
-	pwmBaseAddr uint32
-)
-
 const pwmClock = 24000000
 const pwmMaxPeriod = 0x10000
 

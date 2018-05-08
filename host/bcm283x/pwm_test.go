@@ -13,9 +13,9 @@ func TestPWMMap(t *testing.T) {
 		t.Fatal("pwmMemory is nil")
 	}
 	defer func() {
-		pwmMemory = nil
+		drvDMA.pwmMemory = nil
 	}()
-	pwmMemory = &p
+	drvDMA.pwmMemory = &p
 	if _, err := setPWMClockSource(); err == nil {
 		t.Fatal("clockMemory is nil")
 	}

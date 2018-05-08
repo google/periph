@@ -91,7 +91,7 @@ func Present() bool {
 //
 // The returned bits are valid for both inputs and outputs.
 func PinsRead0To31() uint32 {
-	return gpioMemory.level[0]
+	return drvGPIO.gpioMemory.level[0]
 }
 
 // PinsClear0To31 clears the value of GPIO0 to GPIO31 pin for the bit set at
@@ -99,13 +99,13 @@ func PinsRead0To31() uint32 {
 //
 // This function is extremely fast and does no error checking.
 func PinsClear0To31(mask uint32) {
-	gpioMemory.outputClear[0] = mask
+	drvGPIO.gpioMemory.outputClear[0] = mask
 }
 
 // PinsSet0To31 sets the value of GPIO0 to GPIO31 pin for the bit set at their
 // corresponding bit as a single write operation.
 func PinsSet0To31(mask uint32) {
-	gpioMemory.outputSet[0] = mask
+	drvGPIO.gpioMemory.outputSet[0] = mask
 }
 
 // PinsRead32To46 returns the value of all GPIO32 to GPIO46 at their
@@ -117,7 +117,7 @@ func PinsSet0To31(mask uint32) {
 //
 // Bits above 15 are guaranteed to be 0.
 func PinsRead32To46() uint32 {
-	return gpioMemory.level[1] & 0x7fff
+	return drvGPIO.gpioMemory.level[1] & 0x7fff
 }
 
 // PinsClear32To46 clears the value of GPIO31 to GPIO46 pin for the bit set at
@@ -127,7 +127,7 @@ func PinsRead32To46() uint32 {
 //
 // Bits above 15 are ignored.
 func PinsClear32To46(mask uint32) {
-	gpioMemory.outputClear[1] = (mask & 0x7fff)
+	drvGPIO.gpioMemory.outputClear[1] = (mask & 0x7fff)
 }
 
 // PinsSet32To46 sets the value of GPIO31 to GPIO46 pin for the bit set at
@@ -137,7 +137,7 @@ func PinsClear32To46(mask uint32) {
 //
 // Bits above 15 are ignored.
 func PinsSet32To46(mask uint32) {
-	gpioMemory.outputSet[1] = (mask & 0x7fff)
+	drvGPIO.gpioMemory.outputSet[1] = (mask & 0x7fff)
 }
 
 // Pin is a GPIO number (GPIOnn) on BCM238(5|6|7).
@@ -254,7 +254,7 @@ func (p *Pin) Halt() error {
 // and looks for '011' to rising and '100' for falling detection to avoid
 // glitches. Because gpio sysfs is used, the latency is unpredictable.
 func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
-	if gpioMemory == nil {
+	if drvGPIO.gpioMemory == nil {
 		return p.wrap(errors.New("subsystem not initialized"))
 	}
 	if p.usingEdge && edge == gpio.NoEdge {
@@ -275,21 +275,21 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 		// Set Pull
 		switch pull {
 		case gpio.PullDown:
-			gpioMemory.pullEnable = 1
+			drvGPIO.gpioMemory.pullEnable = 1
 		case gpio.PullUp:
-			gpioMemory.pullEnable = 2
+			drvGPIO.gpioMemory.pullEnable = 2
 		case gpio.Float:
-			gpioMemory.pullEnable = 0
+			drvGPIO.gpioMemory.pullEnable = 0
 		}
 
 		// Datasheet states caller needs to sleep 150 cycles.
 		sleep150cycles()
 		offset := p.number / 32
-		gpioMemory.pullEnableClock[offset] = 1 << uint(p.number%32)
+		drvGPIO.gpioMemory.pullEnableClock[offset] = 1 << uint(p.number%32)
 
 		sleep150cycles()
-		gpioMemory.pullEnable = 0
-		gpioMemory.pullEnableClock[offset] = 0
+		drvGPIO.gpioMemory.pullEnable = 0
+		drvGPIO.gpioMemory.pullEnableClock[offset] = 0
 	}
 	if edge != gpio.NoEdge {
 		if p.edge == nil {
@@ -312,15 +312,15 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 //
 // This function is very fast. It works even if the pin is set as output.
 func (p *Pin) Read() gpio.Level {
-	if gpioMemory == nil {
+	if drvGPIO.gpioMemory == nil {
 		return gpio.Low
 	}
 	if p.number < 32 {
 		// Important: do not remove the &31 here even if not necessary. Testing
 		// showed that it slows down the performance by several percents.
-		return gpio.Level((gpioMemory.level[0] & (1 << uint(p.number&31))) != 0)
+		return gpio.Level((drvGPIO.gpioMemory.level[0] & (1 << uint(p.number&31))) != 0)
 	}
-	return gpio.Level((gpioMemory.level[1] & (1 << uint(p.number&31))) != 0)
+	return gpio.Level((drvGPIO.gpioMemory.level[1] & (1 << uint(p.number&31))) != 0)
 }
 
 // WaitForEdge does edge detection and implements gpio.PinIn.
@@ -344,7 +344,7 @@ func (p *Pin) Pull() gpio.Pull {
 //
 // Fails if requesting to change a pin that is set to special functionality.
 func (p *Pin) Out(l gpio.Level) error {
-	if gpioMemory == nil {
+	if drvGPIO.gpioMemory == nil {
 		return p.wrap(errors.New("subsystem not initialized"))
 	}
 	if err := p.Halt(); err != nil {
@@ -365,15 +365,15 @@ func (p *Pin) FastOut(l gpio.Level) {
 	mask := uint32(1) << uint(p.number&31)
 	if l == gpio.Low {
 		if p.number < 32 {
-			gpioMemory.outputClear[0] = mask
+			drvGPIO.gpioMemory.outputClear[0] = mask
 		} else {
-			gpioMemory.outputClear[1] = mask
+			drvGPIO.gpioMemory.outputClear[1] = mask
 		}
 	} else {
 		if p.number < 32 {
-			gpioMemory.outputSet[0] = mask
+			drvGPIO.gpioMemory.outputSet[0] = mask
 		} else {
-			gpioMemory.outputSet[1] = mask
+			drvGPIO.gpioMemory.outputSet[1] = mask
 		}
 	}
 }
@@ -426,20 +426,20 @@ func (p *Pin) PWM(duty gpio.Duty, period time.Duration) error {
 
 	// Intentionally check later, so a more informative error is returned on
 	// unsupported pins.
-	if gpioMemory == nil {
+	if drvGPIO.gpioMemory == nil {
 		return p.wrap(errors.New("subsystem not initialized"))
 	}
-	if pwmMemory == nil || clockMemory == nil {
+	if drvDMA.pwmMemory == nil || drvDMA.clockMemory == nil {
 		return p.wrap(errors.New("bcm283x-dma not initialized; try again as root?"))
 	}
 	if useDMA {
-		minPeriod := 2 * time.Second / time.Duration(pwmDMAFreq)
+		minPeriod := 2 * time.Second / time.Duration(drvDMA.pwmDMAFreq)
 		if period < minPeriod {
 			return p.wrap(fmt.Errorf("period must be at least %s", minPeriod))
 		}
 
 		// Total cycles in the period
-		rng := pwmDMAFreq * uint64(period) / uint64(time.Second)
+		rng := drvDMA.pwmDMAFreq * uint64(period) / uint64(time.Second)
 		// Pulse width cycles
 		dat := uint32((rng*uint64(duty) + uint64(gpio.DutyHalf)) / uint64(gpio.DutyMax))
 		var err error
@@ -455,12 +455,12 @@ func (p *Pin) PWM(duty gpio.Duty, period time.Duration) error {
 			return p.wrap(err)
 		}
 	} else {
-		minPeriod := 2 * time.Second / time.Duration(pwmBaseFreq)
+		minPeriod := 2 * time.Second / time.Duration(drvDMA.pwmBaseFreq)
 		if period < minPeriod {
 			return p.wrap(fmt.Errorf("period must be at least %s", minPeriod))
 		}
 		// Total cycles in the period
-		rng := pwmBaseFreq * uint64(period) / uint64(time.Second)
+		rng := drvDMA.pwmBaseFreq * uint64(period) / uint64(time.Second)
 		// Pulse width cycles
 		dat := uint32((rng*uint64(duty) + uint64(gpio.DutyHalf)) / uint64(gpio.DutyMax))
 		if _, err := setPWMClockSource(); err != nil {
@@ -469,17 +469,17 @@ func (p *Pin) PWM(duty gpio.Duty, period time.Duration) error {
 		// Bit shift for PWM0 and PWM1
 		shift := uint((p.number & 1) * 8)
 		if shift == 0 {
-			pwmMemory.rng1 = uint32(rng)
+			drvDMA.pwmMemory.rng1 = uint32(rng)
 			Nanospin(10 * time.Nanosecond)
-			pwmMemory.dat1 = uint32(dat)
+			drvDMA.pwmMemory.dat1 = uint32(dat)
 		} else {
-			pwmMemory.rng2 = uint32(rng)
+			drvDMA.pwmMemory.rng2 = uint32(rng)
 			Nanospin(10 * time.Nanosecond)
-			pwmMemory.dat2 = uint32(dat)
+			drvDMA.pwmMemory.dat2 = uint32(dat)
 		}
 		Nanospin(10 * time.Nanosecond)
-		old := pwmMemory.ctl
-		pwmMemory.ctl = (old & ^(0xff << shift)) | ((pwm1Enable | pwm1MS) << shift)
+		old := drvDMA.pwmMemory.ctl
+		drvDMA.pwmMemory.ctl = (old & ^(0xff << shift)) | ((pwm1Enable | pwm1MS) << shift)
 	}
 	p.usingClock = true
 	p.setFunction(f)
@@ -579,7 +579,7 @@ func (p *Pin) haltClock() error {
 			}
 		}
 		shift := uint((p.number & 1) * 8)
-		pwmMemory.ctl &= ^(0xff << shift)
+		drvDMA.pwmMemory.ctl &= ^(0xff << shift)
 	}
 
 	// Disable PWM clock if nobody use.
@@ -594,17 +594,17 @@ func (p *Pin) haltClock() error {
 
 // function returns the current GPIO pin function.
 func (p *Pin) function() function {
-	if gpioMemory == nil {
+	if drvGPIO.gpioMemory == nil {
 		return alt5
 	}
-	return function((gpioMemory.functionSelect[p.number/10] >> uint((p.number%10)*3)) & 7)
+	return function((drvGPIO.gpioMemory.functionSelect[p.number/10] >> uint((p.number%10)*3)) & 7)
 }
 
 // setFunction changes the GPIO pin function.
 func (p *Pin) setFunction(f function) {
 	off := p.number / 10
 	shift := uint(p.number%10) * 3
-	gpioMemory.functionSelect[off] = (gpioMemory.functionSelect[off] &^ (7 << shift)) | (uint32(f) << shift)
+	drvGPIO.gpioMemory.functionSelect[off] = (drvGPIO.gpioMemory.functionSelect[off] &^ (7 << shift)) | (uint32(f) << shift)
 }
 
 func (p *Pin) wrap(err error) error {
@@ -868,7 +868,7 @@ func sleep150cycles() uint32 {
 	// TODO(maruel): No idea if this is too much or enough.
 	var out uint32
 	for i := 0; i < 150; i++ {
-		out += gpioMemory.functionSelect[0]
+		out += drvGPIO.gpioMemory.functionSelect[0]
 	}
 	return out
 }
@@ -886,6 +886,13 @@ type driverGPIO struct {
 	gpioMemory *gpioMap
 	// gpioBaseAddr is needed for DMA transfers.
 	gpioBaseAddr uint32
+}
+
+func (d *driverGPIO) Close() {
+	d.baseAddr = 0
+	d.dramBus = 0
+	d.gpioMemory = nil
+	d.gpioBaseAddr = 0
 }
 
 func (d *driverGPIO) String() string {
@@ -906,12 +913,12 @@ func (d *driverGPIO) Init() (bool, error) {
 	}
 	model := distro.CPUInfo()["model name"]
 	if strings.Contains(model, "ARMv6") {
-		baseAddr = 0x20000000
-		dramBus = 0x40000000
+		d.baseAddr = 0x20000000
+		d.dramBus = 0x40000000
 	} else {
 		// RPi2+
-		baseAddr = 0x3F000000
-		dramBus = 0xC0000000
+		d.baseAddr = 0x3F000000
+		d.dramBus = 0xC0000000
 	}
 	// Page 6.
 	// Virtual addresses in kernel mode will range between 0xC0000000 and
@@ -923,13 +930,13 @@ func (d *driverGPIO) Init() (bool, error) {
 	// advertised here at bus address 0x7Ennnnnn is available in the ARM kenel at
 	// virtual address 0xF2nnnnnn.
 
-	gpioBaseAddr = baseAddr + 0x200000
+	d.gpioBaseAddr = d.baseAddr + 0x200000
 	m, err := pmem.MapGPIO()
 	if err != nil {
 		// Try without /dev/gpiomem. This is the case of not running on Raspbian or
 		// raspbian before Jessie. This requires running as root.
 		var err2 error
-		m, err2 = pmem.Map(uint64(gpioBaseAddr), 4096)
+		m, err2 = pmem.Map(uint64(d.gpioBaseAddr), 4096)
 		var err error
 		if err2 != nil {
 			if distro.IsRaspbian() {
@@ -945,7 +952,7 @@ func (d *driverGPIO) Init() (bool, error) {
 			return true, err
 		}
 	}
-	if err := m.AsPOD(&gpioMemory); err != nil {
+	if err := m.AsPOD(&d.gpioMemory); err != nil {
 		return true, err
 	}
 

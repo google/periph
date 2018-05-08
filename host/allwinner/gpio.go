@@ -138,7 +138,7 @@ func (p *Pin) Halt() error {
 // exported at /sys/class/gpio/gpio*/. Note that the pin will not be unexported
 // at shutdown.
 func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
-	if gpioMemory == nil {
+	if drvGPIO.gpioMemory == nil {
 		return p.wrap(errors.New("subsystem not initialized"))
 	}
 	if !p.available {
@@ -158,12 +158,12 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 		off := p.offset / 16
 		shift := 2 * (p.offset % 16)
 		// Do it in a way that is concurrency safe.
-		gpioMemory.groups[p.group].pull[off] &^= 3 << shift
+		drvGPIO.gpioMemory.groups[p.group].pull[off] &^= 3 << shift
 		switch pull {
 		case gpio.PullDown:
-			gpioMemory.groups[p.group].pull[off] = 2 << shift
+			drvGPIO.gpioMemory.groups[p.group].pull[off] = 2 << shift
 		case gpio.PullUp:
-			gpioMemory.groups[p.group].pull[off] = 1 << shift
+			drvGPIO.gpioMemory.groups[p.group].pull[off] = 1 << shift
 		default:
 		}
 	}
@@ -187,10 +187,10 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 //
 // This function is very fast.
 func (p *Pin) Read() gpio.Level {
-	if gpioMemory == nil || !p.available {
+	if drvGPIO.gpioMemory == nil || !p.available {
 		return gpio.Low
 	}
-	return gpio.Level(gpioMemory.groups[p.group].data&(1<<p.offset) != 0)
+	return gpio.Level(drvGPIO.gpioMemory.groups[p.group].data&(1<<p.offset) != 0)
 }
 
 // WaitForEdge waits for an edge as previously set using In() or the expiration
@@ -204,10 +204,10 @@ func (p *Pin) WaitForEdge(timeout time.Duration) bool {
 
 // Pull returns the current pull-up/down registor setting.
 func (p *Pin) Pull() gpio.Pull {
-	if gpioMemory == nil || !p.available {
+	if drvGPIO.gpioMemory == nil || !p.available {
 		return gpio.PullNoChange
 	}
-	v := gpioMemory.groups[p.group].pull[p.offset/16]
+	v := drvGPIO.gpioMemory.groups[p.group].pull[p.offset/16]
 	switch (v >> (2 * (p.offset % 16))) & 3 {
 	case 0:
 		return gpio.Float
@@ -223,7 +223,7 @@ func (p *Pin) Pull() gpio.Pull {
 
 // Out ensures that the pin is configured as an output and outputs the value.
 func (p *Pin) Out(l gpio.Level) error {
-	if gpioMemory == nil {
+	if drvGPIO.gpioMemory == nil {
 		return p.wrap(errors.New("subsystem not initialized"))
 	}
 	if !p.available {
@@ -249,45 +249,45 @@ func (p *Pin) FastOut(l gpio.Level) {
 	switch p.group {
 	case 1:
 		if l {
-			gpioMemory.groups[1].data |= bit
+			drvGPIO.gpioMemory.groups[1].data |= bit
 		} else {
-			gpioMemory.groups[1].data &^= bit
+			drvGPIO.gpioMemory.groups[1].data &^= bit
 		}
 	case 2:
 		if l {
-			gpioMemory.groups[2].data |= bit
+			drvGPIO.gpioMemory.groups[2].data |= bit
 		} else {
-			gpioMemory.groups[2].data &^= bit
+			drvGPIO.gpioMemory.groups[2].data &^= bit
 		}
 	case 3:
 		if l {
-			gpioMemory.groups[3].data |= bit
+			drvGPIO.gpioMemory.groups[3].data |= bit
 		} else {
-			gpioMemory.groups[3].data &^= bit
+			drvGPIO.gpioMemory.groups[3].data &^= bit
 		}
 	case 4:
 		if l {
-			gpioMemory.groups[4].data |= bit
+			drvGPIO.gpioMemory.groups[4].data |= bit
 		} else {
-			gpioMemory.groups[4].data &^= bit
+			drvGPIO.gpioMemory.groups[4].data &^= bit
 		}
 	case 5:
 		if l {
-			gpioMemory.groups[5].data |= bit
+			drvGPIO.gpioMemory.groups[5].data |= bit
 		} else {
-			gpioMemory.groups[5].data &^= bit
+			drvGPIO.gpioMemory.groups[5].data &^= bit
 		}
 	case 6:
 		if l {
-			gpioMemory.groups[6].data |= bit
+			drvGPIO.gpioMemory.groups[6].data |= bit
 		} else {
-			gpioMemory.groups[6].data &^= bit
+			drvGPIO.gpioMemory.groups[6].data &^= bit
 		}
 	case 7:
 		if l {
-			gpioMemory.groups[7].data |= bit
+			drvGPIO.gpioMemory.groups[7].data |= bit
 		} else {
-			gpioMemory.groups[7].data &^= bit
+			drvGPIO.gpioMemory.groups[7].data &^= bit
 		}
 	}
 }
@@ -301,11 +301,11 @@ func (p *Pin) DefaultPull() gpio.Pull {
 
 // function returns the current GPIO pin function.
 func (p *Pin) function() function {
-	if gpioMemory == nil {
+	if drvGPIO.gpioMemory == nil {
 		return disabled
 	}
 	shift := 4 * (p.offset % 8)
-	return function((gpioMemory.groups[p.group].cfg[p.offset/8] >> shift) & 7)
+	return function((drvGPIO.gpioMemory.groups[p.group].cfg[p.offset/8] >> shift) & 7)
 }
 
 // setFunction changes the GPIO pin function.
@@ -315,8 +315,8 @@ func (p *Pin) setFunction(f function) {
 	mask := uint32(disabled) << shift
 	v := (uint32(f) << shift) ^ mask
 	// First disable, then setup. This is concurrent safe.
-	gpioMemory.groups[p.group].cfg[off] |= mask
-	gpioMemory.groups[p.group].cfg[off] &^= v
+	drvGPIO.gpioMemory.groups[p.group].cfg[off] |= mask
+	drvGPIO.gpioMemory.groups[p.group].cfg[off] &^= v
 	if p.function() != f {
 		panic(f)
 	}
@@ -656,8 +656,6 @@ type gpioMap struct {
 type driverGPIO struct {
 	// gpioMemory is the memory map of the CPU GPIO registers.
 	gpioMemory *gpioMap
-	// gpioBaseAddr is the physical base address of the GPIO registers.
-	gpioBaseAddr uint32
 }
 
 func (d *driverGPIO) String() string {
@@ -679,8 +677,9 @@ func (d *driverGPIO) Init() (bool, error) {
 	if !Present() {
 		return false, errors.New("Allwinner CPU not detected")
 	}
-	gpioBaseAddr = uint32(getBaseAddress())
-	if err := pmem.MapAsPOD(uint64(gpioBaseAddr), &gpioMemory); err != nil {
+	// gpioBaseAddr is the physical base address of the GPIO registers.
+	gpioBaseAddr := uint32(getBaseAddress())
+	if err := pmem.MapAsPOD(uint64(gpioBaseAddr), &d.gpioMemory); err != nil {
 		if os.IsPermission(err) {
 			return true, fmt.Errorf("need more access, try as root: %v", err)
 		}

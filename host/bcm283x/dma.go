@@ -120,9 +120,6 @@ const (
 	dmaActive dmaStatus = 1 << 0 // ACTIVE
 )
 
-// dmaBufAllocator is overriden for unit testing.
-var dmaBufAllocator func(s int) (*videocore.Mem, error) = videocore.Alloc
-
 var dmaStatusMap = []struct {
 	v dmaStatus
 	s string
@@ -597,32 +594,32 @@ func (d *dmaMap) GoString() string {
 // pickChannel searches for a free DMA channel.
 func pickChannel(blacklist ...int) (int, *dmaChannel) {
 	// Try the lite ones first.
-	if dmaMemory != nil {
+	if drvDMA.dmaMemory != nil {
 		// TODO(maruel): Trying to use channel #15 always fails.
 		/*
-			if dmaChannel15 != nil {
-				if dmaChannel15.isAvailable() {
-					dmaChannel15.reset()
-					return 15, dmaChannel15
+			if drvDMA.dmaChannel15 != nil {
+				if drvDMA.dmaChannel15.isAvailable() {
+					drvDMA.dmaChannel15.reset()
+					return 15, drvDMA.dmaChannel15
 				}
 			}
 		*/
 		// TODO(maruel): May as well use a lookup table.
-		for i := len(dmaMemory.channels) - 1; i >= 0; i-- {
+		for i := len(drvDMA.dmaMemory.channels) - 1; i >= 0; i-- {
 			for _, exclude := range blacklist {
 				if i == exclude {
 					goto skip
 				}
 			}
-			if dmaMemory.channels[i].isAvailable() {
-				dmaMemory.channels[i].reset()
-				return i, &dmaMemory.channels[i]
+			if drvDMA.dmaMemory.channels[i].isAvailable() {
+				drvDMA.dmaMemory.channels[i].reset()
+				return i, &drvDMA.dmaMemory.channels[i]
 			}
 		skip:
 		}
 	}
 	// Uncomment to understand the state of the DMA channels.
-	//log.Printf("%#v", dmaMemory)
+	//log.Printf("%#v", drvDMA.dmaMemory)
 	return -1, nil
 }
 
@@ -644,7 +641,7 @@ func runIO(pCB pmem.Mem, liteOk bool) error {
 }
 
 func allocateCB(size int) ([]controlBlock, *videocore.Mem, error) {
-	buf, err := dmaBufAllocator((size + 0xFFF) &^ 0xFFF)
+	buf, err := drvDMA.dmaBufAllocator((size + 0xFFF) &^ 0xFFF)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -673,14 +670,14 @@ func dmaWriteStreamPCM(p *Pin, w gpiostream.Stream) error {
 	}
 
 	// Start clock earlier.
-	pcmMemory.reset()
+	drvDMA.pcmMemory.reset()
 	_, _, err = setPCMClockSource(hz)
 	if err != nil {
 		return err
 	}
 
 	l := (int(w.Duration()/resolution) + 7) / 8 // Bytes
-	buf, err := dmaBufAllocator((l + 0xFFF) &^ 0xFFF)
+	buf, err := drvDMA.dmaBufAllocator((l + 0xFFF) &^ 0xFFF)
 	if err != nil {
 		return err
 	}
@@ -694,24 +691,24 @@ func dmaWriteStreamPCM(p *Pin, w gpiostream.Stream) error {
 		return err
 	}
 	defer pCB.Close()
-	reg := pcmBaseAddr + 0x4 // pcmMap.fifo
+	reg := drvDMA.pcmBaseAddr + 0x4 // pcmMap.fifo
 	if err := cb[0].initBlock(uint32(buf.PhysAddr()), reg, uint32(l), false, true, true, false, dmaPCMTX); err != nil {
 		return err
 	}
 
-	defer pcmMemory.reset()
+	defer drvDMA.pcmMemory.reset()
 	// Start transfer
-	pcmMemory.set()
+	drvDMA.pcmMemory.set()
 	runIO(pCB, l <= maxLite)
 	// We have to wait PCM to be finished even after DMA finished.
-	for pcmMemory.cs&pcmTXErr == 0 {
+	for drvDMA.pcmMemory.cs&pcmTXErr == 0 {
 		Nanospin(10 * time.Nanosecond)
 	}
 	return nil
 }
 
 func dmaWritePWMFIFO() (*dmaChannel, *videocore.Mem, error) {
-	if dmaMemory == nil {
+	if drvDMA.dmaMemory == nil {
 		return nil, nil, errors.New("bcm283x-dma is not initialized; try running as root?")
 	}
 	cb, buf, err := allocateCB(32 + 4) // CB + data
@@ -723,7 +720,7 @@ func dmaWritePWMFIFO() (*dmaChannel, *videocore.Mem, error) {
 	u[offsetBytes/4] = 0x0
 	physBuf := uint32(buf.PhysAddr())
 	physBit := physBuf + offsetBytes
-	dest := pwmBaseAddr + 0x18 // PWM FIFO
+	dest := drvDMA.pwmBaseAddr + 0x18 // PWM FIFO
 	if err := cb[0].initBlock(physBit, dest, 4, false, true, false, false, dmaPWM); err != nil {
 		_ = buf.Close()
 		return nil, nil, err
@@ -741,7 +738,7 @@ func dmaWritePWMFIFO() (*dmaChannel, *videocore.Mem, error) {
 }
 
 func startPWMbyDMA(p *Pin, rng, data uint32) (*dmaChannel, *videocore.Mem, error) {
-	if dmaMemory == nil {
+	if drvDMA.dmaMemory == nil {
 		return nil, nil, errors.New("bcm283x-dma is not initialized; try running as root?")
 	}
 	cb, buf, err := allocateCB(2*32 + 4) // 2 CBs + mask
@@ -755,8 +752,8 @@ func startPWMbyDMA(p *Pin, rng, data uint32) (*dmaChannel, *videocore.Mem, error
 	physBuf := uint32(buf.PhysAddr())
 	physBit := physBuf + offsetBytes
 	dest := [2]uint32{
-		gpioBaseAddr + 0x28 + 4*uint32(p.number/32), // clear
-		gpioBaseAddr + 0x1C + 4*uint32(p.number/32), // set
+		drvGPIO.gpioBaseAddr + 0x28 + 4*uint32(p.number/32), // clear
+		drvGPIO.gpioBaseAddr + 0x1C + 4*uint32(p.number/32), // set
 	}
 	// High
 	if err := cb[0].initBlock(physBit, dest[1], data*4, false, true, false, false, dmaPWM); err != nil {
@@ -788,7 +785,7 @@ func startPWMbyDMA(p *Pin, rng, data uint32) (*dmaChannel, *videocore.Mem, error
 }
 
 func overSamples(s gpiostream.Stream) (int, error) {
-	freq := time.Duration(pwmDMAFreq)
+	freq := time.Duration(drvDMA.pwmDMAFreq)
 	resolution := s.Resolution()
 	skip := (freq*resolution + time.Second/2) / time.Second
 	if skip < 1 {
@@ -818,7 +815,7 @@ func dmaReadStream(p *Pin, b *gpiostream.BitStreamLSB) error {
 	// Stream
 	l := len(b.Bits) * 8 * 4 * int(skip)
 	// TODO(simokawa): Allocate multiple pages and CBs for huge buffer.
-	buf, err := dmaBufAllocator((l + 0xFFF) &^ 0xFFF)
+	buf, err := drvDMA.dmaBufAllocator((l + 0xFFF) &^ 0xFFF)
 	if err != nil {
 		return err
 	}
@@ -829,7 +826,7 @@ func dmaReadStream(p *Pin, b *gpiostream.BitStreamLSB) error {
 	}
 	defer pCB.Close()
 
-	reg := gpioBaseAddr + 0x34 + 4*uint32(p.number/32) // GPIO Pin Level 0
+	reg := drvGPIO.gpioBaseAddr + 0x34 + 4*uint32(p.number/32) // GPIO Pin Level 0
 	if err := cb[0].initBlock(reg, uint32(buf.PhysAddr()), uint32(l), true, false, false, true, dmaPWM); err != nil {
 		return err
 	}
@@ -907,8 +904,8 @@ func dmaWriteStreamEdges(p *Pin, w gpiostream.Stream) error {
 	// Use PWM's rng1 instead for this.
 	//waits := divs - 1
 	dest := [2]uint32{
-		gpioBaseAddr + 0x28 + 4*uint32(p.number/32), // clear
-		gpioBaseAddr + 0x1C + 4*uint32(p.number/32), // set
+		drvGPIO.gpioBaseAddr + 0x28 + 4*uint32(p.number/32), // clear
+		drvGPIO.gpioBaseAddr + 0x1C + 4*uint32(p.number/32), // set
 	}
 
 	// Render the controlBlock's to trigger the bit trigger for either Set or
@@ -956,12 +953,12 @@ func dmaWriteStreamDualChannel(p *Pin, w gpiostream.Stream) error {
 	}
 	l := int(w.Duration()/w.Resolution()) * skip * 4 // Bytes
 	bufLen := (l + 0xFFF) &^ 0xFFF
-	bufSet, err := dmaBufAllocator(bufLen)
+	bufSet, err := drvDMA.dmaBufAllocator(bufLen)
 	if err != nil {
 		return err
 	}
 	defer bufSet.Close()
-	bufClear, err := dmaBufAllocator(bufLen)
+	bufClear, err := drvDMA.dmaBufAllocator(bufLen)
 	if err != nil {
 		return err
 	}
@@ -985,11 +982,11 @@ func dmaWriteStreamDualChannel(p *Pin, w gpiostream.Stream) error {
 		return err
 	}
 
-	regSet := gpioBaseAddr + 0x1C + 4*uint32(p.number/32)
+	regSet := drvGPIO.gpioBaseAddr + 0x1C + 4*uint32(p.number/32)
 	if err := cb[0].initBlock(uint32(bufSet.PhysAddr()), regSet, uint32(l), false, true, true, false, dmaPWM); err != nil {
 		return err
 	}
-	regClear := gpioBaseAddr + 0x28 + 4*uint32(p.number/32)
+	regClear := drvGPIO.gpioBaseAddr + 0x28 + 4*uint32(p.number/32)
 	if err := cb[1].initBlock(uint32(bufClear.PhysAddr()), regClear, uint32(l), false, true, true, false, dmaPWM); err != nil {
 		return err
 	}
@@ -1026,7 +1023,7 @@ func dmaWriteStreamDualChannel(p *Pin, w gpiostream.Stream) error {
 // p must be rooted at a page boundary (4096).
 func physToUncachedPhys(p uint32) uint32 {
 	// http://en.wikibooks.org/wiki/Aros/Platforms/Arm_Raspberry_Pi_support#Framebuffer
-	return p | dramBus
+	return p | drvGPIO.dramBus
 }
 
 func physToBus(p uint32) uint32 {
@@ -1041,13 +1038,13 @@ func physToBus(p uint32) uint32 {
 func smokeTest() error {
 	// If these are commented out due to a new processor having different
 	// characteristics, the corresponding code needs to be updated.
-	if dmaMemory.channels[6].debug&dmaLite != 0 {
+	if drvDMA.dmaMemory.channels[6].debug&dmaLite != 0 {
 		return errors.New("unexpected hardware: DMA channel #6 shouldn't be lite")
 	}
-	if dmaMemory.channels[7].debug&dmaLite == 0 {
+	if drvDMA.dmaMemory.channels[7].debug&dmaLite == 0 {
 		return errors.New("unexpected hardware: DMA channel #7 should be lite")
 	}
-	if dmaMemory.enable != 0x7FFF {
+	if drvDMA.dmaMemory.enable != 0x7FFF {
 		return errors.New("unexpected hardware: DMA enable is not fully set")
 	}
 
@@ -1098,10 +1095,51 @@ func smokeTest() error {
 // It implements much more than the DMA controller, it also exposes the clocks,
 // the PWM and PCM controllers.
 type driverDMA struct {
-	pcmBaseAddr  uint32
-	pwmBaseAddr  uint32
+	pcmBaseAddr uint32
+	pwmBaseAddr uint32
+
 	dmaMemory    *dmaMap
 	dmaChannel15 *dmaChannel
+	pcmMemory    *pcmMap
+	clockMemory  *clockMap
+	timerMemory  *timerMap
+	// Page 138
+	// - Two independent bit-streams
+	// - Each channel either a PWM or serialised version of a 32-bit word
+	// - Variable input and output resolutions.
+	// - Load data from a FIFO storage block, to extent to 8 32-bit words (256
+	//   bits).
+	//
+	// Author note: 100Mhz base resolution with a 256 bits 1-bit stream is actually
+	// good enough to generate a DAC.
+	pwmMemory *pwmMap
+
+	// These clocks are shared with hardware PWM, DMA driven PWM and BitStream.
+	pwmBaseFreq uint64
+	pwmDMAFreq  uint64
+	pwmDMACh    *dmaChannel
+	pwmDMABuf   *videocore.Mem
+
+	// dmaBufAllocator is overriden for unit testing.
+	dmaBufAllocator func(s int) (*videocore.Mem, error) // Set to videocore.Alloc
+}
+
+func (d *driverDMA) Close() error {
+	// TODO(maruel): Stop DMA and PWM controllers.
+	d.pcmBaseAddr = 0
+	d.pwmBaseAddr = 0
+	d.dmaMemory = nil
+	d.dmaChannel15 = nil
+	d.pcmMemory = nil
+	d.clockMemory = nil
+	d.timerMemory = nil
+	d.pwmMemory = nil
+	d.pwmBaseFreq = 0
+	d.pwmDMAFreq = 0
+	d.pwmDMACh = nil
+	d.pwmDMABuf = nil
+	d.dmaBufAllocator = nil
+	return nil
 }
 
 func (d *driverDMA) String() string {
@@ -1117,8 +1155,11 @@ func (d *driverDMA) After() []string {
 }
 
 func (d *driverDMA) Init() (bool, error) {
+	d.dmaBufAllocator = videocore.Alloc
+	d.pwmBaseFreq = 25 * 1000 * 1000 // 25MHz
+	d.pwmDMAFreq = 200 * 1000        // 200KHz
 	// baseAddr is initialized by prerequisite driver bcm283x-gpio.
-	if err := pmem.MapAsPOD(uint64(baseAddr+0x7000), &dmaMemory); err != nil {
+	if err := pmem.MapAsPOD(uint64(drvGPIO.baseAddr+0x7000), &d.dmaMemory); err != nil {
 		if os.IsPermission(err) {
 			return true, fmt.Errorf("need more access, try as root: %v", err)
 		}
@@ -1126,46 +1167,41 @@ func (d *driverDMA) Init() (bool, error) {
 	}
 	// Channel #15 is "physically removed from the other DMA Channels so it has a
 	// different address base".
-	if err := pmem.MapAsPOD(uint64(baseAddr+0xE05000), &dmaChannel15); err != nil {
+	if err := pmem.MapAsPOD(uint64(drvGPIO.baseAddr+0xE05000), &d.dmaChannel15); err != nil {
 		return true, err
 	}
-	pcmBaseAddr = baseAddr + 0x203000
-	if err := pmem.MapAsPOD(uint64(pcmBaseAddr), &pcmMemory); err != nil {
+	d.pcmBaseAddr = drvGPIO.baseAddr + 0x203000
+	if err := pmem.MapAsPOD(uint64(d.pcmBaseAddr), &d.pcmMemory); err != nil {
 		return true, err
 	}
-	pwmBaseAddr = baseAddr + 0x20C000
-	if err := pmem.MapAsPOD(uint64(pwmBaseAddr), &pwmMemory); err != nil {
+	d.pwmBaseAddr = drvGPIO.baseAddr + 0x20C000
+	if err := pmem.MapAsPOD(uint64(d.pwmBaseAddr), &d.pwmMemory); err != nil {
 		return true, err
 	}
-	if err := pmem.MapAsPOD(uint64(baseAddr+0x101000), &clockMemory); err != nil {
+	if err := pmem.MapAsPOD(uint64(drvGPIO.baseAddr+0x101000), &d.clockMemory); err != nil {
 		return true, err
 	}
-	if err := pmem.MapAsPOD(uint64(baseAddr+0x3000), &timerMemory); err != nil {
+	if err := pmem.MapAsPOD(uint64(drvGPIO.baseAddr+0x3000), &d.timerMemory); err != nil {
 		return true, err
 	}
 	return true, smokeTest()
 }
 
-func (d *driverDMA) Close() error {
-	// Stop DMA and PWM controllers.
-	return nil
-}
-
 func debugDMA() {
-	for i, ch := range dmaMemory.channels {
+	for i, ch := range drvDMA.dmaMemory.channels {
 		log.Println(i, ch.cs.String())
 		if ch.cs&dmaActive != 0 {
 			log.Printf("%x: %s", ch.cbAddr, ch.GoString())
 		}
 	}
-	log.Println(15, dmaChannel15.cs.String())
+	log.Println(15, drvDMA.dmaChannel15.cs.String())
 }
 
 func resetDMA(ch int) error {
-	if ch < len(dmaMemory.channels) {
-		dmaMemory.channels[ch].reset()
+	if ch < len(drvDMA.dmaMemory.channels) {
+		drvDMA.dmaMemory.channels[ch].reset()
 	} else if ch == 15 {
-		dmaChannel15.reset()
+		drvDMA.dmaChannel15.reset()
 	} else {
 		return fmt.Errorf("Invalid dma channel %d.", ch)
 	}

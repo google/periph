@@ -43,14 +43,15 @@ func TestSPI_IO(t *testing.T) {
 	if err := c.Tx([]byte{0}, []byte{0, 1}); err == nil {
 		t.Fatal("different lengths")
 	}
-	if err := c.Tx(make([]byte, spiBufSize+1), nil); err == nil {
+	// This assumes bufSize was initialized.
+	if err := c.Tx(make([]byte, drvSPI.bufSize+1), nil); err == nil {
 		t.Fatal("buffer too long")
 	}
 	if err := c.TxPackets(nil); err == nil {
 		t.Fatal("empty TxPackets")
 	}
 	pkt := []spi.Packet{
-		{W: make([]byte, spiBufSize+1)},
+		{W: make([]byte, drvSPI.bufSize+1)},
 	}
 	if err := c.TxPackets(pkt); err == nil {
 		t.Fatal("buffer too long")
@@ -124,8 +125,8 @@ func TestSPI_other(t *testing.T) {
 	if err := p.LimitSpeed(1); err != nil {
 		t.Fatal(err)
 	}
-	if v := p.MaxTxSize(); v != spiBufSize {
-		t.Fatal(v, spiBufSize)
+	if v := p.MaxTxSize(); v != drvSPI.bufSize {
+		t.Fatal(v, drvSPI.bufSize)
 	}
 }
 
@@ -180,5 +181,5 @@ func TestSPIDriver(t *testing.T) {
 //
 
 func init() {
-	spiBufSize = 4096
+	drvSPI.bufSize = 4096
 }

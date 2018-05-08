@@ -262,11 +262,11 @@ func (p *Pin) open() error {
 		return p.err
 	}
 
-	if exportHandle == nil {
+	if drvGPIO.exportHandle == nil {
 		return errors.New("sysfs gpio is not initialized")
 	}
 	var err error
-	_, err = exportHandle.Write([]byte(strconv.Itoa(p.number)))
+	_, err = drvGPIO.exportHandle.Write([]byte(strconv.Itoa(p.number)))
 	if err != nil && !isErrBusy(err) {
 		p.err = err
 		if os.IsPermission(p.err) {
@@ -405,7 +405,7 @@ func (d *driverGPIO) Init() (bool, error) {
 			return true, err
 		}
 	}
-	exportHandle, err = fileIOOpen("/sys/class/gpio/export", os.O_WRONLY)
+	drvGPIO.exportHandle, err = fileIOOpen("/sys/class/gpio/export", os.O_WRONLY)
 	if os.IsPermission(err) {
 		return true, fmt.Errorf("need more access, try as root or setup udev rules: %v", err)
 	}

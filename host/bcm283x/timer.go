@@ -14,10 +14,10 @@ import (
 //
 // It only works if bcm283x-dma successfully loaded. Otherwise it returns 0.
 func ReadTime() time.Duration {
-	if timerMemory == nil {
+	if drvDMA.timerMemory == nil {
 		return 0
 	}
-	return (time.Duration(timerMemory.high)<<32 | time.Duration(timerMemory.low)) * time.Microsecond
+	return (time.Duration(drvDMA.timerMemory.high)<<32 | time.Duration(drvDMA.timerMemory.low)) * time.Microsecond
 }
 
 // Nanospin spins the CPU without calling into the kernel code if possible.
@@ -34,8 +34,6 @@ func Nanospin(t time.Duration) {
 }
 
 //
-
-var timerMemory *timerMap
 
 const (
 	// 31:4 reserved

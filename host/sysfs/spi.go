@@ -149,7 +149,7 @@ func (s *SPI) duplex() conn.Duplex {
 
 // MaxTxSize implements conn.Limits
 func (s *SPI) MaxTxSize() int {
-	return spiBufSize
+	return drvSPI.bufSize
 }
 
 // CLK implements spi.Pins.
@@ -200,8 +200,8 @@ func (s *SPI) txInternal(w, r []byte) (int, error) {
 	if l == 0 {
 		l = len(r)
 	}
-	if spiBufSize != 0 && l > spiBufSize {
-		return 0, fmt.Errorf("sysfs-spi: maximum Tx length is %d, got at least %d bytes", spiBufSize, l)
+	if drvSPI.bufSize != 0 && l > drvSPI.bufSize {
+		return 0, fmt.Errorf("sysfs-spi: maximum Tx length is %d, got at least %d bytes", drvSPI.bufSize, l)
 	}
 
 	s.Lock()
@@ -248,8 +248,8 @@ func (s *SPI) txPackets(p []spi.Packet) error {
 		if lR != 0 {
 			l = lR
 		}
-		if total += l; spiBufSize != 0 && total > spiBufSize {
-			return fmt.Errorf("sysfs-spi: maximum TxPackets length is %d, got at least %d bytes", spiBufSize, total)
+		if total += l; drvSPI.bufSize != 0 && total > drvSPI.bufSize {
+			return fmt.Errorf("sysfs-spi: maximum TxPackets length is %d, got at least %d bytes", drvSPI.bufSize, total)
 		}
 	}
 	if total == 0 {
@@ -407,7 +407,7 @@ func (s *spiConn) Duplex() conn.Duplex {
 }
 
 func (s *spiConn) MaxTxSize() int {
-	return spiBufSize
+	return drvSPI.bufSize
 }
 
 func (s *spiConn) CLK() gpio.PinOut {
@@ -562,7 +562,7 @@ func (d *driverSPI) Init() (bool, error) {
 		return true, err
 	}
 	// Update the global value.
-	spiBufSize, err = strconv.Atoi(strings.TrimSpace(string(b)))
+	drvSPI.bufSize, err = strconv.Atoi(strings.TrimSpace(string(b)))
 	return true, err
 }
 

@@ -19,9 +19,9 @@ func TestPresent(t *testing.T) {
 }
 
 func TestPin(t *testing.T) {
+	defer reset()
+	drvGPIO.gpioMemory = nil
 	// Using Pin without the driver being initialized doesn't crash.
-	defer resetGPIOMemory()
-	gpioMemory = nil
 	p := Pin{name: "Foo", number: 42, defaultPull: gpio.PullDown}
 
 	if s := p.String(); s != "Foo" {
@@ -36,7 +36,6 @@ func TestPin(t *testing.T) {
 	if d := p.DefaultPull(); d != gpio.PullDown {
 		t.Fatal(d)
 	}
-	// When unitialized, Pin.function() returs alt5.
 	if s := p.Function(); s != "UART1_RTS" {
 		t.Fatal(s)
 	}
@@ -56,7 +55,7 @@ func TestPin(t *testing.T) {
 		t.Fatal("not initialized")
 	}
 
-	gpioMemory = &gpioMap{}
+	setMemory()
 	if err := p.In(gpio.PullDown, gpio.NoEdge); err != nil {
 		t.Fatal(err)
 	}
@@ -138,46 +137,42 @@ func TestPin(t *testing.T) {
 }
 
 func TestPinPWM(t *testing.T) {
-	defer func() {
-		clockMemory = nil
-		pwmMemory = nil
-		dmaMemory = nil
-	}()
-	defer resetGPIOMemory()
-	gpioMemory = nil
-
+	defer reset()
+	setMemory()
 	p := Pin{name: "C1", number: 4, defaultPull: gpio.PullDown}
-	if err := p.PWM(gpio.DutyHalf, 500*time.Nanosecond); err == nil || err.Error() != "bcm283x-gpio (C1): subsystem not initialized" {
-		t.Fatal(err)
-	}
-
-	gpioMemory = &gpioMap{}
 	if err := p.PWM(gpio.DutyHalf, 500*time.Nanosecond); err == nil || err.Error() != "bcm283x-gpio (C1): bcm283x-dma not initialized; try again as root?" {
 		t.Fatal(err)
 	}
 
-	clockMemory = &clockMap{}
-	pwmMemory = &pwmMap{}
+	drvGPIO.gpioMemory = &gpioMap{}
+	if err := p.PWM(gpio.DutyHalf, 500*time.Nanosecond); err == nil || err.Error() != "bcm283x-gpio (C1): bcm283x-dma not initialized; try again as root?" {
+		t.Fatal(err)
+	}
+
+	drvDMA.clockMemory = &clockMap{}
+	drvDMA.pwmMemory = &pwmMap{}
+	drvDMA.pwmBaseFreq = 25 * 1000 * 1000 // 25MHz
+	drvDMA.pwmDMAFreq = 200 * 1000        // 200KHz
 	if err := p.PWM(gpio.DutyHalf, 9*time.Microsecond); err == nil || err.Error() != "bcm283x-gpio (C1): period must be at least 10µs" {
 		t.Fatal(err)
 	}
 	// TODO(maruel): Fix test.
-	dmaMemory = &dmaMap{}
+	drvDMA.dmaMemory = &dmaMap{}
 	if err := p.PWM(gpio.DutyHalf, 10*time.Microsecond); err == nil || err.Error() != "bcm283x-gpio (C1): can't write to clock divisor CPU register" {
 		t.Fatal(err)
 	}
 }
 
 func TestDriver(t *testing.T) {
-	d := driverGPIO{}
-	if s := d.String(); s != "bcm283x-gpio" {
+	defer reset()
+	if s := drvGPIO.String(); s != "bcm283x-gpio" {
 		t.Fatal(s)
 	}
-	if s := d.Prerequisites(); s != nil {
+	if s := drvGPIO.Prerequisites(); s != nil {
 		t.Fatal(s)
 	}
 	// It will fail to initialize on non-bcm.
-	_, _ = d.Init()
+	_, _ = drvGPIO.Init()
 }
 
 func TestSetSpeed(t *testing.T) {
@@ -187,18 +182,26 @@ func TestSetSpeed(t *testing.T) {
 }
 
 func init() {
-	dmaBufAllocator = func(s int) (*videocore.Mem, error) {
-		buf := make([]byte, s)
-		return &videocore.Mem{View: &pmem.View{Slice: buf}}, nil
-	}
-	// gpioMemory is initialized so the examples are more interesting.
-	resetGPIOMemory()
+	reset()
 }
 
-// resetGPIOMemory resets so GPIO4, GPIO12, GPIO16, GPIO31, GPIO32, GPIO40 and
-// GPIO46 are set.
-func resetGPIOMemory() {
-	gpioMemory = &gpioMap{
+func reset() {
+	drvGPIO.Close()
+	drvDMA.Close()
+	// This is needed because the examples in example_test.go run in the same
+	// process as this file, even if in a separate package. This means that for
+	// the examples to pass, drvGPIO.gpioMemory must be set.
+	setMemory()
+}
+
+// setMemory resets so GPIO4, GPIO12, GPIO16, GPIO31, GPIO32, GPIO40 and
+// GPIO46 are set and mock the DMA buffer allocator.
+func setMemory() {
+	drvGPIO.gpioMemory = &gpioMap{
 		level: [2]uint32{0x80011010, 0x4101},
+	}
+	drvDMA.dmaBufAllocator = func(s int) (*videocore.Mem, error) {
+		buf := make([]byte, s)
+		return &videocore.Mem{View: &pmem.View{Slice: buf}}, nil
 	}
 }
