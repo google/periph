@@ -674,6 +674,14 @@ func BenchmarkWriteColorfulVariation(b *testing.B) {
 	}
 }
 
+func BenchmarkHalt(b *testing.B) {
+	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), 150, 250, 5000)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		d.Halt()
+	}
+}
+
 //
 
 type configFail struct {

@@ -124,8 +124,16 @@ func (d *Dev) Write(pixels []byte) (int, error) {
 
 // Halt turns off all the lights.
 func (d *Dev) Halt() error {
-	_, err := d.Write(make([]byte, d.numPixels*3))
-	return err
+	// Zap out the buffer.
+	for i := range d.pixels {
+		if i&3 == 0 {
+			// 0xE0 would probably be fine too.
+			d.pixels[i] = 0xE1
+		} else {
+			d.pixels[i] = 0
+		}
+	}
+	return d.s.Tx(d.rawBuf, nil)
 }
 
 //
@@ -293,6 +301,7 @@ func (l *lut) rasterImg(dst []byte, r image.Rectangle, src image.Image, srcR ima
 	} else {
 		// Generic version.
 		for sX := srcR.Min.X; sX < srcR.Max.X; sX++ {
+			// This causes a memory allocation. There's no way around it.
 			r16, g16, b16, _ := src.At(sX, srcR.Min.Y).RGBA()
 			r := l.r[byte(r16>>8)]
 			g := l.g[byte(g16>>8)]
