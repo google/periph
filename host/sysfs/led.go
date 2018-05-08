@@ -202,9 +202,11 @@ func (d *driverLED) Init() (bool, error) {
 
 func init() {
 	if isLinux {
-		periph.MustRegister(&driverLED{})
+		periph.MustRegister(&drvLED)
 	}
 }
+
+var drvLED driverLED
 
 var _ gpio.PinIn = &LED{}
 var _ gpio.PinOut = &LED{}

@@ -1175,6 +1175,8 @@ func resetDMA(ch int) error {
 
 func init() {
 	if isArm {
-		periph.MustRegister(&driverDMA{})
+		periph.MustRegister(&drvDMA)
 	}
 }
+
+var drvDMA driverDMA

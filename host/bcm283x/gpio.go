@@ -1028,9 +1028,11 @@ func setSpeed(hz int64) error {
 
 func init() {
 	if isArm {
-		periph.MustRegister(&driverGPIO{})
+		periph.MustRegister(&drvGPIO)
 	}
 }
+
+var drvGPIO driverGPIO
 
 var _ gpio.PinDefaultPull = &Pin{}
 var _ gpio.PinIO = &Pin{}

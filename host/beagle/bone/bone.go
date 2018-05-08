@@ -310,8 +310,8 @@ func (d *driver) Init() (bool, error) {
 
 func init() {
 	if isArm {
-		periph.MustRegister(&driver{})
+		periph.MustRegister(&drv)
 	}
 }
 
-var _ periph.Driver = &driver{}
+var drv driver

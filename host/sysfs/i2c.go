@@ -376,9 +376,11 @@ func (o openerI2C) Open() (i2c.BusCloser, error) {
 
 func init() {
 	if isLinux {
-		periph.MustRegister(&driverI2C{})
+		periph.MustRegister(&drvI2C)
 	}
 }
+
+var drvI2C driverI2C
 
 var _ i2c.Bus = &I2C{}
 var _ i2c.BusCloser = &I2C{}

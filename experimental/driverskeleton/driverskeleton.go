@@ -89,9 +89,8 @@ func init() {
 	// Since isArm is a compile time constant, the compile can strip the
 	// unnecessary code and unused private symbols.
 	//if isArm {
-	periph.MustRegister(&driver{})
+	periph.MustRegister(&drv)
 	//}
 }
 
-// FIXME: This verifies that the driver implements all the required methods.
-var _ periph.Driver = &driver{}
+var drv driver

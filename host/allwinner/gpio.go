@@ -708,7 +708,7 @@ func (d *driverGPIO) Init() (bool, error) {
 
 func init() {
 	if isArm {
-		periph.MustRegister(&driverGPIO{})
+		periph.MustRegister(&drvGPIO)
 	}
 }
 
@@ -734,8 +734,9 @@ func getBaseAddress() uint64 {
 	return base2
 }
 
-// Ensure that the various structs implement the interfaces they're supposed to.
+var drvGPIO driverGPIO
 
+// Ensure that the various structs implement the interfaces they're supposed to.
 var _ gpio.PinDefaultPull = &Pin{}
 var _ gpio.PinIO = &Pin{}
 var _ gpio.PinIn = &Pin{}

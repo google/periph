@@ -448,9 +448,11 @@ func (d *driverGPIO) parseGPIOChip(path string) error {
 
 func init() {
 	if isLinux {
-		periph.MustRegister(&driverGPIO{})
+		periph.MustRegister(&drvGPIO)
 	}
 }
+
+var drvGPIO driverGPIO
 
 var _ gpio.PinIn = &Pin{}
 var _ gpio.PinOut = &Pin{}

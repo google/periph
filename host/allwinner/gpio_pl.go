@@ -401,9 +401,11 @@ func (d *driverGPIOPL) Init() (bool, error) {
 
 func init() {
 	if isArm {
-		periph.MustRegister(&driverGPIOPL{})
+		periph.MustRegister(&drvGPIOPL)
 	}
 }
+
+var drvGPIOPL driverGPIOPL
 
 var _ gpio.PinDefaultPull = &Pin{}
 var _ gpio.PinIO = &PinPL{}

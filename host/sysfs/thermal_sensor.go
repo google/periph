@@ -172,9 +172,11 @@ func (d *driverThermalSensor) Init() (bool, error) {
 
 func init() {
 	if isLinux {
-		periph.MustRegister(&driverThermalSensor{})
+		periph.MustRegister(&drvThermalSensor)
 	}
 }
+
+var drvThermalSensor driverThermalSensor
 
 var _ devices.Environmental = &ThermalSensor{}
 var _ fmt.Stringer = &ThermalSensor{}

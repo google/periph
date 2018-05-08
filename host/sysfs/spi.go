@@ -578,9 +578,11 @@ func (o *openerSPI) Open() (spi.PortCloser, error) {
 
 func init() {
 	if isLinux {
-		periph.MustRegister(&driverSPI{})
+		periph.MustRegister(&drvSPI)
 	}
 }
+
+var drvSPI driverSPI
 
 var _ conn.Limits = &SPI{}
 var _ conn.Limits = &spiConn{}
