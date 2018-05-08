@@ -189,6 +189,14 @@ workers:
   - cmd:
     - go
     - test
+    - -bench=.
+    - -benchmem
+    - -benchtime
+    - 10ms
+    - ./...
+  - cmd:
+    - go
+    - test
     - -race
     - ./...
   - cmd:
@@ -196,9 +204,4 @@ workers:
     - vet
     - -all
     - -unsafeptr=false
-    - ./...
-- checks:
-  - cmd:
-    - go
-    - test
     - ./...
