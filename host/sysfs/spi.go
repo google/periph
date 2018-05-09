@@ -71,6 +71,8 @@ type SPI struct {
 
 // Close closes the handle to the SPI driver. It is not a requirement to close
 // before process termination.
+//
+// Note that the object is not reusable afterward.
 func (s *SPI) Close() error {
 	s.Lock()
 	defer s.Unlock()

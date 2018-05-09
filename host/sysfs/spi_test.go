@@ -178,6 +178,21 @@ func TestSPIDriver(t *testing.T) {
 	}
 }
 
+func TestSPI_OpenClose(t *testing.T) {
+	p := SPI{f: &ioctlClose{}}
+	_, err := p.Connect(10, spi.Mode0, 8)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = p.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err = p.Connect(10, spi.Mode0, 8); err == nil {
+		t.Fatal("an spi object cannot be reused for now")
+	}
+}
+
 //
 
 func init() {
