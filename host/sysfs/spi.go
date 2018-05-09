@@ -67,6 +67,9 @@ type SPI struct {
 	mosi        gpio.PinOut
 	miso        gpio.PinIn
 	cs          gpio.PinOut
+	spiConn     spiConn
+	// Heap optimization: reduce the amount of memory allocations.
+	io [4]spiIOCTransfer
 }
 
 // Close closes the handle to the SPI driver. It is not a requirement to close
@@ -137,7 +140,8 @@ func (s *SPI) Connect(maxHz int64, mode spi.Mode, bits int) (spi.Conn, error) {
 	if err := s.setFlag(spiIOCMode, uint64(m)); err != nil {
 		return nil, fmt.Errorf("sysfs-spi: setting mode %v failed: %v", mode, err)
 	}
-	return &spiConn{s}, nil
+	s.spiConn.s = s
+	return &s.spiConn, nil
 }
 
 func (s *SPI) duplex() conn.Duplex {
@@ -218,9 +222,10 @@ func (s *SPI) txInternal(w, r []byte) (int, error) {
 	if s.maxHzDev != 0 && (s.maxHzPort == 0 || s.maxHzDev < s.maxHzPort) {
 		hz = s.maxHzDev
 	}
-	var m spiIOCTransfer
-	m.reset(w, r, hz, s.bitsPerWord)
-	if err := s.f.Ioctl(spiIOCTx(1), uintptr(unsafe.Pointer(&m))); err != nil {
+	// The Ioctl() call below is seen as a memory escape, so the spiIOCTransfer
+	// object cannot be on the stack.
+	s.io[0].reset(w, r, hz, s.bitsPerWord)
+	if err := s.f.Ioctl(spiIOCTx(1), uintptr(unsafe.Pointer(&s.io[0]))); err != nil {
 		return 0, fmt.Errorf("sysfs-spi: I/O failed: %v", err)
 	}
 	return l, nil
@@ -267,7 +272,12 @@ func (s *SPI) txPackets(p []spi.Packet) error {
 	if s.maxHzDev != 0 && (s.maxHzPort == 0 || s.maxHzDev < s.maxHzPort) {
 		hz = s.maxHzDev
 	}
-	m := make([]spiIOCTransfer, len(p))
+	var m []spiIOCTransfer
+	if len(p) > len(s.io) {
+		m = make([]spiIOCTransfer, len(p))
+	} else {
+		m = s.io[:len(p)]
+	}
 	for i := range p {
 		bits := p[i].BitsPerWord
 		if bits == 0 {
