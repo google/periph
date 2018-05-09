@@ -214,21 +214,12 @@ func (s *SPI) txInternal(w, r []byte) (int, error) {
 	if len(w) != 0 && len(r) != 0 && s.halfDuplex {
 		return 0, errors.New("sysfs-spi: can only specify one of w or r when in half duplex")
 	}
-	m := spiIOCTransfer{
-		speedHz:     s.maxHzPort,
-		bitsPerWord: s.bitsPerWord,
-	}
+	hz := s.maxHzPort
 	if s.maxHzDev != 0 && (s.maxHzPort == 0 || s.maxHzDev < s.maxHzPort) {
-		m.speedHz = s.maxHzDev
+		hz = s.maxHzDev
 	}
-	if l := len(w); l != 0 {
-		m.tx = uint64(uintptr(unsafe.Pointer(&w[0])))
-		m.length = uint32(l)
-	}
-	if l := len(r); l != 0 {
-		m.rx = uint64(uintptr(unsafe.Pointer(&r[0])))
-		m.length = uint32(l)
-	}
+	var m spiIOCTransfer
+	m.reset(w, r, hz, s.bitsPerWord)
 	if err := s.f.Ioctl(spiIOCTx(1), uintptr(unsafe.Pointer(&m))); err != nil {
 		return 0, fmt.Errorf("sysfs-spi: I/O failed: %v", err)
 	}
@@ -263,32 +254,28 @@ func (s *SPI) txPackets(p []spi.Packet) error {
 	if !s.initialized {
 		return errors.New("sysfs-spi: Connect wasn't called")
 	}
+	if s.halfDuplex {
+		for i := range p {
+			if len(p[i].W) != 0 && len(p[i].R) != 0 {
+				return errors.New("sysfs-spi: can only specify one of w or r when in half duplex")
+			}
+		}
+	}
+
 	// Convert the packets.
-	speed := s.maxHzPort
+	hz := s.maxHzPort
 	if s.maxHzDev != 0 && (s.maxHzPort == 0 || s.maxHzDev < s.maxHzPort) {
-		speed = s.maxHzDev
+		hz = s.maxHzDev
 	}
 	m := make([]spiIOCTransfer, len(p))
-	for i := range m {
-		m[i].speedHz = speed
-		if m[i].bitsPerWord = p[i].BitsPerWord; m[i].bitsPerWord == 0 {
-			m[i].bitsPerWord = s.bitsPerWord
+	for i := range p {
+		bits := p[i].BitsPerWord
+		if bits == 0 {
+			bits = s.bitsPerWord
 		}
+		m[i].reset(p[i].W, p[i].R, hz, bits)
 		if !s.noCS && !p[i].KeepCS {
 			m[i].csChange = 1
-		}
-		lW := len(p[i].W)
-		lR := len(p[i].R)
-		if lW != 0 && lR != 0 && s.halfDuplex {
-			return errors.New("sysfs-spi: can only specify one of w or r when in half duplex")
-		}
-		if lW != 0 {
-			m[i].tx = uint64(uintptr(unsafe.Pointer(&p[i].W[0])))
-			m[i].length = uint32(lW)
-		}
-		if lR != 0 {
-			m[i].rx = uint64(uintptr(unsafe.Pointer(&p[i].R[0])))
-			m[i].length = uint32(lR)
 		}
 	}
 	if err := s.f.Ioctl(spiIOCTx(len(m)), uintptr(unsafe.Pointer(&m[0]))); err != nil {
@@ -494,6 +481,28 @@ type spiIOCTransfer struct {
 	txNBits     uint8
 	rxNBits     uint8
 	pad         uint16
+}
+
+func (s *spiIOCTransfer) reset(w, r []byte, speedHz uint32, bitsPerWord uint8) {
+	s.tx = 0
+	s.rx = 0
+	s.length = 0
+	// w and r must be the same length.
+	if l := len(w); l != 0 {
+		s.tx = uint64(uintptr(unsafe.Pointer(&w[0])))
+		s.length = uint32(l)
+	}
+	if l := len(r); l != 0 {
+		s.rx = uint64(uintptr(unsafe.Pointer(&r[0])))
+		s.length = uint32(l)
+	}
+	s.speedHz = speedHz
+	s.delayUsecs = 0
+	s.bitsPerWord = bitsPerWord
+	s.csChange = 0
+	s.txNBits = 0
+	s.rxNBits = 0
+	s.pad = 0
 }
 
 //
