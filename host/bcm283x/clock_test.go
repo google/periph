@@ -295,6 +295,7 @@ func TestClockMap(t *testing.T) {
 //
 
 func BenchmarkCalcSource_Exact(b *testing.B) {
+	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		src, clkDiv, waitCycles, hz, err := calcSource(120000, dmaWaitcyclesMax+1)
 		if src != clockSrc19dot2MHz || clkDiv != 160 || waitCycles != 1 || hz != 120000 || err != nil {
@@ -304,6 +305,7 @@ func BenchmarkCalcSource_Exact(b *testing.B) {
 }
 
 func BenchmarkCalcSource_Oversample(b *testing.B) {
+	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		src, clkDiv, waitCycles, hz, err := calcSource(10, dmaWaitcyclesMax+1)
 		if src != clockSrc19dot2MHz || clkDiv != 4000 || waitCycles != 32 || hz != 150 || err != nil {
@@ -314,6 +316,7 @@ func BenchmarkCalcSource_Oversample(b *testing.B) {
 
 func BenchmarkCalcSource_Inexact(b *testing.B) {
 	// TODO(maruel): It is really too slow.
+	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		src, clkDiv, waitCycles, hz, err := calcSource(7, dmaWaitcyclesMax+1)
 		if src != 0 || clkDiv != 0 || waitCycles != 0 || hz != 0 || err == nil {

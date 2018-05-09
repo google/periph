@@ -487,13 +487,13 @@ var expectedi250t6500 = []byte{
 
 func TestDevTemperatureWarm(t *testing.T) {
 	buf := bytes.Buffer{}
-	pixels := make([]byte, 16*3)
+	pixels := [16 * 3]byte{}
 	for i := range pixels {
 		// Test all intensity code paths.
 		pixels[i] = uint8(i << 2)
 	}
 	d, _ := New(spitest.NewRecordRaw(&buf), len(pixels)/3, 250, 5000)
-	if n, err := d.Write(pixels); n != len(pixels) || err != nil {
+	if n, err := d.Write(pixels[:]); n != len(pixels) || err != nil {
 		t.Fatalf("%d %v", n, err)
 	}
 	if !bytes.Equal(expectedi250t5000, buf.Bytes()) {
@@ -578,56 +578,61 @@ func TestInit(t *testing.T) {
 //
 
 func BenchmarkWriteWhite(b *testing.B) {
-	pixels := make([]byte, 150*3)
+	b.ReportAllocs()
+	pixels := [150 * 3]byte{}
 	for i := range pixels {
 		pixels[i] = 0xFF
 	}
 	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), len(pixels)/3, 255, 6500)
-	_, _ = d.Write(pixels)
+	_, _ = d.Write(pixels[:])
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = d.Write(pixels)
+		_, _ = d.Write(pixels[:])
 	}
 }
 
 func BenchmarkWriteDim(b *testing.B) {
-	pixels := make([]byte, 150*3)
+	b.ReportAllocs()
+	pixels := [150 * 3]byte{}
 	for i := range pixels {
 		pixels[i] = 1
 	}
 	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), len(pixels)/3, 255, 6500)
-	_, _ = d.Write(pixels)
+	_, _ = d.Write(pixels[:])
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = d.Write(pixels)
+		_, _ = d.Write(pixels[:])
 	}
 }
 
 func BenchmarkWriteBlack(b *testing.B) {
-	pixels := make([]byte, 150*3)
+	b.ReportAllocs()
+	pixels := [150 * 3]byte{}
 	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), len(pixels)/3, 255, 6500)
-	_, _ = d.Write(pixels)
+	_, _ = d.Write(pixels[:])
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = d.Write(pixels)
+		_, _ = d.Write(pixels[:])
 	}
 }
 
 func BenchmarkWriteColorful(b *testing.B) {
-	pixels := make([]byte, 150*3)
+	b.ReportAllocs()
+	pixels := [150 * 3]byte{}
 	for i := range pixels {
 		pixels[i] = uint8(i) + uint8(i>>8)
 	}
 	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), len(pixels)/3, 250, 5000)
-	_, _ = d.Write(pixels)
+	_, _ = d.Write(pixels[:])
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = d.Write(pixels)
+		_, _ = d.Write(pixels[:])
 	}
 }
 
 func BenchmarkDrawNRGBAColorful(b *testing.B) {
 	// Takes the fast path.
+	b.ReportAllocs()
 	img := image.NewNRGBA(image.Rect(0, 0, 150, 1))
 	for i := range img.Pix {
 		img.Pix[i] = uint8(i) + uint8(i>>8)
@@ -644,6 +649,7 @@ func BenchmarkDrawNRGBAColorful(b *testing.B) {
 
 func BenchmarkDrawRGBAColorful(b *testing.B) {
 	// Takes the slow path.
+	b.ReportAllocs()
 	img := image.NewRGBA(image.Rect(0, 0, 256, 1))
 	for i := range img.Pix {
 		img.Pix[i] = uint8(i) + uint8(i>>8)
@@ -660,21 +666,23 @@ func BenchmarkDrawRGBAColorful(b *testing.B) {
 
 func BenchmarkWriteColorfulVariation(b *testing.B) {
 	// Continuously vary the lookup tables.
-	pixels := make([]byte, 256*3)
+	b.ReportAllocs()
+	pixels := [256 * 3]byte{}
 	for i := range pixels {
 		pixels[i] = uint8(i) + uint8(i>>8)
 	}
 	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), len(pixels)/3, 250, 5000)
-	_, _ = d.Write(pixels)
+	_, _ = d.Write(pixels[:])
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		d.Intensity = uint8(i)
 		d.Temperature = uint16((3000 + i) & 0x1FFF)
-		_, _ = d.Write(pixels)
+		_, _ = d.Write(pixels[:])
 	}
 }
 
 func BenchmarkHalt(b *testing.B) {
+	b.ReportAllocs()
 	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), 150, 250, 5000)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

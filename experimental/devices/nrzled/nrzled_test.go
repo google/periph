@@ -282,6 +282,7 @@ func TestRaster_4_4(t *testing.T) {
 //
 
 func BenchmarkNRZ(b *testing.B) {
+	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		NRZ(23)
 	}
