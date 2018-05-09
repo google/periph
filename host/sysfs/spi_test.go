@@ -193,6 +193,23 @@ func TestSPI_OpenClose(t *testing.T) {
 	}
 }
 
+func BenchmarkSPI(b *testing.B) {
+	b.ReportAllocs()
+	i := ioctlClose{}
+	p := SPI{f: &i}
+	c, err := p.Connect(10, spi.Mode0, 8)
+	if err != nil {
+		b.Fatal(err)
+	}
+	var w [16]byte
+	var r [16]byte
+	for i := 0; i < b.N; i++ {
+		if err := c.Tx(w[:], r[:]); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
 //
 
 func init() {
