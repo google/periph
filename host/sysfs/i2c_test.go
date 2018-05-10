@@ -100,3 +100,16 @@ func TestDriver_Init(t *testing.T) {
 		t.Fatal("second SetSpeedHook must fail")
 	}
 }
+
+func BenchmarkI2C(b *testing.B) {
+	b.ReportAllocs()
+	i := ioctlClose{}
+	bus := I2C{f: &i}
+	var w [16]byte
+	var r [16]byte
+	for i := 0; i < b.N; i++ {
+		if err := bus.Tx(0x01, w[:], r[:]); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
