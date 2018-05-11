@@ -193,7 +193,7 @@ func TestSPI_OpenClose(t *testing.T) {
 	}
 }
 
-func BenchmarkSPI(b *testing.B) {
+func BenchmarkSPI_Tx(b *testing.B) {
 	b.ReportAllocs()
 	i := ioctlClose{}
 	p := SPI{f: &i}
@@ -205,6 +205,51 @@ func BenchmarkSPI(b *testing.B) {
 	var r [16]byte
 	for i := 0; i < b.N; i++ {
 		if err := c.Tx(w[:], r[:]); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkSPI_TxPackets2(b *testing.B) {
+	b.ReportAllocs()
+	i := ioctlClose{}
+	p := SPI{f: &i}
+	c, err := p.Connect(10, spi.Mode0, 8)
+	if err != nil {
+		b.Fatal(err)
+	}
+	var w [16]byte
+	var r [16]byte
+	tx := [2]spi.Packet{
+		{W: w[:], KeepCS: true},
+		{R: r[:]},
+	}
+	for i := 0; i < b.N; i++ {
+		if err := c.TxPackets(tx[:]); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkSPI_TxPackets5(b *testing.B) {
+	b.ReportAllocs()
+	i := ioctlClose{}
+	p := SPI{f: &i}
+	c, err := p.Connect(10, spi.Mode0, 8)
+	if err != nil {
+		b.Fatal(err)
+	}
+	var w [16]byte
+	var r [16]byte
+	tx := [5]spi.Packet{
+		{W: w[:], KeepCS: true},
+		{R: r[:], BitsPerWord: 16},
+		{W: w[:], R: r[:], KeepCS: true},
+		{R: r[:]},
+		{W: w[:], R: r[:]},
+	}
+	for i := 0; i < b.N; i++ {
+		if err := c.TxPackets(tx[:]); err != nil {
 			b.Fatal(err)
 		}
 	}
