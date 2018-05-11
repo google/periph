@@ -50,6 +50,9 @@ type Display interface {
 }
 
 // Environment represents measurements from an environmental sensor.
+//
+// Deprecated: This interface will be removed in v3. Use physic.Environment
+// instead.
 type Environment struct {
 	Temperature Celsius
 	Pressure    KPascal
@@ -57,15 +60,11 @@ type Environment struct {
 }
 
 // Environmental represents an environmental sensor.
+//
+// Deprecated: This interface will be removed in v3. Use physic.Environmental
+// instead.
 type Environmental interface {
 	conn.Resource
-
-	// Sense returns the value read from the sensor. Unsupported metrics are not
-	// modified.
 	Sense(env *Environment) error
-	// SenseContinuous initiates a continuous sensing at the specified interval.
-	//
-	// It is important to call Halt() once done with the sensing, which will turn
-	// the device off and will close the channel.
 	SenseContinuous(interval time.Duration) (<-chan Environment, error)
 }

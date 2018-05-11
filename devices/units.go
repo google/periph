@@ -9,6 +9,8 @@ import (
 )
 
 // Milli is a fixed point value with 0.001 precision.
+//
+// Deprecated: This interface will be removed in v3. Use physic.Milli instead.
 type Milli int32
 
 // Float64 returns the value as float64 with 0.001 precision.
@@ -27,7 +29,8 @@ func (m Milli) String() string {
 
 // Celsius is a temperature at a precision of 0.001°C.
 //
-// Expected range is [-273150, >1000000]
+// Deprecated: This interface will be removed in v3. Use physic.Celsius
+// instead.
 type Celsius Milli
 
 // Float64 returns the value as float64 with 0.001 precision.
@@ -46,6 +49,9 @@ func (c Celsius) ToF() Fahrenheit {
 }
 
 // Fahrenheit is an unsound unit used in the United States.
+//
+// Deprecated: This interface will be removed in v3. Use physic.Fahrenheit
+// instead.
 type Fahrenheit Milli
 
 // Float64 returns the value as float64 with 0.001 precision.
@@ -60,7 +66,8 @@ func (f Fahrenheit) String() string {
 
 // KPascal is pressure at precision of 1Pa.
 //
-// Expected range is [0, >1000000].
+// Deprecated: This interface will be removed in v3. Use physic.KPascal
+// instead.
 type KPascal Milli
 
 // Float64 returns the value as float64 with 0.001 precision.
@@ -74,6 +81,9 @@ func (k KPascal) String() string {
 }
 
 // RelativeHumidity is humidity level in %rH with 0.01%rH precision.
+//
+// Deprecated: This interface will be removed in v3. Use
+// physic.RelativeHumidity instead.
 type RelativeHumidity int32
 
 // Float64 returns the value in %.
