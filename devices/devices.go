@@ -51,8 +51,7 @@ type Display interface {
 
 // Environment represents measurements from an environmental sensor.
 //
-// Deprecated: This interface will be removed in v3. Use physic.Environment
-// instead.
+// Deprecated: This interface will be removed in v3. Use physic.Env instead.
 type Environment struct {
 	Temperature Celsius
 	Pressure    KPascal
@@ -61,7 +60,7 @@ type Environment struct {
 
 // Environmental represents an environmental sensor.
 //
-// Deprecated: This interface will be removed in v3. Use physic.Environmental
+// Deprecated: This interface will be removed in v3. Use physic.SenseEnv
 // instead.
 type Environmental interface {
 	conn.Resource
