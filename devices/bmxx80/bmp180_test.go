@@ -16,9 +16,8 @@ var opts180 = &Opts{Temperature: O1x, Pressure: O1x}
 
 func TestNew180_fail_read_chipid(t *testing.T) {
 	bus := i2ctest.Playback{
-		Ops: []i2ctest.IO{
-			// Chip ID detection read fail.
-		},
+		// Chip ID detection read fail.
+		Ops:       []i2ctest.IO{},
 		DontPanic: true,
 	}
 	if _, err := NewI2C(&bus, 0x77, opts180); err == nil {
