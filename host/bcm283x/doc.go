@@ -21,6 +21,9 @@
 //
 // Another doc about PCM and PWM:
 // https://scribd.com/doc/127599939/BCM2835-Audio-clocks
+//
+// GPIO pad control:
+// https://scribd.com/doc/101830961/GPIO-Pads-Control2
 package bcm283x
 
 // Other implementations details

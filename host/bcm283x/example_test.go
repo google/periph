@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/host"
 	"periph.io/x/periph/host/bcm283x"
 )
@@ -38,28 +39,6 @@ func ExamplePinsRead0To31() {
 	// GPIO28: 0   GPIO29: 0   GPIO30: 0   GPIO31: 1
 }
 
-func ExamplePinsRead32To46() {
-	// Make sure periph is initialized.
-	if _, err := host.Init(); err != nil {
-		log.Fatal(err)
-	}
-
-	// Print out the state of 15 GPIOs with a single read that reads all these
-	// pins all at once.
-	bits := bcm283x.PinsRead32To46()
-	fmt.Printf("bits: %#x\n", bits)
-	suffixes := []string{"   ", "\n"}
-	for i := uint(0); i < (47 - 32); i++ {
-		fmt.Printf("GPIO%d: %d%s", i+32, (bits>>i)&1, suffixes[(i%4)/3])
-	}
-	// Output:
-	// bits: 0x4101
-	// GPIO32: 1   GPIO33: 0   GPIO34: 0   GPIO35: 0
-	// GPIO36: 0   GPIO37: 0   GPIO38: 0   GPIO39: 0
-	// GPIO40: 1   GPIO41: 0   GPIO42: 0   GPIO43: 0
-	// GPIO44: 0   GPIO45: 0   GPIO46: 1
-}
-
 func ExamplePinsClear0To31() {
 	// Make sure periph is initialized.
 	if _, err := host.Init(); err != nil {
@@ -78,4 +57,13 @@ func ExamplePinsSet0To31() {
 
 	// Simultaneously sets GPIO4 and GPIO16 to gpio.High.
 	bcm283x.PinsClear0To31(1<<16 | 1<<4)
+}
+
+func ExamplePinsSetup0To27() {
+	if err := bcm283x.PinsSetup0To27(physic.Ampere(16), true, true); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("drive:      %s", bcm283x.GPIO0.Drive())
+	fmt.Printf("slew:       %t", bcm283x.GPIO0.SlewLimit())
+	fmt.Printf("hysteresis: %t", bcm283x.GPIO0.Hysteresis())
 }

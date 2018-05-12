@@ -1098,11 +1098,12 @@ type driverDMA struct {
 	pcmBaseAddr uint32
 	pwmBaseAddr uint32
 
-	dmaMemory    *dmaMap
-	dmaChannel15 *dmaChannel
-	pcmMemory    *pcmMap
-	clockMemory  *clockMap
-	timerMemory  *timerMap
+	dmaMemory     *dmaMap
+	dmaChannel15  *dmaChannel
+	pcmMemory     *pcmMap
+	clockMemory   *clockMap
+	timerMemory   *timerMap
+	gpioPadMemory *gpioPadMap
 	// Page 138
 	// - Two independent bit-streams
 	// - Each channel either a PWM or serialised version of a 32-bit word
@@ -1182,6 +1183,9 @@ func (d *driverDMA) Init() (bool, error) {
 		return true, err
 	}
 	if err := pmem.MapAsPOD(uint64(drvGPIO.baseAddr+0x3000), &d.timerMemory); err != nil {
+		return true, err
+	}
+	if err := pmem.MapAsPOD(uint64(drvGPIO.baseAddr+0x100000), &d.gpioPadMemory); err != nil {
 		return true, err
 	}
 	return true, smokeTest()

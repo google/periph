@@ -16,6 +16,7 @@ import (
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/gpio/gpiostream"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/host/distro"
 	"periph.io/x/periph/host/pmem"
 	"periph.io/x/periph/host/sysfs"
@@ -116,6 +117,9 @@ func PinsSet0To31(mask uint32) {
 // The returned bits are valid for both inputs and outputs.
 //
 // Bits above 15 are guaranteed to be 0.
+//
+// This function is not recommended on Raspberry Pis as these GPIOs are not
+// easily accessible.
 func PinsRead32To46() uint32 {
 	return drvGPIO.gpioMemory.level[1] & 0x7fff
 }
@@ -126,6 +130,9 @@ func PinsRead32To46() uint32 {
 // This function is extremely fast and does no error checking.
 //
 // Bits above 15 are ignored.
+//
+// This function is not recommended on Raspberry Pis as these GPIOs are not
+// easily accessible.
 func PinsClear32To46(mask uint32) {
 	drvGPIO.gpioMemory.outputClear[1] = (mask & 0x7fff)
 }
@@ -136,8 +143,42 @@ func PinsClear32To46(mask uint32) {
 // This function is extremely fast and does no error checking.
 //
 // Bits above 15 are ignored.
+//
+// This function is not recommended on Raspberry Pis as these GPIOs are not
+// easily accessible.
 func PinsSet32To46(mask uint32) {
 	drvGPIO.gpioMemory.outputSet[1] = (mask & 0x7fff)
+}
+
+// PinsSetup0To27 sets the output current drive strength, output slew limiting
+// and input hysteresis for GPIO 0 to 27.
+//
+// Default drive is 8mA, slew unlimited and hysteresis enabled.
+//
+// Can only be used if driver bcm283x-dma was loaded.
+func PinsSetup0To27(drive physic.Ampere, slewLimit, hysteresis bool) error {
+	if drvDMA.gpioPadMemory == nil {
+		return errors.New("bcm283x-dma not initialized; try again as root?")
+	}
+	drvDMA.gpioPadMemory.pads0.set(toPad(drive, slewLimit, hysteresis))
+	return nil
+}
+
+// PinsSetup28To45 sets the output current drive strength, output slew limiting
+// and input hysteresis for GPIO 28 to 45.
+//
+// Default drive is 16mA, slew unlimited and hysteresis enabled.
+//
+// Can only be used if driver bcm283x-dma was loaded.
+//
+// This function is not recommended on Raspberry Pis as these GPIOs are not
+// easily accessible.
+func PinsSetup28To45(drive physic.Ampere, slewLimit, hysteresis bool) error {
+	if drvDMA.gpioPadMemory == nil {
+		return errors.New("bcm283x-dma not initialized; try again as root?")
+	}
+	drvDMA.gpioPadMemory.pads1.set(toPad(drive, slewLimit, hysteresis))
+	return nil
 }
 
 // Pin is a GPIO number (GPIOnn) on BCM238(5|6|7).
@@ -294,7 +335,7 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	if edge != gpio.NoEdge {
 		if p.edge == nil {
 			ok := false
-			n := p.Number()
+			n := p.number
 			if p.edge, ok = sysfs.Pins[n]; !ok {
 				return p.wrap(fmt.Errorf("pin %d is not exported by sysfs", n))
 			}
@@ -539,6 +580,85 @@ func (p *Pin) StreamOut(s gpiostream.Stream) error {
 // The CPU doesn't return the current pull.
 func (p *Pin) DefaultPull() gpio.Pull {
 	return p.defaultPull
+}
+
+// Drive returns the configured output current drive strength for this GPIO.
+//
+// The current drive is configurable per GPIO groups: 0~27 and 28~45.
+//
+// The default value for GPIOs 0~27 is 8mA and for GPIOs 28~45 is 16mA.
+//
+// The value is a multiple 2mA between 2mA and 16mA.
+//
+// Can only be used if driver bcm283x-dma was loaded. Otherwise returns 0.
+func (p *Pin) Drive() physic.Ampere {
+	if drvDMA.gpioPadMemory == nil {
+		return 0
+	}
+	var v pad
+	if p.number < 28 {
+		v = drvDMA.gpioPadMemory.pads0
+	} else {
+		// GPIO 46~53 are not exposed.
+		v = drvDMA.gpioPadMemory.pads1
+	}
+	switch v & 7 {
+	case padDrive2mA:
+		return physic.Ampere(2)
+	case padDrive4mA:
+		return physic.Ampere(4)
+	case padDrive6mA:
+		return physic.Ampere(6)
+	case padDrive8mA:
+		return physic.Ampere(8)
+	case padDrive10mA:
+		return physic.Ampere(10)
+	case padDrive12mA:
+		return physic.Ampere(12)
+	case padDrive14mA:
+		return physic.Ampere(14)
+	case padDrive16mA:
+		return physic.Ampere(16)
+	default:
+		return 0
+	}
+}
+
+// SlewLimit returns true if the output slew is limited to reduce interference.
+//
+// The slew is configurable per GPIO groups: 0~27 and 28~45.
+//
+// The default is true.
+//
+// Can only be used if driver bcm283x-dma was loaded. Otherwise returns false
+// (the default value).
+func (p *Pin) SlewLimit() bool {
+	if drvDMA.gpioPadMemory == nil {
+		return true
+	}
+	if p.number < 28 {
+		return drvDMA.gpioPadMemory.pads0&padSlewUnlimited == 0
+	}
+	return drvDMA.gpioPadMemory.pads1&padSlewUnlimited == 0
+}
+
+// Hysteresis returns true if the input hysteresis via a Schmitt trigger is
+// enabled.
+//
+// The hysteresis is configurable per GPIO groups: 0~27 and 28~45.
+//
+// The default is true.
+//
+// Can only be used if driver bcm283x-dma was loaded. Otherwise returns true
+// (the default value).
+func (p *Pin) Hysteresis() bool {
+	if drvDMA.gpioPadMemory == nil {
+		return true
+	}
+	if p.number < 28 {
+		return drvDMA.gpioPadMemory.pads0&padHysteresisEnable != 0
+	}
+	return drvDMA.gpioPadMemory.pads1&padHysteresisEnable != 0
 }
 
 // Internal code.
@@ -806,6 +926,67 @@ type gpioMap struct {
 	// 0xB0    -    Test (byte)
 }
 
+// pad defines the settings for a GPIO pad group.
+type pad uint32
+
+const (
+	padPasswd           pad = 0x5A << 24 // Write protection
+	padSlewUnlimited    pad = 1 << 4     // Output bandwidth limit to reduce bounce.
+	padHysteresisEnable pad = 1 << 3     // Schmitt trigger
+	padDrive2mA         pad = 0
+	padDrive4mA         pad = 1
+	padDrive6mA         pad = 2
+	padDrive8mA         pad = 3
+	padDrive10mA        pad = 4
+	padDrive12mA        pad = 5
+	padDrive14mA        pad = 6
+	padDrive16mA        pad = 7
+)
+
+// set changes the current drive strength for the GPIO pad group.
+//
+// We could disable the schmitt trigger or the slew limit.
+func (p *pad) set(settings pad) {
+	*p = padPasswd | settings
+}
+
+func toPad(drive physic.Ampere, slewLimit, hysteresis bool) pad {
+	var p pad
+	switch {
+	case drive <= 2:
+		p = padDrive2mA
+	case drive <= 4:
+		p = padDrive4mA
+	case drive <= 6:
+		p = padDrive6mA
+	case drive <= 8:
+		p = padDrive8mA
+	case drive <= 10:
+		p = padDrive10mA
+	case drive <= 12:
+		p = padDrive12mA
+	case drive <= 14:
+		p = padDrive14mA
+	default:
+		p = padDrive16mA
+	}
+	if !slewLimit {
+		p |= padSlewUnlimited
+	}
+	if hysteresis {
+		p |= padHysteresisEnable
+	}
+	return p
+}
+
+// Mapping as https://scribd.com/doc/101830961/GPIO-Pads-Control2
+type gpioPadMap struct {
+	dummy [11]uint32 // 0x00~0x28
+	pads0 pad        // 0x2c GPIO 0~27
+	pads1 pad        // 0x30 GPIO 28~45
+	pads2 pad        // 0x34 GPIO 46~53
+}
+
 func init() {
 	GPIO0 = &cpuPins[0]
 	GPIO1 = &cpuPins[1]
@@ -958,8 +1139,8 @@ func (d *driverGPIO) Init() (bool, error) {
 
 	functions := map[string]struct{}{}
 	for i := range cpuPins {
-		name := cpuPins[i].Name()
-		num := strconv.Itoa(cpuPins[i].Number())
+		name := cpuPins[i].name
+		num := strconv.Itoa(cpuPins[i].number)
 		gpion := "GPIO" + num
 		// Unregister the pin if already registered. This happens with sysfs-gpio.
 		// Do not error on it, since sysfs-gpio may have failed to load.
