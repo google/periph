@@ -1188,7 +1188,8 @@ func (d *driverDMA) Init() (bool, error) {
 	if err := pmem.MapAsPOD(uint64(drvGPIO.baseAddr+0x100000), &d.gpioPadMemory); err != nil {
 		return true, err
 	}
-	return true, smokeTest()
+	// Do not run smokeTest() unless it's clear it is not dangerous.
+	return true, nil
 }
 
 func debugDMA() {
