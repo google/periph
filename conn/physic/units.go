@@ -10,11 +10,13 @@ import (
 )
 
 const (
-	MicroAmpere ElectricCurrent = 1
+	NanoAmpere  ElectricCurrent = 1
+	MicroAmpere                 = 1000 * NanoAmpere
 	MilliAmpere                 = 1000 * MicroAmpere
 	Ampere                      = 1000 * MilliAmpere
 
-	MicroVolt ElectricPotential = 1
+	NanoVolt  ElectricPotential = 1
+	MicroVolt                   = 1000 * NanoVolt
 	MilliVolt                   = 1000 * MicroVolt
 	Volt                        = 1000 * MilliVolt
 	KiloVolt                    = 1000 * Volt
@@ -26,7 +28,8 @@ const (
 	MegaHertz            = 1000 * KiloHertz
 	GigaHertz            = 1000 * MegaHertz
 
-	MicroPascal Pressure = 1
+	NanoPascal  Pressure = 1
+	MicroPascal          = 1000 * NanoPascal
 	MilliPascal          = 1000 * MicroPascal
 	Pascal               = 1000 * MilliPascal
 	KiloPascal           = 1000 * Pascal
@@ -35,7 +38,8 @@ const (
 	MilliRH                    = 1000 * MicroRH
 	PercentRH                  = 10 * MilliRH
 
-	MicroKelvin Temperature = 1
+	NanoKelvin  Temperature = 1
+	MicroKelvin             = 1000 * NanoKelvin
 	MilliKelvin             = 1000 * MicroKelvin
 	Kelvin                  = 1000 * MilliKelvin
 
@@ -46,29 +50,35 @@ const (
 
 	// Conversion between Kelvin and Fahrenheit.
 	ZeroFahrenheit  = 255372 * MilliKelvin
-	MilliFahrenheit = 555 * MicroKelvin
-	Fahrenheit      = 555555 * MicroKelvin
+	MilliFahrenheit = 555555 * NanoKelvin
+	Fahrenheit      = 555555555 * NanoKelvin
 )
 
 // ElectricCurrent is a measurement of a flow of electric charge as an int64
-// micro Ampere.
+// nano Ampere.
+//
+// The highest representable value is 9.2GA.
 type ElectricCurrent int64
 
 // String returns the current formatted as a string in Ampere.
 func (e ElectricCurrent) String() string {
-	return microAsString(int64(e)) + "A"
+	return nanoAsString(int64(e)) + "A"
 }
 
-// ElectricPotential is a measurement of electric potential stored as micro
+// ElectricPotential is a measurement of electric potential stored as nano
 // Volt.
+//
+// The highest representable value is 9.2GV.
 type ElectricPotential int64
 
 // String returns the tension formatted as a string in Volt.
 func (e ElectricPotential) String() string {
-	return microAsString(int64(e)) + "V"
+	return nanoAsString(int64(e)) + "V"
 }
 
 // Frequency is a measurement of cycle per second, stored as micro Hertz.
+//
+// The highest representable value is 9.2THz.
 type Frequency int64
 
 // String returns the frequency formatted as a string in Hertz.
@@ -86,12 +96,14 @@ func PeriodToFrequency(t time.Duration) Frequency {
 	return Frequency(time.Second) * Hertz / Frequency(t)
 }
 
-// Pressure is a measurement of stress stored as micro Pascal.
+// Pressure is a measurement of stress stored as nano Pascal.
+//
+// The highest representable value is 9.2GPa.
 type Pressure int64
 
 // String returns the pressure formatted as a string in Pascal.
 func (p Pressure) String() string {
-	return microAsString(int64(p)) + "Pa"
+	return nanoAsString(int64(p)) + "Pa"
 }
 
 // RelativeHumidity is a humidity level measurement stored as a fixed point
@@ -113,14 +125,16 @@ func (r RelativeHumidity) String() string {
 	return strconv.Itoa(int(r)/10) + "." + strconv.Itoa(frac) + "%rH"
 }
 
-// Temperature is a measurement of hotness stored as a micro kelvin.
+// Temperature is a measurement of hotness stored as a nano kelvin.
 //
 // Negative values are invalid.
+//
+// The highest representable value is 9.2G°K.
 type Temperature int64
 
 // String returns the temperature formatted as a string in °Celsius.
 func (t Temperature) String() string {
-	return microAsString(int64(t-ZeroCelsius)) + "°C"
+	return nanoAsString(int64(t-ZeroCelsius)) + "°C"
 }
 
 //
@@ -134,6 +148,59 @@ func prefixZeros(digits, v int) string {
 		s = "0" + s
 	}
 	return s
+}
+
+// nanoAsString converts a value in S.I. unit in a string with the predefined
+// prefix.
+func nanoAsString(v int64) string {
+	sign := ""
+	if v < 0 {
+		if v == -9223372036854775808 {
+			v++
+		}
+		sign = "-"
+		v = -v
+	}
+	// TODO(maruel): Round a bit.
+	var frac int
+	var base int
+	unit := ""
+	switch {
+	case v >= 1000000000000000000:
+		frac = int(v % 1000000000000000000 / 1000000000000000)
+		base = int(v / 1000000000000000000)
+		unit = "G"
+	case v >= 1000000000000000:
+		frac = int(v % 1000000000000000 / 1000000000000)
+		base = int(v / 1000000000000000)
+		unit = "M"
+	case v >= 1000000000000:
+		frac = int(v % 1000000000000 / 1000000000)
+		base = int(v / 1000000000000)
+		unit = "k"
+	case v >= 1000000000:
+		frac = int(v % 1000000000 / 1000000)
+		base = int(v / 1000000000)
+		unit = ""
+	case v >= 1000000:
+		frac = int(v % 1000000 / 1000)
+		base = int(v / 1000000)
+		unit = "m"
+	case v >= 1000:
+		frac = int(v) % 1000
+		base = int(v) / 1000
+		unit = "µ"
+	default:
+		if v == 0 {
+			return "0"
+		}
+		base = int(v)
+		unit = "n"
+	}
+	if frac == 0 {
+		return sign + strconv.Itoa(base) + unit
+	}
+	return sign + strconv.Itoa(base) + "." + prefixZeros(3, frac) + unit
 }
 
 // microAsString converts a value in S.I. unit in a string with the predefined
