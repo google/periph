@@ -14,10 +14,10 @@ const (
 	MilliAmpere                 = 1000 * MicroAmpere
 	Ampere                      = 1000 * MilliAmpere
 
-	MicroVolt ElectricTension = 1
-	MilliVolt                 = 1000 * MicroVolt
-	Volt                      = 1000 * MilliVolt
-	KiloVolt                  = 1000 * Volt
+	MicroVolt ElectricPotential = 1
+	MilliVolt                   = 1000 * MicroVolt
+	Volt                        = 1000 * MilliVolt
+	KiloVolt                    = 1000 * Volt
 
 	MicroHertz Frequency = 1
 	MilliHertz           = 1000 * MicroHertz
@@ -59,11 +59,12 @@ func (e ElectricCurrent) String() string {
 	return microAsString(int64(e)) + "A"
 }
 
-// ElectricTension is a measurement of electric potential stored as micro Volt.
-type ElectricTension int64
+// ElectricPotential is a measurement of electric potential stored as micro
+// Volt.
+type ElectricPotential int64
 
 // String returns the tension formatted as a string in Volt.
-func (e ElectricTension) String() string {
+func (e ElectricPotential) String() string {
 	return microAsString(int64(e)) + "V"
 }
 

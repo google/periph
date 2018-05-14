@@ -21,7 +21,7 @@ func ExampleElectricCurrent() {
 	// -10mA
 }
 
-func ExampleElectricTension() {
+func ExampleElectricPotential() {
 	fmt.Printf("%s\n", 10010*physic.MilliVolt)
 	fmt.Printf("%s\n", 10*physic.Volt)
 	fmt.Printf("%s\n", -10*physic.MilliVolt)

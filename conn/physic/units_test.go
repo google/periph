@@ -15,7 +15,7 @@ func TestElectricCurrent_String(t *testing.T) {
 	}
 }
 
-func TestElectricTension_String(t *testing.T) {
+func TestElectricPotential_String(t *testing.T) {
 	if s := Volt.String(); s != "1V" {
 		t.Fatalf("%#v", s)
 	}
