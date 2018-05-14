@@ -156,7 +156,7 @@ func PinsSet32To46(mask uint32) {
 // Default drive is 8mA, slew unlimited and hysteresis enabled.
 //
 // Can only be used if driver bcm283x-dma was loaded.
-func PinsSetup0To27(drive physic.Ampere, slewLimit, hysteresis bool) error {
+func PinsSetup0To27(drive physic.ElectricCurrent, slewLimit, hysteresis bool) error {
 	if drvDMA.gpioPadMemory == nil {
 		return errors.New("bcm283x-dma not initialized; try again as root?")
 	}
@@ -173,7 +173,7 @@ func PinsSetup0To27(drive physic.Ampere, slewLimit, hysteresis bool) error {
 //
 // This function is not recommended on Raspberry Pis as these GPIOs are not
 // easily accessible.
-func PinsSetup28To45(drive physic.Ampere, slewLimit, hysteresis bool) error {
+func PinsSetup28To45(drive physic.ElectricCurrent, slewLimit, hysteresis bool) error {
 	if drvDMA.gpioPadMemory == nil {
 		return errors.New("bcm283x-dma not initialized; try again as root?")
 	}
@@ -591,7 +591,7 @@ func (p *Pin) DefaultPull() gpio.Pull {
 // The value is a multiple 2mA between 2mA and 16mA.
 //
 // Can only be used if driver bcm283x-dma was loaded. Otherwise returns 0.
-func (p *Pin) Drive() physic.Ampere {
+func (p *Pin) Drive() physic.ElectricCurrent {
 	if drvDMA.gpioPadMemory == nil {
 		return 0
 	}
@@ -604,21 +604,21 @@ func (p *Pin) Drive() physic.Ampere {
 	}
 	switch v & 7 {
 	case padDrive2mA:
-		return physic.Ampere(2)
+		return 2 * physic.MilliAmpere
 	case padDrive4mA:
-		return physic.Ampere(4)
+		return 4 * physic.MilliAmpere
 	case padDrive6mA:
-		return physic.Ampere(6)
+		return 6 * physic.MilliAmpere
 	case padDrive8mA:
-		return physic.Ampere(8)
+		return 8 * physic.MilliAmpere
 	case padDrive10mA:
-		return physic.Ampere(10)
+		return 10 * physic.MilliAmpere
 	case padDrive12mA:
-		return physic.Ampere(12)
+		return 12 * physic.MilliAmpere
 	case padDrive14mA:
-		return physic.Ampere(14)
+		return 14 * physic.MilliAmpere
 	case padDrive16mA:
-		return physic.Ampere(16)
+		return 16 * physic.MilliAmpere
 	default:
 		return 0
 	}
@@ -950,22 +950,23 @@ func (p *pad) set(settings pad) {
 	*p = padPasswd | settings
 }
 
-func toPad(drive physic.Ampere, slewLimit, hysteresis bool) pad {
+func toPad(drive physic.ElectricCurrent, slewLimit, hysteresis bool) pad {
 	var p pad
+	d := int(drive / physic.MilliAmpere)
 	switch {
-	case drive <= 2:
+	case d <= 2:
 		p = padDrive2mA
-	case drive <= 4:
+	case d <= 4:
 		p = padDrive4mA
-	case drive <= 6:
+	case d <= 6:
 		p = padDrive6mA
-	case drive <= 8:
+	case d <= 8:
 		p = padDrive8mA
-	case drive <= 10:
+	case d <= 10:
 		p = padDrive10mA
-	case drive <= 12:
+	case d <= 12:
 		p = padDrive12mA
-	case drive <= 14:
+	case d <= 14:
 		p = padDrive14mA
 	default:
 		p = padDrive16mA

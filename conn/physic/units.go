@@ -6,142 +6,120 @@ package physic
 
 import (
 	"strconv"
+	"time"
 )
 
-// Centi is a fixed point value with a 0.01 precision.
-type Centi int32
+const (
+	MicroAmpere ElectricCurrent = 1
+	MilliAmpere                 = 1000 * MicroAmpere
+	Ampere                      = 1000 * MilliAmpere
 
-// Float64 returns the value as float64.
-func (c Centi) Float64() float64 {
-	return float64(c) * .01
+	MicroVolt ElectricTension = 1
+	MilliVolt                 = 1000 * MicroVolt
+	Volt                      = 1000 * MilliVolt
+	KiloVolt                  = 1000 * Volt
+
+	MicroHertz Frequency = 1
+	MilliHertz           = 1000 * MicroHertz
+	Hertz                = 1000 * MilliHertz
+	KiloHertz            = 1000 * Hertz
+	MegaHertz            = 1000 * KiloHertz
+	GigaHertz            = 1000 * MegaHertz
+
+	MicroPascal Pressure = 1
+	MilliPascal          = 1000 * MicroPascal
+	Pascal               = 1000 * MilliPascal
+	KiloPascal           = 1000 * Pascal
+
+	MicroRH   RelativeHumidity = 1
+	MilliRH                    = 1000 * MicroRH
+	PercentRH                  = 10 * MilliRH
+
+	MicroKelvin Temperature = 1
+	MilliKelvin             = 1000 * MicroKelvin
+	Kelvin                  = 1000 * MilliKelvin
+
+	// Conversion between Kelvin and Celsius.
+	ZeroCelsius  = 273150 * MilliKelvin
+	MilliCelsius = MilliKelvin
+	Celsius      = Kelvin
+
+	// Conversion between Kelvin and Fahrenheit.
+	ZeroFahrenheit  = 255372 * MilliKelvin
+	MilliFahrenheit = 555 * MicroKelvin
+	Fahrenheit      = 555555 * MicroKelvin
+)
+
+// ElectricCurrent is a measurement of a flow of electric charge as an int64
+// micro Ampere.
+type ElectricCurrent int64
+
+// String returns the current formatted as a string in Ampere.
+func (e ElectricCurrent) String() string {
+	return microAsString(int64(e)) + "A"
 }
 
-// String returns the value formatted as a string.
-func (c Centi) String() string {
-	d := c % 100
-	if d < 0 {
-		d = -d
-	}
-	return strconv.Itoa(int(c)/100) + "." + prefixZeros(2, int(d))
+// ElectricTension is a measurement of electric potential stored as micro Volt.
+type ElectricTension int64
+
+// String returns the tension formatted as a string in Volt.
+func (e ElectricTension) String() string {
+	return microAsString(int64(e)) + "V"
 }
 
-// Milli is a fixed point value with a 0.001 precision.
-type Milli int32
+// Frequency is a measurement of cycle per second, stored as micro Hertz.
+type Frequency int64
 
-// Float64 returns the value as float64.
-func (m Milli) Float64() float64 {
-	return float64(m) * .001
+// String returns the frequency formatted as a string in Hertz.
+func (f Frequency) String() string {
+	return microAsString(int64(f)) + "Hz"
 }
 
-// String returns the value formatted as a string.
-func (m Milli) String() string {
-	d := m % 1000
-	if d < 0 {
-		d = -d
-	}
-	return strconv.Itoa(int(m)/1000) + "." + prefixZeros(3, int(d))
+// Duration returns the duration of one cycle at this frequency.
+func (f Frequency) Duration() time.Duration {
+	return time.Second * time.Duration(Hertz) / time.Duration(f)
 }
 
-//
-
-// Ampere is a current measurement stored as a fixed point integer at a
-// precision of 1mA.
-type Ampere Milli
-
-// Float64 returns the value as float64.
-func (a Ampere) Float64() float64 {
-	return Milli(a).Float64()
+// PeriodToFrequency returns the frequency for a period of this interval.
+func PeriodToFrequency(t time.Duration) Frequency {
+	return Frequency(time.Second) * Hertz / Frequency(t)
 }
 
-// String returns the current formatted as a string.
-//
-// For small values, it is printed in mA unit.
-func (a Ampere) String() string {
-	if a < 1000 && a > -1000 {
-		return strconv.Itoa(int(a)) + "mA"
-	}
-	return Milli(a).String() + "A"
-}
+// Pressure is a measurement of stress stored as micro Pascal.
+type Pressure int64
 
-// Celsius is a temperature measurement stored as a fixed point integer at a
-// precision of 0.001°C.
-type Celsius Milli
-
-// Float64 returns the value as float64.
-func (c Celsius) Float64() float64 {
-	return Milli(c).Float64()
-}
-
-// String returns the temperature formatted as a string.
-func (c Celsius) String() string {
-	return Milli(c).String() + "°C"
-}
-
-// ToF returns the temperature in Fahrenheit, an unsound unit used in the
-// United States.
-func (c Celsius) ToF() Fahrenheit {
-	return Fahrenheit((c*9+2)/5 + 32000)
-}
-
-// Fahrenheit is a temperature measurement stored as a fixed point integer at a
-// precision of 0.001°F.
-type Fahrenheit Milli
-
-// Float64 returns the value as float64.
-func (f Fahrenheit) Float64() float64 {
-	return Milli(f).Float64()
-}
-
-// String returns the temperature formatted as a string.
-func (f Fahrenheit) String() string {
-	return Milli(f).String() + "°F"
-}
-
-// KPascal is a pressure measurement stored as a fixed point integer at a
-// precision of 1Pa.
-type KPascal Milli
-
-// Float64 returns the value as float64.
-func (k KPascal) Float64() float64 {
-	return Milli(k).Float64()
-}
-
-// String returns the pressure formatted as a string.
-func (k KPascal) String() string {
-	return Milli(k).String() + "KPa"
+// String returns the pressure formatted as a string in Pascal.
+func (p Pressure) String() string {
+	return microAsString(int64(p)) + "Pa"
 }
 
 // RelativeHumidity is a humidity level measurement stored as a fixed point
-// integer at a precision of 0.01%rH.
-type RelativeHumidity Centi
-
-// Float64 returns the value as float64.
-func (r RelativeHumidity) Float64() float64 {
-	return Centi(r).Float64()
-}
+// integer at a precision of 0.0001%rH.
+//
+// Valid values are between 0 and 1000000.
+type RelativeHumidity int32
 
 // String returns the humidity formatted as a string.
 func (r RelativeHumidity) String() string {
-	return Centi(r).String() + "%rH"
-}
-
-// Volt is a tension measurement stored as a fixed point integer at a
-// precision of 1mV.
-type Volt Milli
-
-// Float64 returns the value as float64.
-func (v Volt) Float64() float64 {
-	return Milli(v).Float64()
-}
-
-// String returns the tension formatted as a string.
-//
-// For small values, it is printed in mV unit.
-func (v Volt) String() string {
-	if v < 1000 && v > -1000 {
-		return strconv.Itoa(int(v)) + "mV"
+	r /= MilliRH
+	frac := int(r % 10)
+	if frac == 0 {
+		return strconv.Itoa(int(r)/10) + "%rH"
 	}
-	return Milli(v).String() + "V"
+	if frac < 0 {
+		frac = -frac
+	}
+	return strconv.Itoa(int(r)/10) + "." + strconv.Itoa(frac) + "%rH"
+}
+
+// Temperature is a measurement of hotness stored as a micro kelvin.
+//
+// Negative values are invalid.
+type Temperature int64
+
+// String returns the temperature formatted as a string in °Celsius.
+func (t Temperature) String() string {
+	return microAsString(int64(t-ZeroCelsius)) + "°C"
 }
 
 //
@@ -150,8 +128,62 @@ func prefixZeros(digits, v int) string {
 	// digits is expected to be around 2~3.
 	s := strconv.Itoa(v)
 	for len(s) < digits {
-		// O(n²) but since digits is expected to run 2~3 times at most, it doesn't matter.
+		// O(n²) but since digits is expected to run 2~3 times at most, it doesn't
+		// matter.
 		s = "0" + s
 	}
 	return s
+}
+
+// microAsString converts a value in S.I. unit in a string with the predefined
+// prefix.
+func microAsString(v int64) string {
+	sign := ""
+	if v < 0 {
+		if v == -9223372036854775808 {
+			v++
+		}
+		sign = "-"
+		v = -v
+	}
+	// TODO(maruel): Round a bit.
+	var frac int
+	var base int
+	unit := ""
+	switch {
+	case v >= 1000000000000000000:
+		frac = int(v % 1000000000000000000 / 1000000000000000)
+		base = int(v / 1000000000000000000)
+		unit = "T"
+	case v >= 1000000000000000:
+		frac = int(v % 1000000000000000 / 1000000000000)
+		base = int(v / 1000000000000000)
+		unit = "G"
+	case v >= 1000000000000:
+		frac = int(v % 1000000000000 / 1000000000)
+		base = int(v / 1000000000000)
+		unit = "M"
+	case v >= 1000000000:
+		frac = int(v % 1000000000 / 1000000)
+		base = int(v / 1000000000)
+		unit = "k"
+	case v >= 1000000:
+		frac = int(v % 1000000 / 1000)
+		base = int(v / 1000000)
+		unit = ""
+	case v >= 1000:
+		frac = int(v) % 1000
+		base = int(v) / 1000
+		unit = "m"
+	default:
+		if v == 0 {
+			return "0"
+		}
+		base = int(v)
+		unit = "µ"
+	}
+	if frac == 0 {
+		return sign + strconv.Itoa(base) + unit
+	}
+	return sign + strconv.Itoa(base) + "." + prefixZeros(3, frac) + unit
 }

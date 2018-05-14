@@ -12,8 +12,8 @@ import (
 
 // Env represents measurements from an environmental sensor.
 type Env struct {
-	Temperature Celsius
-	Pressure    KPascal
+	Temperature Temperature
+	Pressure    Pressure
 	Humidity    RelativeHumidity
 }
 

@@ -4,149 +4,127 @@
 
 package physic
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
-func TestCenti(t *testing.T) {
-	o := Centi(10010)
-	if s := o.String(); s != "100.10" {
+func TestElectricCurrent_String(t *testing.T) {
+	if s := Ampere.String(); s != "1A" {
 		t.Fatalf("%#v", s)
-	}
-	if f := o.Float64(); f > 100.11 || f < 100.09 {
-		t.Fatalf("%f", f)
 	}
 }
 
-func TestCenti_neg(t *testing.T) {
-	o := Centi(-10010)
-	if s := o.String(); s != "-100.10" {
+func TestElectricTension_String(t *testing.T) {
+	if s := Volt.String(); s != "1V" {
 		t.Fatalf("%#v", s)
-	}
-	if f := o.Float64(); f > -100.09 || f < -100.11 {
-		t.Fatalf("%f", f)
 	}
 }
 
-func TestMilli(t *testing.T) {
-	o := Milli(10010)
-	if s := o.String(); s != "10.010" {
+func TestFrequency_String(t *testing.T) {
+	if s := Hertz.String(); s != "1Hz" {
 		t.Fatalf("%#v", s)
-	}
-	if f := o.Float64(); f > 10.011 || f < 10.009 {
-		t.Fatalf("%f", f)
 	}
 }
 
-func TestMilli_neg(t *testing.T) {
-	o := Milli(-10010)
-	if s := o.String(); s != "-10.010" {
-		t.Fatalf("%#v", s)
-	}
-	if f := o.Float64(); f > -10.009 || f < -10.011 {
-		t.Fatalf("%f", f)
+func TestFrequency_Duration(t *testing.T) {
+	if v := MegaHertz.Duration(); v != time.Microsecond {
+		t.Fatalf("%#v", v)
 	}
 }
 
-//
-
-func TestAmpere(t *testing.T) {
-	o := Ampere(10010)
-	if s := o.String(); s != "10.010A" {
-		t.Fatalf("%#v", s)
-	}
-	if f := o.Float64(); f > 10.011 || f < 10.009 {
-		t.Fatalf("%f", f)
-	}
-
-	o = Ampere(10)
-	if s := o.String(); s != "10mA" {
-		t.Fatalf("%#v", s)
-	}
-	if f := o.Float64(); f > 0.011 || f < 0.009 {
-		t.Fatalf("%f", f)
-	}
-	o = Ampere(-10)
-	if s := o.String(); s != "-10mA" {
-		t.Fatalf("%#v", s)
-	}
-	if f := o.Float64(); f < -0.011 || f > -0.009 {
-		t.Fatalf("%f", f)
+func TestFrequency_PeriodToFrequency(t *testing.T) {
+	if v := PeriodToFrequency(time.Millisecond); v != KiloHertz {
+		t.Fatalf("%#v", v)
 	}
 }
 
-func TestCelsius(t *testing.T) {
-	o := Celsius(10010)
-	if s := o.String(); s != "10.010°C" {
+func TestPressure_String(t *testing.T) {
+	if s := KiloPascal.String(); s != "1kPa" {
 		t.Fatalf("%#v", s)
-	}
-	if f := o.Float64(); f > 10.011 || f < 10.009 {
-		t.Fatalf("%f", f)
-	}
-	if f := o.ToF(); f != 50018 {
-		t.Fatalf("%d", f)
 	}
 }
 
-func TestFahrenheit(t *testing.T) {
-	o := Fahrenheit(10010)
-	if s := o.String(); s != "10.010°F" {
-		t.Fatalf("%#v", s)
+func TestRelativeHumidity_String(t *testing.T) {
+	data := []struct {
+		in       RelativeHumidity
+		expected string
+	}{
+		{90 * PercentRH, "90%rH"},
+		{506000 * MicroRH, "50.6%rH"},
+		{-501000 * MicroRH, "-50.1%rH"},
 	}
-	if f := o.Float64(); f > 10.011 || f < 10.009 {
-		t.Fatalf("%f", f)
-	}
-}
-
-func TestKPascal(t *testing.T) {
-	o := KPascal(10010)
-	if s := o.String(); s != "10.010KPa" {
-		t.Fatalf("%#v", s)
-	}
-	if f := o.Float64(); f > 10.011 || f < 10.009 {
-		t.Fatalf("%f", f)
+	for i, line := range data {
+		if s := line.in.String(); s != line.expected {
+			t.Fatalf("%d: RelativeHumidity(%d).String() = %s != %s", i, int64(line.in), s, line.expected)
+		}
 	}
 }
 
-func TestRelativeHumidity(t *testing.T) {
-	o := RelativeHumidity(5006)
-	if s := o.String(); s != "50.06%rH" {
+func TestTemperature_String(t *testing.T) {
+	if s := ZeroCelsius.String(); s != "0°C" {
 		t.Fatalf("%#v", s)
 	}
-	if f := o.Float64(); f >= 50.07 || f <= 50.05 {
-		t.Fatalf("%f", f)
+	if s := Temperature(0).String(); s != "-273.150°C" {
+		t.Fatalf("%#v", s)
 	}
 }
 
-func TestRelativeHumidity_neg(t *testing.T) {
-	o := RelativeHumidity(-5010)
-	if s := o.String(); s != "-50.10%rH" {
-		t.Fatalf("%#v", s)
+func TestMicroAsString(t *testing.T) {
+	data := []struct {
+		in       int64
+		expected string
+	}{
+		{0, "0"}, // 0
+		{1, "1µ"},
+		{-1, "-1µ"},
+		{900, "900µ"},
+		{-900, "-900µ"},
+		{999, "999µ"},
+		{-999, "-999µ"},
+		{1000, "1m"},
+		{-1000, "-1m"},
+		{1100, "1.100m"},
+		{-1100, "-1.100m"}, // 10
+		{999999, "999.999m"},
+		{-999999, "-999.999m"},
+		{1000000, "1"},
+		{-1000000, "-1"},
+		{1100000, "1.100"},
+		{-1100000, "-1.100"},
+		{999999999, "999.999"},
+		{-999999999, "-999.999"},
+		{1000000000, "1k"},
+		{-1000000000, "-1k"}, // 20
+		{1100000000, "1.100k"},
+		{-1100000000, "-1.100k"},
+		{999999999999, "999.999k"},
+		{-999999999999, "-999.999k"},
+		{1000000000000, "1M"},
+		{-1000000000000, "-1M"},
+		{1100000000000, "1.100M"},
+		{-1100000000000, "-1.100M"},
+		{999999999999999, "999.999M"},
+		{-999999999999999, "-999.999M"}, // 30
+		{1000000000000000, "1G"},
+		{-1000000000000000, "-1G"},
+		{1100000000000000, "1.100G"},
+		{-1100000000000000, "-1.100G"},
+		{999999999999999999, "999.999G"},
+		{-999999999999999999, "-999.999G"},
+		{1000000000000000000, "1T"},
+		{-1000000000000000000, "-1T"},
+		{1100000000000000000, "1.100T"},
+		{-1100000000000000000, "-1.100T"},
+		{1999999999999999999, "1.999T"},
+		{-1999999999999999999, "-1.999T"},
+		{9223372036854775807, "9.223T"},
+		{-9223372036854775807, "-9.223T"},
+		{-9223372036854775808, "-9.223T"},
 	}
-	if f := o.Float64(); f <= -50.11 || f >= -50.09 {
-		t.Fatalf("%f", f)
-	}
-}
-
-func TestVolt(t *testing.T) {
-	o := Volt(10010)
-	if s := o.String(); s != "10.010V" {
-		t.Fatalf("%#v", s)
-	}
-	if f := o.Float64(); f > 10.011 || f < 10.009 {
-		t.Fatalf("%f", f)
-	}
-
-	o = Volt(10)
-	if s := o.String(); s != "10mV" {
-		t.Fatalf("%#v", s)
-	}
-	if f := o.Float64(); f > 0.011 || f < 0.009 {
-		t.Fatalf("%f", f)
-	}
-	o = Volt(-10)
-	if s := o.String(); s != "-10mV" {
-		t.Fatalf("%#v", s)
-	}
-	if f := o.Float64(); f < -0.011 || f > -0.009 {
-		t.Fatalf("%f", f)
+	for i, line := range data {
+		if s := microAsString(line.in); s != line.expected {
+			t.Fatalf("%d: microAsString(%d).String() = %s != %s", i, line.in, s, line.expected)
+		}
 	}
 }

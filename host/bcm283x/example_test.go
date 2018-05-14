@@ -60,7 +60,7 @@ func ExamplePinsSet0To31() {
 }
 
 func ExamplePinsSetup0To27() {
-	if err := bcm283x.PinsSetup0To27(physic.Ampere(16), true, true); err != nil {
+	if err := bcm283x.PinsSetup0To27(16*physic.MilliAmpere, true, true); err != nil {
 		log.Fatal(err)
 	}
 	fmt.Printf("drive:      %s", bcm283x.GPIO0.Drive())
