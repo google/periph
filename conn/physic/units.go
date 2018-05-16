@@ -129,7 +129,7 @@ func (r RelativeHumidity) String() string {
 //
 // Negative values are invalid.
 //
-// The highest representable value is 9.2G°K.
+// The highest representable value is 9.2GK.
 type Temperature int64
 
 // String returns the temperature formatted as a string in °Celsius.
