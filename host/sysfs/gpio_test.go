@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/physic"
 )
 
 func TestPin_String(t *testing.T) {
@@ -185,6 +186,13 @@ func TestPin_Out(t *testing.T) {
 	}
 	if err := p.Out(gpio.High); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestPin_PWM(t *testing.T) {
+	p := Pin{number: 42, name: "foo", root: "/tmp/gpio/priv/"}
+	if p.PWM(gpio.DutyHalf, physic.KiloHertz) == nil {
+		t.Fatal("sysfs-gpio doesn't support PWM")
 	}
 }
 
