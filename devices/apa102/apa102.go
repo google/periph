@@ -32,7 +32,7 @@ func ToRGB(p []color.NRGBA) []byte {
 // there's 32 bits sent per LED, creating a staggered effect. See
 // https://cpldcpu.wordpress.com/2014/11/30/understanding-the-apa102-superled/
 //
-// Temperature is in °Kelvin and a reasonable default value is 6500°K.
+// Temperature is in Kelvin and a reasonable default value is 6500K.
 //
 // As per APA102-C spec, the chip's max refresh rate is 400hz.
 // https://en.wikipedia.org/wiki/Flicker_fusion_threshold is a recommended

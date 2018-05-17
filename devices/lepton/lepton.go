@@ -48,7 +48,7 @@ type Metadata struct {
 	FFCTemp        devices.Celsius // Temperature at last internal calibration.
 	FFCTempHousing devices.Celsius //
 	FFCState       cci.FFCState    // Current calibration state.
-	FFCDesired     bool            // Asserted at start-up, after period (default 3m) or after temperature change (default 3°K). Indicates that a calibration should be triggered as soon as possible.
+	FFCDesired     bool            // Asserted at start-up, after period (default 3m) or after temperature change (default 3K). Indicates that a calibration should be triggered as soon as possible.
 	Overtemp       bool            // true 10s before self-shutdown.
 }
 
@@ -58,7 +58,7 @@ type Metadata struct {
 // Values centered around 8192 accorging to camera body temperature. Effective
 // range is 14 bits, so [0, 16383].
 //
-// Each 1 increment is approximatively 0.025°K.
+// Each 1 increment is approximatively 0.025K.
 type Frame struct {
 	*image.Gray16
 	Metadata Metadata // Metadata that is sent along the pixels.

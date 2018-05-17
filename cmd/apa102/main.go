@@ -113,7 +113,7 @@ func mainImpl() error {
 
 	numPixels := flag.Int("n", 150, "number of pixels on the strip")
 	intensity := flag.Int("l", 127, "light intensity [1-255]")
-	temperature := flag.Int("t", 5000, "light temperature in °Kelvin [3500-7500]")
+	temperature := flag.Int("t", 5000, "light temperature in Kelvin [3500-7500]")
 	hz := flag.Int("hz", 0, "SPI port speed")
 	color := flag.String("color", "208020", "hex encoded color to show")
 	imgName := flag.String("img", "", "image to load")

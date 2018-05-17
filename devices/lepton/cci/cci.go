@@ -132,7 +132,7 @@ type FFCMode struct {
 	ShutterTempLockoutState ShutterTempLockoutState // Default: ShutterTempLockoutStateInactive
 	ElapsedTimeSinceLastFFC time.Duration           // Uptime
 	DesiredFFCPeriod        time.Duration           // Default: 300s
-	DesiredFFCTempDelta     devices.Celsius         // Default: 3°C
+	DesiredFFCTempDelta     devices.Celsius         // Default: 3K
 	ImminentDelay           uint16                  // Default: 52
 	VideoFreezeDuringFFC    bool                    // Default: true
 	FFCDesired              bool                    // Default: false

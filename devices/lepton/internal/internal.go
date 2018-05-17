@@ -30,7 +30,7 @@ func (d DurationMS) ToD() time.Duration {
 	return time.Duration(d) * time.Millisecond
 }
 
-// CentiK is temperature in 0.01°K
+// CentiK is temperature in 0.01K
 //
 // It is an implementation detail of the protocol.
 type CentiK uint16
