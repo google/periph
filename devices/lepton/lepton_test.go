@@ -163,6 +163,24 @@ func TestNew_cci_New_fail(t *testing.T) {
 	}
 }
 
+func TestBounds(t *testing.T) {
+	i := i2ctest.Playback{Ops: initSequence()}
+	s := spitest.Playback{CSPin: &gpiotest.Pin{N: "CS"}}
+	d, err := New(&s, &i, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r := d.Bounds(); r != image.Rect(0, 0, 80, 60) {
+		t.Fatal(r)
+	}
+	if err := i.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestReadImg(t *testing.T) {
 	i := i2ctest.Playback{Ops: initSequence()}
 	s := spiStream{data: prepareFrame(t)}

@@ -113,6 +113,8 @@ func New(p spi.Port, i i2c.Bus, cs gpio.PinOut) (*Dev, error) {
 		Dev:        c,
 		s:          s,
 		cs:         cs,
+		w:          w,
+		h:          h,
 		prevImg:    image.NewGray16(image.Rect(0, 0, w, h)),
 		frameWidth: frameWidth,
 		frameLines: frameLines,
@@ -142,6 +144,8 @@ type Dev struct {
 	*cci.Dev
 	s              spi.Conn
 	cs             gpio.PinOut
+	w              int
+	h              int
 	prevImg        *image.Gray16
 	frameA, frameB []byte
 	frameWidth     int // in bytes
@@ -152,6 +156,11 @@ type Dev struct {
 
 func (d *Dev) String() string {
 	return fmt.Sprintf("Lepton(%s/%s/%s)", d.Dev, d.s, d.cs)
+}
+
+// Bounds returns the device frame size.
+func (d *Dev) Bounds() image.Rectangle {
+	return image.Rect(0, 0, d.w, d.h)
 }
 
 // ReadImg reads an image.
