@@ -9,6 +9,12 @@ import (
 	"time"
 )
 
+func TestDistance_String(t *testing.T) {
+	if s := Mile.String(); s != "1.609km" {
+		t.Fatalf("%#v", s)
+	}
+}
+
 func TestElectricCurrent_String(t *testing.T) {
 	if s := Ampere.String(); s != "1A" {
 		t.Fatalf("%#v", s)
@@ -17,6 +23,18 @@ func TestElectricCurrent_String(t *testing.T) {
 
 func TestElectricPotential_String(t *testing.T) {
 	if s := Volt.String(); s != "1V" {
+		t.Fatalf("%#v", s)
+	}
+}
+
+func TestElectricResistance_String(t *testing.T) {
+	if s := Ohm.String(); s != "1Ω" {
+		t.Fatalf("%#v", s)
+	}
+}
+
+func TestForce_String(t *testing.T) {
+	if s := Newton.String(); s != "1N" {
 		t.Fatalf("%#v", s)
 	}
 }
@@ -39,6 +57,12 @@ func TestFrequency_PeriodToFrequency(t *testing.T) {
 	}
 }
 
+func TestMass_String(t *testing.T) {
+	if s := PoundMass.String(); s != "453.592g" {
+		t.Fatalf("%#v", s)
+	}
+}
+
 func TestPressure_String(t *testing.T) {
 	if s := KiloPascal.String(); s != "1kPa" {
 		t.Fatalf("%#v", s)
@@ -58,6 +82,12 @@ func TestRelativeHumidity_String(t *testing.T) {
 		if s := line.in.String(); s != line.expected {
 			t.Fatalf("%d: RelativeHumidity(%d).String() = %s != %s", i, int64(line.in), s, line.expected)
 		}
+	}
+}
+
+func TestSpeed_String(t *testing.T) {
+	if s := MilePerHour.String(); s != "447.040mm/s" {
+		t.Fatalf("%#v", s)
 	}
 }
 

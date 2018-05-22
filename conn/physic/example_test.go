@@ -11,6 +11,16 @@ import (
 	"periph.io/x/periph/conn/physic"
 )
 
+func ExampleDistance() {
+	fmt.Printf("%s\n", physic.Inch)
+	fmt.Printf("%s\n", physic.Foot)
+	fmt.Printf("%s\n", physic.Mile)
+	// Output:
+	// 25.400mm
+	// 304.800mm
+	// 1.609km
+}
+
 func ExampleElectricCurrent() {
 	fmt.Printf("%s\n", 10010*physic.MilliAmpere)
 	fmt.Printf("%s\n", 10*physic.Ampere)
@@ -29,6 +39,26 @@ func ExampleElectricPotential() {
 	// 10.010V
 	// 10V
 	// -10mV
+}
+
+func ExampleElectricResistance() {
+	fmt.Printf("%s\n", 10010*physic.MilliOhm)
+	fmt.Printf("%s\n", 10*physic.Ohm)
+	fmt.Printf("%s\n", 24*physic.MegaOhm)
+	// Output:
+	// 10.010Ω
+	// 10Ω
+	// 24MΩ
+}
+
+func ExampleForce() {
+	fmt.Printf("%s\n", 10*physic.MilliNewton)
+	fmt.Printf("%s\n", 101010*physic.EarthGravity)
+	fmt.Printf("%s\n", physic.PoundForce)
+	// Output:
+	// 10mN
+	// 990.569kN
+	// 4.448kN
 }
 
 func ExampleFrequency() {
@@ -57,6 +87,18 @@ func ExamplePeriodToFrequency() {
 	// 16.666mHz
 }
 
+func ExampleMass() {
+	fmt.Printf("%s\n", 10*physic.MilliGram)
+	fmt.Printf("%s\n", physic.OunceMass)
+	fmt.Printf("%s\n", physic.PoundMass)
+	fmt.Printf("%s\n", physic.Slug)
+	// Output:
+	// 10mg
+	// 28.349g
+	// 453.592g
+	// 14.593kg
+}
+
 func ExamplePressure() {
 	fmt.Printf("%s\n", 101010*physic.Pascal)
 	fmt.Printf("%s\n", 101*physic.KiloPascal)
@@ -71,6 +113,20 @@ func ExampleRelativeHumidity() {
 	// Output:
 	// 50.6%rH
 	// 20%rH
+}
+
+func ExampleSpeed() {
+	fmt.Printf("%s\n", 10*physic.MilliMetrePerSecond)
+	fmt.Printf("%s\n", physic.LightSpeed)
+	fmt.Printf("%s\n", physic.KilometrePerHour)
+	fmt.Printf("%s\n", physic.MilePerHour)
+	fmt.Printf("%s\n", physic.FootPerSecond)
+	// Output:
+	// 10mm/s
+	// 299.792Mm/s
+	// 3.600m/s
+	// 447.040mm/s
+	// 304.800mm/s
 }
 
 func ExampleTemperature() {

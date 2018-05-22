@@ -10,17 +10,56 @@ import (
 )
 
 const (
+	NanoMetre  Distance = 1
+	MicroMetre          = 1000 * NanoMetre
+	MilliMetre          = 1000 * MicroMetre
+	Metre               = 1000 * MilliMetre
+	KiloMetre           = 1000 * Metre
+	MegaMetre           = 1000 * KiloMetre
+
+	// Conversion between Metre and imperial units.
+	Thou = 25400 * NanoMetre
+	Inch = 1000 * Thou
+	Foot = 12 * Inch
+	Yard = 3 * Foot
+	Mile = 1760 * Yard
+
 	NanoAmpere  ElectricCurrent = 1
 	MicroAmpere                 = 1000 * NanoAmpere
 	MilliAmpere                 = 1000 * MicroAmpere
 	Ampere                      = 1000 * MilliAmpere
 
+	// Volt is W/A, kg⋅m²/s³/A
 	NanoVolt  ElectricPotential = 1
 	MicroVolt                   = 1000 * NanoVolt
 	MilliVolt                   = 1000 * MicroVolt
 	Volt                        = 1000 * MilliVolt
 	KiloVolt                    = 1000 * Volt
 
+	// Ohm is V/A, kg⋅m²/s³/A².
+	NanoOhm  ElectricResistance = 1
+	MicroOhm                    = 1000 * NanoOhm
+	MilliOhm                    = 1000 * MicroOhm
+	Ohm                         = 1000 * MilliOhm
+	KiloOhm                     = 1000 * Ohm
+	MegaOhm                     = 1000 * KiloOhm
+
+	// Newton is kg⋅m/s²
+	NanoNewton  Force = 1
+	MicroNewton       = 1000 * NanoNewton
+	MilliNewton       = 1000 * MicroNewton
+	Newton            = 1000 * MilliNewton
+	KiloNewton        = 1000 * Newton
+	MegaNewton        = 1000 * KiloNewton
+
+	EarthGravity = 9806650 * MicroNewton
+
+	// Conversion between Newton and imperial units.
+	// Pound is both a unit of mass and weight (force). The suffix Mass is added
+	// to disambiguate the measurement it represents.
+	PoundForce = 4448221615261 * NanoNewton
+
+	// Hertz is 1/s.
 	MicroHertz Frequency = 1
 	MilliHertz           = 1000 * MicroHertz
 	Hertz                = 1000 * MilliHertz
@@ -28,6 +67,25 @@ const (
 	MegaHertz            = 1000 * KiloHertz
 	GigaHertz            = 1000 * MegaHertz
 
+	NanoGram  Mass = 1
+	MicroGram      = 1000 * NanoGram
+	MilliGram      = 1000 * MicroGram
+	Gram           = 1000 * MilliGram
+	KiloGram       = 1000 * Gram
+	MegaGram       = 1000 * KiloGram
+	Tonne          = MegaGram
+
+	// Conversion between Gram and imperial units.
+	// Ounce is both a unit of mass, weight (force) or volume depending on
+	// context. The suffix Mass is added to disambiguate the measurement it
+	// represents.
+	OunceMass = 28349523125 * NanoGram
+	// Pound is both a unit of mass and weight (force). The suffix Mass is added
+	// to disambiguate the measurement it represents.
+	PoundMass = 16 * OunceMass
+	Slug      = 14593903 * MilliGram
+
+	// Pascal is N/m², kg/m/s².
 	NanoPascal  Pressure = 1
 	MicroPascal          = 1000 * NanoPascal
 	MilliPascal          = 1000 * MicroPascal
@@ -52,10 +110,38 @@ const (
 	ZeroFahrenheit  = 255372 * MilliKelvin
 	MilliFahrenheit = 555555 * NanoKelvin
 	Fahrenheit      = 555555555 * NanoKelvin
+
+	// MetrePerSecond is m/s.
+	NanoMetrePerSecond  Speed = 1
+	MicroMetrePerSecond       = 1000 * NanoMetrePerSecond
+	MilliMetrePerSecond       = 1000 * MicroMetrePerSecond
+	MetrePerSecond            = 1000 * MilliMetrePerSecond
+	KiloMetrePerSecond        = 1000 * MetrePerSecond
+	MegaMetrePerSecond        = 1000 * KiloMetrePerSecond
+
+	LightSpeed = 299792458 * MetrePerSecond
+
+	KilometrePerHour = 3600 * MilliMetrePerSecond
+	MilePerHour      = 447040 * MicroMetrePerSecond
+	FootPerSecond    = 304800 * MicroMetrePerSecond
 )
 
-// ElectricCurrent is a measurement of a flow of electric charge as an int64
-// nano Ampere.
+// Distance is a measurement of length stored as an int64 nano metre.
+//
+// This is one of the base unit in the International System of Units.
+//
+// The highest representable value is 9.2Gm.
+type Distance int64
+
+// String returns the current formatted as a string in metre.
+func (d Distance) String() string {
+	return nanoAsString(int64(d)) + "m"
+}
+
+// ElectricCurrent is a measurement of a flow of electric charge stored as an
+// int64 nano Ampere.
+//
+// This is one of the base unit in the International System of Units.
 //
 // The highest representable value is 9.2GA.
 type ElectricCurrent int64
@@ -65,8 +151,8 @@ func (e ElectricCurrent) String() string {
 	return nanoAsString(int64(e)) + "A"
 }
 
-// ElectricPotential is a measurement of electric potential stored as nano
-// Volt.
+// ElectricPotential is a measurement of electric potential stored as an int64
+// nano Volt.
 //
 // The highest representable value is 9.2GV.
 type ElectricPotential int64
@@ -76,7 +162,34 @@ func (e ElectricPotential) String() string {
 	return nanoAsString(int64(e)) + "V"
 }
 
-// Frequency is a measurement of cycle per second, stored as micro Hertz.
+// ElectricResistance is a measurement of the difficulty to pass an electric
+// current through a conductor stored as an int64 nano Ohm.
+//
+// The highest representable value is 9.2GΩ.
+type ElectricResistance int64
+
+// String returns the resistance formatted as a string in Ohm.
+func (e ElectricResistance) String() string {
+	return nanoAsString(int64(e)) + "Ω"
+}
+
+// Force is a measurement of interaction that will change the motion of an
+// object stored as an int64 nano Newton.
+//
+// A measurement of Force is a vector and has a direction but this unit only
+// represents the magnitude. The orientation needs to be stored as a Quaternion
+// independently.
+//
+// The highest representable value is 9.2TN.
+type Force int64
+
+// String returns the force formatted as a string in Newton.
+func (f Force) String() string {
+	return nanoAsString(int64(f)) + "N"
+}
+
+// Frequency is a measurement of cycle per second, stored as an int32 micro
+// Hertz.
 //
 // The highest representable value is 9.2THz.
 type Frequency int64
@@ -96,7 +209,20 @@ func PeriodToFrequency(t time.Duration) Frequency {
 	return Frequency(time.Second) * Hertz / Frequency(t)
 }
 
-// Pressure is a measurement of stress stored as nano Pascal.
+// Mass is a measurement of mass stored as an int64 nano gram.
+//
+// This is one of the base unit in the International System of Units.
+//
+// The highest representable value is 9.2Gg.
+type Mass int64
+
+// String returns the mass formatted as a string in gram.
+func (m Mass) String() string {
+	return nanoAsString(int64(m)) + "g"
+}
+
+// Pressure is a measurement of force applied to a surface per unit
+// area (stress) stored as an int64 nano Pascal.
 //
 // The highest representable value is 9.2GPa.
 type Pressure int64
@@ -106,8 +232,8 @@ func (p Pressure) String() string {
 	return nanoAsString(int64(p)) + "Pa"
 }
 
-// RelativeHumidity is a humidity level measurement stored as a fixed point
-// integer at a precision of 0.0001%rH.
+// RelativeHumidity is a humidity level measurement stored as an int32 fixed
+// point integer at a precision of 0.0001%rH.
 //
 // Valid values are between 0 and 1000000.
 type RelativeHumidity int32
@@ -123,6 +249,17 @@ func (r RelativeHumidity) String() string {
 		frac = -frac
 	}
 	return strconv.Itoa(int(r)/10) + "." + strconv.Itoa(frac) + "%rH"
+}
+
+// Speed is a measurement of magnitude of velocity stored as an int64 nano
+// Metre per Second.
+//
+// The highest representable value is 9.2Gm/s.
+type Speed int64
+
+// String returns the speed formatted as a string in m/s.
+func (s Speed) String() string {
+	return nanoAsString(int64(s)) + "m/s"
 }
 
 // Temperature is a measurement of hotness stored as a nano kelvin.
