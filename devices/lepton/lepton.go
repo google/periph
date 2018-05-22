@@ -77,6 +77,8 @@ type Frame struct {
 // Maximum I²C speed is 1Mhz.
 //
 // MOSI is not used and should be grounded.
+//
+// Deprecated: Argument cs will be removed in v3.
 func New(p spi.Port, i i2c.Bus, cs gpio.PinOut) (*Dev, error) {
 	// Sadly the Lepton will unconditionally send 27fps, even if the effective
 	// rate is 9fps.
@@ -158,20 +160,28 @@ func (d *Dev) String() string {
 	return fmt.Sprintf("Lepton(%s/%s/%s)", d.Dev, d.s, d.cs)
 }
 
+// Halt implements conn.Resource.
+func (d *Dev) Halt() error {
+	// TODO(maruel): Stop the read loop.
+	return d.Dev.Halt()
+}
+
 // Bounds returns the device frame size.
 func (d *Dev) Bounds() image.Rectangle {
 	return image.Rect(0, 0, d.w, d.h)
 }
 
-// ReadImg reads an image.
+// NextFrame blocks and returns the next frame from the camera.
 //
 // It is ok to call other functions concurrently to send commands to the
 // camera.
-func (d *Dev) ReadImg() (*Frame, error) {
-	f := &Frame{Gray16: image.NewGray16(d.prevImg.Bounds())}
+func (d *Dev) NextFrame(f *Frame) error {
+	if f.Bounds() != d.Bounds() {
+		return errors.New("lepton: invalid frame size")
+	}
 	for {
 		if err := d.readFrame(f); err != nil {
-			return nil, err
+			return err
 		}
 		if f.Metadata.FFCDesired {
 			// TODO(maruel): Automatically trigger FFC when applicable, only do if
@@ -184,6 +194,17 @@ func (d *Dev) ReadImg() (*Frame, error) {
 		// It also happen if the image is 100% static without noise.
 	}
 	copy(d.prevImg.Pix, f.Pix)
+	return nil
+}
+
+// ReadImg reads an image.
+//
+// Deprecated: Use NextFrame() instead.
+func (d *Dev) ReadImg() (*Frame, error) {
+	f := &Frame{Gray16: image.NewGray16(d.prevImg.Bounds())}
+	if err := d.NextFrame(f); err != nil {
+		return nil, err
+	}
 	return f, nil
 }
 

@@ -181,15 +181,15 @@ func TestBounds(t *testing.T) {
 	}
 }
 
-func TestReadImg(t *testing.T) {
+func TestNextFrame(t *testing.T) {
 	i := i2ctest.Playback{Ops: initSequence()}
 	s := spiStream{data: prepareFrame(t)}
 	d, err := New(&s, &i, &gpiotest.Pin{N: "CS"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	f, err := d.ReadImg()
-	if err != nil {
+	f := Frame{Gray16: image.NewGray16(d.Bounds())}
+	if err := d.NextFrame(&f); err != nil {
 		t.Fatal(err)
 	}
 	if f.Metadata.TempHousing != devices.Celsius(2000) {
@@ -212,14 +212,29 @@ func TestReadImg(t *testing.T) {
 	}
 }
 
-func TestReadImg_fail_Tx(t *testing.T) {
+func TestNextFrame_invalid_bounds(t *testing.T) {
+	i := i2ctest.Playback{Ops: initSequence()}
+	s := spiStream{data: prepareFrame(t)}
+	d, err := New(&s, &i, &gpiotest.Pin{N: "CS"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := d.NextFrame(&Frame{Gray16: image.NewGray16(image.Rect(0, 0, 1, 1))}); err == nil {
+		t.Fatal("invalid bounds")
+	}
+	if err := i.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestNextFrame_fail_Tx(t *testing.T) {
 	i := i2ctest.Playback{Ops: initSequence()}
 	s := spitest.Playback{Playback: conntest.Playback{DontPanic: true}}
 	d, err := New(&s, &i, &gpiotest.Pin{N: "CS"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := d.ReadImg(); err == nil {
+	if err := d.NextFrame(&Frame{Gray16: image.NewGray16(d.Bounds())}); err == nil {
 		t.Fatal("spi port Tx failed")
 	}
 	if err := i.Close(); err != nil {
@@ -227,17 +242,39 @@ func TestReadImg_fail_Tx(t *testing.T) {
 	}
 }
 
-func TestReadImg_fail_OUt(t *testing.T) {
+func TestNextFrame_fail_Out(t *testing.T) {
 	i := i2ctest.Playback{Ops: initSequence()}
 	s := spitest.Playback{Playback: conntest.Playback{DontPanic: true}}
 	d, err := New(&s, &i, &failPin{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := d.ReadImg(); err == nil {
+	if err := d.NextFrame(&Frame{Gray16: image.NewGray16(d.Bounds())}); err == nil {
 		t.Fatal("spi port Tx failed")
 	}
 	if err := i.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestReadImg(t *testing.T) {
+	i := i2ctest.Playback{Ops: initSequence()}
+	s := spiStream{data: prepareFrame(t)}
+	d, err := New(&s, &i, &gpiotest.Pin{N: "CS"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	f, err := d.ReadImg()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f.Metadata.TempHousing != devices.Celsius(2000) {
+		t.Fatal(f.Metadata.TempHousing)
+	}
+	if err := i.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = d.ReadImg(); err == nil {
 		t.Fatal(err)
 	}
 }
