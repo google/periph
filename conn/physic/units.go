@@ -133,7 +133,7 @@ const (
 // The highest representable value is 9.2Gm.
 type Distance int64
 
-// String returns the current formatted as a string in metre.
+// String returns the distance formatted as a string in metre.
 func (d Distance) String() string {
 	return nanoAsString(int64(d)) + "m"
 }
