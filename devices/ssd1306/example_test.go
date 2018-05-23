@@ -27,7 +27,7 @@ func Example() {
 	}
 	defer b.Close()
 
-	dev, err := ssd1306.NewI2C(b, 128, 64, false)
+	dev, err := ssd1306.NewI2C(b, &ssd1306.DefaultOpts)
 	if err != nil {
 		log.Fatalf("failed to initialize ssd1306: %v", err)
 	}

@@ -77,10 +77,23 @@ const (
 	UpLeft  Orientation = 0x2A
 )
 
+// DefaultOpts is the recommended default options.
+var DefaultOpts = Opts{
+	W:       128,
+	H:       64,
+	Rotated: false,
+}
+
+// Opts defines the options for the device.
+type Opts struct {
+	W int
+	H int
+	// Rotated determines if the display is rotated by 180°.
+	Rotated bool
+}
+
 // NewSPI returns a Dev object that communicates over SPI to a SSD1306 display
 // controller.
-//
-// If rotated is true, turns the display by 180°
 //
 // The SSD1306 can operate at up to 3.3Mhz, which is much higher than I²C. This
 // permits higher refresh rates.
@@ -95,7 +108,7 @@ const (
 // The RES (reset) pin can be used outside of this driver but is not supported
 // natively. In case of external reset via the RES pin, this device drive must
 // be reinstantiated.
-func NewSPI(p spi.Port, dc gpio.PinOut, w, h int, rotated bool) (*Dev, error) {
+func NewSPI(p spi.Port, dc gpio.PinOut, opts *Opts) (*Dev, error) {
 	if dc == gpio.INVALID {
 		return nil, errors.New("ssd1306: use nil for dc to use 3-wire mode, do not use gpio.INVALID")
 	}
@@ -110,16 +123,14 @@ func NewSPI(p spi.Port, dc gpio.PinOut, w, h int, rotated bool) (*Dev, error) {
 	if err != nil {
 		return nil, err
 	}
-	return newDev(c, w, h, rotated, true, dc)
+	return newDev(c, opts, true, dc)
 }
 
 // NewI2C returns a Dev object that communicates over I²C to a SSD1306 display
 // controller.
-//
-// If rotated, turns the display by 180°
-func NewI2C(i i2c.Bus, w, h int, rotated bool) (*Dev, error) {
+func NewI2C(i i2c.Bus, opts *Opts) (*Dev, error) {
 	// Maximum clock speed is 1/2.5µs = 400KHz.
-	return newDev(&i2c.Dev{Bus: i, Addr: 0x3C}, w, h, rotated, false, nil)
+	return newDev(&i2c.Dev{Bus: i, Addr: 0x3C}, opts, false, nil)
 }
 
 // Dev is an open handle to the display controller.
@@ -286,30 +297,30 @@ func (d *Dev) Invert(blackOnWhite bool) error {
 
 // newDev is the common initialization code that is independent of the
 // communication protocol (I²C or SPI) being used.
-func newDev(c conn.Conn, w, h int, rotated, usingSPI bool, dc gpio.PinOut) (*Dev, error) {
-	if w < 8 || w > 128 || w&7 != 0 {
-		return nil, fmt.Errorf("ssd1306: invalid width %d", w)
+func newDev(c conn.Conn, opts *Opts, usingSPI bool, dc gpio.PinOut) (*Dev, error) {
+	if opts.W < 8 || opts.W > 128 || opts.W&7 != 0 {
+		return nil, fmt.Errorf("ssd1306: invalid width %d", opts.W)
 	}
-	if h < 8 || h > 64 || h&7 != 0 {
-		return nil, fmt.Errorf("ssd1306: invalid height %d", h)
+	if opts.H < 8 || opts.H > 64 || opts.H&7 != 0 {
+		return nil, fmt.Errorf("ssd1306: invalid height %d", opts.H)
 	}
 
-	nbPages := h / 8
-	pageSize := w
+	nbPages := opts.H / 8
+	pageSize := opts.W
 	d := &Dev{
 		c:         c,
 		spi:       usingSPI,
 		dc:        dc,
-		rect:      image.Rect(0, 0, int(w), int(h)),
+		rect:      image.Rect(0, 0, opts.W, opts.H),
 		buffer:    make([]byte, nbPages*pageSize),
 		startPage: 0,
 		endPage:   nbPages,
 		startCol:  0,
-		endCol:    w,
+		endCol:    opts.W,
 		// Signal that the screen must be redrawn on first draw().
 		scrolled: true,
 	}
-	if err := d.sendCommand(getInitCmd(w, h, rotated)); err != nil {
+	if err := d.sendCommand(getInitCmd(opts.W, opts.H, opts.Rotated)); err != nil {
 		return nil, err
 	}
 	return d, nil

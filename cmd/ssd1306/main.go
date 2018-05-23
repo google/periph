@@ -154,6 +154,7 @@ func mainImpl() error {
 
 	// Open the device on the right bus.
 	var s *ssd1306.Dev
+	opts := ssd1306.Opts{W: *w, H: *h, Rotated: *rotated}
 	if *spiID != "" {
 		c, err := spireg.Open(*spiID)
 		if err != nil {
@@ -173,7 +174,7 @@ func mainImpl() error {
 		if len(*dcName) != 0 {
 			dc = gpioreg.ByName(*dcName)
 		}
-		s, err = ssd1306.NewSPI(c, dc, *w, *h, *rotated)
+		s, err = ssd1306.NewSPI(c, dc, &opts)
 		if err != nil {
 			return err
 		}
@@ -192,7 +193,7 @@ func mainImpl() error {
 			// TODO(maruel): Print where the pins are located.
 			log.Printf("Using pins SCL: %s  SDA: %s", p.SCL(), p.SDA())
 		}
-		s, err = ssd1306.NewI2C(c, *w, *h, *rotated)
+		s, err = ssd1306.NewI2C(c, &opts)
 		if err != nil {
 			return err
 		}

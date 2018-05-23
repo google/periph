@@ -21,13 +21,13 @@ import (
 
 func TestNewI2C_fail(t *testing.T) {
 	bus := i2ctest.Playback{DontPanic: true}
-	if d, err := NewI2C(&bus, 0, 64, false); d != nil || err == nil {
+	if d, err := NewI2C(&bus, &Opts{H: 64}); d != nil || err == nil {
 		t.Fatal(d, err)
 	}
-	if d, err := NewI2C(&bus, 64, 0, false); d != nil || err == nil {
+	if d, err := NewI2C(&bus, &Opts{W: 64}); d != nil || err == nil {
 		t.Fatal(d, err)
 	}
-	if d, err := NewI2C(&bus, 64, 64, true); d != nil || err == nil {
+	if d, err := NewI2C(&bus, &Opts{W: 64, H: 64, Rotated: true}); d != nil || err == nil {
 		t.Fatal(d, err)
 	}
 	if err := bus.Close(); err != nil {
@@ -37,7 +37,7 @@ func TestNewI2C_fail(t *testing.T) {
 
 func TestI2C_ColorModel(t *testing.T) {
 	bus := getI2CPlayback()
-	dev, err := NewI2C(bus, 128, 64, false)
+	dev, err := NewI2C(bus, &DefaultOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func TestI2C_ColorModel(t *testing.T) {
 
 func TestI2C_String(t *testing.T) {
 	bus := getI2CPlayback()
-	dev, err := NewI2C(bus, 128, 64, false)
+	dev, err := NewI2C(bus, &DefaultOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +77,7 @@ func TestI2C_Draw_VerticalLSD_fast(t *testing.T) {
 			{Addr: 0x3c, W: buf},
 		},
 	}
-	dev, err := NewI2C(&bus, 128, 64, false)
+	dev, err := NewI2C(&bus, &DefaultOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,7 +109,7 @@ func TestI2C_Halt_Write(t *testing.T) {
 			{Addr: 0x3c, W: buf},
 		},
 	}
-	dev, err := NewI2C(&bus, 128, 64, false)
+	dev, err := NewI2C(&bus, &DefaultOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -136,7 +136,7 @@ func TestI2C_Halt_resume_fail(t *testing.T) {
 		},
 		DontPanic: true,
 	}
-	dev, err := NewI2C(&bus, 128, 64, false)
+	dev, err := NewI2C(&bus, &DefaultOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -158,7 +158,7 @@ func TestI2C_Write_invalid_size(t *testing.T) {
 			{Addr: 0x3c, W: initCmdI2C()},
 		},
 	}
-	dev, err := NewI2C(&bus, 128, 64, false)
+	dev, err := NewI2C(&bus, &DefaultOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -178,7 +178,7 @@ func TestI2C_Write_fail(t *testing.T) {
 		},
 		DontPanic: true,
 	}
-	dev, err := NewI2C(&bus, 128, 64, false)
+	dev, err := NewI2C(&bus, &DefaultOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -198,7 +198,7 @@ func TestI2C_Draw_fail(t *testing.T) {
 		},
 		DontPanic: true,
 	}
-	dev, err := NewI2C(&bus, 128, 64, false)
+	dev, err := NewI2C(&bus, &DefaultOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -220,7 +220,7 @@ func TestI2C_DrawGray(t *testing.T) {
 			{Addr: 0x3c, W: append([]byte{i2cData}, grayCheckboard()...)},
 		},
 	}
-	dev, err := NewI2C(&bus, 128, 64, false)
+	dev, err := NewI2C(&bus, &DefaultOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -250,7 +250,7 @@ func TestI2C_Scroll(t *testing.T) {
 			{Addr: 0x3c, W: []byte{0x0, 0x2e}},
 		},
 	}
-	dev, err := NewI2C(&bus, 128, 64, false)
+	dev, err := NewI2C(&bus, &DefaultOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -286,7 +286,7 @@ func TestI2C_SetContrast(t *testing.T) {
 			{Addr: 0x3c, W: []byte{0x0, 0x81, 0xff}},
 		},
 	}
-	dev, err := NewI2C(&bus, 128, 64, false)
+	dev, err := NewI2C(&bus, &DefaultOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -316,7 +316,7 @@ func TestI2C_Invert_Halt_resume(t *testing.T) {
 			{Addr: 0x3c, W: []byte{0x0, 0xaf, 0xa6}},
 		},
 	}
-	dev, err := NewI2C(&bus, 128, 64, false)
+	dev, err := NewI2C(&bus, &DefaultOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -345,7 +345,7 @@ func TestI2C_Halt(t *testing.T) {
 		},
 		DontPanic: true,
 	}
-	dev, err := NewI2C(&bus, 128, 64, false)
+	dev, err := NewI2C(&bus, &DefaultOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -363,23 +363,23 @@ func TestI2C_Halt(t *testing.T) {
 //
 
 func TestNewSPI_fail(t *testing.T) {
-	if d, err := NewSPI(&spitest.Playback{}, nil, 0, 64, false); d != nil || err == nil {
+	if d, err := NewSPI(&spitest.Playback{}, nil, &Opts{H: 64}); d != nil || err == nil {
 		t.Fatal(d, err)
 	}
-	if d, err := NewSPI(&configFail{}, nil, 64, 64, false); d != nil || err == nil {
+	if d, err := NewSPI(&configFail{}, nil, &Opts{W: 64, H: 64}); d != nil || err == nil {
 		t.Fatal(d, err)
 	}
-	if d, err := NewSPI(&spitest.Playback{}, gpio.INVALID, 64, 64, false); d != nil || err == nil {
+	if d, err := NewSPI(&spitest.Playback{}, gpio.INVALID, &DefaultOpts); d != nil || err == nil {
 		t.Fatal(d, err)
 	}
-	if d, err := NewSPI(&spitest.Playback{}, &failPin{fail: true}, 64, 64, false); d != nil || err == nil {
+	if d, err := NewSPI(&spitest.Playback{}, &failPin{fail: true}, &DefaultOpts); d != nil || err == nil {
 		t.Fatal(d, err)
 	}
 }
 
 func TestSPI_3wire(t *testing.T) {
 	// Not supported yet.
-	if dev, err := NewSPI(&spitest.Playback{}, nil, 128, 64, false); dev != nil || err == nil {
+	if dev, err := NewSPI(&spitest.Playback{}, nil, &DefaultOpts); dev != nil || err == nil {
 		t.Fatal("SPI 3-wire is not supported")
 	}
 }
@@ -390,7 +390,7 @@ func TestSPI_4wire_String(t *testing.T) {
 			Ops: []conntest.IO{{W: getInitCmd(128, 64, false)}},
 		},
 	}
-	dev, err := NewSPI(&port, &gpiotest.Pin{N: "pin1", Num: 42}, 128, 64, false)
+	dev, err := NewSPI(&port, &gpiotest.Pin{N: "pin1", Num: 42}, &DefaultOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -420,7 +420,7 @@ func TestSPI_4wire_Write_differential(t *testing.T) {
 			},
 		},
 	}
-	dev, err := NewSPI(&port, &gpiotest.Pin{N: "pin1", Num: 42}, 128, 64, false)
+	dev, err := NewSPI(&port, &gpiotest.Pin{N: "pin1", Num: 42}, &DefaultOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -450,7 +450,7 @@ func TestSPI_4wire_Write_differential_fail(t *testing.T) {
 			DontPanic: true,
 		},
 	}
-	dev, err := NewSPI(&port, &gpiotest.Pin{N: "pin1", Num: 42}, 128, 64, false)
+	dev, err := NewSPI(&port, &gpiotest.Pin{N: "pin1", Num: 42}, &DefaultOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -475,7 +475,7 @@ func TestSPI_4wire_gpio_fail(t *testing.T) {
 		},
 	}
 	pin := &failPin{fail: false}
-	dev, err := NewSPI(&port, pin, 128, 64, false)
+	dev, err := NewSPI(&port, pin, &DefaultOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
