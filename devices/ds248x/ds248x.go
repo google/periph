@@ -35,8 +35,7 @@ const (
 
 // Opts contains options to pass to the constructor.
 type Opts struct {
-	Addr          uint16 // I²C address, default 0x18
-	PassivePullup bool   // false:use active pull-up, true: disable active pullup
+	PassivePullup bool // false:use active pull-up, true: disable active pullup
 
 	// The following options are only available on the ds2483 (not ds2482-100).
 	// The actual value used is the closest possible value (rounded up or down).
@@ -47,21 +46,28 @@ type Opts struct {
 	PullupRes      PupOhm        // passive pull-up resistance, true: 500Ω, false: 1kΩ
 }
 
+// DefaultOpts is the recommended default options.
+var DefaultOpts = Opts{
+	PassivePullup:  false,
+	ResetLow:       560 * time.Microsecond,
+	PresenceDetect: 68 * time.Microsecond,
+	Write0Low:      64 * time.Microsecond,
+	Write0Recovery: 5250 * time.Nanosecond,
+	PullupRes:      R1000Ω,
+}
+
 // New returns a device object that communicates over I²C to the DS2482/DS2483
 // controller.
 //
 // This device object implements onewire.Bus and can be used to
 // access devices on the bus.
-func New(i i2c.Bus, opts *Opts) (*Dev, error) {
-	addr := uint16(0x18)
-	if opts != nil {
-		switch opts.Addr {
-		case 0x18, 0x19, 0x20, 0x21:
-			addr = opts.Addr
-		case 0x00:
-		default:
-			return nil, errors.New("ds248x: given address not supported by device")
-		}
+//
+// Valid I²C addresses are 0x18, 0x19, 0x20 and 0x21.
+func New(i i2c.Bus, addr uint16, opts *Opts) (*Dev, error) {
+	switch addr {
+	case 0x18, 0x19, 0x20, 0x21:
+	default:
+		return nil, errors.New("ds248x: given address not supported by device")
 	}
 	d := &Dev{i2c: &i2c.Dev{Bus: i, Addr: addr}}
 	if err := d.makeDev(opts); err != nil {
@@ -241,25 +247,6 @@ func (d *Dev) waitIdle(delay time.Duration) byte {
 }
 
 func (d *Dev) makeDev(opts *Opts) error {
-	// Doctor the opts to apply default values.
-	if opts == nil {
-		opts = &defaults
-	}
-	if opts.ResetLow == 0 {
-		opts.ResetLow = defaults.ResetLow
-	}
-	if opts.PresenceDetect == 0 {
-		opts.PresenceDetect = defaults.PresenceDetect
-	}
-	if opts.Write0Low == 0 {
-		opts.Write0Low = defaults.Write0Low
-	}
-	if opts.Write0Recovery == 0 {
-		opts.Write0Recovery = defaults.Write0Recovery
-	}
-	if opts.PullupRes == 0 {
-		opts.PullupRes = defaults.PullupRes
-	}
 	d.tReset = 2 * opts.ResetLow
 	d.tSlot = opts.Write0Low + opts.Write0Recovery
 
@@ -334,16 +321,6 @@ var sleep = time.Sleep
 
 var _ conn.Resource = &Dev{}
 var _ fmt.Stringer = &Dev{}
-
-// defaults holds default values for optional parameters.
-var defaults = Opts{
-	PassivePullup:  false,
-	ResetLow:       560 * time.Microsecond,
-	PresenceDetect: 68 * time.Microsecond,
-	Write0Low:      64 * time.Microsecond,
-	Write0Recovery: 5250 * time.Nanosecond,
-	PullupRes:      R1000Ω,
-}
 
 const (
 	cmdReset       = 0xf0 // reset ds248x

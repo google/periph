@@ -27,7 +27,7 @@ func Example() {
 	defer b.Close()
 
 	// Open the DS248x to get a 1-wire bus.
-	ob, err := ds248x.New(b, nil)
+	ob, err := ds248x.New(b, 0x18, &ds248x.DefaultOpts)
 	if err != nil {
 		log.Fatal(err)
 	}

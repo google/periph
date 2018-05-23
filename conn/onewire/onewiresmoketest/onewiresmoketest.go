@@ -63,7 +63,7 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) error {
 	defer i2cBus.Close()
 
 	// Open the ds2483 one-wire interface chip.
-	onewireBus, err := ds248x.New(i2cBus, nil)
+	onewireBus, err := ds248x.New(i2cBus, 0x18, &ds248x.DefaultOpts)
 	if err != nil {
 		return fmt.Errorf("cannot open DS248x: %v", err)
 	}

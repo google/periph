@@ -21,7 +21,7 @@ func TestNew(t *testing.T) {
 			{Addr: 0x18, W: []byte{0xc3, 0x6, 0x26, 0x46, 0x66, 0x86}},
 		},
 	}
-	d, err := New(&bus, nil)
+	d, err := New(&bus, 0x18, &DefaultOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,8 +46,7 @@ func TestNew_opts(t *testing.T) {
 			{Addr: 0x18, W: []byte{0xc3, 0x6, 0x26, 0x46, 0x66, 0x86}},
 		},
 	}
-	opts := &Opts{Addr: 0x18}
-	if _, err := New(&bus, opts); err != nil {
+	if _, err := New(&bus, 0x18, &DefaultOpts); err != nil {
 		t.Fatal(err)
 	}
 	if err := bus.Close(); err != nil {
@@ -79,7 +78,7 @@ func TestRecordInit(t *testing.T) {
 	}
 	i2cBus := &i2ctest.Record{Bus: i2cReal}
 	// Now init the ds248x.
-	owBus, err := New(i2cBus, nil)
+	owBus, err := New(i2cBus, 0x18, &DefaultOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
