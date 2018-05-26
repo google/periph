@@ -805,6 +805,48 @@ func TestCalibration280_compensateHumidityInt(t *testing.T) {
 	}
 }
 
+func BenchmarkCalibration280Int32(b *testing.B) {
+	tRaw := int32(524112)
+	pRaw := int32(309104)
+	hRaw := int32(30987)
+	for i := 0; i < b.N; i++ {
+		temp, tFine := calib280.compensateTempInt(tRaw)
+		pres := calib280.compensatePressureInt32(pRaw, tFine)
+		humi := calib280.compensateHumidityInt(hRaw, tFine)
+		if tFine != 117407 || temp != 2293 || pres != 100045 || humi != 64686 {
+			b.FailNow()
+		}
+	}
+}
+
+func BenchmarkCalibration280Int64(b *testing.B) {
+	tRaw := int32(524112)
+	pRaw := int32(309104)
+	hRaw := int32(30987)
+	for i := 0; i < b.N; i++ {
+		temp, tFine := calib280.compensateTempInt(tRaw)
+		pres := calib280.compensatePressureInt64(pRaw, tFine)
+		humi := calib280.compensateHumidityInt(hRaw, tFine)
+		if tFine != 117407 || temp != 2293 || pres != 25611063 || humi != 64686 {
+			b.FailNow()
+		}
+	}
+}
+
+func BenchmarkCalibration280Float64(b *testing.B) {
+	tRaw := int32(524112)
+	pRaw := int32(309104)
+	hRaw := int32(30987)
+	for i := 0; i < b.N; i++ {
+		temp, tFine := calib280.compensateTempFloat(tRaw)
+		pres := calib280.compensatePressureFloat(pRaw, tFine)
+		humi := calib280.compensateHumidityFloat(hRaw, tFine)
+		if tFine != 117494 || !floatEqual(temp, 22.948120) || !floatEqual(pres, 100.046074) || !floatEqual(humi, 63.167889) {
+			b.FailNow()
+		}
+	}
+}
+
 //
 
 var epsilon float32 = 0.00000001

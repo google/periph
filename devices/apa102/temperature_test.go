@@ -15,3 +15,11 @@ func TestToRGBFast_limits(t *testing.T) {
 		t.Fatal(r, g, b)
 	}
 }
+
+func BenchmarkToRGBFast(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		if r, g, blue := toRGBFast(30000); r != 159 || g != 191 || blue != 255 {
+			b.FailNow()
+		}
+	}
+}

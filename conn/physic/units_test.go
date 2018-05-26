@@ -5,6 +5,8 @@
 package physic
 
 import (
+	"bytes"
+	"fmt"
 	"testing"
 	"time"
 )
@@ -215,5 +217,32 @@ func TestMicroAsString(t *testing.T) {
 		if s := microAsString(line.in); s != line.expected {
 			t.Fatalf("%d: microAsString(%d).String() = %s != %s", i, line.in, s, line.expected)
 		}
+	}
+}
+
+func BenchmarkCelsiusString(b *testing.B) {
+	v := 10*Celsius + ZeroCelsius
+	buf := bytes.Buffer{}
+	for i := 0; i < b.N; i++ {
+		buf.WriteString(v.String())
+		buf.Reset()
+	}
+}
+
+func BenchmarkCelsiusFloatf(b *testing.B) {
+	v := float64(10)
+	buf := bytes.Buffer{}
+	for i := 0; i < b.N; i++ {
+		buf.WriteString(fmt.Sprintf("%.1f°C", v))
+		buf.Reset()
+	}
+}
+
+func BenchmarkCelsiusFloatg(b *testing.B) {
+	v := float64(10)
+	buf := bytes.Buffer{}
+	for i := 0; i < b.N; i++ {
+		buf.WriteString(fmt.Sprintf("%g°C", v))
+		buf.Reset()
 	}
 }

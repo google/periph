@@ -103,6 +103,11 @@ workers:
   - cmd:
     - go
     - test
+    - -cover
+    - -bench=.
+    - -benchtime=1000ms
+    - -benchmem
+    - ./...
     - ./...
   - cmd:
     - go
@@ -189,9 +194,10 @@ workers:
   - cmd:
     - go
     - test
+    - -cover
     - -bench=.
-    - -benchtime
-    - 10ms
+    - -benchtime=1000ms
+    - -benchmem
     - ./...
   - cmd:
     - go

@@ -5,6 +5,9 @@
 package gpiotest
 
 import (
+	"io/ioutil"
+	"log"
+	"os"
 	"testing"
 	"time"
 
@@ -72,6 +75,10 @@ func TestPin_fail(t *testing.T) {
 }
 
 func TestLogPinIO(t *testing.T) {
+	if !testing.Verbose() {
+		log.SetOutput(ioutil.Discard)
+		defer log.SetOutput(os.Stderr)
+	}
 	p := &Pin{}
 	l := &LogPinIO{p}
 	if l.Real() != p {
