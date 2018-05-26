@@ -14,6 +14,7 @@ import (
 
 	"periph.io/x/periph/conn/conntest"
 	"periph.io/x/periph/conn/i2c/i2ctest"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/spi"
 	"periph.io/x/periph/conn/spi/spitest"
 	"periph.io/x/periph/devices"
@@ -659,23 +660,32 @@ func TestCalibration280Float(t *testing.T) {
 	hRaw := int32(30987)
 
 	// Compare the values with the 3 algorithms.
-	temp, tFine := calib280.compensateTempFloat(tRaw)
-	pres := calib280.compensatePressureFloat(pRaw, tFine)
-	humi := calib280.compensateHumidityFloat(hRaw, tFine)
+	tempf, tFine := calib280.compensateTempFloat(tRaw)
+	presf := calib280.compensatePressureFloat(pRaw, tFine)
+	humif := calib280.compensateHumidityFloat(hRaw, tFine)
 	if tFine != 117494 {
 		t.Fatalf("tFine %d", tFine)
 	}
-	if !floatEqual(temp, 22.948120) {
+	if !floatEqual(tempf, 22.94811987876892) {
 		// 22.95°C
-		t.Fatalf("temp %f", temp)
+		t.Fatalf("temp %g != %g", tempf, 22.94811987876892)
 	}
-	if !floatEqual(pres, 100.046074) {
+	if temp := physic.Temperature((tempf+273.15)*1000000000.) * physic.NanoKelvin; temp != 22948119878*physic.NanoKelvin+physic.ZeroCelsius {
+		t.Fatalf("temp %d (%s) != %d", temp, temp, 22948119878*physic.NanoKelvin+physic.ZeroCelsius)
+	}
+	if !floatEqual(presf, 100.04606913901831) {
 		// 100.046kPa
-		t.Fatalf("pressure %f", pres)
+		t.Fatalf("pressure %g != %g", presf, 100.04606913901831)
 	}
-	if !floatEqual(humi, 63.167889) {
+	if pres := physic.Pressure(presf*1000000000000.) * physic.NanoPascal; pres != 100046069139018*physic.NanoPascal {
+		t.Fatalf("pressure %d (%s) != %d", pres, pres, 100046069139018*physic.NanoPascal)
+	}
+	if !floatEqual(humif, 63.16788804728185) {
 		// 63.17%
-		t.Fatalf("humidity %f", humi)
+		t.Fatalf("humidity %g != %g", humif, 63.16788804728185)
+	}
+	if humi := physic.RelativeHumidity(humif*10000.) * physic.MicroRH; humi != 631678*physic.MicroRH {
+		t.Fatalf("humidity %d (%s) != %d", humi, humi, 631678*physic.MicroRH)
 	}
 }
 
@@ -813,8 +823,21 @@ func BenchmarkCalibration280Int32(b *testing.B) {
 		temp, tFine := calib280.compensateTempInt(tRaw)
 		pres := calib280.compensatePressureInt32(pRaw, tFine)
 		humi := calib280.compensateHumidityInt(hRaw, tFine)
-		if tFine != 117407 || temp != 2293 || pres != 100045 || humi != 64686 {
-			b.FailNow()
+		if tFine != 117407 {
+			b.Fatal(tFine)
+		}
+		if temp != 2293 || pres != 100045 || humi != 64686 {
+			b.Fatal(temp, pres, humi)
+		}
+		// Include the conversion back to int64 as part of the cost.
+		if t := physic.Temperature((temp*10+273150)*1000) * physic.MicroKelvin; t != 22930*physic.MilliCelsius+physic.ZeroCelsius {
+			b.Fatalf("temp %d (%s) != %d", t, t, 22930*physic.MilliCelsius+physic.ZeroCelsius)
+		}
+		if p := physic.Pressure(pres) * physic.Pascal; p != 100045*physic.Pascal {
+			b.Fatalf("pressure %d (%s) != %d", p, p, 100045*physic.Pascal)
+		}
+		if h := physic.RelativeHumidity(humi*10) * physic.MicroRH; h != 646860*physic.MicroRH {
+			b.Fatalf("humidity %d (%s) != %d", h, h, 646860*physic.MicroRH)
 		}
 	}
 }
@@ -827,8 +850,21 @@ func BenchmarkCalibration280Int64(b *testing.B) {
 		temp, tFine := calib280.compensateTempInt(tRaw)
 		pres := calib280.compensatePressureInt64(pRaw, tFine)
 		humi := calib280.compensateHumidityInt(hRaw, tFine)
-		if tFine != 117407 || temp != 2293 || pres != 25611063 || humi != 64686 {
-			b.FailNow()
+		if tFine != 117407 {
+			b.Fatal(tFine)
+		}
+		if temp != 2293 || pres != 25611063 || humi != 64686 {
+			b.Fatal(temp, pres, humi)
+		}
+		// Include the conversion back to int64 as part of the cost.
+		if t := physic.Temperature((temp*10+273150)*1000) * physic.MicroKelvin; t != 22930*physic.MilliCelsius+physic.ZeroCelsius {
+			b.Fatalf("temp %d (%s) != %d", t, t, 22930*physic.MilliCelsius+physic.ZeroCelsius)
+		}
+		if p := physic.Pressure(pres) * 15625 * physic.MicroPascal / 4; p != 100043214843750*physic.NanoPascal {
+			b.Fatalf("pressure %d (%s) != %d", p, p, 100043214843750*physic.NanoPascal)
+		}
+		if h := physic.RelativeHumidity(humi*10) * physic.MicroRH; h != 646860*physic.MicroRH {
+			b.Fatalf("humidity %d (%s) != %d", h, h, 646860*physic.MicroRH)
 		}
 	}
 }
@@ -838,20 +874,30 @@ func BenchmarkCalibration280Float64(b *testing.B) {
 	pRaw := int32(309104)
 	hRaw := int32(30987)
 	for i := 0; i < b.N; i++ {
-		temp, tFine := calib280.compensateTempFloat(tRaw)
-		pres := calib280.compensatePressureFloat(pRaw, tFine)
-		humi := calib280.compensateHumidityFloat(hRaw, tFine)
-		if tFine != 117494 || !floatEqual(temp, 22.948120) || !floatEqual(pres, 100.046074) || !floatEqual(humi, 63.167889) {
-			b.FailNow()
+		tempf, tFine := calib280.compensateTempFloat(tRaw)
+		presf := calib280.compensatePressureFloat(pRaw, tFine)
+		humif := calib280.compensateHumidityFloat(hRaw, tFine)
+		if tFine != 117494 {
+			b.Fatal(tFine)
+		}
+		// Include the conversion back to int64 as part of the cost.
+		if temp := physic.Temperature((tempf+273.15)*1000000000.) * physic.NanoKelvin; temp != 22948119878*physic.NanoKelvin+physic.ZeroCelsius {
+			b.Fatalf("temp %d (%s) != %d", temp, temp, 22948119878*physic.NanoKelvin+physic.ZeroCelsius)
+		}
+		if pres := physic.Pressure(presf*1000000000000.) * physic.NanoPascal; pres != 100046069139018*physic.NanoPascal {
+			b.Fatalf("pressure %d (%s) != %d", pres, pres, 100046069139018*physic.NanoPascal)
+		}
+		if humi := physic.RelativeHumidity(humif*10000.) * physic.MicroRH; humi != 631678*physic.MicroRH {
+			b.Fatalf("humidity %d (%s) != %d", humi, humi, 631678*physic.MicroRH)
 		}
 	}
 }
 
 //
 
-var epsilon float32 = 0.00000001
+var epsilon float64 = 0.000000001
 
-func floatEqual(a, b float32) bool {
+func floatEqual(a, b float64) bool {
 	return (a-b) < epsilon && (b-a) < epsilon
 }
 
@@ -893,18 +939,18 @@ func (c *calibration280) compensatePressureInt32(raw, tFine int32) uint32 {
 // equals 51.23 °C.
 //
 // raw has 20 bits of resolution.
-func (c *calibration280) compensateTempFloat(raw int32) (float32, int32) {
+func (c *calibration280) compensateTempFloat(raw int32) (float64, int32) {
 	x := (float64(raw)/16384. - float64(c.t1)/1024.) * float64(c.t2)
 	y := (float64(raw)/131072. - float64(c.t1)/8192.) * float64(c.t3)
 	tFine := int32(x + y)
-	return float32((x + y) / 5120.), tFine
+	return float64((x + y) / 5120.), tFine
 }
 
 // compensateHumidityFloat returns pressure in Pa. Output value of "96386.2"
 // equals 96386.2 Pa = 963.862 hPa.
 //
 // raw has 20 bits of resolution.
-func (c *calibration280) compensatePressureFloat(raw, tFine int32) float32 {
+func (c *calibration280) compensatePressureFloat(raw, tFine int32) float64 {
 	x := float64(tFine)*0.5 - 64000.
 	y := x * x * float64(c.p6) / 32768.
 	y += x * float64(c.p5) * 2.
@@ -918,14 +964,14 @@ func (c *calibration280) compensatePressureFloat(raw, tFine int32) float32 {
 	p = (p - y/4096.) * 6250. / x
 	x = float64(c.p9) * p * p / 2147483648.
 	y = p * float64(c.p8) / 32768.
-	return float32(p+(x+y+float64(c.p7))/16.) / 1000.
+	return float64(p+(x+y+float64(c.p7))/16.) / 1000.
 }
 
 // compensateHumidityFloat returns humidity in %rH. Output value of "46.332"
 // represents 46.332 %rH.
 //
 // raw has 16 bits of resolution.
-func (c *calibration280) compensateHumidityFloat(raw, tFine int32) float32 {
+func (c *calibration280) compensateHumidityFloat(raw, tFine int32) float64 {
 	h := float64(tFine - 76800)
 	h = (float64(raw) - float64(c.h4)*64. + float64(c.h5)/16384.*h) * float64(c.h2) / 65536. * (1. + float64(c.h6)/67108864.*h*(1.+float64(c.h3)/67108864.*h))
 	h *= 1. - float64(c.h1)*h/524288.
@@ -935,7 +981,7 @@ func (c *calibration280) compensateHumidityFloat(raw, tFine int32) float32 {
 	if h < 0. {
 		return 0.
 	}
-	return float32(h)
+	return float64(h)
 }
 
 type spiFail struct {
