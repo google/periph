@@ -22,16 +22,15 @@ import (
 	"errors"
 	"fmt"
 	"image"
-	"image/color"
 	"sync"
 	"time"
 
 	"periph.io/x/periph/conn"
-	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/spi"
 	"periph.io/x/periph/devices/lepton/cci"
+	"periph.io/x/periph/devices/lepton/image14bit"
 	"periph.io/x/periph/devices/lepton/internal"
 )
 
@@ -53,23 +52,18 @@ type Metadata struct {
 }
 
 // Frame is a FLIR Lepton frame, containing 14 bits resolution intensity stored
-// as image.Gray16.
+// as image14bit.Gray14.
 //
 // Values centered around 8192 accorging to camera body temperature. Effective
 // range is 14 bits, so [0, 16383].
 //
 // Each 1 increment is approximatively 0.025K.
 type Frame struct {
-	*image.Gray16
+	*image14bit.Gray14
 	Metadata Metadata // Metadata that is sent along the pixels.
 }
 
 // New returns an initialized connection to the FLIR Lepton.
-//
-// The CS line is manually managed by using mode spi.NoCS when calling
-// Connect(). In this case pass nil for the cs parameter. Some spidev drivers
-// refuse spi.NoCS, they do not implement proper support to not trigger the CS
-// line so a manual CS (really, any GPIO pin) must be used instead.
 //
 // Maximum SPI speed is 20Mhz. Minimum usable rate is ~2.2Mhz to sustain a 9hz
 // framerate at 80x60.
@@ -77,27 +71,10 @@ type Frame struct {
 // Maximum I²C speed is 1Mhz.
 //
 // MOSI is not used and should be grounded.
-//
-// Deprecated: Argument cs will be removed in v3.
-func New(p spi.Port, i i2c.Bus, cs gpio.PinOut) (*Dev, error) {
-	// Sadly the Lepton will unconditionally send 27fps, even if the effective
-	// rate is 9fps.
-	mode := spi.Mode3
-	if cs == nil {
-		// Query the CS pin before disabling it.
-		pins, ok := p.(spi.Pins)
-		if !ok {
-			return nil, errors.New("lepton: require manual access to the CS pin")
-		}
-		cs = pins.CS()
-		if cs == gpio.INVALID {
-			return nil, errors.New("lepton: require manual access to a valid CS pin")
-		}
-		mode |= spi.NoCS
-	}
+func New(p spi.Port, i i2c.Bus) (*Dev, error) {
 	// TODO(maruel): Switch to 16 bits per word, so that big endian 16 bits word
 	// decoding is done by the SPI driver.
-	s, err := p.Connect(20000000, mode, 8)
+	s, err := p.Connect(20000000, spi.Mode3, 8)
 	if err != nil {
 		return nil, err
 	}
@@ -114,10 +91,9 @@ func New(p spi.Port, i i2c.Bus, cs gpio.PinOut) (*Dev, error) {
 	d := &Dev{
 		Dev:        c,
 		s:          s,
-		cs:         cs,
 		w:          w,
 		h:          h,
-		prevImg:    image.NewGray16(image.Rect(0, 0, w, h)),
+		prevImg:    image14bit.NewGray14(image.Rect(0, 0, w, h)),
 		frameWidth: frameWidth,
 		frameLines: frameLines,
 		delay:      time.Second,
@@ -145,10 +121,9 @@ func New(p spi.Port, i i2c.Bus, cs gpio.PinOut) (*Dev, error) {
 type Dev struct {
 	*cci.Dev
 	s              spi.Conn
-	cs             gpio.PinOut
 	w              int
 	h              int
-	prevImg        *image.Gray16
+	prevImg        *image14bit.Gray14
 	frameA, frameB []byte
 	frameWidth     int // in bytes
 	frameLines     int
@@ -157,7 +132,7 @@ type Dev struct {
 }
 
 func (d *Dev) String() string {
-	return fmt.Sprintf("Lepton(%s/%s/%s)", d.Dev, d.s, d.cs)
+	return fmt.Sprintf("Lepton(%s/%s)", d.Dev, d.s)
 }
 
 // Halt implements conn.Resource.
@@ -188,24 +163,15 @@ func (d *Dev) NextFrame(f *Frame) error {
 			// the camera has a shutter.
 			//go d.RunFFC()
 		}
-		if !bytes.Equal(d.prevImg.Pix, f.Gray16.Pix) {
+		// Sadly the Lepton will unconditionally send 27fps, even if the effective
+		// rate is 9fps.
+		if !equalUint16(d.prevImg.Pix, f.Gray14.Pix) {
 			break
 		}
 		// It also happen if the image is 100% static without noise.
 	}
 	copy(d.prevImg.Pix, f.Pix)
 	return nil
-}
-
-// ReadImg reads an image.
-//
-// Deprecated: Use NextFrame() instead.
-func (d *Dev) ReadImg() (*Frame, error) {
-	f := &Frame{Gray16: image.NewGray16(d.prevImg.Bounds())}
-	if err := d.NextFrame(f); err != nil {
-		return nil, err
-	}
-	return f, nil
 }
 
 // Private details.
@@ -218,10 +184,6 @@ func (d *Dev) stream(done <-chan struct{}, c chan<- []byte) error {
 			lines = l
 		}
 	}
-	if err := d.cs.Out(gpio.Low); err != nil {
-		return err
-	}
-	defer d.cs.Out(gpio.High)
 	for {
 		// TODO(maruel): Use a ring buffer to stop continuously allocating.
 		buf := make([]byte, d.frameWidth*lines)
@@ -317,7 +279,7 @@ func (d *Dev) readFrame(f *Frame) error {
 				// Image.
 				for x := 0; x < w; x++ {
 					o := 4 + x*2
-					f.SetGray16(x, sync-3, color.Gray16{internal.Big16.Uint16(l[o : o+2])})
+					f.SetIntensity14(x, sync-3, image14bit.Intensity14(internal.Big16.Uint16(l[o:o+2])))
 				}
 			}
 			if sync++; sync == d.frameLines {
@@ -482,6 +444,18 @@ func verifyCRC(d []byte) bool {
 	tmp[2] = 0
 	tmp[3] = 0
 	return internal.CRC16(tmp) == internal.Big16.Uint16(d[2:])
+}
+
+func equalUint16(a, b []uint16) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 var _ conn.Resource = &Dev{}

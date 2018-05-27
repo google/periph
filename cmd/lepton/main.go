@@ -17,11 +17,10 @@ import (
 	"log"
 	"os"
 
-	"periph.io/x/periph/conn/gpio"
-	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/conn/spi/spireg"
 	"periph.io/x/periph/devices/lepton"
+	"periph.io/x/periph/devices/lepton/image14bit"
 )
 
 var palette = []color.NRGBA{
@@ -286,21 +285,21 @@ var palette = []color.NRGBA{
 // reduce the intensity of a 14 bits images into 8 bits centered at midpoint.
 //
 // No AGC is done.
-func reduce(src *image.Gray16) *image.NRGBA {
-	midPoint := uint16(8192)
-	base := midPoint - uint16(len(palette)/2)
-	max := base + uint16(len(palette)) - 1
+func reduce(src *image14bit.Gray14) *image.NRGBA {
+	midPoint := image14bit.Intensity14(8192)
+	base := midPoint - image14bit.Intensity14(len(palette)/2)
+	max := base + image14bit.Intensity14(len(palette)) - 1
 	b := src.Bounds()
 	dst := image.NewNRGBA(b)
 	for y := b.Min.Y; y < b.Max.Y; y++ {
 		for x := b.Min.X; x < b.Max.X; x++ {
-			i := src.Gray16At(x, y).Y
-			if i < base {
-				i = base
-			} else if i > max {
-				i = max
+			v := src.Intensity14At(x, y)
+			if v < base {
+				v = base
+			} else if v > max {
+				v = max
 			}
-			dst.SetNRGBA(x, y, palette[i-base])
+			dst.SetNRGBA(x, y, palette[v-base])
 		}
 	}
 	return dst
@@ -358,7 +357,8 @@ func query(dev *lepton.Dev) error {
 // grabFrame grabs one frame from a lepton and saves it as colored palette PNG
 // file.
 func grabFrame(dev *lepton.Dev, path string, meta bool) error {
-	frame, err := dev.ReadImg()
+	frame := lepton.Frame{Gray14: image14bit.NewGray14(dev.Bounds())}
+	err := dev.NextFrame(&frame)
 	if err != nil {
 		return err
 	}
@@ -376,13 +376,12 @@ func grabFrame(dev *lepton.Dev, path string, meta bool) error {
 		return err
 	}
 	defer f.Close()
-	return png.Encode(f, reduce(frame.Gray16))
+	return png.Encode(f, reduce(frame.Gray14))
 }
 
 func mainImpl() error {
 	i2cID := flag.String("i2c", "", "I²C bus to use")
 	spiID := flag.String("spi", "", "SPI port to use")
-	csID := flag.String("cs", "", "SPI CS line to use instead of the default")
 	i2cHz := flag.Int("i2chz", 0, "I²C bus speed")
 	spiHz := flag.Int("spihz", 0, "SPI port speed")
 
@@ -420,14 +419,6 @@ func mainImpl() error {
 			return err
 		}
 	}
-	var cs gpio.PinOut
-	if len(*csID) != 0 {
-		if p := gpioreg.ByName(*csID); p != nil {
-			cs = p
-		} else {
-			return fmt.Errorf("%s is not a valid pin", *csID)
-		}
-	}
 
 	i2cBus, err := i2creg.Open(*i2cID)
 	if err != nil {
@@ -439,7 +430,7 @@ func mainImpl() error {
 			return err
 		}
 	}
-	dev, err := lepton.New(spiPort, i2cBus, cs)
+	dev, err := lepton.New(spiPort, i2cBus)
 	if err != nil {
 		return fmt.Errorf("%s\nIf testing without hardware, use -fake to simulate a camera", err)
 	}

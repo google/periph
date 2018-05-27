@@ -7,20 +7,17 @@ package lepton
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/hex"
 	"errors"
 	"image"
-	"image/color"
 	"testing"
 
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/conntest"
-	"periph.io/x/periph/conn/gpio"
-	"periph.io/x/periph/conn/gpio/gpiotest"
 	"periph.io/x/periph/conn/i2c/i2ctest"
 	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/spi"
 	"periph.io/x/periph/conn/spi/spitest"
+	"periph.io/x/periph/devices/lepton/image14bit"
 	"periph.io/x/periph/devices/lepton/internal"
 )
 
@@ -35,11 +32,11 @@ func TestNew_cs(t *testing.T) {
 			}...),
 	}
 	s := spitest.Playback{}
-	d, err := New(&s, &i, &gpiotest.Pin{N: "CS"})
+	d, err := New(&s, &i)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if s := d.String(); s != "Lepton(playback(42)/playback/CS(0))" {
+	if s := d.String(); s != "Lepton(playback(42)/playback)" {
 		t.Fatal(s)
 	}
 	if err := d.Halt(); err != nil {
@@ -55,8 +52,8 @@ func TestNew_cs(t *testing.T) {
 
 func TestNew(t *testing.T) {
 	i := i2ctest.Playback{Ops: initSequence()}
-	s := spitest.Playback{CSPin: &gpiotest.Pin{N: "CS"}}
-	_, err := New(&s, &i, nil)
+	s := spitest.Playback{}
+	_, err := New(&s, &i)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,8 +69,8 @@ func TestNew_Init_fail(t *testing.T) {
 	// Strip off last command.
 	ops := initSequence()
 	i := i2ctest.Playback{Ops: ops[:len(ops)-1], DontPanic: true}
-	s := spitest.Playback{CSPin: &gpiotest.Pin{N: "CS"}}
-	if _, err := New(&s, &i, nil); err == nil {
+	s := spitest.Playback{}
+	if _, err := New(&s, &i); err == nil {
 		t.Fatal("cci.Dev.Init() failed")
 	}
 	if err := i.Close(); err != nil {
@@ -95,8 +92,8 @@ func TestNew_GetStatus_fail(t *testing.T) {
 		},
 		DontPanic: true,
 	}
-	s := spitest.Playback{CSPin: &gpiotest.Pin{N: "CS"}}
-	if _, err := New(&s, &i, nil); err == nil {
+	s := spitest.Playback{}
+	if _, err := New(&s, &i); err == nil {
 		t.Fatal("cci.Dev.GetStatus() failed")
 	}
 	if err := i.Close(); err != nil {
@@ -119,8 +116,8 @@ func TestNew_GetStatus_bad(t *testing.T) {
 		},
 		DontPanic: true,
 	}
-	s := spitest.Playback{CSPin: &gpiotest.Pin{N: "CS"}}
-	if _, err := New(&s, &i, nil); err == nil {
+	s := spitest.Playback{}
+	if _, err := New(&s, &i); err == nil {
 		t.Fatal("cci.Dev.GetStatus() failed")
 	}
 	if err := i.Close(); err != nil {
@@ -131,26 +128,10 @@ func TestNew_GetStatus_bad(t *testing.T) {
 	}
 }
 
-func TestNew_fail_invalid(t *testing.T) {
-	i := i2ctest.Record{}
-	s := spitest.Record{}
-	if _, err := New(&s, &i, nil); err == nil {
-		t.Fatal("spi.Pins.CS() returns INVALID")
-	}
-}
-
-func TestNew_fail_no_Pins(t *testing.T) {
-	i := i2ctest.Record{}
-	s := spiStream{}
-	if _, err := New(&s, &i, nil); err == nil {
-		t.Fatal("no CS and no spi.Pins")
-	}
-}
-
 func TestNew_Connect(t *testing.T) {
 	i := i2ctest.Record{}
 	s := spiStream{err: errors.New("injected")}
-	if _, err := New(&s, &i, &gpiotest.Pin{N: "CS"}); err == nil {
+	if _, err := New(&s, &i); err == nil {
 		t.Fatal("Connect failed")
 	}
 }
@@ -158,15 +139,15 @@ func TestNew_Connect(t *testing.T) {
 func TestNew_cci_New_fail(t *testing.T) {
 	i := i2ctest.Playback{DontPanic: true}
 	s := spitest.Record{}
-	if _, err := New(&s, &i, &gpiotest.Pin{N: "CS"}); err == nil {
+	if _, err := New(&s, &i); err == nil {
 		t.Fatal("cci.New failed")
 	}
 }
 
 func TestBounds(t *testing.T) {
 	i := i2ctest.Playback{Ops: initSequence()}
-	s := spitest.Playback{CSPin: &gpiotest.Pin{N: "CS"}}
-	d, err := New(&s, &i, nil)
+	s := spitest.Playback{}
+	d, err := New(&s, &i)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -184,11 +165,11 @@ func TestBounds(t *testing.T) {
 func TestNextFrame(t *testing.T) {
 	i := i2ctest.Playback{Ops: initSequence()}
 	s := spiStream{data: prepareFrame(t)}
-	d, err := New(&s, &i, &gpiotest.Pin{N: "CS"})
+	d, err := New(&s, &i)
 	if err != nil {
 		t.Fatal(err)
 	}
-	f := Frame{Gray16: image.NewGray16(d.Bounds())}
+	f := Frame{Gray14: image14bit.NewGray14(d.Bounds())}
 	if err := d.NextFrame(&f); err != nil {
 		t.Fatal(err)
 	}
@@ -197,7 +178,7 @@ func TestNextFrame(t *testing.T) {
 	}
 	// Compare the frame with the reference image. It should match.
 	ref := referenceFrame()
-	if !bytes.Equal(ref.Pix, f.Pix) {
+	if !equalUint16(ref.Pix, f.Pix) {
 		offset := 0
 		for {
 			if ref.Pix[offset] != f.Pix[offset] {
@@ -205,7 +186,8 @@ func TestNextFrame(t *testing.T) {
 			}
 			offset++
 		}
-		t.Fatalf("different pixels at offset %d:\n%s\n%s", offset, hex.EncodeToString(ref.Pix[offset:]), hex.EncodeToString(f.Pix[offset:]))
+		t.Fatalf("different pixels at offset %d", offset)
+		//t.Fatalf("different pixels at offset %d:\n%s\n%s", offset, hex.EncodeToString(ref.Pix[offset:]), hex.EncodeToString(f.Pix[offset:]))
 	}
 	if err := i.Close(); err != nil {
 		t.Fatal(err)
@@ -215,11 +197,11 @@ func TestNextFrame(t *testing.T) {
 func TestNextFrame_invalid_bounds(t *testing.T) {
 	i := i2ctest.Playback{Ops: initSequence()}
 	s := spiStream{data: prepareFrame(t)}
-	d, err := New(&s, &i, &gpiotest.Pin{N: "CS"})
+	d, err := New(&s, &i)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := d.NextFrame(&Frame{Gray16: image.NewGray16(image.Rect(0, 0, 1, 1))}); err == nil {
+	if err := d.NextFrame(&Frame{Gray14: image14bit.NewGray14(image.Rect(0, 0, 1, 1))}); err == nil {
 		t.Fatal("invalid bounds")
 	}
 	if err := i.Close(); err != nil {
@@ -230,11 +212,11 @@ func TestNextFrame_invalid_bounds(t *testing.T) {
 func TestNextFrame_fail_Tx(t *testing.T) {
 	i := i2ctest.Playback{Ops: initSequence()}
 	s := spitest.Playback{Playback: conntest.Playback{DontPanic: true}}
-	d, err := New(&s, &i, &gpiotest.Pin{N: "CS"})
+	d, err := New(&s, &i)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := d.NextFrame(&Frame{Gray16: image.NewGray16(d.Bounds())}); err == nil {
+	if err := d.NextFrame(&Frame{Gray14: image14bit.NewGray14(d.Bounds())}); err == nil {
 		t.Fatal("spi port Tx failed")
 	}
 	if err := i.Close(); err != nil {
@@ -245,36 +227,14 @@ func TestNextFrame_fail_Tx(t *testing.T) {
 func TestNextFrame_fail_Out(t *testing.T) {
 	i := i2ctest.Playback{Ops: initSequence()}
 	s := spitest.Playback{Playback: conntest.Playback{DontPanic: true}}
-	d, err := New(&s, &i, &failPin{})
+	d, err := New(&s, &i)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := d.NextFrame(&Frame{Gray16: image.NewGray16(d.Bounds())}); err == nil {
+	if err := d.NextFrame(&Frame{Gray14: image14bit.NewGray14(d.Bounds())}); err == nil {
 		t.Fatal("spi port Tx failed")
 	}
 	if err := i.Close(); err != nil {
-		t.Fatal(err)
-	}
-}
-
-func TestReadImg(t *testing.T) {
-	i := i2ctest.Playback{Ops: initSequence()}
-	s := spiStream{data: prepareFrame(t)}
-	d, err := New(&s, &i, &gpiotest.Pin{N: "CS"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	f, err := d.ReadImg()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if f.Metadata.TempHousing != 2*physic.Celsius+physic.ZeroCelsius {
-		t.Fatal(f.Metadata.TempHousing)
-	}
-	if err := i.Close(); err != nil {
-		t.Fatal(err)
-	}
-	if _, err = d.ReadImg(); err == nil {
 		t.Fatal(err)
 	}
 }
@@ -384,12 +344,12 @@ func appendHeader(t *testing.T, i int, d []byte) []byte {
 	return out
 }
 
-func referenceFrame() *image.Gray16 {
+func referenceFrame() *image14bit.Gray14 {
 	r := image.Rect(0, 0, 80, 60)
-	img := image.NewGray16(r)
+	img := image14bit.NewGray14(r)
 	for y := r.Min.Y; y < r.Max.Y; y++ {
 		for x := r.Min.X; x < r.Max.X; x++ {
-			img.SetGray16(x, y, color.Gray16{uint16(8192 - 80 + (x * 2))})
+			img.SetIntensity14(x, y, image14bit.Intensity14(uint16(8192-80+(x*2))))
 		}
 	}
 	return img
@@ -405,7 +365,7 @@ func prepareFrame(t *testing.T) []byte {
 	r := img.Bounds()
 	for y := 0; y < r.Max.Y; y++ {
 		for x := 0; x < r.Max.X; x++ {
-			internal.Big16.PutUint16(tmp[x*2:], img.Gray16At(x, y).Y)
+			internal.Big16.PutUint16(tmp[x*2:], uint16(img.Intensity14At(x, y)))
 		}
 		buf.Write(appendHeader(t, y+3, tmp))
 	}
@@ -467,12 +427,4 @@ func (s *spiStream) Duplex() conn.Duplex {
 
 func (s *spiStream) MaxTxSize() int {
 	return 7 * 164
-}
-
-type failPin struct {
-	gpiotest.Pin
-}
-
-func (f *failPin) Out(l gpio.Level) error {
-	return errors.New("injected")
 }
