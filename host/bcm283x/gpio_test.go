@@ -36,7 +36,7 @@ func TestPin(t *testing.T) {
 	if d := p.DefaultPull(); d != gpio.PullDown {
 		t.Fatal(d)
 	}
-	if s := p.Function(); s != "UART1_RTS" {
+	if s := p.Function(); s != "ERR" {
 		t.Fatal(s)
 	}
 	if p.In(gpio.PullNoChange, gpio.NoEdge) == nil {

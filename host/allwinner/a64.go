@@ -12,6 +12,7 @@ import (
 
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/pin"
+	"periph.io/x/periph/host/sysfs"
 )
 
 // A64 specific pins.
@@ -166,6 +167,10 @@ func mapA64Pins() error {
 		if strings.Contains(altFuncs[4], "EINT") {
 			pin.supportEdge = true
 		}
+
+		// Initializes the sysfs corresponding pin right away.
+		pin.sysfsPin = sysfs.Pins[pin.Number()]
+
 		// Manually map the CS line as an alias because otherwise it never gets
 		// registered.
 		for _, s := range altFuncs {

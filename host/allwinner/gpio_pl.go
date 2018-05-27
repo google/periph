@@ -32,9 +32,12 @@ type PinPL struct {
 	name        string    // name as per datasheet
 	defaultPull gpio.Pull // default pull at startup
 
+	// Immutable after driver initialization.
+	sysfsPin  *sysfs.Pin // Set to the corresponding sysfs.Pin, if any.
+	available bool       // Set when the pin is available on this CPU architecture.
+
 	// Mutable.
-	edge      *sysfs.Pin // Set once, then never set back to nil
-	usingEdge bool       // Set when edge detection is enabled.
+	usingEdge bool // Set when edge detection is enabled.
 }
 
 // PinIO implementation.
@@ -56,6 +59,16 @@ func (p *PinPL) Number() int {
 
 // Function returns the current pin function, ex: "In/PullUp".
 func (p *PinPL) Function() string {
+	if !p.available {
+		// We do not want the error message about uninitialized system.
+		return "N/A"
+	}
+	if drvGPIOPL.gpioMemoryPL == nil {
+		if p.sysfsPin == nil {
+			return "ERR"
+		}
+		return p.sysfsPin.Function()
+	}
 	switch f := p.function(); f {
 	case in:
 		return "In/" + p.Read().String() + "/" + p.Pull().String()
@@ -98,7 +111,7 @@ func (p *PinPL) Function() string {
 // It stops edge detection if enabled.
 func (p *PinPL) Halt() error {
 	if p.usingEdge {
-		if err := p.edge.Halt(); err != nil {
+		if err := p.sysfsPin.Halt(); err != nil {
 			return p.wrap(err)
 		}
 		p.usingEdge = false
@@ -108,14 +121,28 @@ func (p *PinPL) Halt() error {
 
 // In implements gpio.PinIn. See Pin.In for more information.
 func (p *PinPL) In(pull gpio.Pull, edge gpio.Edge) error {
-	if drvGPIOPL.gpioMemoryPL == nil {
-		return p.wrap(errors.New("subsystem not initialized"))
+	if !p.available {
+		// We do not want the error message about uninitialized system.
+		return p.wrap(errors.New("not available on this CPU architecture"))
 	}
 	if p.usingEdge && edge == gpio.NoEdge {
-		if err := p.edge.Halt(); err != nil {
+		if err := p.sysfsPin.Halt(); err != nil {
 			return p.wrap(err)
 		}
 		p.usingEdge = false
+	}
+	if drvGPIOPL.gpioMemoryPL == nil {
+		if p.sysfsPin == nil {
+			return p.wrap(errors.New("subsystem gpiomem not initialized and sysfs not accessible; try running as root?"))
+		}
+		if pull != gpio.PullNoChange {
+			return p.wrap(errors.New("pull cannot be used when subsystem gpiomem not initialized; try running as root?"))
+		}
+		if err := p.sysfsPin.In(pull, edge); err != nil {
+			return p.wrap(err)
+		}
+		p.usingEdge = edge != gpio.NoEdge
+		return nil
 	}
 	if !p.setFunction(in) {
 		return p.wrap(errors.New("failed to set pin as input"))
@@ -134,14 +161,11 @@ func (p *PinPL) In(pull gpio.Pull, edge gpio.Edge) error {
 		}
 	}
 	if edge != gpio.NoEdge {
-		if p.edge == nil {
-			ok := false
-			if p.edge, ok = sysfs.Pins[p.Number()]; !ok {
-				return p.wrap(errors.New("pin is not exported by sysfs"))
-			}
+		if p.sysfsPin == nil {
+			return p.wrap(fmt.Errorf("pin %d is not exported by sysfs", p.Number()))
 		}
 		// This resets pending edges.
-		if err := p.edge.In(gpio.PullNoChange, edge); err != nil {
+		if err := p.sysfsPin.In(gpio.PullNoChange, edge); err != nil {
 			return p.wrap(err)
 		}
 		p.usingEdge = true
@@ -151,13 +175,19 @@ func (p *PinPL) In(pull gpio.Pull, edge gpio.Edge) error {
 
 // Read implements gpio.PinIn. See Pin.Read for more information.
 func (p *PinPL) Read() gpio.Level {
+	if drvGPIOPL.gpioMemoryPL == nil {
+		if p.sysfsPin == nil {
+			return gpio.Low
+		}
+		return p.sysfsPin.Read()
+	}
 	return gpio.Level(drvGPIOPL.gpioMemoryPL.data&(1<<p.offset) != 0)
 }
 
 // WaitForEdge implements gpio.PinIn. See Pin.WaitForEdge for more information.
 func (p *PinPL) WaitForEdge(timeout time.Duration) bool {
-	if p.edge != nil {
-		return p.edge.WaitForEdge(timeout)
+	if p.sysfsPin != nil {
+		return p.sysfsPin.WaitForEdge(timeout)
 	}
 	return false
 }
@@ -165,6 +195,7 @@ func (p *PinPL) WaitForEdge(timeout time.Duration) bool {
 // Pull implements gpio.PinIn. See Pin.Pull for more information.
 func (p *PinPL) Pull() gpio.Pull {
 	if drvGPIOPL.gpioMemoryPL == nil {
+		// If gpioMemoryPL is set, p.available is true.
 		return gpio.PullNoChange
 	}
 	switch (drvGPIOPL.gpioMemoryPL.pull[p.offset/16] >> (2 * (p.offset % 16))) & 3 {
@@ -182,15 +213,19 @@ func (p *PinPL) Pull() gpio.Pull {
 
 // Out implements gpio.PinOut. See Pin.Out for more information.
 func (p *PinPL) Out(l gpio.Level) error {
-	if drvGPIOPL.gpioMemoryPL == nil {
-		return p.wrap(errors.New("subsystem not initialized"))
+	if !p.available {
+		// We do not want the error message about uninitialized system.
+		return p.wrap(errors.New("not available on this CPU architecture"))
 	}
-	if p.usingEdge {
-		// First disable edges.
-		if err := p.edge.Halt(); err != nil {
-			return p.wrap(err)
+	if drvGPIOPL.gpioMemoryPL == nil {
+		if p.sysfsPin != nil {
+			return p.wrap(errors.New("subsystem gpiomem not initialized and sysfs not accessible; try running as root?"))
 		}
-		p.usingEdge = false
+		return p.sysfsPin.Out(l)
+	}
+	// First disable edges.
+	if err := p.Halt(); err != nil {
+		return err
 	}
 	p.FastOut(l)
 	if !p.setFunction(out) {
@@ -221,10 +256,9 @@ func (p *PinPL) DefaultPull() gpio.Pull {
 //
 
 // function returns the current GPIO pin function.
+//
+// It must not be called if drvGPIOPL.gpioMemoryPL is nil.
 func (p *PinPL) function() function {
-	if drvGPIOPL.gpioMemoryPL == nil {
-		return disabled
-	}
 	shift := 4 * (p.offset % 8)
 	return function((drvGPIOPL.gpioMemoryPL.cfg[p.offset/8] >> shift) & 7)
 }
@@ -232,6 +266,8 @@ func (p *PinPL) function() function {
 // setFunction changes the GPIO pin function.
 //
 // Returns false if the pin was in AltN. Only accepts in and out
+//
+// It must not be called if drvGPIOPL.gpioMemoryPL is nil.
 func (p *PinPL) setFunction(f function) bool {
 	if f != in && f != out {
 		return false
@@ -359,20 +395,13 @@ func (d *driverGPIOPL) Init() (bool, error) {
 	if !IsA64() {
 		return false, errors.New("A64 CPU not detected")
 	}
-	m, err := pmem.Map(getBaseAddressPL(), 4096)
-	if err != nil {
-		if os.IsPermission(err) {
-			return true, fmt.Errorf("need more access, try as root: %v", err)
-		}
-		return true, err
-	}
-	if err := m.AsPOD(&d.gpioMemoryPL); err != nil {
-		return true, err
-	}
 
+	// Mark the right pins as available even if the memory map fails so they can
+	// callback to sysfs.Pins.
 	for i := range cpuPinsPL {
 		name := cpuPinsPL[i].Name()
 		num := strconv.Itoa(cpuPinsPL[i].Number())
+		cpuPinsPL[i].available = true
 		gpion := "GPIO" + num
 
 		// Unregister the pin if already registered. This happens with sysfs-gpio.
@@ -395,6 +424,18 @@ func (d *driverGPIOPL) Init() (bool, error) {
 			_ = gpioreg.RegisterAlias(f, name)
 		}
 	}
+
+	m, err := pmem.Map(getBaseAddressPL(), 4096)
+	if err != nil {
+		if os.IsPermission(err) {
+			return true, fmt.Errorf("need more access, try as root: %v", err)
+		}
+		return true, err
+	}
+	if err := m.AsPOD(&d.gpioMemoryPL); err != nil {
+		return true, err
+	}
+
 	return true, nil
 }
 

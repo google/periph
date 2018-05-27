@@ -188,10 +188,12 @@ type Pin struct {
 	// Immutable.
 	number      int
 	name        string
-	defaultPull gpio.Pull
+	defaultPull gpio.Pull // Default pull at system boot, as per datasheet.
+
+	// Immutable after driver initialization.
+	sysfsPin *sysfs.Pin // Set to the corresponding sysfs.Pin, if any.
 
 	// Mutable.
-	edge       *sysfs.Pin     // Set once, then never set back to nil.
 	usingEdge  bool           // Set when edge detection is enabled.
 	usingClock bool           // Set when a GPCLK, PWM or PCM clock is used.
 	dmaCh      *dmaChannel    // Set when DMA is used for PWM or PCM.
@@ -217,6 +219,12 @@ func (p *Pin) Number() int {
 
 // Function returns the current pin function, ex: "In/PullUp".
 func (p *Pin) Function() string {
+	if drvGPIO.gpioMemory == nil {
+		if p.sysfsPin == nil {
+			return "ERR"
+		}
+		return p.sysfsPin.Function()
+	}
 	switch f := p.function(); f {
 	case in:
 		return "In/" + p.Read().String()
@@ -265,7 +273,7 @@ func (p *Pin) Function() string {
 // disabled.
 func (p *Pin) Halt() error {
 	if p.usingEdge {
-		if err := p.edge.Halt(); err != nil {
+		if err := p.sysfsPin.Halt(); err != nil {
 			return p.wrap(err)
 		}
 		p.usingEdge = false
@@ -295,14 +303,23 @@ func (p *Pin) Halt() error {
 // and looks for '011' to rising and '100' for falling detection to avoid
 // glitches. Because gpio sysfs is used, the latency is unpredictable.
 func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
-	if drvGPIO.gpioMemory == nil {
-		return p.wrap(errors.New("subsystem not initialized"))
-	}
 	if p.usingEdge && edge == gpio.NoEdge {
-		if err := p.edge.Halt(); err != nil {
+		if err := p.sysfsPin.Halt(); err != nil {
 			return p.wrap(err)
 		}
-		p.usingEdge = false
+	}
+	if drvGPIO.gpioMemory == nil {
+		if p.sysfsPin == nil {
+			return p.wrap(errors.New("subsystem gpiomem not initialized and sysfs not accessible"))
+		}
+		if pull != gpio.PullNoChange {
+			return p.wrap(errors.New("pull cannot be used when subsystem gpiomem not initialized"))
+		}
+		if err := p.sysfsPin.In(pull, edge); err != nil {
+			return p.wrap(err)
+		}
+		p.usingEdge = edge != gpio.NoEdge
+		return nil
 	}
 	if err := p.haltClock(); err != nil {
 		return err
@@ -333,15 +350,11 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 		drvGPIO.gpioMemory.pullEnableClock[offset] = 0
 	}
 	if edge != gpio.NoEdge {
-		if p.edge == nil {
-			ok := false
-			n := p.number
-			if p.edge, ok = sysfs.Pins[n]; !ok {
-				return p.wrap(fmt.Errorf("pin %d is not exported by sysfs", n))
-			}
+		if p.sysfsPin == nil {
+			return p.wrap(fmt.Errorf("pin %d is not exported by sysfs", p.number))
 		}
 		// This resets pending edges.
-		if err := p.edge.In(gpio.PullNoChange, edge); err != nil {
+		if err := p.sysfsPin.In(gpio.PullNoChange, edge); err != nil {
 			return p.wrap(err)
 		}
 		p.usingEdge = true
@@ -354,7 +367,10 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 // This function is very fast. It works even if the pin is set as output.
 func (p *Pin) Read() gpio.Level {
 	if drvGPIO.gpioMemory == nil {
-		return gpio.Low
+		if p.sysfsPin == nil {
+			return gpio.Low
+		}
+		return p.sysfsPin.Read()
 	}
 	if p.number < 32 {
 		// Important: do not remove the &31 here even if not necessary. Testing
@@ -366,8 +382,8 @@ func (p *Pin) Read() gpio.Level {
 
 // WaitForEdge does edge detection and implements gpio.PinIn.
 func (p *Pin) WaitForEdge(timeout time.Duration) bool {
-	if p.edge != nil {
-		return p.edge.WaitForEdge(timeout)
+	if p.sysfsPin != nil {
+		return p.sysfsPin.WaitForEdge(timeout)
 	}
 	return false
 }
@@ -386,7 +402,10 @@ func (p *Pin) Pull() gpio.Pull {
 // Fails if requesting to change a pin that is set to special functionality.
 func (p *Pin) Out(l gpio.Level) error {
 	if drvGPIO.gpioMemory == nil {
-		return p.wrap(errors.New("subsystem not initialized"))
+		if p.sysfsPin == nil {
+			return p.wrap(errors.New("subsystem gpiomem not initialized and sysfs not accessible"))
+		}
+		return p.sysfsPin.Out(l)
 	}
 	if err := p.Halt(); err != nil {
 		return err
@@ -468,7 +487,7 @@ func (p *Pin) PWM(duty gpio.Duty, period time.Duration) error {
 	// Intentionally check later, so a more informative error is returned on
 	// unsupported pins.
 	if drvGPIO.gpioMemory == nil {
-		return p.wrap(errors.New("subsystem not initialized"))
+		return p.wrap(errors.New("subsystem gpiomem not initialized"))
 	}
 	if drvDMA.pwmMemory == nil || drvDMA.clockMemory == nil {
 		return p.wrap(errors.New("bcm283x-dma not initialized; try again as root?"))
@@ -536,6 +555,9 @@ func (p *Pin) StreamIn(pull gpio.Pull, s gpiostream.Stream) error {
 	if !ok {
 		return errors.New("bcm283x: other Stream than BitStreamLSB are not implemented")
 	}
+	if drvGPIO.gpioMemory == nil {
+		return p.wrap(errors.New("subsystem gpiomem not initialized"))
+	}
 	if err := p.In(pull, gpio.NoEdge); err != nil {
 		return err
 	}
@@ -553,6 +575,9 @@ func (p *Pin) StreamIn(pull gpio.Pull, s gpiostream.Stream) error {
 // For GPIO0 to GPIO31 except GPIO21 pin, DMA driven StreamOut is available and
 // the maximum resolution is 200kHz.
 func (p *Pin) StreamOut(s gpiostream.Stream) error {
+	if drvGPIO.gpioMemory == nil {
+		return p.wrap(errors.New("subsystem gpiomem not initialized"))
+	}
 	if err := p.Out(gpio.Low); err != nil {
 		return err
 	}
@@ -1111,38 +1136,19 @@ func (d *driverGPIO) Init() (bool, error) {
 	// virtual address space starting at address 0xF2000000. Thus a peripheral
 	// advertised here at bus address 0x7Ennnnnn is available in the ARM kenel at
 	// virtual address 0xF2nnnnnn.
-
 	d.gpioBaseAddr = d.baseAddr + 0x200000
-	m, err := pmem.MapGPIO()
-	if err != nil {
-		// Try without /dev/gpiomem. This is the case of not running on Raspbian or
-		// raspbian before Jessie. This requires running as root.
-		var err2 error
-		m, err2 = pmem.Map(uint64(d.gpioBaseAddr), 4096)
-		var err error
-		if err2 != nil {
-			if distro.IsRaspbian() {
-				// Raspbian specific error code to help guide the user to troubleshoot
-				// the problems.
-				if os.IsNotExist(err) && os.IsPermission(err2) {
-					return true, fmt.Errorf("/dev/gpiomem wasn't found; please upgrade to Raspbian Jessie or run as root")
-				}
-			}
-			if os.IsPermission(err2) {
-				return true, fmt.Errorf("need more access, try as root: %v", err)
-			}
-			return true, err
-		}
-	}
-	if err := m.AsPOD(&d.gpioMemory); err != nil {
-		return true, err
-	}
 
+	// Mark the right pins as available even if the memory map fails so they can
+	// callback to sysfs.Pins.
 	functions := map[string]struct{}{}
 	for i := range cpuPins {
 		name := cpuPins[i].name
 		num := strconv.Itoa(cpuPins[i].number)
 		gpion := "GPIO" + num
+
+		// Initializes the sysfs corresponding pin right away.
+		cpuPins[i].sysfsPin = sysfs.Pins[cpuPins[i].number]
+
 		// Unregister the pin if already registered. This happens with sysfs-gpio.
 		// Do not error on it, since sysfs-gpio may have failed to load.
 		_ = gpioreg.Unregister(gpion)
@@ -1192,6 +1198,32 @@ func (d *driverGPIO) Init() (bool, error) {
 			return true, err
 		}
 	}
+
+	m, err := pmem.MapGPIO()
+	if err != nil {
+		// Try without /dev/gpiomem. This is the case of not running on Raspbian or
+		// raspbian before Jessie. This requires running as root.
+		var err2 error
+		m, err2 = pmem.Map(uint64(d.gpioBaseAddr), 4096)
+		var err error
+		if err2 != nil {
+			if distro.IsRaspbian() {
+				// Raspbian specific error code to help guide the user to troubleshoot
+				// the problems.
+				if os.IsNotExist(err) && os.IsPermission(err2) {
+					return true, fmt.Errorf("/dev/gpiomem wasn't found; please upgrade to Raspbian Jessie or run as root")
+				}
+			}
+			if os.IsPermission(err2) {
+				return true, fmt.Errorf("need more access, try as root: %v", err)
+			}
+			return true, err
+		}
+	}
+	if err := m.AsPOD(&d.gpioMemory); err != nil {
+		return true, err
+	}
+
 	return true, sysfs.SetSpeedHook(setSpeed)
 }
 
