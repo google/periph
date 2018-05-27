@@ -388,11 +388,11 @@ func (d *driverGPIOPL) String() string {
 }
 
 func (d *driverGPIOPL) Prerequisites() []string {
-	return []string{"allwinner-gpio"}
+	return nil
 }
 
 func (d *driverGPIOPL) After() []string {
-	return nil
+	return []string{"sysfs-gpio"}
 }
 
 func (d *driverGPIOPL) Init() (bool, error) {

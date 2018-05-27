@@ -115,11 +115,11 @@ func (d *driver) String() string {
 }
 
 func (d *driver) Prerequisites() []string {
-	return []string{"sysfs-gpio"}
+	return nil
 }
 
 func (d *driver) After() []string {
-	return nil
+	return []string{"sysfs-gpio"}
 }
 
 func (d *driver) Init() (bool, error) {

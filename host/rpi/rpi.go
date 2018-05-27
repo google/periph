@@ -112,11 +112,11 @@ func (d *driver) String() string {
 }
 
 func (d *driver) Prerequisites() []string {
-	return []string{"bcm283x-gpio"}
+	return nil
 }
 
 func (d *driver) After() []string {
-	return nil
+	return []string{"bcm283x-gpio"}
 }
 
 func (d *driver) Init() (bool, error) {

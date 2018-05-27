@@ -168,11 +168,11 @@ func (d *driver) String() string {
 }
 
 func (d *driver) Prerequisites() []string {
-	return []string{"allwinner-gpio-pl"}
+	return nil
 }
 
 func (d *driver) After() []string {
-	return nil
+	return []string{"allwinner-gpio", "allwinner-gpio-pl"}
 }
 
 func (d *driver) Init() (bool, error) {
