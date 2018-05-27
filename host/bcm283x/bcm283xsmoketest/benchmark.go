@@ -16,8 +16,9 @@ import (
 
 // Benchmark is imported by periph-smoketest.
 type Benchmark struct {
-	p    *bcm283x.Pin
-	pull gpio.Pull
+	short bool
+	p     *bcm283x.Pin
+	pull  gpio.Pull
 }
 
 // Name implements the SmokeTest interface.
@@ -33,9 +34,11 @@ func (s *Benchmark) Description() string {
 // Run implements the SmokeTest interface.
 func (s *Benchmark) Run(f *flag.FlagSet, args []string) error {
 	name := f.String("p", "", "Pin to use")
+	f.BoolVar(&s.short, "short", false, "Skip many partially redundant benchmarks")
 	if err := f.Parse(args); err != nil {
 		return err
 	}
+
 	if f.NArg() != 0 {
 		f.Usage()
 		return errors.New("unsupported flags")

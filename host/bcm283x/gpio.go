@@ -227,9 +227,9 @@ func (p *Pin) Function() string {
 	}
 	switch f := p.function(); f {
 	case in:
-		return "In/" + p.Read().String()
+		return "In/" + p.FastRead().String()
 	case out:
-		return "Out/" + p.Read().String()
+		return "Out/" + p.FastRead().String()
 	case alt0:
 		if s := mapping[p.number][0]; len(s) != 0 {
 			return s
@@ -364,7 +364,7 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 
 // Read return the current pin level and implements gpio.PinIn.
 //
-// This function is very fast. It works even if the pin is set as output.
+// This function is fast. It works even if the pin is set as output.
 func (p *Pin) Read() gpio.Level {
 	if drvGPIO.gpioMemory == nil {
 		if p.sysfsPin == nil {
@@ -372,6 +372,18 @@ func (p *Pin) Read() gpio.Level {
 		}
 		return p.sysfsPin.Read()
 	}
+	if p.number < 32 {
+		// Important: do not remove the &31 here even if not necessary. Testing
+		// showed that it slows down the performance by several percents.
+		return gpio.Level((drvGPIO.gpioMemory.level[0] & (1 << uint(p.number&31))) != 0)
+	}
+	return gpio.Level((drvGPIO.gpioMemory.level[1] & (1 << uint(p.number&31))) != 0)
+}
+
+// FastRead return the current pin level without any error checking.
+//
+// This function is very fast. It works even if the pin is set as output.
+func (p *Pin) FastRead() gpio.Level {
 	if p.number < 32 {
 		// Important: do not remove the &31 here even if not necessary. Testing
 		// showed that it slows down the performance by several percents.
@@ -407,6 +419,7 @@ func (p *Pin) Out(l gpio.Level) error {
 		}
 		return p.sysfsPin.Out(l)
 	}
+	// TODO(maruel): This function call is very costly.
 	if err := p.Halt(); err != nil {
 		return err
 	}

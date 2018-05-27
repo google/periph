@@ -90,9 +90,9 @@ func (p *Pin) Function() string {
 	}
 	switch f := p.function(); f {
 	case in:
-		return "In/" + p.Read().String() + "/" + p.Pull().String()
+		return "In/" + p.FastRead().String() + "/" + p.Pull().String()
 	case out:
-		return "Out/" + p.Read().String()
+		return "Out/" + p.FastRead().String()
 	case alt1:
 		if p.altFunc[0] != "" {
 			return p.altFunc[0]
@@ -202,7 +202,7 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 
 // Read return the current pin level and implements gpio.PinIn.
 //
-// This function is very fast.
+// This function is fast.
 func (p *Pin) Read() gpio.Level {
 	if !p.available {
 		return gpio.Low
@@ -213,6 +213,13 @@ func (p *Pin) Read() gpio.Level {
 		}
 		return p.sysfsPin.Read()
 	}
+	return gpio.Level(drvGPIO.gpioMemory.groups[p.group].data&(1<<p.offset) != 0)
+}
+
+// FastRead return the current pin level without any error checking.
+//
+// This function is vert fast.
+func (p *Pin) FastRead() gpio.Level {
 	return gpio.Level(drvGPIO.gpioMemory.groups[p.group].data&(1<<p.offset) != 0)
 }
 

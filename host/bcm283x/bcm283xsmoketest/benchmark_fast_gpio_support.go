@@ -18,15 +18,208 @@ import (
 // implementation plus the FastOut variants.
 func (s *Benchmark) runFastGPIOBenchmark() {
 	s.runGPIOBenchmark()
+	if !s.short {
+		printBench("FastReadNaive       ", testing.Benchmark(s.benchmarkFastReadNaive))
+		printBench("FastReadDiscard     ", testing.Benchmark(s.benchmarkFastReadDiscard))
+		printBench("FastReadSliceLevel  ", testing.Benchmark(s.benchmarkFastReadSliceLevel))
+	}
+	printBench("FastReadBitsLSBLoop ", testing.Benchmark(s.benchmarkFastReadBitsLSBLoop))
+	if !s.short {
+		printBench("FastReadBitsMSBLoop ", testing.Benchmark(s.benchmarkFastReadBitsMSBLoop))
+	}
+	printBench("FastReadBitsLSBUnrol", testing.Benchmark(s.benchmarkFastReadBitsLSBUnroll))
+	if !s.short {
+		printBench("FastReadBitsMSBUnrol", testing.Benchmark(s.benchmarkFastReadBitsMSBUnroll))
+	}
 	printBench("FastOutClock        ", testing.Benchmark(s.benchmarkFastOutClock))
-	printBench("FastOutSliceLevel   ", testing.Benchmark(s.benchmarkFastOutSliceLevel))
+	if !s.short {
+		printBench("FastOutSliceLevel   ", testing.Benchmark(s.benchmarkFastOutSliceLevel))
+	}
 	printBench("FastOutBitsLSBLoop  ", testing.Benchmark(s.benchmarkFastOutBitsLSBLoop))
-	printBench("FastOutBitsMSBLoop  ", testing.Benchmark(s.benchmarkFastOutBitsMSBLoop))
+	if !s.short {
+		printBench("FastOutBitsMSBLoop  ", testing.Benchmark(s.benchmarkFastOutBitsMSBLoop))
+	}
 	printBench("FastOutBitsLSBUnroll", testing.Benchmark(s.benchmarkFastOutBitsLSBUnroll))
-	printBench("FastOutBitsMSBUnroll", testing.Benchmark(s.benchmarkFastOutBitsMSBUnroll))
-	printBench("FastOutInterface    ", testing.Benchmark(s.benchmarkFastOutInterface))
-	printBench("FastOutMemberVariabl", testing.Benchmark(s.benchmarkFastOutMemberVariabl))
+	if !s.short {
+		printBench("FastOutBitsMSBUnroll", testing.Benchmark(s.benchmarkFastOutBitsMSBUnroll))
+		printBench("FastOutInterface    ", testing.Benchmark(s.benchmarkFastOutInterface))
+		printBench("FastOutMemberVariabl", testing.Benchmark(s.benchmarkFastOutMemberVariabl))
+	}
 }
+
+// FastRead
+
+// benchmarkFastInNaive reads but ignores the data.
+//
+// This is an intentionally naive benchmark.
+func (s *Benchmark) benchmarkFastReadNaive(b *testing.B) {
+	p := s.p
+	if err := p.In(s.pull, gpio.NoEdge); err != nil {
+		b.Fatal(err)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		p.FastRead()
+	}
+	b.StopTimer()
+}
+
+// benchmarkFastReadDiscard reads but discards the data except for the last
+// value.
+//
+// It measures the maximum raw read speed, at least in theory.
+func (s *Benchmark) benchmarkFastReadDiscard(b *testing.B) {
+	p := s.p
+	if err := p.In(s.pull, gpio.NoEdge); err != nil {
+		b.Fatal(err)
+	}
+	l := gpio.Low
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		l = p.FastRead()
+	}
+	b.StopTimer()
+	b.Log(l)
+}
+
+// benchmarkFastReadSliceLevel reads into a []gpio.Level.
+//
+// This is 8x less space efficient that using bits packing, it measures if this
+// has any performance impact versus bit packing.
+func (s *Benchmark) benchmarkFastReadSliceLevel(b *testing.B) {
+	p := s.p
+	if err := p.In(s.pull, gpio.NoEdge); err != nil {
+		b.Fatal(err)
+	}
+	buf := make([]gpio.Level, b.N)
+	b.ResetTimer()
+	for i := range buf {
+		buf[i] = p.FastRead()
+	}
+	b.StopTimer()
+}
+
+// benchmarkFastReadBitsLSBLoop reads into a []gpiostream.BitsLSB using a loop
+// to iterate over the bits.
+func (s *Benchmark) benchmarkFastReadBitsLSBLoop(b *testing.B) {
+	p := s.p
+	if err := p.In(s.pull, gpio.NoEdge); err != nil {
+		b.Fatal(err)
+	}
+	buf := make(gpiostream.BitsLSB, (b.N+7)/8)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if p.FastRead() {
+			mask := byte(1) << uint(i&7)
+			buf[i/8] |= mask
+		}
+	}
+	b.StopTimer()
+}
+
+// benchmarkFastReadBitsMSBLoop reads into a []gpiostream.BitsMSB using a loop
+// to iterate over the bits.
+func (s *Benchmark) benchmarkFastReadBitsMSBLoop(b *testing.B) {
+	p := s.p
+	if err := p.In(s.pull, gpio.NoEdge); err != nil {
+		b.Fatal(err)
+	}
+	buf := make(gpiostream.BitsMSB, (b.N+7)/8)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if p.FastRead() {
+			mask := byte(1) << uint(7-(i&7))
+			buf[i/8] |= mask
+		}
+	}
+	b.StopTimer()
+}
+
+// benchmarkFastReadBitsLSBUnroll reads into a []gpiostream.BitsLSB using an
+// unrolled loop to iterate over the bits.
+//
+// It is expected to be slightly faster than benchmarkFastReadBitsLSBLoop.
+func (s *Benchmark) benchmarkFastReadBitsLSBUnroll(b *testing.B) {
+	p := s.p
+	if err := p.In(s.pull, gpio.NoEdge); err != nil {
+		b.Fatal(err)
+	}
+	buf := make(gpiostream.BitsLSB, (b.N+7)/8)
+	b.ResetTimer()
+	for i := range buf {
+		l := byte(0)
+		if p.FastRead() {
+			l |= 0x01
+		}
+		if p.FastRead() {
+			l |= 0x02
+		}
+		if p.FastRead() {
+			l |= 0x04
+		}
+		if p.FastRead() {
+			l |= 0x08
+		}
+		if p.FastRead() {
+			l |= 0x10
+		}
+		if p.FastRead() {
+			l |= 0x20
+		}
+		if p.FastRead() {
+			l |= 0x40
+		}
+		if p.FastRead() {
+			l |= 0x80
+		}
+		buf[i] = l
+	}
+	b.StopTimer()
+}
+
+// benchmarkFastReadBitsMSBUnroll reads into a []gpiostream.BitsMSB using an
+// unrolled loop to iterate over the bits.
+//
+// It is expected to be slightly faster than benchmarkFastReadBitsMSBLoop.
+func (s *Benchmark) benchmarkFastReadBitsMSBUnroll(b *testing.B) {
+	p := s.p
+	if err := p.In(s.pull, gpio.NoEdge); err != nil {
+		b.Fatal(err)
+	}
+	buf := make(gpiostream.BitsMSB, (b.N+7)/8)
+	b.ResetTimer()
+	for i := range buf {
+		l := byte(0)
+		if p.FastRead() {
+			l |= 0x80
+		}
+		if p.FastRead() {
+			l |= 0x40
+		}
+		if p.FastRead() {
+			l |= 0x20
+		}
+		if p.FastRead() {
+			l |= 0x10
+		}
+		if p.FastRead() {
+			l |= 0x08
+		}
+		if p.FastRead() {
+			l |= 0x04
+		}
+		if p.FastRead() {
+			l |= 0x02
+		}
+		if p.FastRead() {
+			l |= 0x01
+		}
+		buf[i] = l
+	}
+	b.StopTimer()
+}
+
+// FastOut
 
 // benchmarkFastOutClock outputs an hardcoded clock.
 //

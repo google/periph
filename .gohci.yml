@@ -59,16 +59,19 @@ workers:
     - sysfs-benchmark
     - -p
     - 1013
+    - -short
   - cmd:
     - periph-smoketest
     - sysfs-benchmark
     - -p
     - 132
+    - -short
   - cmd:
     - periph-smoketest
     - allwinner-benchmark
     - -p
     - 132
+    - -short
   - cmd:
     - periph-smoketest
     - spi-testboard
@@ -146,6 +149,7 @@ workers:
     - sysfs-benchmark
     - -p
     - 97
+    - -short
 - name: raspberrypi-2f34
   checks:
   - cmd:
@@ -184,11 +188,13 @@ workers:
     - sysfs-benchmark
     - -p
     - 12
+    - -short
   - cmd:
     - periph-smoketest
     - bcm283x-benchmark
     - -p
     - 12
+    - -short
 - name: win10
   checks:
   - cmd:

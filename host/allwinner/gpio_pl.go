@@ -71,9 +71,9 @@ func (p *PinPL) Function() string {
 	}
 	switch f := p.function(); f {
 	case in:
-		return "In/" + p.Read().String() + "/" + p.Pull().String()
+		return "In/" + p.FastRead().String() + "/" + p.Pull().String()
 	case out:
-		return "Out/" + p.Read().String()
+		return "Out/" + p.FastRead().String()
 	case alt1:
 		if s := mapping[p.offset][0]; len(s) != 0 {
 			return s
@@ -181,6 +181,11 @@ func (p *PinPL) Read() gpio.Level {
 		}
 		return p.sysfsPin.Read()
 	}
+	return gpio.Level(drvGPIOPL.gpioMemoryPL.data&(1<<p.offset) != 0)
+}
+
+// FastRead reads without verification. See Pin.FastRead for more information.
+func (p *PinPL) FastRead() gpio.Level {
 	return gpio.Level(drvGPIOPL.gpioMemoryPL.data&(1<<p.offset) != 0)
 }
 

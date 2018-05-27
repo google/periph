@@ -2,7 +2,6 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package sysfssmoketest verifies that sysfs specific functionality work.
 package sysfssmoketest
 
 import (
@@ -17,8 +16,9 @@ import (
 
 // Benchmark is imported by periph-smoketest.
 type Benchmark struct {
-	p    *sysfs.Pin
-	pull gpio.Pull
+	short bool
+	p     *sysfs.Pin
+	pull  gpio.Pull
 }
 
 // Name implements the SmokeTest interface.
@@ -34,9 +34,11 @@ func (s *Benchmark) Description() string {
 // Run implements the SmokeTest interface.
 func (s *Benchmark) Run(f *flag.FlagSet, args []string) error {
 	num := f.Int("p", -1, "Pin number to use")
+	f.BoolVar(&s.short, "short", false, "Skip many partially redundant benchmarks")
 	if err := f.Parse(args); err != nil {
 		return err
 	}
+
 	if f.NArg() != 0 {
 		f.Usage()
 		return errors.New("unsupported flags")
