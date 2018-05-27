@@ -23,7 +23,6 @@ package ds18b20
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	"periph.io/x/periph/conn"
@@ -100,7 +99,7 @@ type Dev struct {
 }
 
 func (d *Dev) String() string {
-	return fmt.Sprintf("DS18B20{%v}", d.onewire)
+	return "DS18B20{" + d.onewire.String() + "}"
 }
 
 // Halt implements conn.Resource.
@@ -108,13 +107,29 @@ func (d *Dev) Halt() error {
 	return nil
 }
 
-// Temperature performs a conversion and returns the temperature.
-func (d *Dev) Temperature() (physic.Temperature, error) {
+// Sense implements physic.SenseEnv.
+func (d *Dev) Sense(e *physic.Env) error {
 	if err := d.onewire.TxPower([]byte{0x44}, nil); err != nil {
-		return 0, err
+		return err
 	}
 	conversionSleep(d.resolution)
-	return d.LastTemp()
+	t, err := d.LastTemp()
+	if err != nil {
+		return err
+	}
+	e.Temperature = t
+	return nil
+}
+
+// SenseContinuous implements physic.SenseEnv.
+func (d *Dev) SenseContinuous(time.Duration) (<-chan physic.Env, error) {
+	// TODO(maruel): Manually poll in a loop via time.NewTicker.
+	return nil, errors.New("ds18b20: not implemented")
+}
+
+// Precision implements physic.SenseEnv.
+func (d *Dev) Precision(e *physic.Env) {
+	e.Temperature = physic.Kelvin / 16
 }
 
 // LastTemp reads the temperature resulting from the last conversion from the
@@ -131,8 +146,8 @@ func (d *Dev) LastTemp() (physic.Temperature, error) {
 	// spad[1] is MSB, spad[0] is LSB and has 4 fractional bits. Need to do sign
 	// extension multiply by 1000 to get Millis, divide by 16 due to 4 fractional
 	// bits. Datasheet p.4.
-	v := (int(int8(spad[1]))<<8 + int(spad[0])) * 1000 / 16
-	c := physic.Temperature(v)*physic.MilliKelvin + physic.ZeroCelsius
+	v := physic.Temperature((int(int8(spad[1]))<<8 + int(spad[0])))
+	c := v*physic.Kelvin/16 + physic.ZeroCelsius
 
 	// The device powers up with a value of 85°C, so if we read that odds are
 	// very high that either no conversion was performed or that the conversion
@@ -185,4 +200,4 @@ func (d *Dev) readScratchpad() ([]byte, error) {
 var sleep = time.Sleep
 
 var _ conn.Resource = &Dev{}
-var _ fmt.Stringer = &Dev{}
+var _ physic.SenseEnv = &Dev{}

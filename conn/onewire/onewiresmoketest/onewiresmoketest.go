@@ -118,15 +118,15 @@ func (s *SmokeTest) ds18b20(bus onewire.Bus, addr onewire.Address) error {
 		return err
 	}
 
-	t, err := dev.Temperature()
-	if err != nil {
+	e := physic.Env{}
+	if err := dev.Sense(&e); err != nil {
 		return err
 	}
-	if t <= physic.ZeroCelsius || t > 50*physic.Celsius+physic.ZeroCelsius {
-		return fmt.Errorf("ds18b20: expected temperature in the 0°C..50°C range, got %s", t)
+	if e.Temperature <= physic.ZeroCelsius || e.Temperature > 50*physic.Celsius+physic.ZeroCelsius {
+		return fmt.Errorf("ds18b20: expected temperature in the 0°C..50°C range, got %s", e.Temperature)
 	}
 
-	log.Printf("%s: temperature is %s", s, t)
+	log.Printf("%s: temperature is %s", s, e.Temperature)
 	return nil
 }
 
