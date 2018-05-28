@@ -11,6 +11,7 @@ import (
 	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/i2c/i2ctest"
 	"periph.io/x/periph/conn/mmr"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/devices/lepton/internal"
 )
 
@@ -202,6 +203,42 @@ func TestGetTempHousing(t *testing.T) {
 func TestGetTempHousing_fail(t *testing.T) {
 	if _, err := getDevFail().GetTempHousing(); err == nil {
 		t.Fatal("failed")
+	}
+}
+
+func TestSense(t *testing.T) {
+	bus, d := getDev(getOps([]byte{0x0, 0x4, 0x2, 0x10}, []byte{0, 0}))
+	e := physic.Env{}
+	if err := d.Sense(&e); err != nil {
+		t.Fatal(err)
+	}
+	if e.Temperature != 0 {
+		t.Fatal(e)
+	}
+	if err := bus.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSenseContinuous(t *testing.T) {
+	bus, d := getDev(nil)
+	if _, err := d.SenseContinuous(time.Second); err == nil {
+		t.Fatal("implemented?")
+	}
+	if err := bus.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestPrecision(t *testing.T) {
+	bus, d := getDev(nil)
+	e := physic.Env{}
+	d.Precision(&e)
+	if e.Temperature != 10*physic.MilliKelvin {
+		t.Fatal(e)
+	}
+	if err := bus.Close(); err != nil {
+		t.Fatal(err)
 	}
 }
 

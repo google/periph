@@ -277,6 +277,25 @@ func (d *Dev) GetTempHousing() (physic.Temperature, error) {
 	return v.Temperature(), nil
 }
 
+// Sense implements physic.SenseEnv. It returns the housing temperature.
+func (d *Dev) Sense(e *physic.Env) error {
+	var err error
+	e.Temperature, err = d.GetTempHousing()
+	return err
+}
+
+// SenseContinuous implements physic.SenseEnv.
+func (d *Dev) SenseContinuous(time.Duration) (<-chan physic.Env, error) {
+	// TODO(maruel): Manually poll in a loop via time.NewTicker, or better
+	// leverage the frames being read.
+	return nil, errors.New("cci: not implemented")
+}
+
+// Precision implements physic.SenseEnv.
+func (d *Dev) Precision(e *physic.Env) {
+	e.Temperature = 10 * physic.MilliKelvin
+}
+
 // GetFFCModeControl returns the internal state with regards to calibration.
 func (d *Dev) GetFFCModeControl() (*FFCMode, error) {
 	v := internal.FFCMode{}
@@ -322,7 +341,7 @@ type cciConn struct {
 }
 
 func (c *cciConn) String() string {
-	return fmt.Sprintf("%s", &c.r)
+	return c.r.String()
 }
 
 // waitIdle waits for the busy bit to clear.
@@ -559,5 +578,5 @@ const (
 var sleep = time.Sleep
 
 var _ conn.Resource = &Dev{}
-var _ fmt.Stringer = &Dev{}
+var _ physic.SenseEnv = &Dev{}
 var _ fmt.Stringer = &cciConn{}
