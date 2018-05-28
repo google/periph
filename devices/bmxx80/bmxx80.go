@@ -8,6 +8,7 @@
 // BMx280
 //
 // https://ae-bst.resource.bosch.com/media/_tech/media/datasheets/BST-BME280_DS001-11.pdf
+// https://www.mouser.com/datasheet/2/783/BST-BME280_DS001-11-844833.pdf
 //
 // https://ae-bst.resource.bosch.com/media/_tech/media/datasheets/BST-BMP280-DS001-18.pdf
 //
@@ -318,6 +319,21 @@ func (d *Dev) SenseContinuous(interval time.Duration) (<-chan physic.Env, error)
 		d.sensingContinuous(interval, sensing, d.stop)
 	}()
 	return sensing, nil
+}
+
+// Precision implements physic.SenseEnv.
+func (d *Dev) Precision(e *physic.Env) {
+	if d.is280 {
+		e.Temperature = 10 * physic.MilliKelvin
+		e.Pressure = 15625 * physic.MicroPascal / 4
+	} else {
+		e.Temperature = 100 * physic.MilliKelvin
+		e.Pressure = physic.Pascal
+	}
+
+	if d.isBME {
+		e.Humidity = physic.MicroRH * 1000 / 1024
+	}
 }
 
 // Halt stops the BMxx80 from acquiring measurements as initiated by

@@ -41,9 +41,10 @@ type ThermalSensor struct {
 	name string
 	root string
 
-	mu       sync.Mutex
-	nameType string
-	f        fileIO
+	mu        sync.Mutex
+	nameType  string
+	f         fileIO
+	precision physic.Temperature
 }
 
 func (t *ThermalSensor) String() string {
@@ -98,10 +99,13 @@ func (t *ThermalSensor) Sense(e *physic.Env) error {
 	if err != nil {
 		return fmt.Errorf("sysfs-thermal: %v", err)
 	}
-	if i < 100 {
-		i *= 1000
+	if t.precision == 0 {
+		t.precision = physic.MilliKelvin
+		if i < 100 {
+			t.precision *= 1000
+		}
 	}
-	e.Temperature = physic.Temperature(i)*physic.MilliCelsius + physic.ZeroCelsius
+	e.Temperature = physic.Temperature(i)*t.precision + physic.ZeroCelsius
 	return nil
 }
 
@@ -109,6 +113,17 @@ func (t *ThermalSensor) Sense(e *physic.Env) error {
 func (t *ThermalSensor) SenseContinuous(interval time.Duration) (<-chan physic.Env, error) {
 	// TODO(maruel): Manually poll in a loop via time.NewTicker.
 	return nil, errors.New("sysfs-thermal: not implemented")
+}
+
+// Precision implements physic.SenseEnv.
+func (t *ThermalSensor) Precision(e *physic.Env) {
+	if t.precision == 0 {
+		dummy := physic.Env{}
+		t.Sense(&dummy)
+	}
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	e.Temperature = t.precision
 }
 
 //

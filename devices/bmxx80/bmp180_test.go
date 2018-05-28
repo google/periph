@@ -332,6 +332,39 @@ func TestSenseContinuous180_success(t *testing.T) {
 	}
 }
 
+func TestBmp180Precision(t *testing.T) {
+	bus := i2ctest.Playback{
+		Ops: []i2ctest.IO{
+			// Chip ID detection.
+			{Addr: 0x77, W: []byte{0xd0}, R: []byte{0x55}},
+			// Calibration data.
+			{
+				Addr: 0x77,
+				W:    []byte{0xaa},
+				R:    []byte{35, 136, 251, 103, 199, 169, 135, 91, 98, 137, 80, 22, 25, 115, 0, 46, 128, 0, 209, 246, 10, 123},
+			},
+		},
+	}
+	dev, err := NewI2C(&bus, 0x77, &DefaultOpts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	e := physic.Env{}
+	dev.Precision(&e)
+	if e.Temperature != 100*physic.MilliKelvin {
+		t.Fatal(e.Temperature)
+	}
+	if e.Pressure != physic.Pascal {
+		t.Fatal(e.Pressure)
+	}
+	if e.Humidity != 0 {
+		t.Fatal(e.Humidity)
+	}
+	if err := bus.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 /*
 func TestOversampling(t *testing.T) {
 	data := []struct {

@@ -734,6 +734,43 @@ func TestCalibration280_limits_419430400(t *testing.T) {
 	// TODO(maruel): Reverse the equation to overflow  419430400
 }
 
+func TestBme280Precision(t *testing.T) {
+	bus := i2ctest.Playback{
+		Ops: []i2ctest.IO{
+			// Chip ID detection.
+			{Addr: 0x76, W: []byte{0xd0}, R: []byte{0x60}},
+			// Calibration data.
+			{
+				Addr: 0x76,
+				W:    []byte{0x88},
+				R:    []byte{0x10, 0x6e, 0x6c, 0x66, 0x32, 0x0, 0x5d, 0x95, 0xb8, 0xd5, 0xd0, 0xb, 0x77, 0x1e, 0x9d, 0xff, 0xf9, 0xff, 0xac, 0x26, 0xa, 0xd8, 0xbd, 0x10, 0x0, 0x4b},
+			},
+			// Calibration data humidity.
+			{Addr: 0x76, W: []byte{0xe1}, R: []byte{0x6e, 0x1, 0x0, 0x13, 0x5, 0x0, 0x1e}},
+			// Configuration.
+			{Addr: 0x76, W: []byte{0xf4, 0x6c, 0xf2, 0x3, 0xf5, 0xa0, 0xf4, 0x6c}, R: nil},
+		},
+	}
+	dev, err := NewI2C(&bus, 0x76, &DefaultOpts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	e := physic.Env{}
+	dev.Precision(&e)
+	if e.Temperature != 10*physic.MilliKelvin {
+		t.Fatal(e.Temperature)
+	}
+	if e.Pressure != 15625*physic.MicroPascal/4 {
+		t.Fatal(e.Pressure)
+	}
+	if e.Humidity != physic.MicroRH*1000/1024 {
+		t.Fatal(int(e.Humidity))
+	}
+	if err := bus.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 //
 
 func TestOversampling(t *testing.T) {

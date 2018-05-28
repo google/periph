@@ -29,4 +29,14 @@ type SenseEnv interface {
 	// It is important to call Halt() once done with the sensing, which will turn
 	// the device off and will close the channel.
 	SenseContinuous(interval time.Duration) (<-chan Env, error)
+	// Precision returns this sensor's precision.
+	//
+	// The env values are set to the number of bits that are significant for each
+	// items that this sensor can measure.
+	//
+	// Precision is not accuracy. The sensor may have absolute and relative
+	// errors in its measurement, that are likely well above the reported
+	// precision. Accuracy may be improved on some sensor by using oversampling,
+	// or doing oversampling in software. Refer to its datasheet if available.
+	Precision(env *Env)
 }
