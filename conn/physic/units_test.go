@@ -76,8 +76,18 @@ func TestRelativeHumidity_String(t *testing.T) {
 		in       RelativeHumidity
 		expected string
 	}{
-		{90 * PercentRH, "90%rH"},
+		{TenthMicroRH, "0%rH"},
+		{MicroRH, "0%rH"},
+		{10 * MicroRH, "0%rH"},
+		{100 * MicroRH, "0%rH"},
+		{1000 * MicroRH, "0.1%rH"},
 		{506000 * MicroRH, "50.6%rH"},
+		{90 * PercentRH, "90%rH"},
+		{100 * PercentRH, "100%rH"},
+		// That's a lot of humidity. This is to test the value doesn't overflow
+		// int32 too quickly.
+		{1000 * PercentRH, "1000%rH"},
+		// That's really dry.
 		{-501000 * MicroRH, "-50.1%rH"},
 	}
 	for i, line := range data {

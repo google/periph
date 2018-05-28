@@ -92,9 +92,10 @@ const (
 	Pascal               = 1000 * MilliPascal
 	KiloPascal           = 1000 * Pascal
 
-	MicroRH   RelativeHumidity = 1              // 0.001%rH
-	MilliRH                    = 1000 * MicroRH // 0.1%rH
-	PercentRH                  = 10 * MilliRH   // 1%rH
+	TenthMicroRH RelativeHumidity = 1                 // 0.00001%rH
+	MicroRH                       = 10 * TenthMicroRH // 0.0001%rH
+	MilliRH                       = 1000 * MicroRH    // 0.1%rH
+	PercentRH                     = 10 * MilliRH      // 1%rH
 
 	NanoKelvin  Temperature = 1
 	MicroKelvin             = 1000 * NanoKelvin
@@ -233,9 +234,9 @@ func (p Pressure) String() string {
 }
 
 // RelativeHumidity is a humidity level measurement stored as an int32 fixed
-// point integer at a precision of 0.0001%rH.
+// point integer at a precision of 0.00001%rH.
 //
-// Valid values are between 0 and 1000000.
+// Valid values are between 0 and 10000000.
 type RelativeHumidity int32
 
 // String returns the humidity formatted as a string.

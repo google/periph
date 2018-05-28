@@ -99,7 +99,7 @@ func TestSPISenseBME280_success(t *testing.T) {
 	if e.Pressure != 99575933593750*physic.NanoPascal {
 		t.Fatalf("pressure %d", e.Pressure)
 	}
-	if e.Humidity != 9950*physic.MicroRH {
+	if e.Humidity != 99501*physic.TenthMicroRH {
 		t.Fatalf("humidity %d", e.Humidity)
 	}
 	if err := s.Close(); err != nil {
@@ -390,7 +390,7 @@ func TestI2CSenseBME280_success(t *testing.T) {
 	if e.Pressure != 100942695312500*physic.NanoPascal {
 		t.Fatalf("pressure %d", e.Pressure)
 	}
-	if e.Humidity != 65305*physic.MicroRH {
+	if e.Humidity != 653056*physic.TenthMicroRH {
 		t.Fatalf("humidity %d", e.Humidity)
 	}
 	if err := dev.Halt(); err != nil {
@@ -522,7 +522,7 @@ func TestI2CSenseContinuous280_success(t *testing.T) {
 	if e.Pressure != 100942695312500*physic.NanoPascal {
 		t.Fatalf("pressure %d", e.Pressure)
 	}
-	if e.Humidity != 65305*physic.MicroRH {
+	if e.Humidity != 653056*physic.TenthMicroRH {
 		t.Fatalf("humidity %d", e.Humidity)
 	}
 
@@ -551,7 +551,7 @@ func TestI2CSenseContinuous280_success(t *testing.T) {
 	if e.Pressure != 100942695312500*physic.NanoPascal {
 		t.Fatalf("pressure %d", e.Pressure)
 	}
-	if e.Humidity != 65305*physic.MicroRH {
+	if e.Humidity != 653056*physic.TenthMicroRH {
 		t.Fatalf("humidity %d", e.Humidity)
 	}
 
