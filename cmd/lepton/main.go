@@ -18,6 +18,7 @@ import (
 	"os"
 
 	"periph.io/x/periph/conn/i2c/i2creg"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/spi/spireg"
 	"periph.io/x/periph/devices/lepton"
 	"periph.io/x/periph/devices/lepton/image14bit"
@@ -415,7 +416,7 @@ func mainImpl() error {
 	}
 	defer spiPort.Close()
 	if *spiHz != 0 {
-		if err := spiPort.LimitSpeed(int64(*spiHz)); err != nil {
+		if err := spiPort.LimitSpeed(physic.Frequency(*spiHz) * physic.Hertz); err != nil {
 			return err
 		}
 	}
@@ -426,7 +427,7 @@ func mainImpl() error {
 	}
 	defer i2cBus.Close()
 	if *i2cHz != 0 {
-		if err := i2cBus.SetSpeed(int64(*i2cHz)); err != nil {
+		if err := i2cBus.SetSpeed(physic.Frequency(*i2cHz) * physic.Hertz); err != nil {
 			return err
 		}
 	}

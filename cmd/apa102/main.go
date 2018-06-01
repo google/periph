@@ -21,6 +21,7 @@ import (
 	"strings"
 	"time"
 
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/spi"
 	"periph.io/x/periph/conn/spi/spireg"
 	"periph.io/x/periph/devices"
@@ -145,7 +146,7 @@ func mainImpl() error {
 	}
 	defer s.Close()
 	if *hz != 0 {
-		if err := s.LimitSpeed(int64(*hz)); err != nil {
+		if err := s.LimitSpeed(physic.Frequency(*hz) * physic.Hertz); err != nil {
 			return err
 		}
 	}

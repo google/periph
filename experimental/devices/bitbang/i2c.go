@@ -17,6 +17,7 @@ import (
 
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/i2c"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/host/cpu"
 )
 
@@ -122,10 +123,10 @@ func (i *I2C) Tx(addr uint16, w, r []byte) error {
 }
 
 // SetSpeed implements i2c.Bus.
-func (i *I2C) SetSpeed(hz int64) error {
+func (i *I2C) SetSpeed(f physic.Frequency) error {
 	i.mu.Lock()
 	defer i.mu.Unlock()
-	i.halfCycle = time.Second / time.Duration(hz) / time.Duration(2)
+	i.halfCycle = f.Duration() / 2
 	return nil
 }
 

@@ -26,6 +26,7 @@ import (
 
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/gpio/gpiostream"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/devices"
 	"periph.io/x/periph/experimental/devices/nrzled"
 	"periph.io/x/periph/host"
@@ -145,7 +146,7 @@ func mainImpl() error {
 	if !ok {
 		return fmt.Errorf("pin %s doesn't support arbitrary bit stream", p)
 	}
-	display, err := nrzled.New(s, *numPixels, *hz, *channels)
+	display, err := nrzled.New(s, *numPixels, physic.Frequency(*hz), *channels)
 	if err != nil {
 		return err
 	}

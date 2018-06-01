@@ -19,6 +19,7 @@ import (
 
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/spi"
 	"periph.io/x/periph/host/cpu"
 )
@@ -66,8 +67,8 @@ type SPI struct {
 	csn gpio.PinOut // CS
 
 	mu        sync.Mutex
-	maxHzPort int64
-	maxHzDev  int64
+	freqPort  physic.Frequency
+	freqDev   physic.Frequency
 	mode      spi.Mode
 	bits      int
 	halfCycle time.Duration
@@ -89,32 +90,32 @@ func (s *SPI) Duplex() conn.Duplex {
 }
 
 // LimitSpeed implements spi.ConnCloser.
-func (s *SPI) LimitSpeed(maxHz int64) error {
-	if maxHz <= 0 {
-		return errors.New("bitbang-spi: invalid maxHz")
+func (s *SPI) LimitSpeed(f physic.Frequency) error {
+	if f <= 0 {
+		return errors.New("bitbang-spi: invalid frequency")
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.maxHzPort = maxHz
-	if s.maxHzDev == 0 || s.maxHzPort < s.maxHzDev {
-		s.halfCycle = time.Second / time.Duration(maxHz) / time.Duration(2)
+	s.freqPort = f
+	if s.freqDev == 0 || s.freqPort < s.freqDev {
+		s.halfCycle = f.Duration() / 2
 	}
 	return nil
 }
 
 // Connect implements spi.Conn.
-func (s *SPI) Connect(maxHz int64, mode spi.Mode, bits int) error {
-	if maxHz < 0 {
-		return errors.New("bitbang-spi: invalid maxHz")
+func (s *SPI) Connect(f physic.Frequency, mode spi.Mode, bits int) error {
+	if f < 0 {
+		return errors.New("bitbang-spi: invalid frequency")
 	}
 	if mode != spi.Mode3 {
 		return fmt.Errorf("bitbang-spi: mode %v is not implemented", mode)
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.maxHzDev = maxHz
-	if s.maxHzDev != 0 && (s.maxHzPort == 0 || s.maxHzDev < s.maxHzPort) {
-		s.halfCycle = time.Second / time.Duration(maxHz) / time.Duration(2)
+	s.freqDev = f
+	if s.freqDev != 0 && (s.freqPort == 0 || s.freqDev < s.freqPort) {
+		s.halfCycle = f.Duration() / 2
 	}
 	s.mode = mode
 	s.bits = bits

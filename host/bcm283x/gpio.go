@@ -1243,7 +1243,7 @@ func (d *driverGPIO) Init() (bool, error) {
 	return true, sysfs.SetSpeedHook(setSpeed)
 }
 
-func setSpeed(hz int64) error {
+func setSpeed(f physic.Frequency) error {
 	// Writing to "/sys/module/i2c_bcm2708/parameters/baudrate" was confirmed to
 	// not work.
 	// modprobe hangs when a bus is opened, so this must be called *before* the

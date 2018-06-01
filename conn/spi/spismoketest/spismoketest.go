@@ -19,6 +19,7 @@ import (
 
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/spi"
 	"periph.io/x/periph/conn/spi/spireg"
 )
@@ -62,7 +63,7 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) error {
 	defer spiDev.Close()
 
 	// Set SPI parameters.
-	c, err := spiDev.Connect(4000000, spi.Mode0, 8)
+	c, err := spiDev.Connect(4*physic.MegaHertz, spi.Mode0, 8)
 	if err != nil {
 		return fmt.Errorf("error setting SPI parameters: %v", err)
 	}

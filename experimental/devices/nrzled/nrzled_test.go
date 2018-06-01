@@ -14,6 +14,7 @@ import (
 
 	"periph.io/x/periph/conn/gpio/gpiostream"
 	"periph.io/x/periph/conn/gpio/gpiostream/gpiostreamtest"
+	"periph.io/x/periph/conn/physic"
 )
 
 func TestNRZ(t *testing.T) {
@@ -61,7 +62,7 @@ func TestNew_3(t *testing.T) {
 			},
 		},
 	}
-	d, err := New(&g, 10, 400000, 3)
+	d, err := New(&g, 10, 400*physic.KiloHertz, 3)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +88,7 @@ func TestNew_fail(t *testing.T) {
 	if _, err := New(&g, 1, 0, 3); err == nil {
 		t.Fatal("hz == 0")
 	}
-	if _, err := New(&g, 1, 400000, 2); err == nil {
+	if _, err := New(&g, 1, 400*physic.KiloHertz, 2); err == nil {
 		t.Fatal("channels == 2")
 	}
 }
@@ -109,7 +110,7 @@ func TestDraw_NRGBA_3(t *testing.T) {
 			},
 		},
 	}
-	d, _ := New(&g, 10, 400000, 3)
+	d, _ := New(&g, 10, 400*physic.KiloHertz, 3)
 	img := image.NewNRGBA(d.Bounds())
 	copy(img.Pix, getRGBW())
 	d.Draw(d.Bounds(), img, image.Point{})
@@ -135,7 +136,7 @@ func TestDraw_RGBA_3(t *testing.T) {
 			},
 		},
 	}
-	d, _ := New(&g, 10, 400000, 3)
+	d, _ := New(&g, 10, 400*physic.KiloHertz, 3)
 	img := image.NewRGBA(d.Bounds())
 	copy(img.Pix, getRGBW())
 	d.Draw(d.Bounds(), img, image.Point{})
@@ -163,7 +164,7 @@ func TestDraw_RGBA_4(t *testing.T) {
 			},
 		},
 	}
-	d, _ := New(&g, 10, 400000, 4)
+	d, _ := New(&g, 10, 400*physic.KiloHertz, 4)
 	img := image.NewRGBA(d.Bounds())
 	copy(img.Pix, getRGBW())
 	d.Draw(d.Bounds(), img, image.Point{})
@@ -189,7 +190,7 @@ func TestDraw_Limits(t *testing.T) {
 			},
 		},
 	}
-	d, _ := New(&g, 10, 400000, 3)
+	d, _ := New(&g, 10, 400*physic.KiloHertz, 3)
 	img := image.NewRGBA(image.Rect(-1, -1, 20, 20))
 	copy(img.Pix, getRGBW())
 	d.Draw(d.Bounds(), img, image.Point{})
@@ -215,7 +216,7 @@ func TestWrite_3(t *testing.T) {
 			},
 		},
 	}
-	d, _ := New(&g, 10, 400000, 3)
+	d, _ := New(&g, 10, 400*physic.KiloHertz, 3)
 	if n, err := d.Write(getRGB()); n != 30 || err != nil {
 		t.Fatal(n, err)
 	}
@@ -226,7 +227,7 @@ func TestWrite_3(t *testing.T) {
 
 func TestWrite_fail(t *testing.T) {
 	g := gpiostreamtest.PinOutPlayback{DontPanic: true}
-	d, _ := New(&g, 10, 400000, 3)
+	d, _ := New(&g, 10, 400*physic.KiloHertz, 3)
 	if n, err := d.Write([]byte{1}); n != 0 || err == nil {
 		t.Fatal(n, err)
 	}
@@ -240,7 +241,7 @@ func TestWrite_fail(t *testing.T) {
 
 func TestHalt_fail(t *testing.T) {
 	g := gpiostreamtest.PinOutPlayback{DontPanic: true}
-	d, _ := New(&g, 10, 400000, 3)
+	d, _ := New(&g, 10, 400*physic.KiloHertz, 3)
 	if d.Halt() == nil {
 		t.Fatal("expected failure")
 	}

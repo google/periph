@@ -15,6 +15,7 @@ import (
 
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/spi"
 	"periph.io/x/periph/experimental/devices/mfrc522/commands"
 )
@@ -103,7 +104,7 @@ func NewSPI(spiPort spi.Port, resetPin gpio.PinOut, irqPin gpio.PinIn) (*Dev, er
 	if irqPin == nil {
 		return nil, wrapf("IRQ pin is not set")
 	}
-	spiDev, err := spiPort.Connect(10000000, spi.Mode0, 8)
+	spiDev, err := spiPort.Connect(10*physic.MegaHertz, spi.Mode0, 8)
 	if err != nil {
 		return nil, err
 	}

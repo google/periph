@@ -14,6 +14,7 @@ import (
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpiotest"
 	"periph.io/x/periph/conn/i2c/i2ctest"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/spi"
 	"periph.io/x/periph/conn/spi/spitest"
 	"periph.io/x/periph/devices/ssd1306/image1bit"
@@ -540,7 +541,7 @@ type configFail struct {
 	spitest.Record
 }
 
-func (c *configFail) Connect(maxHz int64, mode spi.Mode, bits int) (spi.Conn, error) {
+func (c *configFail) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, error) {
 	return nil, errors.New("injected error")
 }
 

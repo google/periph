@@ -45,6 +45,7 @@ import (
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/i2c"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/spi"
 	"periph.io/x/periph/devices"
 	"periph.io/x/periph/devices/ssd1306/image1bit"
@@ -119,7 +120,7 @@ func NewSPI(p spi.Port, dc gpio.PinOut, opts *Opts) (*Dev, error) {
 	} else if err := dc.Out(gpio.Low); err != nil {
 		return nil, err
 	}
-	c, err := p.Connect(3300000, spi.Mode0, bits)
+	c, err := p.Connect(3300*physic.KiloHertz, spi.Mode0, bits)
 	if err != nil {
 		return nil, err
 	}

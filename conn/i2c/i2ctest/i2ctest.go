@@ -13,6 +13,7 @@ import (
 	"periph.io/x/periph/conn/conntest"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/i2c"
+	"periph.io/x/periph/conn/physic"
 )
 
 // IO registers the I/O that happened on either a real or fake I²C bus.
@@ -64,9 +65,9 @@ func (r *Record) Tx(addr uint16, w, read []byte) error {
 }
 
 // SetSpeed implements i2c.Bus.
-func (r *Record) SetSpeed(hz int64) error {
+func (r *Record) SetSpeed(f physic.Frequency) error {
 	if r.Bus != nil {
-		return r.Bus.SetSpeed(hz)
+		return r.Bus.SetSpeed(f)
 	}
 	return nil
 }
@@ -141,7 +142,7 @@ func (p *Playback) Tx(addr uint16, w, r []byte) error {
 }
 
 // SetSpeed implements i2c.Bus.
-func (p *Playback) SetSpeed(hz int64) error {
+func (p *Playback) SetSpeed(f physic.Frequency) error {
 	return nil
 }
 

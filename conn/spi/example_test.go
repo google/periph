@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/spi"
 	"periph.io/x/periph/conn/spi/spireg"
 	"periph.io/x/periph/host"
@@ -27,7 +28,7 @@ func Example() {
 	defer p.Close()
 
 	// Convert the spi.Port into a spi.Conn so it can be used for communication.
-	c, err := p.Connect(1000000, spi.Mode3, 8)
+	c, err := p.Connect(physic.MegaHertz, spi.Mode3, 8)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -56,7 +57,7 @@ func ExamplePins() {
 	defer p.Close()
 
 	// Convert the spi.Port into a spi.Conn so it can be used for communication.
-	c, err := p.Connect(1000000, spi.Mode3, 8)
+	c, err := p.Connect(physic.MegaHertz, spi.Mode3, 8)
 	if err != nil {
 		log.Fatal(err)
 	}

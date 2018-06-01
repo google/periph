@@ -21,6 +21,7 @@ import (
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/spi"
 	"periph.io/x/periph/conn/spi/spireg"
 	"periph.io/x/periph/host/fs"
@@ -61,8 +62,8 @@ type SPI struct {
 	bitsPerWord uint8
 	halfDuplex  bool
 	noCS        bool
-	maxHzPort   uint32
-	maxHzDev    uint32
+	freqPort    physic.Frequency
+	freqDev     physic.Frequency
 	clk         gpio.PinOut
 	mosi        gpio.PinOut
 	miso        gpio.PinIn
@@ -90,22 +91,22 @@ func (s *SPI) String() string {
 }
 
 // LimitSpeed implements spi.ConnCloser.
-func (s *SPI) LimitSpeed(maxHz int64) error {
-	if maxHz < 1 || maxHz >= 1<<32 {
-		return fmt.Errorf("sysfs-spi: invalid speed %d", maxHz)
+func (s *SPI) LimitSpeed(f physic.Frequency) error {
+	if f < physic.KiloHertz || f > physic.GigaHertz {
+		return fmt.Errorf("sysfs-spi: invalid speed %s", f)
 	}
 	s.Lock()
 	defer s.Unlock()
-	s.maxHzPort = uint32(maxHz)
+	s.freqPort = f
 	return nil
 }
 
 // Connect implements spi.Port.
 //
 // It must be called before any I/O.
-func (s *SPI) Connect(maxHz int64, mode spi.Mode, bits int) (spi.Conn, error) {
-	if maxHz < 0 || maxHz >= 1<<32 {
-		return nil, fmt.Errorf("sysfs-spi: invalid speed %d", maxHz)
+func (s *SPI) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, error) {
+	if f < 0 || f > physic.GigaHertz {
+		return nil, fmt.Errorf("sysfs-spi: invalid speed %s", f)
 	}
 	if mode&^(spi.Mode3|spi.HalfDuplex|spi.NoCS|spi.LSBFirst) != 0 {
 		return nil, fmt.Errorf("sysfs-spi: invalid mode %v", mode)
@@ -119,7 +120,7 @@ func (s *SPI) Connect(maxHz int64, mode spi.Mode, bits int) (spi.Conn, error) {
 		return nil, errors.New("sysfs-spi: Connect() can only be called exactly once")
 	}
 	s.initialized = true
-	s.maxHzDev = uint32(maxHz)
+	s.freqDev = f
 	s.bitsPerWord = uint8(bits)
 	// Only mode needs to be set via an IOCTL, others can be specified in the
 	// spiIOCTransfer packet, which saves a kernel call.
@@ -218,13 +219,13 @@ func (s *SPI) txInternal(w, r []byte) (int, error) {
 	if len(w) != 0 && len(r) != 0 && s.halfDuplex {
 		return 0, errors.New("sysfs-spi: can only specify one of w or r when in half duplex")
 	}
-	hz := s.maxHzPort
-	if s.maxHzDev != 0 && (s.maxHzPort == 0 || s.maxHzDev < s.maxHzPort) {
-		hz = s.maxHzDev
+	f := s.freqPort
+	if s.freqDev != 0 && (s.freqPort == 0 || s.freqDev < s.freqPort) {
+		f = s.freqDev
 	}
 	// The Ioctl() call below is seen as a memory escape, so the spiIOCTransfer
 	// object cannot be on the stack.
-	s.io[0].reset(w, r, hz, s.bitsPerWord)
+	s.io[0].reset(w, r, f, s.bitsPerWord)
 	if err := s.f.Ioctl(spiIOCTx(1), uintptr(unsafe.Pointer(&s.io[0]))); err != nil {
 		return 0, fmt.Errorf("sysfs-spi: I/O failed: %v", err)
 	}
@@ -268,9 +269,9 @@ func (s *SPI) txPackets(p []spi.Packet) error {
 	}
 
 	// Convert the packets.
-	hz := s.maxHzPort
-	if s.maxHzDev != 0 && (s.maxHzPort == 0 || s.maxHzDev < s.maxHzPort) {
-		hz = s.maxHzDev
+	f := s.freqPort
+	if s.freqDev != 0 && (s.freqPort == 0 || s.freqDev < s.freqPort) {
+		f = s.freqDev
 	}
 	var m []spiIOCTransfer
 	if len(p) > len(s.io) {
@@ -283,7 +284,7 @@ func (s *SPI) txPackets(p []spi.Packet) error {
 		if bits == 0 {
 			bits = s.bitsPerWord
 		}
-		m[i].reset(p[i].W, p[i].R, hz, bits)
+		m[i].reset(p[i].W, p[i].R, f, bits)
 		if !s.noCS && !p[i].KeepCS {
 			m[i].csChange = 1
 		}
@@ -493,7 +494,7 @@ type spiIOCTransfer struct {
 	pad         uint16
 }
 
-func (s *spiIOCTransfer) reset(w, r []byte, speedHz uint32, bitsPerWord uint8) {
+func (s *spiIOCTransfer) reset(w, r []byte, f physic.Frequency, bitsPerWord uint8) {
 	s.tx = 0
 	s.rx = 0
 	s.length = 0
@@ -506,7 +507,7 @@ func (s *spiIOCTransfer) reset(w, r []byte, speedHz uint32, bitsPerWord uint8) {
 		s.rx = uint64(uintptr(unsafe.Pointer(&r[0])))
 		s.length = uint32(l)
 	}
-	s.speedHz = speedHz
+	s.speedHz = uint32((f + 500*physic.MilliHertz) / physic.Hertz)
 	s.delayUsecs = 0
 	s.bitsPerWord = bitsPerWord
 	s.csChange = 0

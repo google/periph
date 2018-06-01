@@ -11,6 +11,7 @@ import (
 	"image/color"
 
 	"periph.io/x/periph/conn"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/spi"
 	"periph.io/x/periph/devices"
 )
@@ -58,7 +59,7 @@ type Opts struct {
 // https://en.wikipedia.org/wiki/Flicker_fusion_threshold is a recommended
 // reading.
 func New(p spi.Port, o *Opts) (*Dev, error) {
-	c, err := p.Connect(20000000, spi.Mode3, 8)
+	c, err := p.Connect(20*physic.MegaHertz, spi.Mode3, 8)
 	if err != nil {
 		return nil, err
 	}

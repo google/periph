@@ -20,10 +20,11 @@ import (
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/i2c/i2creg"
+	"periph.io/x/periph/conn/physic"
 )
 
 // SetSpeedHook can be set by a driver to enable changing the I²C buses speed.
-func SetSpeedHook(h func(hz int64) error) error {
+func SetSpeedHook(h func(f physic.Frequency) error) error {
 	if h == nil {
 		return errors.New("sysfs-i2c: hook must not be nil")
 	}
@@ -126,14 +127,14 @@ func (i *I2C) Tx(addr uint16, w, r []byte) error {
 }
 
 // SetSpeed implements i2c.Bus.
-func (i *I2C) SetSpeed(hz int64) error {
-	if hz < 1 || hz >= 1<<32 {
-		return fmt.Errorf("sysfs-i2c: invalid speed %d", hz)
+func (i *I2C) SetSpeed(f physic.Frequency) error {
+	if f < 100*physic.KiloHertz || f > 10*physic.MegaHertz {
+		return fmt.Errorf("sysfs-i2c: invalid speed %s", f)
 	}
 	drvI2C.mu.Lock()
 	defer drvI2C.mu.Unlock()
 	if drvI2C.setSpeed != nil {
-		return drvI2C.setSpeed(hz)
+		return drvI2C.setSpeed(f)
 	}
 	return errors.New("sysfs-i2c: not supported")
 }
@@ -318,7 +319,7 @@ type i2cMsg struct {
 type driverI2C struct {
 	mu       sync.Mutex
 	buses    []string
-	setSpeed func(hz int64) error
+	setSpeed func(f physic.Frequency) error
 }
 
 func (d *driverI2C) String() string {

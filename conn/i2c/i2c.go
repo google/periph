@@ -21,6 +21,7 @@ import (
 
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/physic"
 )
 
 // Bus defines the interface a concrete I²C driver must implement.
@@ -41,7 +42,7 @@ type Bus interface {
 	//
 	// On linux due to the way the I²C sysfs driver is exposed in userland,
 	// calling this function will likely affect *all* I²C buses on the host.
-	SetSpeed(hz int64) error
+	SetSpeed(f physic.Frequency) error
 }
 
 // BusCloser is an I²C bus that can be closed.

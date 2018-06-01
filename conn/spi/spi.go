@@ -23,6 +23,7 @@ import (
 
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/physic"
 )
 
 // Mode determines how communication is done.
@@ -136,15 +137,15 @@ type Port interface {
 	//
 	// The device driver must call this function exactly once.
 	//
-	// maxHz must specify the maximum rated speed by the device's spec. The lowest
-	// speed between the port speed and the device speed is selected. Use 0 for
-	// maxHz if there is no known maximum value for this device.
+	// f must specify the maximum rated speed by the device's spec. The lowest
+	// speed between the port speed and the device speed is selected. Use 0 for f
+	// if there is no known maximum value for this device.
 	//
 	// mode specifies the clock and signal polarities, if the port is using half
 	// duplex (shared MISO and MOSI) or if CS is not needed.
 	//
 	// bits is the number of bits per word. Generally you should use 8.
-	Connect(maxHz int64, mode Mode, bits int) (Conn, error)
+	Connect(f physic.Frequency, mode Mode, bits int) (Conn, error)
 }
 
 // PortCloser is a SPI port that can be closed.
@@ -160,9 +161,9 @@ type PortCloser interface {
 	// wires are long or the connection is of poor quality.
 	//
 	// This function can be called multiple times and resets the previous value.
-	// 0 is not a value value for maxHz. The lowest speed between the port speed
-	// and the device speed is selected.
-	LimitSpeed(maxHz int64) error
+	// 0 is not a value value for f. The lowest speed between the port speed and
+	// the device speed is selected.
+	LimitSpeed(f physic.Frequency) error
 }
 
 // Pins defines the pins that a SPI port interconnect is using on the host.

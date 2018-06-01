@@ -22,6 +22,7 @@ import (
 	"os"
 	"strconv"
 
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/spi"
 	"periph.io/x/periph/conn/spi/spireg"
 )
@@ -126,7 +127,7 @@ func mainImpl() error {
 		return err
 	}
 	defer s.Close()
-	c, err := s.Connect(int64(*hz), m, *bits)
+	c, err := s.Connect(physic.Frequency(*hz)*physic.Hertz, m, *bits)
 	if err != nil {
 		return err
 	}

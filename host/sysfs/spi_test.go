@@ -10,6 +10,7 @@ import (
 
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/spi"
 )
 
@@ -24,7 +25,7 @@ func TestNewSPI(t *testing.T) {
 
 func TestSPI_IO(t *testing.T) {
 	p := SPI{f: &ioctlClose{}, busNumber: 24}
-	c, err := p.Connect(1, spi.Mode3, 8)
+	c, err := p.Connect(physic.Hertz, spi.Mode3, 8)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -122,7 +123,7 @@ func TestSPI_other(t *testing.T) {
 	if err := p.LimitSpeed(0); err == nil {
 		t.Fatal("invalid speed")
 	}
-	if err := p.LimitSpeed(1); err != nil {
+	if err := p.LimitSpeed(physic.KiloHertz); err != nil {
 		t.Fatal(err)
 	}
 	if v := p.MaxTxSize(); v != drvSPI.bufSize {
@@ -136,17 +137,17 @@ func TestSPI_Connect(t *testing.T) {
 	if _, err := p.Connect(-1, spi.Mode0, 8); err == nil {
 		t.Fatal("invalid speed")
 	}
-	if _, err := p.Connect(1, -1, 8); err == nil {
+	if _, err := p.Connect(physic.Hertz, -1, 8); err == nil {
 		t.Fatal("invalid mode")
 	}
-	if _, err := p.Connect(1, spi.Mode0, 0); err == nil {
+	if _, err := p.Connect(physic.Hertz, spi.Mode0, 0); err == nil {
 		t.Fatal("invalid bit")
 	}
-	c, err := p.Connect(1, spi.Mode0|spi.HalfDuplex|spi.NoCS|spi.LSBFirst, 8)
+	c, err := p.Connect(physic.Hertz, spi.Mode0|spi.HalfDuplex|spi.NoCS|spi.LSBFirst, 8)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := p.Connect(1, spi.Mode0, 8); err == nil {
+	if _, err := p.Connect(physic.Hertz, spi.Mode0, 8); err == nil {
 		t.Fatal("double initialization")
 	}
 	if d := c.Duplex(); d != conn.Half {
@@ -180,7 +181,7 @@ func TestSPIDriver(t *testing.T) {
 
 func TestSPI_OpenClose(t *testing.T) {
 	p := SPI{f: &ioctlClose{}}
-	_, err := p.Connect(10, spi.Mode0, 8)
+	_, err := p.Connect(10*physic.Hertz, spi.Mode0, 8)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -188,7 +189,7 @@ func TestSPI_OpenClose(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err = p.Connect(10, spi.Mode0, 8); err == nil {
+	if _, err = p.Connect(10*physic.Hertz, spi.Mode0, 8); err == nil {
 		t.Fatal("an spi object cannot be reused for now")
 	}
 }
@@ -197,7 +198,7 @@ func BenchmarkSPI_Tx(b *testing.B) {
 	b.ReportAllocs()
 	i := ioctlClose{}
 	p := SPI{f: &i}
-	c, err := p.Connect(10, spi.Mode0, 8)
+	c, err := p.Connect(10*physic.Hertz, spi.Mode0, 8)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -214,7 +215,7 @@ func BenchmarkSPI_TxPackets2(b *testing.B) {
 	b.ReportAllocs()
 	i := ioctlClose{}
 	p := SPI{f: &i}
-	c, err := p.Connect(10, spi.Mode0, 8)
+	c, err := p.Connect(10*physic.Hertz, spi.Mode0, 8)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -235,7 +236,7 @@ func BenchmarkSPI_TxPackets5(b *testing.B) {
 	b.ReportAllocs()
 	i := ioctlClose{}
 	p := SPI{f: &i}
-	c, err := p.Connect(10, spi.Mode0, 8)
+	c, err := p.Connect(10*physic.Hertz, spi.Mode0, 8)
 	if err != nil {
 		b.Fatal(err)
 	}

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"periph.io/x/periph/conn/i2c/i2creg"
+	"periph.io/x/periph/conn/physic"
 )
 
 func TestNewI2C(t *testing.T) {
@@ -40,7 +41,7 @@ func TestI2C_faked(t *testing.T) {
 	if bus.SetSpeed(0) == nil {
 		t.Fatal("0 is invalid")
 	}
-	if bus.SetSpeed(1) == nil {
+	if bus.SetSpeed(physic.Hertz) == nil {
 		t.Fatal("can't set speed")
 	}
 	bus.SCL()
@@ -93,10 +94,10 @@ func TestDriver_Init(t *testing.T) {
 	if SetSpeedHook(nil) == nil {
 		t.Fatal("must fail on nil hook")
 	}
-	if err := SetSpeedHook(func(hz int64) error { return nil }); err != nil {
+	if err := SetSpeedHook(func(f physic.Frequency) error { return nil }); err != nil {
 		t.Fatal(err)
 	}
-	if SetSpeedHook(func(hz int64) error { return nil }) == nil {
+	if SetSpeedHook(func(f physic.Frequency) error { return nil }) == nil {
 		t.Fatal("second SetSpeedHook must fail")
 	}
 }

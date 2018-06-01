@@ -16,6 +16,7 @@ import (
 
 	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/i2c/i2creg"
+	"periph.io/x/periph/conn/physic"
 )
 
 func mainImpl() error {
@@ -78,7 +79,7 @@ func mainImpl() error {
 	defer bus.Close()
 
 	if *hz != 0 {
-		if err := bus.SetSpeed(int64(*hz)); err != nil {
+		if err := bus.SetSpeed(physic.Frequency(*hz) * physic.Hertz); err != nil {
 			return err
 		}
 	}

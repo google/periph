@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"periph.io/x/periph/conn"
+	"periph.io/x/periph/conn/physic"
 )
 
 func TestDevString(t *testing.T) {
@@ -77,10 +78,10 @@ func TestDevWriteErr(t *testing.T) {
 //
 
 type fakeBus struct {
-	speed int64
-	err   error
-	addr  uint16
-	w, r  []byte
+	freq physic.Frequency
+	err  error
+	addr uint16
+	w, r []byte
 }
 
 func (f *fakeBus) Close() error {
@@ -99,7 +100,7 @@ func (f *fakeBus) Tx(addr uint16, w, r []byte) error {
 	return f.err
 }
 
-func (f *fakeBus) SetSpeed(hz int64) error {
-	f.speed = hz
+func (f *fakeBus) SetSpeed(freq physic.Frequency) error {
+	f.freq = freq
 	return f.err
 }

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"periph.io/x/periph/conn"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/spi"
 )
 
@@ -169,11 +170,11 @@ func (f *fakePort) Duplex() conn.Duplex {
 	return conn.DuplexUnknown
 }
 
-func (f *fakePort) LimitSpeed(maxHz int64) error {
+func (f *fakePort) LimitSpeed(freq physic.Frequency) error {
 	return errors.New("not implemented")
 }
 
-func (f *fakePort) Connect(maxHz int64, mode spi.Mode, bits int) (spi.Conn, error) {
+func (f *fakePort) Connect(freq physic.Frequency, mode spi.Mode, bits int) (spi.Conn, error) {
 	return f, errors.New("not implemented")
 }
 

@@ -1024,6 +1024,6 @@ type spiFail struct {
 	spitest.Playback
 }
 
-func (s *spiFail) Connect(maxHz int64, mode spi.Mode, bits int) (spi.Conn, error) {
+func (s *spiFail) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, error) {
 	return nil, errors.New("failing")
 }

@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"time"
 
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio/gpiostream"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/devices"
 )
 
@@ -43,14 +43,15 @@ func NRZ(b byte) uint32 {
 
 // New opens a handle to a compatible LED strip.
 //
-// The speed (hz) should either be 800000 for fast ICs and 400000 for the slow
-// ones.
+// f should either be 800kHz for fast ICs and 400kHz for the slow ones.
 //
 // channels should be either 1 (White only), 3 (RGB) or 4 (RGBW). For RGB and
 // RGBW, the encoding is respectively GRB and GRBW.
-func New(p gpiostream.PinOut, numPixels, hz int, channels int) (*Dev, error) {
-	if hz <= 0 || hz > 1000000000 {
-		return nil, errors.New("nrzled: specify valid speed in hz")
+func New(p gpiostream.PinOut, numPixels int, f physic.Frequency, channels int) (*Dev, error) {
+	// Allow a wider range in case there's new devices with higher supported
+	// frequency.
+	if f < 10*physic.KiloHertz || f > 100*physic.MegaHertz {
+		return nil, errors.New("nrzled: specify valid frequency")
 	}
 	if channels != 3 && channels != 4 {
 		return nil, errors.New("nrzled: specify valid number of channels (3 or 4)")
@@ -60,7 +61,7 @@ func New(p gpiostream.PinOut, numPixels, hz int, channels int) (*Dev, error) {
 		numPixels: numPixels,
 		channels:  channels,
 		b: gpiostream.BitStream{
-			Res: time.Second / time.Duration(hz),
+			Res: f.Duration(),
 			// Each bit is encoded on 3 bits.
 			Bits: make([]byte, numPixels*3*channels),
 			LSBF: false,

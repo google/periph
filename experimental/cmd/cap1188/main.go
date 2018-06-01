@@ -17,6 +17,7 @@ import (
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/i2c/i2creg"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/pin"
 	"periph.io/x/periph/conn/pin/pinreg"
 	"periph.io/x/periph/experimental/devices/cap1188"
@@ -60,7 +61,7 @@ func mainImpl() error {
 	}
 
 	if *hz != 0 {
-		if err := i2cBus.SetSpeed(int64(*hz)); err != nil {
+		if err := i2cBus.SetSpeed(physic.Frequency(*hz) * physic.Hertz); err != nil {
 			return fmt.Errorf("couldn't set the i2c bus speed - %s", err)
 		}
 	}

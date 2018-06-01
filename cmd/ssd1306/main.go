@@ -27,6 +27,7 @@ import (
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/i2c/i2creg"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/spi"
 	"periph.io/x/periph/conn/spi/spireg"
 	"periph.io/x/periph/devices/ssd1306"
@@ -162,7 +163,7 @@ func mainImpl() error {
 		}
 		defer c.Close()
 		if *hz != 0 {
-			if err := c.LimitSpeed(int64(*hz)); err != nil {
+			if err := c.LimitSpeed(physic.Frequency(*hz) * physic.Hertz); err != nil {
 				return err
 			}
 		}
@@ -185,7 +186,7 @@ func mainImpl() error {
 		}
 		defer c.Close()
 		if *hz != 0 {
-			if err := c.SetSpeed(int64(*hz)); err != nil {
+			if err := c.SetSpeed(physic.Frequency(*hz) * physic.Hertz); err != nil {
 				return err
 			}
 		}

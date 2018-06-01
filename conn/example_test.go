@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/spi"
 	"periph.io/x/periph/conn/spi/spireg"
 	"periph.io/x/periph/host"
@@ -25,7 +26,7 @@ func Example() {
 		log.Fatal(err)
 	}
 	defer p.Close()
-	c, err := p.Connect(1000000, spi.Mode3, 8)
+	c, err := p.Connect(physic.MegaHertz, spi.Mode3, 8)
 	if err != nil {
 		log.Fatal(err)
 	}

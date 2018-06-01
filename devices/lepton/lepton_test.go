@@ -392,9 +392,9 @@ func (s *spiStream) String() string {
 	return "spi"
 }
 
-func (s *spiStream) Connect(maxHz int64, mode spi.Mode, bits int) (spi.Conn, error) {
-	if maxHz != 20000000 {
-		s.t.Fatal(maxHz)
+func (s *spiStream) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, error) {
+	if f != 20*physic.MegaHertz {
+		s.t.Fatal(f)
 	}
 	if mode != spi.Mode3 {
 		s.t.Fatal(mode)
