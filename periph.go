@@ -75,6 +75,14 @@ type Driver interface {
 	// A driver listing a prerequisite not registered is a fatal failure at
 	// initialization time.
 	Prerequisites() []string
+	// After returns a list of drivers that must be loaded first before
+	// attempting to load this driver.
+	//
+	// Unlike Prerequisites(), this driver will still be attempted even if the
+	// listed driver is missing or failed to load.
+	//
+	// This permits serialization without hard requirement.
+	After() []string
 	// Init initializes the driver.
 	//
 	// A driver may enter one of the three following state: loaded successfully,
@@ -88,20 +96,6 @@ type Driver interface {
 	// state why it failed, for example an expected OS provided driver couldn't
 	// be opened, e.g. /dev/gpiomem on Raspbian.
 	Init() (bool, error)
-}
-
-// driverAfter is an optional interface for Driver implementation (as of v2).
-//
-// TODO(maruel): Move the function back to Driver before releasing v3.
-type driverAfter interface {
-	// After returns a list of drivers that must be loaded first before
-	// attempting to load this driver.
-	//
-	// Unlike Prerequisites(), this driver will still be attempted even if the
-	// listed driver is missing or failed to load.
-	//
-	// This permits serialization without hard requirement.
-	After() []string
 }
 
 // DriverFailure is a driver that wasn't loaded, either because it was skipped
@@ -298,12 +292,10 @@ func explodeStages() ([]*stage, error) {
 			}
 			m[p] = struct{}{}
 		}
-		if a, ok := d.(driverAfter); ok {
-			for _, p := range a.After() {
-				// Skip undefined drivers silently, unlike Prerequisites().
-				if _, ok := byName[p]; ok {
-					m[p] = struct{}{}
-				}
+		for _, p := range d.After() {
+			// Skip undefined drivers silently, unlike Prerequisites().
+			if _, ok := byName[p]; ok {
+				m[p] = struct{}{}
 			}
 		}
 		dag[name] = m
