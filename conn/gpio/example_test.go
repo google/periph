@@ -83,7 +83,7 @@ func ExamplePinOut() {
 	}
 }
 
-func ExamplePinPWM() {
+func ExamplePinOut_PWM() {
 	// Make sure periph is initialized.
 	if _, err := host.Init(); err != nil {
 		log.Fatal(err)
@@ -94,18 +94,9 @@ func ExamplePinPWM() {
 	if p == nil {
 		log.Fatal("Failed to find GPIO6")
 	}
-	// Resolve alias if necessary.
-	if r, ok := p.(gpio.RealPin); ok {
-		p = r.Real()
-	}
-
-	pwm, ok := p.(gpio.PinPWM)
-	if !ok {
-		log.Fatalf("Pin %s cannot be used as PWM", p)
-	}
 
 	// Generate a 33% duty cycle 10KHz signal.
-	if err := pwm.PWM(gpio.DutyMax/3, 10000); err != nil {
+	if err := p.PWM(gpio.DutyMax/3, 10000); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -127,14 +118,7 @@ func ExampleRealPin() {
 	if r, ok := p.(gpio.RealPin); ok {
 		// On Raspberry Pis, pin #3 on header P1 is an alias for GPIO2.
 		fmt.Printf("%s is in fact %s", p, r.Real())
-		p = r.Real()
 	} else {
 		log.Printf("%s is not an alias", p)
 	}
-
-	// Then this is possible to find if the pin implements another interface.
-	if d, ok := p.(gpio.PinDefaultPull); ok {
-		fmt.Printf("%s default pull is %s", d, d.DefaultPull())
-	}
-
 }

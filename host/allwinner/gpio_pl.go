@@ -216,6 +216,11 @@ func (p *PinPL) Pull() gpio.Pull {
 	}
 }
 
+// DefaultPull returns the default pull for the pin.
+func (p *PinPL) DefaultPull() gpio.Pull {
+	return p.defaultPull
+}
+
 // Out implements gpio.PinOut. See Pin.Out for more information.
 func (p *PinPL) Out(l gpio.Level) error {
 	if !p.available {
@@ -251,11 +256,10 @@ func (p *PinPL) FastOut(l gpio.Level) {
 	}
 }
 
-// TODO(maruel): PWM support for PL10.
-
-// DefaultPull returns the default pull for the pin.
-func (p *PinPL) DefaultPull() gpio.Pull {
-	return p.defaultPull
+// PWM implements gpio.PinOut.
+func (p *PinPL) PWM(gpio.Duty, time.Duration) error {
+	// TODO(maruel): PWM support for PL10.
+	return p.wrap(errors.New("not available on this CPU architecture"))
 }
 
 //
@@ -452,7 +456,6 @@ func init() {
 
 var drvGPIOPL driverGPIOPL
 
-var _ gpio.PinDefaultPull = &Pin{}
 var _ gpio.PinIO = &PinPL{}
 var _ gpio.PinIn = &PinPL{}
 var _ gpio.PinOut = &PinPL{}

@@ -251,6 +251,11 @@ func (p *Pin) Pull() gpio.Pull {
 	}
 }
 
+// DefaultPull returns the default pull for the pin.
+func (p *Pin) DefaultPull() gpio.Pull {
+	return p.defaultPull
+}
+
 // Out ensures that the pin is configured as an output and outputs the value.
 func (p *Pin) Out(l gpio.Level) error {
 	if !p.available {
@@ -326,9 +331,9 @@ func (p *Pin) FastOut(l gpio.Level) {
 	}
 }
 
-// DefaultPull returns the default pull for the pin.
-func (p *Pin) DefaultPull() gpio.Pull {
-	return p.defaultPull
+// PWM implements gpio.PinOut.
+func (p *Pin) PWM(gpio.Duty, time.Duration) error {
+	return p.wrap(errors.New("not available on this CPU architecture"))
 }
 
 // drive returns the configured output current drive strength for this GPIO.
@@ -790,7 +795,6 @@ func getBaseAddress() uint64 {
 var drvGPIO driverGPIO
 
 // Ensure that the various structs implement the interfaces they're supposed to.
-var _ gpio.PinDefaultPull = &Pin{}
 var _ gpio.PinIO = &Pin{}
 var _ gpio.PinIn = &Pin{}
 var _ gpio.PinOut = &Pin{}

@@ -1268,10 +1268,8 @@ func init() {
 
 var drvGPIO driverGPIO
 
-var _ gpio.PinDefaultPull = &Pin{}
 var _ gpio.PinIO = &Pin{}
 var _ gpio.PinIn = &Pin{}
 var _ gpio.PinOut = &Pin{}
-var _ gpio.PinPWM = &Pin{}
 var _ gpiostream.PinIn = &Pin{}
 var _ gpiostream.PinOut = &Pin{}

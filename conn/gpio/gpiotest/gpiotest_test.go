@@ -133,7 +133,7 @@ func TestByName(t *testing.T) {
 		t.Fatalf("expected alias, got: %T", p)
 	}
 	p = r.Real()
-	if err := p.(gpio.PinPWM).PWM(gpio.DutyHalf, time.Millisecond); err != nil {
+	if err := p.PWM(gpio.DutyHalf, time.Millisecond); err != nil {
 		t.Fatalf("unexpected failure: %v", err)
 	}
 }
@@ -142,7 +142,7 @@ func TestByName(t *testing.T) {
 
 var (
 	gpio2 = &Pin{N: "GPIO2", Num: 2, Fn: "I2C1_SDA"}
-	gpio3 = &PinPWM{Pin: Pin{N: "GPIO3", Num: 3, Fn: "I2C1_SCL"}}
+	gpio3 = &Pin{N: "GPIO3", Num: 3, Fn: "I2C1_SCL"}
 )
 
 func init() {

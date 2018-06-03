@@ -27,6 +27,8 @@ type Pin struct {
 	L          gpio.Level // Used for both input and output
 	P          gpio.Pull
 	EdgesChan  chan gpio.Level // Use it to fake edges
+	D          gpio.Duty       // PWM duty
+	Pe         time.Duration   // PWM period
 }
 
 func (p *Pin) String() string {
@@ -105,6 +107,11 @@ func (p *Pin) Pull() gpio.Pull {
 	return p.P
 }
 
+// DefaultPull implements gpio.PinIn.
+func (p *Pin) DefaultPull() gpio.Pull {
+	return p.P
+}
+
 // Out is concurrent safe.
 func (p *Pin) Out(l gpio.Level) error {
 	p.Lock()
@@ -113,19 +120,11 @@ func (p *Pin) Out(l gpio.Level) error {
 	return nil
 }
 
-// PinPWM implements gpio.PinPWM.
-type PinPWM struct {
-	Pin
-
-	D gpio.Duty     // duty
-	P time.Duration // period
-}
-
-func (p *PinPWM) PWM(duty gpio.Duty, period time.Duration) error {
+func (p *Pin) PWM(duty gpio.Duty, period time.Duration) error {
 	p.Lock()
 	defer p.Unlock()
 	p.D = duty
-	p.P = period
+	p.Pe = period
 	return nil
 }
 
@@ -151,6 +150,12 @@ func (p *LogPinIO) Out(l gpio.Level) error {
 	return p.PinIO.Out(l)
 }
 
+// PWM implements gpio.PinIO.
+func (p *LogPinIO) PWM(duty gpio.Duty, period time.Duration) error {
+	log.Printf("%s.PWM(%s, %s)", p, duty, period)
+	return p.PinIO.PWM(duty, period)
+}
+
 // Read implements gpio.PinIO.
 func (p *LogPinIO) Read() gpio.Level {
 	l := p.PinIO.Read()
@@ -173,4 +178,3 @@ func (p *LogPinIO) WaitForEdge(timeout time.Duration) bool {
 }
 
 var _ gpio.PinIO = &Pin{}
-var _ gpio.PinPWM = &PinPWM{}

@@ -216,6 +216,12 @@ func (p *Pin) Pull() gpio.Pull {
 	return gpio.PullNoChange
 }
 
+// DefaultPull returns gpio.PullNoChange since gpio sysfs has no support for
+// input pull resistor.
+func (p *Pin) DefaultPull() gpio.Pull {
+	return gpio.PullNoChange
+}
+
 // Out sets a pin as output; implements gpio.PinOut.
 func (p *Pin) Out(l gpio.Level) error {
 	p.mu.Lock()
@@ -250,6 +256,10 @@ func (p *Pin) Out(l gpio.Level) error {
 		return p.wrap(err)
 	}
 	return nil
+}
+
+func (p *Pin) PWM(gpio.Duty, time.Duration) error {
+	return p.wrap(errors.New("pwm is not supported via sysfs"))
 }
 
 //

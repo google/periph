@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"sync"
 	"time"
 
@@ -122,6 +123,11 @@ func (l *LED) Pull() gpio.Pull {
 	return gpio.PullNoChange
 }
 
+// DefaultPull implements gpio.PinIn.
+func (l *LED) DefaultPull() gpio.Pull {
+	return gpio.PullNoChange
+}
+
 // Out implements gpio.PinOut.
 func (l *LED) Out(level gpio.Level) error {
 	err := l.open()
@@ -138,6 +144,24 @@ func (l *LED) Out(level gpio.Level) error {
 	} else {
 		_, err = l.fBrightness.Write([]byte("0"))
 	}
+	return err
+}
+
+// PWM implements gpio.PinOut.
+//
+// This sets the intensity level, if supported. The period is ignored.
+func (l *LED) PWM(d gpio.Duty, p time.Duration) error {
+	err := l.open()
+	if err != nil {
+		return err
+	}
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if _, err = l.fBrightness.Seek(0, 0); err != nil {
+		return err
+	}
+	v := (d + gpio.DutyMax/512) / (gpio.DutyMax / 256)
+	_, err = l.fBrightness.Write([]byte(strconv.Itoa(int(v))))
 	return err
 }
 

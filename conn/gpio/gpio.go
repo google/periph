@@ -4,8 +4,8 @@
 
 // Package gpio defines digital pins.
 //
-// While all GPIO implementations are expected to implement PinIO, they may
-// expose more specific functionality like PinPWM, PinDefaultPull, etc.
+// All GPIO implementations are expected to implement PinIO but the device
+// driver may accept a more specific one like PinIn or PinOut.
 package gpio
 
 import (
@@ -134,21 +134,6 @@ func ParseDuty(s string) (Duty, error) {
 	return i, nil
 }
 
-// PinPWM exposes hardware PWM.
-//
-// The driver may uses DMA controller underneath for zero CPU implementation.
-type PinPWM interface {
-	pin.Pin
-	// PWM sets the PWM output on supported pins.
-	//
-	// To use as a general purpose clock, set duty to DutyHalf. Some pins may
-	// only support DutyHalf and no other value.
-	//
-	// Using 0 as period will use the optimal value as supported/preferred by the
-	// pin.
-	PWM(duty Duty, period time.Duration) error
-}
-
 // PinIn is an input GPIO pin.
 //
 // It may optionally support internal pull resistor and edge based triggering.
@@ -195,6 +180,10 @@ type PinIn interface {
 	//
 	// Returns PullNoChange if the value cannot be read.
 	Pull() Pull
+	// DefaultPull returns the pull that is initialized on CPU/device reset. This
+	// is useful to determine if the pin is acceptable for operation with
+	// certain devices.
+	DefaultPull() Pull
 }
 
 // PinOut is an output GPIO pin.
@@ -208,15 +197,20 @@ type PinOut interface {
 	// Out() tries to empty the accumulated edges detected if the gpio was
 	// previously set as input but this is not 100% guaranteed due to the OS.
 	Out(l Level) error
+	// PWM sets the PWM output on supported pins.
+	//
+	// To use as a general purpose clock, set duty to DutyHalf. Some pins may
+	// only support DutyHalf and no other value.
+	//
+	// Using 0 as period will use the optimal value as supported/preferred by the
+	// pin.
+	PWM(duty Duty, period time.Duration) error
 }
 
 // PinIO is a GPIO pin that supports both input and output. It matches both
 // interfaces PinIn and PinOut.
 //
 // A GPIO pin implementing PinIO may fail at either input or output or both.
-//
-// The GPIO pin may optionally support more interfaces, like PinPWM,
-// PinDefaultPull.
 type PinIO interface {
 	pin.Pin
 	// PinIn
@@ -224,17 +218,10 @@ type PinIO interface {
 	Read() Level
 	WaitForEdge(timeout time.Duration) bool
 	Pull() Pull
+	DefaultPull() Pull
 	// PinOut
 	Out(l Level) error
-}
-
-// PinDefaultPull is optionally implemented to return the default pull at boot
-// time. This is useful to determine if the pin is acceptable for operation
-// with certain devices.
-type PinDefaultPull interface {
-	pin.Pin
-	// DefaultPull returns the pull that is initialized on CPU reset.
-	DefaultPull() Pull
+	PWM(duty Duty, period time.Duration) error
 }
 
 // INVALID implements PinIO and fails on all access.
@@ -248,8 +235,6 @@ var INVALID PinIO
 //
 // The purpose of the RealPin is to be able to cleanly test whether an arbitrary
 // gpio.PinIO returned by ByName is an alias for another pin, and resolve it.
-// This is needed to be able to test for other interfaces, like PinPWM,
-// PinDefaultPull, etc.
 type RealPin interface {
 	Real() PinIO // Real returns the real pin behind an Alias
 }
@@ -303,7 +288,15 @@ func (invalidPin) Pull() Pull {
 	return PullNoChange
 }
 
+func (invalidPin) DefaultPull() Pull {
+	return PullNoChange
+}
+
 func (invalidPin) Out(Level) error {
+	return errInvalidPin
+}
+
+func (invalidPin) PWM(Duty, time.Duration) error {
 	return errInvalidPin
 }
 
