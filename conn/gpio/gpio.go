@@ -84,7 +84,7 @@ func (i Edge) String() string {
 
 const (
 	// DutyMax is a duty cycle of 100%.
-	DutyMax Duty = 65535
+	DutyMax Duty = 1 << 24
 	// DutyHalf is a 50% duty PWM, which boils down to a normal clock.
 	DutyHalf Duty = DutyMax / 2
 )
