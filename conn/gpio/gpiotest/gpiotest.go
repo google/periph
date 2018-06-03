@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/physic"
 )
 
 // Pin implements gpio.PinIO.
@@ -26,9 +27,9 @@ type Pin struct {
 	sync.Mutex            // Grab the Mutex before modifying the members to keep it concurrent safe
 	L          gpio.Level // Used for both input and output
 	P          gpio.Pull
-	EdgesChan  chan gpio.Level // Use it to fake edges
-	D          gpio.Duty       // PWM duty
-	Pe         time.Duration   // PWM period
+	EdgesChan  chan gpio.Level  // Use it to fake edges
+	D          gpio.Duty        // PWM duty
+	F          physic.Frequency // PWM period
 }
 
 func (p *Pin) String() string {
@@ -120,11 +121,11 @@ func (p *Pin) Out(l gpio.Level) error {
 	return nil
 }
 
-func (p *Pin) PWM(duty gpio.Duty, period time.Duration) error {
+func (p *Pin) PWM(duty gpio.Duty, f physic.Frequency) error {
 	p.Lock()
 	defer p.Unlock()
 	p.D = duty
-	p.Pe = period
+	p.F = f
 	return nil
 }
 
@@ -151,9 +152,9 @@ func (p *LogPinIO) Out(l gpio.Level) error {
 }
 
 // PWM implements gpio.PinIO.
-func (p *LogPinIO) PWM(duty gpio.Duty, period time.Duration) error {
-	log.Printf("%s.PWM(%s, %s)", p, duty, period)
-	return p.PinIO.PWM(duty, period)
+func (p *LogPinIO) PWM(duty gpio.Duty, f physic.Frequency) error {
+	log.Printf("%s.PWM(%s, %s)", p, duty, f)
+	return p.PinIO.PWM(duty, f)
 }
 
 // Read implements gpio.PinIO.

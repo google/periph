@@ -16,6 +16,7 @@ import (
 	"periph.io/x/periph"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/host/pmem"
 	"periph.io/x/periph/host/sysfs"
 )
@@ -257,7 +258,7 @@ func (p *PinPL) FastOut(l gpio.Level) {
 }
 
 // PWM implements gpio.PinOut.
-func (p *PinPL) PWM(gpio.Duty, time.Duration) error {
+func (p *PinPL) PWM(gpio.Duty, physic.Frequency) error {
 	// TODO(maruel): PWM support for PL10.
 	return p.wrap(errors.New("not available on this CPU architecture"))
 }

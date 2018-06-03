@@ -464,7 +464,7 @@ func (p *Pin) FastOut(l gpio.Level) {
 //
 // PWM1 is exposed on pins 13, 19, 41 and 45.
 //
-// PWM1 uses 25Mhz clock source. The period must be a divisor of 25Mhz.
+// PWM1 uses 25Mhz clock source. The frequency must be a divisor of 25Mhz.
 //
 // DMA driven PWM is available for all pins except PWM1 pins, its resolution is
 // 200KHz which is down-sampled from 25MHz clock above. The number of DMA driven
@@ -476,7 +476,7 @@ func (p *Pin) FastOut(l gpio.Level) {
 // The user must call either Halt(), In(), Out(), PWM(0,..) or
 // PWM(gpio.DutyMax,..) to stop the clock source and DMA engine before exiting
 // the program.
-func (p *Pin) PWM(duty gpio.Duty, period time.Duration) error {
+func (p *Pin) PWM(duty gpio.Duty, freq physic.Frequency) error {
 	if duty == 0 {
 		return p.Out(gpio.Low)
 	} else if duty == gpio.DutyMax {
@@ -506,13 +506,12 @@ func (p *Pin) PWM(duty gpio.Duty, period time.Duration) error {
 		return p.wrap(errors.New("bcm283x-dma not initialized; try again as root?"))
 	}
 	if useDMA {
-		minPeriod := 2 * time.Second / time.Duration(drvDMA.pwmDMAFreq)
-		if period < minPeriod {
-			return p.wrap(fmt.Errorf("period must be at least %s", minPeriod))
+		if m := drvDMA.pwmDMAFreq / 2; m < freq {
+			return p.wrap(fmt.Errorf("frequency must be at most %s", m))
 		}
 
 		// Total cycles in the period
-		rng := drvDMA.pwmDMAFreq * uint64(period) / uint64(time.Second)
+		rng := uint64(freq / drvDMA.pwmDMAFreq)
 		// Pulse width cycles
 		dat := uint32((rng*uint64(duty) + uint64(gpio.DutyHalf)) / uint64(gpio.DutyMax))
 		var err error
@@ -528,12 +527,11 @@ func (p *Pin) PWM(duty gpio.Duty, period time.Duration) error {
 			return p.wrap(err)
 		}
 	} else {
-		minPeriod := 2 * time.Second / time.Duration(drvDMA.pwmBaseFreq)
-		if period < minPeriod {
-			return p.wrap(fmt.Errorf("period must be at least %s", minPeriod))
+		if m := drvDMA.pwmBaseFreq / 2; m < freq {
+			return p.wrap(fmt.Errorf("frequency must be at most %s", m))
 		}
 		// Total cycles in the period
-		rng := drvDMA.pwmBaseFreq * uint64(period) / uint64(time.Second)
+		rng := uint64(freq / drvDMA.pwmDMAFreq)
 		// Pulse width cycles
 		dat := uint32((rng*uint64(duty) + uint64(gpio.DutyHalf)) / uint64(gpio.DutyMax))
 		if _, err := setPWMClockSource(); err != nil {

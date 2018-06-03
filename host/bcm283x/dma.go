@@ -50,6 +50,7 @@ import (
 
 	"periph.io/x/periph"
 	"periph.io/x/periph/conn/gpio/gpiostream"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/host/pmem"
 	"periph.io/x/periph/host/videocore"
 )
@@ -784,8 +785,11 @@ func startPWMbyDMA(p *Pin, rng, data uint32) (*dmaChannel, *videocore.Mem, error
 	return ch, buf, nil
 }
 
+// overSamples calculates the skip value which are the values that are read but
+// discarded as the clock is too fast.
 func overSamples(s gpiostream.Stream) (int, error) {
-	freq := time.Duration(drvDMA.pwmDMAFreq)
+	// TODO(maruel): Reconfirm calculation.
+	freq := time.Duration(drvDMA.pwmDMAFreq / physic.Hertz)
 	resolution := s.Resolution()
 	skip := (freq*resolution + time.Second/2) / time.Second
 	if skip < 1 {
@@ -1113,8 +1117,8 @@ type driverDMA struct {
 	pwmMemory *pwmMap
 
 	// These clocks are shared with hardware PWM, DMA driven PWM and BitStream.
-	pwmBaseFreq uint64
-	pwmDMAFreq  uint64
+	pwmBaseFreq physic.Frequency
+	pwmDMAFreq  physic.Frequency
 	pwmDMACh    *dmaChannel
 	pwmDMABuf   *videocore.Mem
 
@@ -1154,8 +1158,8 @@ func (d *driverDMA) After() []string {
 
 func (d *driverDMA) Init() (bool, error) {
 	d.dmaBufAllocator = videocore.Alloc
-	d.pwmBaseFreq = 25 * 1000 * 1000 // 25MHz
-	d.pwmDMAFreq = 200 * 1000        // 200KHz
+	d.pwmBaseFreq = 25 * physic.MegaHertz
+	d.pwmDMAFreq = 200 * physic.KiloHertz
 	// baseAddr is initialized by prerequisite driver bcm283x-gpio.
 	if err := pmem.MapAsPOD(uint64(drvGPIO.baseAddr+0x7000), &d.dmaMemory); err != nil {
 		if os.IsPermission(err) {

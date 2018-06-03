@@ -6,9 +6,9 @@ package bcm283x
 
 import (
 	"testing"
-	"time"
 
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/host/pmem"
 	"periph.io/x/periph/host/videocore"
 )
@@ -140,25 +140,25 @@ func TestPinPWM(t *testing.T) {
 	defer reset()
 	setMemory()
 	p := Pin{name: "C1", number: 4, defaultPull: gpio.PullDown}
-	if err := p.PWM(gpio.DutyHalf, 500*time.Nanosecond); err == nil || err.Error() != "bcm283x-gpio (C1): bcm283x-dma not initialized; try again as root?" {
+	if err := p.PWM(gpio.DutyHalf, 2*physic.MegaHertz); err == nil || err.Error() != "bcm283x-gpio (C1): bcm283x-dma not initialized; try again as root?" {
 		t.Fatal(err)
 	}
 
 	drvGPIO.gpioMemory = &gpioMap{}
-	if err := p.PWM(gpio.DutyHalf, 500*time.Nanosecond); err == nil || err.Error() != "bcm283x-gpio (C1): bcm283x-dma not initialized; try again as root?" {
+	if err := p.PWM(gpio.DutyHalf, 2*physic.MegaHertz); err == nil || err.Error() != "bcm283x-gpio (C1): bcm283x-dma not initialized; try again as root?" {
 		t.Fatal(err)
 	}
 
 	drvDMA.clockMemory = &clockMap{}
 	drvDMA.pwmMemory = &pwmMap{}
-	drvDMA.pwmBaseFreq = 25 * 1000 * 1000 // 25MHz
-	drvDMA.pwmDMAFreq = 200 * 1000        // 200KHz
-	if err := p.PWM(gpio.DutyHalf, 9*time.Microsecond); err == nil || err.Error() != "bcm283x-gpio (C1): period must be at least 10µs" {
+	drvDMA.pwmBaseFreq = 25 * physic.MegaHertz
+	drvDMA.pwmDMAFreq = 200 * physic.KiloHertz
+	if err := p.PWM(gpio.DutyHalf, 110*physic.KiloHertz); err == nil || err.Error() != "bcm283x-gpio (C1): frequency must be at most 100kHz" {
 		t.Fatal(err)
 	}
 	// TODO(maruel): Fix test.
 	drvDMA.dmaMemory = &dmaMap{}
-	if err := p.PWM(gpio.DutyHalf, 10*time.Microsecond); err == nil || err.Error() != "bcm283x-gpio (C1): can't write to clock divisor CPU register" {
+	if err := p.PWM(gpio.DutyHalf, 100*physic.KiloHertz); err == nil || err.Error() != "bcm283x-gpio (C1): can't write to clock divisor CPU register" {
 		t.Fatal(err)
 	}
 }

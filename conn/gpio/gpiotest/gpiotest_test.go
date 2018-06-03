@@ -13,6 +13,7 @@ import (
 
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
+	"periph.io/x/periph/conn/physic"
 )
 
 func TestPin(t *testing.T) {
@@ -133,7 +134,7 @@ func TestByName(t *testing.T) {
 		t.Fatalf("expected alias, got: %T", p)
 	}
 	p = r.Real()
-	if err := p.PWM(gpio.DutyHalf, time.Millisecond); err != nil {
+	if err := p.PWM(gpio.DutyHalf, physic.KiloHertz); err != nil {
 		t.Fatalf("unexpected failure: %v", err)
 	}
 }

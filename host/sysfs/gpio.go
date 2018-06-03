@@ -17,6 +17,7 @@ import (
 	"periph.io/x/periph"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/host/fs"
 )
 
@@ -258,7 +259,7 @@ func (p *Pin) Out(l gpio.Level) error {
 	return nil
 }
 
-func (p *Pin) PWM(gpio.Duty, time.Duration) error {
+func (p *Pin) PWM(gpio.Duty, physic.Frequency) error {
 	return p.wrap(errors.New("pwm is not supported via sysfs"))
 }
 

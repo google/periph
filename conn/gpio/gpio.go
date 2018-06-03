@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/pin"
 )
 
@@ -197,14 +198,15 @@ type PinOut interface {
 	// Out() tries to empty the accumulated edges detected if the gpio was
 	// previously set as input but this is not 100% guaranteed due to the OS.
 	Out(l Level) error
-	// PWM sets the PWM output on supported pins.
+	// PWM sets the PWM output on supported pins, if the pin has hardware PWM
+	// support.
 	//
 	// To use as a general purpose clock, set duty to DutyHalf. Some pins may
 	// only support DutyHalf and no other value.
 	//
-	// Using 0 as period will use the optimal value as supported/preferred by the
-	// pin.
-	PWM(duty Duty, period time.Duration) error
+	// Using 0 as frequency will use the optimal value as supported/preferred by
+	// the pin.
+	PWM(duty Duty, f physic.Frequency) error
 }
 
 // PinIO is a GPIO pin that supports both input and output. It matches both
@@ -221,7 +223,7 @@ type PinIO interface {
 	DefaultPull() Pull
 	// PinOut
 	Out(l Level) error
-	PWM(duty Duty, period time.Duration) error
+	PWM(duty Duty, f physic.Frequency) error
 }
 
 // INVALID implements PinIO and fails on all access.
@@ -296,7 +298,7 @@ func (invalidPin) Out(Level) error {
 	return errInvalidPin
 }
 
-func (invalidPin) PWM(Duty, time.Duration) error {
+func (invalidPin) PWM(Duty, physic.Frequency) error {
 	return errInvalidPin
 }
 

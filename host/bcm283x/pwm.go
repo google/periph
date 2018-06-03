@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"periph.io/x/periph/conn/physic"
 )
 
 // PWENi is used to enable/disable the corresponding channel. Setting this bit
@@ -210,7 +212,7 @@ func (p *pwmMap) reset() {
 // It may select an higher frequency than the one requested.
 //
 // Other potentially good clock sources are PCM, SPI and UART.
-func setPWMClockSource() (uint64, error) {
+func setPWMClockSource() (physic.Frequency, error) {
 	if drvDMA.pwmMemory == nil {
 		return 0, errors.New("subsystem PWM not initialized")
 	}
@@ -224,12 +226,13 @@ func setPWMClockSource() (uint64, error) {
 
 	// divs * div must fit in rng1 registor.
 	div := uint32(drvDMA.pwmBaseFreq / drvDMA.pwmDMAFreq)
-	actual, divs, err := drvDMA.clockMemory.pwm.set(drvDMA.pwmBaseFreq, div)
+	f := (drvDMA.pwmBaseFreq + 500*physic.MilliHertz) / physic.Hertz
+	actual, divs, err := drvDMA.clockMemory.pwm.set(uint64(f), div)
 	if err != nil {
 		return 0, err
 	}
-	if drvDMA.pwmDMAFreq != actual/uint64(divs*div) {
-		return 0, fmt.Errorf("Unexpected DMA frequency (%d != %d/%d/%d)", drvDMA.pwmDMAFreq, actual, divs, div)
+	if drvDMA.pwmDMAFreq != physic.Frequency(actual)/physic.Frequency(divs*div)*physic.Hertz {
+		return 0, fmt.Errorf("Unexpected DMA frequency (%s != %d/%d/%d)", drvDMA.pwmDMAFreq, actual, divs, div)
 	}
 	// It acts as a clock multiplier, since this amount of data is sent per
 	// clock tick.

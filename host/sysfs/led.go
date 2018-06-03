@@ -16,6 +16,7 @@ import (
 
 	"periph.io/x/periph"
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/host/fs"
 )
 
@@ -149,8 +150,8 @@ func (l *LED) Out(level gpio.Level) error {
 
 // PWM implements gpio.PinOut.
 //
-// This sets the intensity level, if supported. The period is ignored.
-func (l *LED) PWM(d gpio.Duty, p time.Duration) error {
+// This sets the intensity level, if supported. The frequency is ignored.
+func (l *LED) PWM(d gpio.Duty, f physic.Frequency) error {
 	err := l.open()
 	if err != nil {
 		return err

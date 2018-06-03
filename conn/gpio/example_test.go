@@ -10,6 +10,7 @@ import (
 
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/host"
 )
 
@@ -96,7 +97,7 @@ func ExamplePinOut_PWM() {
 	}
 
 	// Generate a 33% duty cycle 10KHz signal.
-	if err := p.PWM(gpio.DutyMax/3, 10000); err != nil {
+	if err := p.PWM(gpio.DutyMax/3, 10*physic.KiloHertz); err != nil {
 		log.Fatal(err)
 	}
 }
