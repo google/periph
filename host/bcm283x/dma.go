@@ -657,27 +657,29 @@ func allocateCB(size int) ([]controlBlock, *videocore.Mem, error) {
 // dmaWriteStreamPCM streams data to a PCM enabled pin as a half-duplex I²S
 // channel.
 func dmaWriteStreamPCM(p *Pin, w gpiostream.Stream) error {
-	if w.Duration() == 0 {
+	d := w.Duration()
+	if d == 0 {
 		return nil
 	}
 	resolution := w.Resolution()
-	hz := uint64(time.Second / resolution)
-	_, _, _, actualHz, err := calcSource(hz, 1)
+	f := physic.PeriodToFrequency(resolution)
+	_, _, _, actualfreq, err := calcSource(f, 1)
 	if err != nil {
 		return err
 	}
-	if actualHz != hz {
+	if actualfreq != f {
 		return errors.New("TODO(maruel): handle oversampling")
 	}
 
 	// Start clock earlier.
 	drvDMA.pcmMemory.reset()
-	_, _, err = setPCMClockSource(hz)
+	_, _, err = setPCMClockSource(f)
 	if err != nil {
 		return err
 	}
 
-	l := (int(w.Duration()/resolution) + 7) / 8 // Bytes
+	// Calculate the number of bytes needed.
+	l := (int(int64(d)*int64(f)/int64(time.Second)/int64(physic.Hertz)) + 7) / 8
 	buf, err := drvDMA.dmaBufAllocator((l + 0xFFF) &^ 0xFFF)
 	if err != nil {
 		return err
@@ -788,17 +790,15 @@ func startPWMbyDMA(p *Pin, rng, data uint32) (*dmaChannel, *videocore.Mem, error
 // overSamples calculates the skip value which are the values that are read but
 // discarded as the clock is too fast.
 func overSamples(s gpiostream.Stream) (int, error) {
-	// TODO(maruel): Reconfirm calculation.
-	freq := time.Duration(drvDMA.pwmDMAFreq / physic.Hertz)
-	resolution := s.Resolution()
-	skip := (freq*resolution + time.Second/2) / time.Second
+	desired := physic.PeriodToFrequency(s.Resolution())
+	skip := drvDMA.pwmDMAFreq / desired
 	if skip < 1 {
-		return 0, fmt.Errorf("resolution is too small(%s)", resolution)
+		return 0, fmt.Errorf("frequency is too high(%s)", desired)
 	}
-	actualRes := time.Second / (freq / skip)
-	errorPercent := 100 * (actualRes - resolution) / resolution
+	actualFreq := drvDMA.pwmDMAFreq / skip
+	errorPercent := 100 * (actualFreq - desired) / desired
 	if errorPercent < -10 || errorPercent > 10 {
-		return 0, fmt.Errorf("actual resolution differs more than 10%%(%s vs %s)", resolution, actualRes)
+		return 0, fmt.Errorf("actual resolution differs more than 10%%(%s vs %s)", desired, actualFreq)
 	}
 	return int(skip), nil
 }
@@ -855,7 +855,8 @@ func dmaReadStream(p *Pin, b *gpiostream.BitStream) error {
 // the DMA controller write in a following controlBlock.nextCB.
 // handling gpiostream.Program explicitly.
 func dmaWriteStreamEdges(p *Pin, w gpiostream.Stream) error {
-	if w.Duration() == 0 {
+	d := w.Duration()
+	if d == 0 {
 		return nil
 	}
 	var bits []byte
@@ -876,7 +877,7 @@ func dmaWriteStreamEdges(p *Pin, w gpiostream.Stream) error {
 	count := 1
 	stride := uint32(skip)
 	last := getBit(bits[0], 0, msb)
-	l := int(w.Duration() / w.Resolution()) // Bits
+	l := int(int64(d) * int64(physic.PeriodToFrequency(d)) / int64(physic.Hertz)) // Bits
 	for i := 1; i < l; i++ {
 		if v := getBit(bits[i/8], i%8, msb); v != last || stride == maxLite {
 			last = v
@@ -952,7 +953,8 @@ func dmaWriteStreamDualChannel(p *Pin, w gpiostream.Stream) error {
 	if err != nil {
 		return err
 	}
-	l := int(w.Duration()/w.Resolution()) * skip * 4 // Bytes
+	// Calculates the number of needed bytes.
+	l := int(int64(w.Duration())*int64(w.Duration())/int64(physic.Hertz)) * skip * 4
 	bufLen := (l + 0xFFF) &^ 0xFFF
 	bufSet, err := drvDMA.dmaBufAllocator(bufLen)
 	if err != nil {

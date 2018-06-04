@@ -226,13 +226,13 @@ func setPWMClockSource() (physic.Frequency, error) {
 
 	// divs * div must fit in rng1 registor.
 	div := uint32(drvDMA.pwmBaseFreq / drvDMA.pwmDMAFreq)
-	f := (drvDMA.pwmBaseFreq + 500*physic.MilliHertz) / physic.Hertz
-	actual, divs, err := drvDMA.clockMemory.pwm.set(uint64(f), div)
+	actual, divs, err := drvDMA.clockMemory.pwm.set(drvDMA.pwmBaseFreq, div)
 	if err != nil {
 		return 0, err
 	}
-	if drvDMA.pwmDMAFreq != physic.Frequency(actual)/physic.Frequency(divs*div)*physic.Hertz {
-		return 0, fmt.Errorf("Unexpected DMA frequency (%s != %d/%d/%d)", drvDMA.pwmDMAFreq, actual, divs, div)
+
+	if e := actual / physic.Frequency(divs*div); drvDMA.pwmDMAFreq != e {
+		return 0, fmt.Errorf("Unexpected DMA frequency %s != %s (%d/%d/%d)", drvDMA.pwmDMAFreq, e, actual, divs, div)
 	}
 	// It acts as a clock multiplier, since this amount of data is sent per
 	// clock tick.

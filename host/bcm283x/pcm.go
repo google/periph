@@ -10,6 +10,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"periph.io/x/periph/conn/physic"
 )
 
 type pcmCS uint32
@@ -216,14 +218,14 @@ func (p *pcmMap) set() {
 // It may select an higher frequency than the one requested.
 //
 // Other potentially good clock sources are PWM, SPI and UART.
-func setPCMClockSource(hz uint64) (uint64, uint32, error) {
+func setPCMClockSource(f physic.Frequency) (physic.Frequency, uint32, error) {
 	if drvDMA.pcmMemory == nil {
 		return 0, 0, errors.New("subsystem PCM not initialized")
 	}
 	if drvDMA.clockMemory == nil {
 		return 0, 0, errors.New("subsystem Clock not initialized")
 	}
-	actual, divs, err := drvDMA.clockMemory.pcm.set(hz, 1)
+	actual, divs, err := drvDMA.clockMemory.pcm.set(f, 1)
 	if err == nil {
 		drvDMA.pcmMemory.cs = 0
 	}
