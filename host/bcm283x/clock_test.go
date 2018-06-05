@@ -262,12 +262,18 @@ func TestCalcSource_err(t *testing.T) {
 }
 
 func TestClock(t *testing.T) {
+	// Necessary to zap out setRaw failing on non-working fake CPU memory map.
+	oldClockRawError := clockRawError
+	clockRawError = nil
+	defer func() {
+		clockRawError = oldClockRawError
+	}()
 	c := clock{}
 	if _, _, err := c.set(0, dmaWaitcyclesMax+1); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := c.set(100, dmaWaitcyclesMax+1); err == nil {
-		t.Fatal("it's not a register so it doesn't react")
+	if _, _, err := c.set(100, dmaWaitcyclesMax+1); err != nil {
+		t.Fatal(err)
 	}
 	if _, _, err := c.set(25000001, dmaWaitcyclesMax+1); err == nil {
 		t.Fatal("freq too high")

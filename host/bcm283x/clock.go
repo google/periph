@@ -11,6 +11,10 @@ import (
 	"time"
 )
 
+// clockRawError is returned in a situation where the clock memory is not
+// working as expected. It is mocked in tests.
+var clockRawError = errors.New("can't write to clock divisor CPU register")
+
 // Clock sources frequency in hertz.
 const (
 	clk19dot2MHz = 19200000
@@ -288,7 +292,9 @@ func (c *clock) setRaw(ctl clockCtl, div uint32) error {
 	Nanospin(10 * time.Nanosecond)
 	c.ctl = clockPasswdCtl | ctl | clockEnable
 	if c.div != d {
-		return errors.New("can't write to clock divisor CPU register")
+		// This error is mocked out in tests, so the code path of set() callers can
+		// follow on.
+		return clockRawError
 	}
 	return nil
 }

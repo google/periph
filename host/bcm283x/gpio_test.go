@@ -137,6 +137,12 @@ func TestPin(t *testing.T) {
 }
 
 func TestPinPWM(t *testing.T) {
+	// Necessary to zap out setRaw failing on non-working fake CPU memory map.
+	oldClockRawError := clockRawError
+	clockRawError = nil
+	defer func() {
+		clockRawError = oldClockRawError
+	}()
 	defer reset()
 	setMemory()
 	p := Pin{name: "C1", number: 4, defaultPull: gpio.PullDown}
@@ -156,9 +162,8 @@ func TestPinPWM(t *testing.T) {
 	if err := p.PWM(gpio.DutyHalf, 110*physic.KiloHertz); err == nil || err.Error() != "bcm283x-gpio (C1): frequency must be at most 100kHz" {
 		t.Fatal(err)
 	}
-	// TODO(maruel): Fix test.
 	drvDMA.dmaMemory = &dmaMap{}
-	if err := p.PWM(gpio.DutyHalf, 100*physic.KiloHertz); err == nil || err.Error() != "bcm283x-gpio (C1): can't write to clock divisor CPU register" {
+	if err := p.PWM(gpio.DutyHalf, 100*physic.KiloHertz); err != nil {
 		t.Fatal(err)
 	}
 }
