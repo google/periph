@@ -61,7 +61,7 @@ func New(p gpiostream.PinOut, numPixels int, f physic.Frequency, channels int) (
 		numPixels: numPixels,
 		channels:  channels,
 		b: gpiostream.BitStream{
-			Res: f.Duration(),
+			Freq: f,
 			// Each bit is encoded on 3 bits.
 			Bits: make([]byte, numPixels*3*channels),
 			LSBF: false,

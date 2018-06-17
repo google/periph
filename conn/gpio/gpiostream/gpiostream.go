@@ -13,13 +13,15 @@ import (
 	"time"
 
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/physic"
 )
 
 // Stream is the interface to define a generic stream.
 type Stream interface {
-	// Resolution is the minimum resolution of the binary stream at which it is
-	// usable.
-	Resolution() time.Duration
+	// Frequency is the minimum data rate at which the binary stream is usable.
+	//
+	// For example, a bit stream may have a 10kHz data rate.
+	Frequency() physic.Frequency
 	// Duration of the binary stream. For infinitely looping streams, it is the
 	// duration of the non-looping part.
 	Duration() time.Duration
@@ -31,9 +33,8 @@ type BitStream struct {
 	//
 	// The stream is required to be a multiple of 8 samples.
 	Bits []byte
-	// The duration each bit represents. Not to be confused by the duration of
-	// each byte.
-	Res time.Duration
+	// Freq is the rate at each the bit (not byte) stream should be processed.
+	Freq physic.Frequency
 	// LSBF when true means than Bits is in LSB-first. When false, the data is
 	// MSB-first.
 	//
@@ -48,25 +49,23 @@ type BitStream struct {
 }
 
 // Resolution implement Stream.
-func (b *BitStream) Resolution() time.Duration {
-	if len(b.Bits) == 0 {
-		return 0
-	}
-	return b.Res
+func (b *BitStream) Frequency() physic.Frequency {
+	return b.Freq
 }
 
 // Duration implement Stream.
 func (b *BitStream) Duration() time.Duration {
-	return b.Res * time.Duration(len(b.Bits)*8)
+	if b.Freq == 0 {
+		return 0
+	}
+	return b.Freq.Duration() * time.Duration(len(b.Bits)*8)
 }
-
-//
 
 // EdgeStream is a stream of edges to be written.
 //
-// This struct is more efficient than BitStreamxSB for repetitive pulses, like
-// controlling a servo. A PWM can be created by specifying a slice of twice the
-// same resolution and make it looping via a Program.
+// This struct is more efficient than BitStream for short repetitive pulses,
+// like controlling a servo. A PWM can be created by specifying a slice of
+// twice the same resolution and make it looping via a Program.
 type EdgeStream struct {
 	// Edges is the list of Level change. It is assumed that the signal starts
 	// with gpio.High. Use a duration of 0 for Edges[0] to start with a Low
@@ -79,27 +78,24 @@ type EdgeStream struct {
 	// rasterized.
 	//
 	// The lower the value, the more memory shall be used when rasterized.
-	Res time.Duration
+	Freq physic.Frequency
 }
 
-// Resolution implement Stream.
-func (e *EdgeStream) Resolution() time.Duration {
-	if len(e.Edges) == 0 {
-		return 0
-	}
-	return e.Res
+// Frequency implement Stream.
+func (e *EdgeStream) Frequency() physic.Frequency {
+	return e.Freq
 }
 
 // Duration implement Stream.
 func (e *EdgeStream) Duration() time.Duration {
-	if e.Res == 0 {
+	if e.Freq == 0 {
 		return 0
 	}
 	t := 0
 	for _, edge := range e.Edges {
 		t += int(edge)
 	}
-	return e.Res * time.Duration(t)
+	return e.Freq.Duration() * time.Duration(t)
 }
 
 // Program is a loop of streams.
@@ -111,30 +107,30 @@ type Program struct {
 	Loops int      // Set to -1 to create an infinite loop
 }
 
-// Resolution implement Stream.
-func (p *Program) Resolution() time.Duration {
+// Frequency implement Stream.
+func (p *Program) Frequency() physic.Frequency {
 	if p.Loops == 0 {
 		return 0
 	}
-	var rates []time.Duration
+	var buf [16]physic.Frequency
+	freqs := buf[:0]
 	for _, part := range p.Parts {
-		if r := part.Resolution(); r != 0 {
-			rates = insertTime(rates, r)
+		if f := part.Frequency(); f != 0 {
+			freqs = insertFreq(freqs, f)
 		}
 	}
-	if len(rates) == 0 {
+	if len(freqs) == 0 {
 		return 0
 	}
-	res := rates[0]
-	for i := 1; i < len(rates); i++ {
-		r := rates[i]
-		if r > 2*res {
+	f := freqs[0]
+	for i := 1; i < len(freqs); i++ {
+		if r := freqs[i]; r*2 < f {
 			break
 		}
 		// Take in account Nyquist rate. https://wikipedia.org/wiki/Nyquist_rate
-		res /= 2
+		f *= 2
 	}
-	return res
+	return f
 }
 
 // Duration implement Stream.
@@ -186,11 +182,12 @@ type PinOut interface {
 
 //
 
-func insertTime(l []time.Duration, t time.Duration) []time.Duration {
-	i := search(len(l), func(i int) bool { return l[i] > t })
+// insertFreq inserts in reverse order, highest frequency first.
+func insertFreq(l []physic.Frequency, f physic.Frequency) []physic.Frequency {
+	i := search(len(l), func(i int) bool { return l[i] < f })
 	l = append(l, 0)
 	copy(l[i+1:], l[i:])
-	l[i] = t
+	l[i] = f
 	return l
 }
 

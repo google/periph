@@ -7,11 +7,11 @@ package gpiostream_test
 import (
 	"fmt"
 	"log"
-	"time"
 
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/gpio/gpiostream"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/host"
 )
 
@@ -19,7 +19,7 @@ func ExampleBitStream() {
 	fmt.Printf("Format is LSB-first; least significant bit first:\n")
 	stream := gpiostream.BitStream{
 		Bits: []byte{0x80, 0x01, 0xAA, 0x55},
-		Res:  time.Microsecond,
+		Freq: physic.MegaHertz,
 		LSBF: true,
 	}
 	for _, l := range stream.Bits {
@@ -38,7 +38,7 @@ func ExampleBitStream() {
 	fmt.Printf("Format is MSB-first; most significant bit first:\n")
 	stream = gpiostream.BitStream{
 		Bits: []byte{0x80, 0x01, 0xAA, 0x55},
-		Res:  time.Microsecond,
+		Freq: physic.MegaHertz,
 		LSBF: false,
 	}
 	for _, l := range stream.Bits {
@@ -78,7 +78,7 @@ func ExamplePinIn() {
 	if !ok {
 		log.Fatalf("pin streaming is not supported on pin %s", p)
 	}
-	b := gpiostream.BitStream{Res: time.Millisecond, Bits: make([]byte, 1000/8)}
+	b := gpiostream.BitStream{Freq: physic.KiloHertz, Bits: make([]byte, 1000/8)}
 	if err := r.StreamIn(gpio.PullNoChange, &b); err != nil {
 		log.Fatal(err)
 	}
@@ -110,7 +110,7 @@ func ExamplePinOut() {
 	b := gpiostream.Program{
 		Parts: []gpiostream.Stream{
 			&gpiostream.EdgeStream{
-				Res:   time.Microsecond,
+				Freq:  physic.MegaHertz,
 				Edges: []uint16{250, 750},
 			},
 		},

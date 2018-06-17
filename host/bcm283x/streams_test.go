@@ -7,15 +7,15 @@ package bcm283x
 import (
 	"reflect"
 	"testing"
-	"time"
 
 	"periph.io/x/periph/conn/gpio/gpiostream"
+	"periph.io/x/periph/conn/physic"
 )
 
 func TestRaster32Bits(t *testing.T) {
 	b := gpiostream.BitStream{
-		Res:  time.Second,
 		Bits: []byte{0x1, 0x40},
+		Freq: physic.Hertz,
 		LSBF: true,
 	}
 	d32Clear := make([]uint32, 8*2)

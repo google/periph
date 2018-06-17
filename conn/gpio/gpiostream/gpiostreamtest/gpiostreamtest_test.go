@@ -7,11 +7,11 @@ package gpiostreamtest
 import (
 	"reflect"
 	"testing"
-	"time"
 
 	"periph.io/x/periph/conn/conntest"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpiostream"
+	"periph.io/x/periph/conn/physic"
 )
 
 // PinIn
@@ -19,9 +19,9 @@ import (
 func TestPinIn(t *testing.T) {
 	p := &PinIn{
 		N:   "Yo",
-		Ops: []InOp{{BitStream: gpiostream.BitStream{Res: time.Second, Bits: []byte{0xCC}, LSBF: true}, Pull: gpio.PullNoChange}},
+		Ops: []InOp{{BitStream: gpiostream.BitStream{Freq: physic.Hertz, Bits: []byte{0xCC}, LSBF: true}, Pull: gpio.PullNoChange}},
 	}
-	b := gpiostream.BitStream{Res: time.Second, Bits: make([]byte, 1), LSBF: true}
+	b := gpiostream.BitStream{Freq: physic.Hertz, Bits: make([]byte, 1), LSBF: true}
 	if err := p.StreamIn(gpio.PullNoChange, &b); err != nil {
 		t.Fatal(err)
 	}
@@ -35,10 +35,10 @@ func TestPinIn(t *testing.T) {
 
 func TestPinIn_fail_type(t *testing.T) {
 	p := &PinIn{
-		Ops:       []InOp{{BitStream: gpiostream.BitStream{Res: time.Second, Bits: []byte{0xCC}, LSBF: true}, Pull: gpio.PullNoChange}},
+		Ops:       []InOp{{BitStream: gpiostream.BitStream{Freq: physic.Hertz, Bits: []byte{0xCC}, LSBF: true}, Pull: gpio.PullNoChange}},
 		DontPanic: true,
 	}
-	b := gpiostream.EdgeStream{Res: time.Minute, Edges: make([]uint16, 1)}
+	b := gpiostream.EdgeStream{Freq: physic.MilliHertz, Edges: make([]uint16, 1)}
 	if p.StreamIn(gpio.PullNoChange, &b) == nil {
 		t.Fatal("unsupported EdgeStream")
 	}
@@ -49,10 +49,10 @@ func TestPinIn_fail_type(t *testing.T) {
 
 func TestPinIn_fail_res(t *testing.T) {
 	p := &PinIn{
-		Ops:       []InOp{{BitStream: gpiostream.BitStream{Res: time.Second, Bits: []byte{0xCC}, LSBF: true}, Pull: gpio.PullNoChange}},
+		Ops:       []InOp{{BitStream: gpiostream.BitStream{Freq: physic.Hertz, Bits: []byte{0xCC}, LSBF: true}, Pull: gpio.PullNoChange}},
 		DontPanic: true,
 	}
-	b := gpiostream.BitStream{Res: time.Minute, Bits: make([]byte, 1), LSBF: true}
+	b := gpiostream.BitStream{Freq: physic.MilliHertz, Bits: make([]byte, 1), LSBF: true}
 	if p.StreamIn(gpio.PullNoChange, &b) == nil {
 		t.Fatal("different res")
 	}
@@ -63,10 +63,10 @@ func TestPinIn_fail_res(t *testing.T) {
 
 func TestPinIn_fail_len(t *testing.T) {
 	p := &PinIn{
-		Ops:       []InOp{{BitStream: gpiostream.BitStream{Res: time.Second, Bits: []byte{0xCC}, LSBF: true}, Pull: gpio.PullNoChange}},
+		Ops:       []InOp{{BitStream: gpiostream.BitStream{Freq: physic.Hertz, Bits: []byte{0xCC}, LSBF: true}, Pull: gpio.PullNoChange}},
 		DontPanic: true,
 	}
-	b := gpiostream.BitStream{Res: time.Second, Bits: make([]byte, 2), LSBF: true}
+	b := gpiostream.BitStream{Freq: physic.Hertz, Bits: make([]byte, 2), LSBF: true}
 	if p.StreamIn(gpio.PullNoChange, &b) == nil {
 		t.Fatal("different len")
 	}
@@ -74,10 +74,10 @@ func TestPinIn_fail_len(t *testing.T) {
 
 func TestPinIn_fail_LSBF(t *testing.T) {
 	p := &PinIn{
-		Ops:       []InOp{{BitStream: gpiostream.BitStream{Res: time.Second, Bits: []byte{0xCC}, LSBF: true}, Pull: gpio.PullNoChange}},
+		Ops:       []InOp{{BitStream: gpiostream.BitStream{Freq: physic.Hertz, Bits: []byte{0xCC}, LSBF: true}, Pull: gpio.PullNoChange}},
 		DontPanic: true,
 	}
-	b := gpiostream.BitStream{Res: time.Second, Bits: make([]byte, 1), LSBF: false}
+	b := gpiostream.BitStream{Freq: physic.Hertz, Bits: make([]byte, 1), LSBF: false}
 	if p.StreamIn(gpio.PullNoChange, &b) == nil {
 		t.Fatal("different LSBF")
 	}
@@ -85,10 +85,10 @@ func TestPinIn_fail_LSBF(t *testing.T) {
 
 func TestPinIn_fail_pull(t *testing.T) {
 	p := &PinIn{
-		Ops:       []InOp{{BitStream: gpiostream.BitStream{Res: time.Second, Bits: []byte{0xCC}, LSBF: true}, Pull: gpio.PullNoChange}},
+		Ops:       []InOp{{BitStream: gpiostream.BitStream{Freq: physic.Hertz, Bits: []byte{0xCC}, LSBF: true}, Pull: gpio.PullNoChange}},
 		DontPanic: true,
 	}
-	b := gpiostream.BitStream{Res: time.Second, Bits: make([]byte, 1), LSBF: true}
+	b := gpiostream.BitStream{Freq: physic.Hertz, Bits: make([]byte, 1), LSBF: true}
 	if p.StreamIn(gpio.PullDown, &b) == nil {
 		t.Fatal("different pull")
 	}
@@ -99,11 +99,11 @@ func TestPinIn_fail_pull(t *testing.T) {
 
 func TestPinIn_fail_count(t *testing.T) {
 	p := &PinIn{
-		Ops:       []InOp{{BitStream: gpiostream.BitStream{Res: time.Second, Bits: []byte{0xCC}, LSBF: true}, Pull: gpio.PullNoChange}},
+		Ops:       []InOp{{BitStream: gpiostream.BitStream{Freq: physic.Hertz, Bits: []byte{0xCC}, LSBF: true}, Pull: gpio.PullNoChange}},
 		Count:     1,
 		DontPanic: true,
 	}
-	b := gpiostream.BitStream{Res: time.Second, Bits: make([]byte, 1), LSBF: true}
+	b := gpiostream.BitStream{Freq: physic.Hertz, Bits: make([]byte, 1), LSBF: true}
 	if p.StreamIn(gpio.PullNoChange, &b) == nil {
 		t.Fatal("count too large")
 	}
@@ -111,7 +111,7 @@ func TestPinIn_fail_count(t *testing.T) {
 
 func TestPinIn_panic_res(t *testing.T) {
 	p := &PinIn{
-		Ops: []InOp{{BitStream: gpiostream.BitStream{Res: time.Second, Bits: []byte{0xCC}, LSBF: true}, Pull: gpio.PullNoChange}},
+		Ops: []InOp{{BitStream: gpiostream.BitStream{Freq: physic.Hertz, Bits: []byte{0xCC}, LSBF: true}, Pull: gpio.PullNoChange}},
 	}
 	defer func() {
 		if err, ok := recover().(error); !ok {
@@ -120,7 +120,7 @@ func TestPinIn_panic_res(t *testing.T) {
 			t.Fatalf("expected conntest error, got %v", err)
 		}
 	}()
-	b := gpiostream.BitStream{Res: time.Minute, Bits: make([]byte, 1), LSBF: true}
+	b := gpiostream.BitStream{Freq: physic.MilliHertz, Bits: make([]byte, 1), LSBF: true}
 	if p.StreamIn(gpio.PullNoChange, &b) == nil {
 		t.Fatal("different res")
 	}
@@ -129,8 +129,8 @@ func TestPinIn_panic_res(t *testing.T) {
 // PinOutPlayback
 
 func TestPinOutPlayback(t *testing.T) {
-	p := &PinOutPlayback{N: "Yo", Ops: []gpiostream.Stream{&gpiostream.BitStream{Res: time.Second, Bits: []byte{0xCC}, LSBF: true}}}
-	if err := p.StreamOut(&gpiostream.BitStream{Res: time.Second, Bits: []byte{0xCC}, LSBF: true}); err != nil {
+	p := &PinOutPlayback{N: "Yo", Ops: []gpiostream.Stream{&gpiostream.BitStream{Freq: physic.Hertz, Bits: []byte{0xCC}, LSBF: true}}}
+	if err := p.StreamOut(&gpiostream.BitStream{Freq: physic.Hertz, Bits: []byte{0xCC}, LSBF: true}); err != nil {
 		t.Fatal(err)
 	}
 	if s := p.String(); s != "Yo" {
@@ -143,14 +143,14 @@ func TestPinOutPlayback(t *testing.T) {
 
 func TestPinOutPlayback_fail(t *testing.T) {
 	p := &PinOutPlayback{DontPanic: true}
-	if p.StreamOut(&gpiostream.BitStream{Res: time.Second, Bits: []byte{0xCC}, LSBF: true}) == nil {
+	if p.StreamOut(&gpiostream.BitStream{Freq: physic.Hertz, Bits: []byte{0xCC}, LSBF: true}) == nil {
 		t.Fatal("expected failure")
 	}
-	p = &PinOutPlayback{DontPanic: true, Ops: []gpiostream.Stream{&gpiostream.BitStream{Res: time.Second, Bits: []byte{0xCC}, LSBF: true}}}
-	if p.StreamOut(&gpiostream.BitStream{Res: time.Minute, Bits: []byte{0xCC}, LSBF: true}) == nil {
-		t.Fatal("different Res")
+	p = &PinOutPlayback{DontPanic: true, Ops: []gpiostream.Stream{&gpiostream.BitStream{Freq: physic.Hertz, Bits: []byte{0xCC}, LSBF: true}}}
+	if p.StreamOut(&gpiostream.BitStream{Freq: physic.MilliHertz, Bits: []byte{0xCC}, LSBF: true}) == nil {
+		t.Fatal("different Freq")
 	}
-	p = &PinOutPlayback{DontPanic: true, Ops: []gpiostream.Stream{&gpiostream.BitStream{Res: time.Second, Bits: []byte{0xCC}, LSBF: true}}}
+	p = &PinOutPlayback{DontPanic: true, Ops: []gpiostream.Stream{&gpiostream.BitStream{Freq: physic.Hertz, Bits: []byte{0xCC}, LSBF: true}}}
 	if p.Close() == nil {
 		t.Fatal("expected failure")
 	}
@@ -161,10 +161,10 @@ func TestPinOutPlayback_fail(t *testing.T) {
 func TestPinOutRecord(t *testing.T) {
 	p := &PinOutRecord{N: "Yo"}
 	data := []gpiostream.Stream{
-		&gpiostream.BitStream{Res: time.Second, Bits: []byte{0xCC}, LSBF: true},
-		&gpiostream.BitStream{Res: time.Second, Bits: []byte{0xCC}, LSBF: false},
-		&gpiostream.EdgeStream{Res: time.Second, Edges: []uint16{60, 120}},
-		&gpiostream.Program{Parts: []gpiostream.Stream{&gpiostream.BitStream{Res: time.Second, Bits: []byte{0xCC}, LSBF: true}}, Loops: 2},
+		&gpiostream.BitStream{Freq: physic.Hertz, Bits: []byte{0xCC}, LSBF: true},
+		&gpiostream.BitStream{Freq: physic.Hertz, Bits: []byte{0xCC}, LSBF: false},
+		&gpiostream.EdgeStream{Freq: physic.Hertz, Edges: []uint16{60, 120}},
+		&gpiostream.Program{Parts: []gpiostream.Stream{&gpiostream.BitStream{Freq: physic.Hertz, Bits: []byte{0xCC}, LSBF: true}}, Loops: 2},
 	}
 	for _, line := range data {
 		if err := p.StreamOut(line); err != nil {

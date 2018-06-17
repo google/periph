@@ -661,8 +661,7 @@ func dmaWriteStreamPCM(p *Pin, w gpiostream.Stream) error {
 	if d == 0 {
 		return nil
 	}
-	resolution := w.Resolution()
-	f := physic.PeriodToFrequency(resolution)
+	f := w.Frequency()
 	_, _, _, actualfreq, err := calcSource(f, 1)
 	if err != nil {
 		return err
@@ -679,7 +678,7 @@ func dmaWriteStreamPCM(p *Pin, w gpiostream.Stream) error {
 	}
 
 	// Calculate the number of bytes needed.
-	l := (int(int64(d)*int64(f)/int64(time.Second)/int64(physic.Hertz)) + 7) / 8
+	l := (int(w.Frequency()/f) + 7) / 8 // Bytes
 	buf, err := drvDMA.dmaBufAllocator((l + 0xFFF) &^ 0xFFF)
 	if err != nil {
 		return err
@@ -790,7 +789,7 @@ func startPWMbyDMA(p *Pin, rng, data uint32) (*dmaChannel, *videocore.Mem, error
 // overSamples calculates the skip value which are the values that are read but
 // discarded as the clock is too fast.
 func overSamples(s gpiostream.Stream) (int, error) {
-	desired := physic.PeriodToFrequency(s.Resolution())
+	desired := s.Frequency()
 	skip := drvDMA.pwmDMAFreq / desired
 	if skip < 1 {
 		return 0, fmt.Errorf("frequency is too high(%s)", desired)
@@ -877,7 +876,7 @@ func dmaWriteStreamEdges(p *Pin, w gpiostream.Stream) error {
 	count := 1
 	stride := uint32(skip)
 	last := getBit(bits[0], 0, msb)
-	l := int(int64(d) * int64(physic.PeriodToFrequency(d)) / int64(physic.Hertz)) // Bits
+	l := int(int64(d) * int64(w.Frequency()) / int64(physic.Hertz)) // Bits
 	for i := 1; i < l; i++ {
 		if v := getBit(bits[i/8], i%8, msb); v != last || stride == maxLite {
 			last = v
@@ -954,7 +953,7 @@ func dmaWriteStreamDualChannel(p *Pin, w gpiostream.Stream) error {
 		return err
 	}
 	// Calculates the number of needed bytes.
-	l := int(int64(w.Duration())*int64(w.Duration())/int64(physic.Hertz)) * skip * 4
+	l := int(int64(w.Duration())*int64(w.Frequency())/int64(physic.Hertz)) * skip * 4
 	bufLen := (l + 0xFFF) &^ 0xFFF
 	bufSet, err := drvDMA.dmaBufAllocator(bufLen)
 	if err != nil {

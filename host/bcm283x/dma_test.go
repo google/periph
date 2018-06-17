@@ -7,9 +7,9 @@ package bcm283x
 import (
 	"reflect"
 	"testing"
-	"time"
 
 	"periph.io/x/periph/conn/gpio/gpiostream"
+	"periph.io/x/periph/conn/physic"
 )
 
 func TestDmaStatus_String(t *testing.T) {
@@ -150,7 +150,7 @@ func TestCopyStreamToDMAbuf(t *testing.T) {
 	buf := make([]uint32, 2)
 	stream := gpiostream.BitStream{
 		Bits: []byte{1, 2, 3, 4, 5, 6, 7},
-		Res:  time.Microsecond,
+		Freq: physic.KiloHertz,
 		LSBF: false,
 	}
 	copyStreamToDMABuf(&stream, buf)

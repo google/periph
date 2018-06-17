@@ -7,33 +7,27 @@ package gpiostream
 import (
 	"testing"
 	"time"
+
+	"periph.io/x/periph/conn/physic"
 )
 
 func TestBitStream(t *testing.T) {
-	s := BitStream{Res: time.Second, Bits: make([]byte, 100), LSBF: true}
-	if r := s.Resolution(); r != time.Second {
-		t.Fatal(r)
+	s := BitStream{Freq: physic.Hertz, Bits: make([]byte, 100), LSBF: true}
+	if f := s.Frequency(); f != physic.Hertz {
+		t.Fatal(f)
 	}
 	if d := s.Duration(); d != 100*8*time.Second {
 		t.Fatal(d)
 	}
-	s = BitStream{Res: time.Second, LSBF: true}
-	if r := s.Resolution(); r != 0 {
-		t.Fatal(r)
-	}
 }
 
 func TestEdgeStream(t *testing.T) {
-	s := EdgeStream{Res: time.Millisecond, Edges: []uint16{1000, 1}}
-	if r := s.Resolution(); r != time.Millisecond {
-		t.Fatal(r)
+	s := EdgeStream{Freq: physic.KiloHertz, Edges: []uint16{1000, 1}}
+	if f := s.Frequency(); f != physic.KiloHertz {
+		t.Fatal(f)
 	}
 	if d := s.Duration(); d != 1001*time.Millisecond {
 		t.Fatal(d)
-	}
-	s = EdgeStream{Res: time.Second}
-	if r := s.Resolution(); r != 0 {
-		t.Fatal(r)
 	}
 	s = EdgeStream{Edges: []uint16{1000, 1}}
 	if d := s.Duration(); d != 0 {
@@ -44,27 +38,27 @@ func TestEdgeStream(t *testing.T) {
 func TestProgram(t *testing.T) {
 	s := Program{
 		Parts: []Stream{
-			&EdgeStream{Res: time.Millisecond, Edges: []uint16{1000, 1}},
-			&BitStream{Res: time.Second, Bits: make([]byte, 100)},
+			&EdgeStream{Freq: physic.KiloHertz, Edges: []uint16{1000, 1}},
+			&BitStream{Freq: physic.Hertz, Bits: make([]byte, 100)},
 		},
 		Loops: 2,
 	}
-	if r := s.Resolution(); r != time.Millisecond {
-		t.Fatal(r)
+	if f := s.Frequency(); f != physic.KiloHertz {
+		t.Fatal(f)
 	}
 	if d := s.Duration(); d != 2*(100*8*time.Second+1001*time.Millisecond) {
 		t.Fatal(d)
 	}
 	s = Program{Loops: 0}
-	if r := s.Resolution(); r != 0 {
-		t.Fatal(r)
+	if f := s.Frequency(); f != 0 {
+		t.Fatal(f)
 	}
 	if d := s.Duration(); d != 0 {
 		t.Fatal(d)
 	}
 	s = Program{Parts: []Stream{&Program{}}, Loops: -1}
-	if r := s.Resolution(); r != 0 {
-		t.Fatal(r)
+	if f := s.Frequency(); f != 0 {
+		t.Fatal(f)
 	}
 	if d := s.Duration(); d != 0 {
 		t.Fatal(d)
@@ -74,17 +68,18 @@ func TestProgram(t *testing.T) {
 func TestProgram_Nyquist(t *testing.T) {
 	s := Program{
 		Parts: []Stream{
-			&BitStream{Res: time.Second + 2*time.Millisecond, Bits: make([]byte, 1)},
-			&BitStream{Res: time.Second, Bits: make([]byte, 1)},
-			&BitStream{Res: 5 * time.Second, Bits: make([]byte, 1)},
+			&BitStream{Freq: 998 * physic.MilliHertz, Bits: make([]byte, 1)},
+			&BitStream{Freq: physic.Hertz, Bits: make([]byte, 1)},
+			&BitStream{Freq: 200 * physic.MilliHertz, Bits: make([]byte, 1)},
 		},
 		Loops: 1,
 	}
 	// TODO(maruel): This will cause small aliasing on the first BitStream.
-	if r := s.Resolution(); r != 500*time.Millisecond {
-		t.Fatal(r)
+	if f := s.Frequency(); f != 2*physic.Hertz {
+		t.Fatal(f)
 	}
-	if d := s.Duration(); d != 7*8*time.Second+2*8*time.Millisecond {
+
+	if d := s.Duration(); d != 56016032064*time.Nanosecond {
 		t.Fatal(d)
 	}
 }

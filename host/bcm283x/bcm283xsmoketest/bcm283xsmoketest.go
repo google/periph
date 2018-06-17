@@ -172,7 +172,7 @@ func (s *SmokeTest) testStreamIn(p1, p2 *loggingPin) error {
 	// TODO(maruel): Support >64kb buffer.
 	b := &gpiostream.BitStream{
 		Bits: make([]byte, 1000),
-		Res:  freq.Duration() / 2,
+		Freq: freq * 2,
 		LSBF: true,
 	}
 	if err := p1.StreamIn(gpio.PullDown, b); err != nil {

@@ -61,8 +61,8 @@ func (p *PinIn) StreamIn(pull gpio.Pull, b gpiostream.Stream) error {
 	if len(p.Ops) <= p.Count {
 		return errorf(p.DontPanic, "gpiostreamtest: unexpected StreamIn() (count #%d) expecting %#v", p.Count, b)
 	}
-	if s.Res != p.Ops[p.Count].Res {
-		return errorf(p.DontPanic, "gpiostreamtest: unexpected StreamIn() Res (count #%d) expected %s, got %s", p.Count, p.Ops[p.Count].Res, s.Res)
+	if s.Freq != p.Ops[p.Count].Freq {
+		return errorf(p.DontPanic, "gpiostreamtest: unexpected StreamIn() Freq (count #%d) expected %s, got %s", p.Count, p.Ops[p.Count].Freq, s.Freq)
 	}
 	if len(s.Bits) != len(p.Ops[p.Count].Bits) {
 		return errorf(p.DontPanic, "gpiostreamtest: unexpected StreamIn() len(Bits) (count #%d) expected %d, got %d", p.Count, len(p.Ops[p.Count].Bits), len(s.Bits))
@@ -159,11 +159,11 @@ func errorf(dontPanic bool, format string, a ...interface{}) error {
 func deepCopy(s gpiostream.Stream) (gpiostream.Stream, error) {
 	switch t := s.(type) {
 	case *gpiostream.BitStream:
-		o := &gpiostream.BitStream{Bits: make([]byte, len(t.Bits)), Res: t.Res, LSBF: t.LSBF}
+		o := &gpiostream.BitStream{Bits: make([]byte, len(t.Bits)), Freq: t.Freq, LSBF: t.LSBF}
 		copy(o.Bits, t.Bits)
 		return o, nil
 	case *gpiostream.EdgeStream:
-		o := &gpiostream.EdgeStream{Edges: make([]uint16, len(t.Edges)), Res: t.Res}
+		o := &gpiostream.EdgeStream{Edges: make([]uint16, len(t.Edges)), Freq: t.Freq}
 		copy(o.Edges, t.Edges)
 		return o, nil
 	case *gpiostream.Program:
