@@ -82,5 +82,5 @@ it](https://periph.io/project/contributing/).
 
 ## Troubleshooting
 
-Having getting the tools to run? See [users/](https://periph.io/users/) for more
+Having getting the tools to run? See [users/](https://groups.google.com/forum/#!forum/periph-users) for more
 documentation.
