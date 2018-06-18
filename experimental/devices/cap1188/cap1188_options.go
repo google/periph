@@ -13,7 +13,6 @@ import (
 // SamplingTime determines the time to make a single sample.
 type SamplingTime uint8
 
-// Possible sampling time values. (written as 2 bits)
 const (
 	S320us SamplingTime = 0
 	S640us SamplingTime = 1
@@ -25,7 +24,6 @@ const (
 // AvgSampling set the number of samples per measurement that get averaged.
 type AvgSampling uint8
 
-// Possible average sampling values. (written as 3 bits)
 const (
 	// Avg1 means that 1 sample is taken per measurement
 	Avg1   AvgSampling = iota // 0
@@ -142,16 +140,14 @@ func (o *Opts) i2cAddr() (uint16, error) {
 	}
 }
 
-// DefaultOpts returns a pointer to a new Opts with the default option values.
-func DefaultOpts() *Opts {
-	return &Opts{
-		LinkedLEDs:            true,
-		MaxTouchDuration:      MaxDur5600ms,
-		RetriggerOnHold:       false,
-		EnableRecalibration:   false,
-		InterruptOnRelease:    false,
-		SamplesPerMeasurement: Avg1,
-		SamplingTime:          S1_28ms,
-		CycleTime:             C35ms,
-	}
+// DefaultOpts contains default options to use.
+var DefaultOpts = Opts{
+	LinkedLEDs:            true,
+	MaxTouchDuration:      MaxDur5600ms,
+	RetriggerOnHold:       false,
+	EnableRecalibration:   false,
+	InterruptOnRelease:    false,
+	SamplesPerMeasurement: Avg1,
+	SamplingTime:          S1_28ms,
+	CycleTime:             C35ms,
 }

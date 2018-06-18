@@ -37,7 +37,7 @@ func mainImpl() error {
 	}
 	log.SetFlags(log.Lmicroseconds)
 
-	opts := cap1188.DefaultOpts()
+	opts := cap1188.DefaultOpts
 	if *i2cAddr != 0 {
 		if *i2cAddr < 0 || *i2cAddr > 65535 {
 			return errors.New("invlaid -i2c value")
@@ -86,7 +86,7 @@ func mainImpl() error {
 		opts.Debug = true
 	}
 
-	if dev, err = cap1188.NewI2C(i2cBus, opts); err != nil {
+	if dev, err = cap1188.NewI2C(i2cBus, &opts); err != nil {
 		return fmt.Errorf("couldn't open cap1188 - %s", err)
 	}
 
@@ -121,10 +121,10 @@ func mainImpl() error {
 
 	if alertPin != nil {
 		log.Println("Monitoring for touch events")
+		var status [8]cap1188.TouchStatus
 		for {
 			if alertPin.WaitForEdge(-1) {
-				status, err := dev.InputStatus()
-				if err != nil {
+				if err := dev.InputStatus(status[:]); err != nil {
 					log.Printf("Error reading inputs: %s", err)
 				}
 				printSensorsStatus(status[:])
