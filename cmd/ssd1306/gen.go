@@ -9,6 +9,7 @@
 // It exists so cmd/ssd1306 does not depend on golang.org/x/image/...
 //
 // This program is not built by default.
+
 package main
 
 import (
