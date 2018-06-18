@@ -82,5 +82,7 @@ it](https://periph.io/project/contributing/).
 
 ## Troubleshooting
 
-Having getting the tools to run? See [users/](https://periph.io/users/) for more
-documentation.
+Having trouble getting the tools to run? File [an
+issue](https://github.com/google/periph/issues) or better visit the [Slack
+channel](https://gophers.slack.com/messages/periph/). You can get an [invite
+here](https://invite.slack.golangbridge.org/).
