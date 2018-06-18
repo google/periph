@@ -138,6 +138,9 @@ func ParseDuty(s string) (Duty, error) {
 // PinIn is an input GPIO pin.
 //
 // It may optionally support internal pull resistor and edge based triggering.
+//
+// A button is semantically a PinIn. So if you are looking to read from a
+// button, PinIn is the interface you are looking for.
 type PinIn interface {
 	pin.Pin
 	// In setups a pin as an input.
@@ -188,6 +191,9 @@ type PinIn interface {
 }
 
 // PinOut is an output GPIO pin.
+//
+// A LED, a buzzer, a servo, are semantically a PinOut. So if you are looking
+// to control these, PinOut is the interface you are looking for.
 type PinOut interface {
 	pin.Pin
 	// Out sets a pin as output if it wasn't already and sets the initial value.
@@ -206,6 +212,9 @@ type PinOut interface {
 	//
 	// Using 0 as frequency will use the optimal value as supported/preferred by
 	// the pin.
+	//
+	// To use as a servo, see https://en.wikipedia.org/wiki/Servo_control as an
+	// explanation how to calculate duty.
 	PWM(duty Duty, f physic.Frequency) error
 }
 
