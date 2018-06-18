@@ -102,6 +102,10 @@ func (d *Dev) Halt() error {
 }
 
 // InputStatus reads and returns the status of the inputs.
+//
+// The slice t will have the sensed inputs updated upon successful read. If the
+// slice is too long, extraneous elements are ignored. If the slice is too
+// short, only the provided subset is updated without error.
 func (d *Dev) InputStatus(t []TouchStatus) error {
 	d.resetSinceAtLeast(200 * time.Millisecond)
 	// Read inputs.
