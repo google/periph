@@ -1238,7 +1238,7 @@ func (d *driverGPIO) Init() (bool, error) {
 		return true, err
 	}
 
-	return true, sysfs.SetSpeedHook(setSpeed)
+	return true, sysfs.I2CSetSpeedHook(setSpeed)
 }
 
 func setSpeed(f physic.Frequency) error {

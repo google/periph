@@ -91,14 +91,14 @@ func TestDriver_Init(t *testing.T) {
 	defer func() {
 		drvI2C.setSpeed = nil
 	}()
-	if SetSpeedHook(nil) == nil {
+	if I2CSetSpeedHook(nil) == nil {
 		t.Fatal("must fail on nil hook")
 	}
-	if err := SetSpeedHook(func(f physic.Frequency) error { return nil }); err != nil {
+	if err := I2CSetSpeedHook(func(f physic.Frequency) error { return nil }); err != nil {
 		t.Fatal(err)
 	}
-	if SetSpeedHook(func(f physic.Frequency) error { return nil }) == nil {
-		t.Fatal("second SetSpeedHook must fail")
+	if I2CSetSpeedHook(func(f physic.Frequency) error { return nil }) == nil {
+		t.Fatal("second I2CSetSpeedHook must fail")
 	}
 }
 

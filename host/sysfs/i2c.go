@@ -23,8 +23,9 @@ import (
 	"periph.io/x/periph/conn/physic"
 )
 
-// SetSpeedHook can be set by a driver to enable changing the I²C buses speed.
-func SetSpeedHook(h func(f physic.Frequency) error) error {
+// I2CSetSpeedHook can be set by a driver to enable changing the I²C buses
+// speed.
+func I2CSetSpeedHook(h func(f physic.Frequency) error) error {
 	if h == nil {
 		return errors.New("sysfs-i2c: hook must not be nil")
 	}
