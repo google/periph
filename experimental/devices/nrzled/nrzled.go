@@ -41,29 +41,45 @@ func NRZ(b byte) uint32 {
 	return out
 }
 
+// DefaultOpts is the recommended default options.
+var DefaultOpts = Opts{
+	NumPixels: 150,                    // 150 LEDs is a common strip length.
+	Channels:  3,                      // RGB.
+	Freq:      800 * physic.KiloHertz, // Fast LEDs, most common.
+}
+
+// Opts defines the options for the device.
+type Opts struct {
+	// NumPixels is the number of pixels to control. If too short, the following
+	// pixels will be corrupted. If too long, the pixels will be drawn
+	// unnecessarily but not visible issue will occur.
+	NumPixels int
+	// Channels is 1 for single color LEDs, 3 for RGB LEDs and 4 for RGBW (white)
+	// LEDs.
+	Channels int
+	// Freq is the frequency to use to drive the LEDs. It should be either 800kHz
+	// for fast ICs and 400kHz for the slow ones.
+	Freq physic.Frequency
+}
+
 // New opens a handle to a compatible LED strip.
-//
-// f should either be 800kHz for fast ICs and 400kHz for the slow ones.
-//
-// channels should be either 1 (White only), 3 (RGB) or 4 (RGBW). For RGB and
-// RGBW, the encoding is respectively GRB and GRBW.
-func New(p gpiostream.PinOut, numPixels int, f physic.Frequency, channels int) (*Dev, error) {
+func New(p gpiostream.PinOut, opts *Opts) (*Dev, error) {
 	// Allow a wider range in case there's new devices with higher supported
 	// frequency.
-	if f < 10*physic.KiloHertz || f > 100*physic.MegaHertz {
+	if opts.Freq < 10*physic.KiloHertz || opts.Freq > 100*physic.MegaHertz {
 		return nil, errors.New("nrzled: specify valid frequency")
 	}
-	if channels != 3 && channels != 4 {
+	if opts.Channels != 3 && opts.Channels != 4 {
 		return nil, errors.New("nrzled: specify valid number of channels (3 or 4)")
 	}
 	return &Dev{
 		p:         p,
-		numPixels: numPixels,
-		channels:  channels,
+		numPixels: opts.NumPixels,
+		channels:  opts.Channels,
 		b: gpiostream.BitStream{
-			Freq: f,
+			Freq: opts.Freq,
 			// Each bit is encoded on 3 bits.
-			Bits: make([]byte, numPixels*3*channels),
+			Bits: make([]byte, opts.NumPixels*3*opts.Channels),
 			LSBF: false,
 		},
 	}, nil

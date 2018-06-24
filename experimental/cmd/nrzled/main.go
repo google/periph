@@ -117,9 +117,9 @@ func mainImpl() error {
 	verbose := flag.Bool("v", false, "verbose mode")
 	pin := flag.String("p", "", "GPIO pin to use")
 
-	numPixels := flag.Int("n", 150, "number of pixels on the strip")
-	hz := flag.Int("s", 400000, "speed in Hz")
-	channels := flag.Int("channels", 3, "number of color channels, use 4 for RGBW")
+	numPixels := flag.Int("n", nrzled.DefaultOpts.NumPixels, "number of pixels on the strip")
+	hz := flag.Int("s", int(nrzled.DefaultOpts.Freq/physic.Hertz), "speed in Hz")
+	channels := flag.Int("channels", nrzled.DefaultOpts.Channels, "number of color channels, use 4 for RGBW")
 	color := flag.String("color", "208020", "hex encoded color to show")
 	imgName := flag.String("img", "", "image to load")
 	lineMs := flag.Int("linems", 2, "number of ms to show each line of the image")
@@ -146,7 +146,11 @@ func mainImpl() error {
 	if !ok {
 		return fmt.Errorf("pin %s doesn't support arbitrary bit stream", p)
 	}
-	display, err := nrzled.New(s, *numPixels, physic.Frequency(*hz), *channels)
+	opts := nrzled.DefaultOpts
+	opts.NumPixels = *numPixels
+	opts.Freq = physic.Frequency(*hz) * physic.Hertz
+	opts.Channels = *channels
+	display, err := nrzled.New(s, &opts)
 	if err != nil {
 		return err
 	}
