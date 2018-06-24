@@ -112,9 +112,9 @@ func mainImpl() error {
 	verbose := flag.Bool("v", false, "verbose mode")
 	spiID := flag.String("spi", "", "SPI port to use")
 
-	numPixels := flag.Int("n", 150, "number of pixels on the strip")
-	intensity := flag.Int("l", 127, "light intensity [1-255]")
-	temperature := flag.Int("t", 5000, "light temperature in Kelvin [3500-7500]")
+	numPixels := flag.Int("n", apa102.DefaultOpts.NumPixels, "number of pixels on the strip")
+	intensity := flag.Int("l", int(apa102.DefaultOpts.Intensity), "light intensity [1-255]")
+	temperature := flag.Int("t", int(apa102.DefaultOpts.Temperature), "light temperature in Kelvin [3500-7500]")
 	hz := flag.Int("hz", 0, "SPI port speed")
 	color := flag.String("color", "208020", "hex encoded color to show")
 	imgName := flag.String("img", "", "image to load")

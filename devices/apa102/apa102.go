@@ -36,7 +36,7 @@ var DefaultOpts = Opts{
 
 // Opts defines the options for the device.
 type Opts struct {
-	// NumPixels is the number of pixelsto control. If too short, the following
+	// NumPixels is the number of pixels to control. If too short, the following
 	// pixels will be corrupted. If too long, the pixels will be drawn
 	// unnecessarily but not visible issue will occur.
 	NumPixels int
