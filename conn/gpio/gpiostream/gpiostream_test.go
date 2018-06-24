@@ -12,12 +12,19 @@ import (
 )
 
 func TestBitStream(t *testing.T) {
-	s := BitStream{Freq: physic.Hertz, Bits: make([]byte, 100), LSBF: true}
+	var b [16]byte
+	for i := range b {
+		b[i] = byte(i)
+	}
+	s := BitStream{Freq: physic.Hertz, Bits: b[:], LSBF: true}
 	if f := s.Frequency(); f != physic.Hertz {
 		t.Fatal(f)
 	}
-	if d := s.Duration(); d != 100*8*time.Second {
+	if d := s.Duration(); d != 16*8*time.Second {
 		t.Fatal(d)
+	}
+	if g := s.GoString(); g != "&gpiostream.BitStream{Bits: 000102030405060708090a0b0c0d0e0f, Freq:1Hz, LSBF:true}" {
+		t.Fatal(g)
 	}
 }
 

@@ -111,7 +111,7 @@ func (p *PinOutPlayback) StreamOut(s gpiostream.Stream) error {
 		return errorf(p.DontPanic, "gpiostreamtest: unexpected StreamOut() (count #%d) expecting %#v", p.Count, s)
 	}
 	if !reflect.DeepEqual(s, p.Ops[p.Count]) {
-		return errorf(p.DontPanic, "gpiostreamtest: unexpected StreamOut() content (count #%d) expected %#v, got %#v", p.Count, p.Ops[p.Count], s)
+		return errorf(p.DontPanic, "gpiostreamtest: unexpected StreamOut() content (count #%d)\nexpected: %#v\ngot:      %#v", p.Count, p.Ops[p.Count], s)
 	}
 	p.Count++
 	return nil

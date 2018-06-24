@@ -10,6 +10,7 @@
 package gpiostream
 
 import (
+	"fmt"
 	"time"
 
 	"periph.io/x/periph/conn/gpio"
@@ -48,17 +49,22 @@ type BitStream struct {
 	LSBF bool
 }
 
-// Resolution implement Stream.
+// Frequency implements Stream.
 func (b *BitStream) Frequency() physic.Frequency {
 	return b.Freq
 }
 
-// Duration implement Stream.
+// Duration implements Stream.
 func (b *BitStream) Duration() time.Duration {
 	if b.Freq == 0 {
 		return 0
 	}
 	return b.Freq.Duration() * time.Duration(len(b.Bits)*8)
+}
+
+// GoString implements fmt.GoStringer.
+func (b *BitStream) GoString() string {
+	return fmt.Sprintf("&gpiostream.BitStream{Bits: %x, Freq:%s, LSBF:%t}", b.Bits, b.Freq, b.LSBF)
 }
 
 // EdgeStream is a stream of edges to be written.
@@ -81,12 +87,12 @@ type EdgeStream struct {
 	Freq physic.Frequency
 }
 
-// Frequency implement Stream.
+// Frequency implements Stream.
 func (e *EdgeStream) Frequency() physic.Frequency {
 	return e.Freq
 }
 
-// Duration implement Stream.
+// Duration implements Stream.
 func (e *EdgeStream) Duration() time.Duration {
 	if e.Freq == 0 {
 		return 0
@@ -107,7 +113,7 @@ type Program struct {
 	Loops int      // Set to -1 to create an infinite loop
 }
 
-// Frequency implement Stream.
+// Frequency implements Stream.
 func (p *Program) Frequency() physic.Frequency {
 	if p.Loops == 0 {
 		return 0
@@ -133,7 +139,7 @@ func (p *Program) Frequency() physic.Frequency {
 	return f
 }
 
-// Duration implement Stream.
+// Duration implements Stream.
 func (p *Program) Duration() time.Duration {
 	if p.Loops == 0 {
 		return 0
