@@ -6,7 +6,6 @@ package sysfs
 
 import (
 	"errors"
-	"io"
 
 	"periph.io/x/periph/host/fs"
 )
@@ -55,7 +54,8 @@ func (f *file) Read(p []byte) (int, error) {
 }
 
 func (f *file) Seek(offset int64, whence int) (int64, error) {
-	if offset == 0 && whence == io.SeekStart {
+	// io.SeekStart was added in go1.7.
+	if offset == 0 && whence == 0 {
 		return 0, nil
 	}
 	return 0, errors.New("not implemented")

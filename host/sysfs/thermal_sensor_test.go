@@ -7,6 +7,7 @@ package sysfs
 import (
 	"errors"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -202,7 +203,16 @@ func TestThermalSensor_Sense_fail_3(t *testing.T) {
 	}
 	d := ThermalSensor{name: "cpu", root: "//\000/"}
 	e := physic.Env{}
-	if err := d.Sense(&e); err == nil || err.Error() != "sysfs-thermal: strconv.Atoi: parsing \"aa\": invalid syntax" {
+	err := d.Sense(&e)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	// The error message changed from strconv.ParseInt to strconv.Atoi.
+	s := err.Error()
+	if !strings.HasPrefix(s, "sysfs-thermal: ") {
+		t.Fatal(err)
+	}
+	if !strings.HasSuffix(s, ": parsing \"aa\": invalid syntax") {
 		t.Fatal(err)
 	}
 }
