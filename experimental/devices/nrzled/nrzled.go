@@ -82,6 +82,7 @@ func New(p gpiostream.PinOut, opts *Opts) (*Dev, error) {
 			Bits: make([]byte, opts.NumPixels*3*opts.Channels),
 			LSBF: false,
 		},
+		rect: image.Rect(0, 0, opts.NumPixels, 1),
 	}, nil
 }
 
@@ -92,6 +93,7 @@ type Dev struct {
 	channels  int                  // Number of channels per pixel
 	b         gpiostream.BitStream // NRZ encoded bits; cached to reduce heap fragmentation
 	buf       []byte               // Double buffer of RGB/RGBW pixels; enables partial Draw()
+	rect      image.Rectangle      // Device bounds
 }
 
 func (d *Dev) String() string {
@@ -126,7 +128,7 @@ func (d *Dev) ColorModel() color.Model {
 
 // Bounds implements devices.Display. Min is guaranteed to be {0, 0}.
 func (d *Dev) Bounds() image.Rectangle {
-	return image.Rectangle{Max: image.Point{X: d.numPixels, Y: 1}}
+	return d.rect
 }
 
 // Draw implements devices.Display.
@@ -138,7 +140,7 @@ func (d *Dev) Bounds() image.Rectangle {
 // A back buffer is kept so that partial updates are supported, albeit the full
 // LED strip is updated synchronously.
 func (d *Dev) Draw(r image.Rectangle, src image.Image, sp image.Point) {
-	r = r.Intersect(d.Bounds())
+	r = r.Intersect(d.rect)
 	srcR := src.Bounds()
 	srcR.Min = srcR.Min.Add(sp)
 	if dX := r.Dx(); dX < srcR.Dx() {

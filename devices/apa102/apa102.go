@@ -78,6 +78,7 @@ func New(p spi.Port, o *Opts) (*Dev, error) {
 		numPixels:   o.NumPixels,
 		rawBuf:      buf,
 		pixels:      buf[4 : 4+4*o.NumPixels],
+		rect:        image.Rect(0, 0, o.NumPixels, 1),
 	}, nil
 }
 
@@ -96,11 +97,12 @@ type Dev struct {
 	// It can be changed, it will take effect on the next Draw() or Write() call.
 	Temperature uint16
 
-	s         spi.Conn //
-	l         lut      // Updated at each .Write() call.
-	numPixels int      //
-	rawBuf    []byte   // Raw buffer sent over SPI. Cached to reduce heap fragmentation.
-	pixels    []byte   // Double buffer of pixels, to enable partial painting via Draw(). Effectively points inside rawBuf.
+	s         spi.Conn        //
+	l         lut             // Updated at each .Write() call.
+	numPixels int             //
+	rawBuf    []byte          // Raw buffer sent over SPI. Cached to reduce heap fragmentation.
+	pixels    []byte          // Double buffer of pixels, to enable partial painting via Draw(). Effectively points inside rawBuf.
+	rect      image.Rectangle // Device bounds
 }
 
 func (d *Dev) String() string {
@@ -115,7 +117,7 @@ func (d *Dev) ColorModel() color.Model {
 
 // Bounds implements devices.Display. Min is guaranteed to be {0, 0}.
 func (d *Dev) Bounds() image.Rectangle {
-	return image.Rectangle{Max: image.Point{X: d.numPixels, Y: 1}}
+	return d.rect
 }
 
 // Draw implements devices.Display.
@@ -123,7 +125,7 @@ func (d *Dev) Bounds() image.Rectangle {
 // Using something else than image.NRGBA is 10x slower. When using image.NRGBA,
 // the alpha channel is ignored.
 func (d *Dev) Draw(r image.Rectangle, src image.Image, sp image.Point) {
-	r = r.Intersect(d.Bounds())
+	r = r.Intersect(d.rect)
 	srcR := src.Bounds()
 	srcR.Min = srcR.Min.Add(sp)
 	if dX := r.Dx(); dX < srcR.Dx() {

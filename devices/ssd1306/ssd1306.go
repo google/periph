@@ -189,7 +189,7 @@ func (d *Dev) Bounds() image.Rectangle {
 // It discards any failure.
 func (d *Dev) Draw(r image.Rectangle, src image.Image, sp image.Point) {
 	var next []byte
-	if img, ok := src.(*image1bit.VerticalLSB); ok && r == d.Bounds() && src.Bounds() == d.rect && sp.X == 0 && sp.Y == 0 {
+	if img, ok := src.(*image1bit.VerticalLSB); ok && r == d.rect && src.Bounds() == d.rect && sp.X == 0 && sp.Y == 0 {
 		// Exact size, full frame, image1bit encoding: fast path!
 		next = img.Pix
 	} else {
