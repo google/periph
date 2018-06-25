@@ -92,8 +92,8 @@ func (s *SPI) String() string {
 
 // LimitSpeed implements spi.ConnCloser.
 func (s *SPI) LimitSpeed(f physic.Frequency) error {
-	if f < physic.KiloHertz || f > physic.GigaHertz {
-		return fmt.Errorf("sysfs-spi: invalid speed %s", f)
+	if f < 100*physic.Hertz || f > physic.GigaHertz {
+		return fmt.Errorf("sysfs-spi: invalid speed %s; did you forget to multiply by physic.MegaHertz?", f)
 	}
 	s.Lock()
 	defer s.Unlock()
@@ -105,8 +105,8 @@ func (s *SPI) LimitSpeed(f physic.Frequency) error {
 //
 // It must be called before any I/O.
 func (s *SPI) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, error) {
-	if f < 0 || f > physic.GigaHertz {
-		return nil, fmt.Errorf("sysfs-spi: invalid speed %s", f)
+	if f < 100*physic.Hertz || f > physic.GigaHertz {
+		return nil, fmt.Errorf("sysfs-spi: invalid speed %s; did you forget to multiply by physic.MegaHertz?", f)
 	}
 	if mode&^(spi.Mode3|spi.HalfDuplex|spi.NoCS|spi.LSBFirst) != 0 {
 		return nil, fmt.Errorf("sysfs-spi: invalid mode %v", mode)
