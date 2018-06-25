@@ -41,5 +41,7 @@ func Example() {
 	for x := 0; x < img.Rect.Max.X; x++ {
 		img.SetNRGBA(x, 0, color.NRGBA{uint8(x), uint8(255 - x), 0, 255})
 	}
-	dev.Draw(dev.Bounds(), img, image.Point{})
+	if err := dev.Draw(dev.Bounds(), img, image.Point{}); err != nil {
+		log.Fatal(err)
+	}
 }

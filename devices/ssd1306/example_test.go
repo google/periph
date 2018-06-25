@@ -47,8 +47,7 @@ func Example() {
 	// 	Dot:  fixed.P(0, img.Bounds().Dy()-1-f.Descent),
 	// }
 	// drawer.DrawString("Hello from periph!")
-	dev.Draw(dev.Bounds(), img, image.Point{})
-	if err := dev.Err(); err != nil {
+	if err := dev.Draw(dev.Bounds(), img, image.Point{}); err != nil {
 		log.Fatal(err)
 	}
 }

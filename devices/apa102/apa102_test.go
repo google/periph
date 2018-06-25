@@ -536,7 +536,9 @@ func TestDrawNRGBA(t *testing.T) {
 	o.Intensity = 250
 	o.Temperature = 5000
 	d, _ := New(spitest.NewRecordRaw(&buf), &o)
-	d.Draw(d.Bounds(), img, image.Point{})
+	if err := d.Draw(d.Bounds(), img, image.Point{}); err != nil {
+		t.Fatal(err)
+	}
 	if !bytes.Equal(expectedi250t5000, buf.Bytes()) {
 		t.Fatalf("%#v != %#v", expectedi250t5000, buf.Bytes())
 	}
@@ -554,7 +556,9 @@ func TestDrawNRGBA_wide(t *testing.T) {
 	o.Intensity = 250
 	o.Temperature = 6500
 	d, _ := New(spitest.NewRecordRaw(&buf), &o)
-	d.Draw(d.Bounds(), img, image.Point{})
+	if err := d.Draw(d.Bounds(), img, image.Point{}); err != nil {
+		t.Fatal(err)
+	}
 	if !bytes.Equal(expectedi250t6500, buf.Bytes()) {
 		t.Fatalf("%#v != %#v", expectedi250t5000, buf.Bytes())
 	}
@@ -575,7 +579,9 @@ func TestDrawRGBA(t *testing.T) {
 	o.Intensity = 250
 	o.Temperature = 5000
 	d, _ := New(spitest.NewRecordRaw(&buf), &o)
-	d.Draw(d.Bounds(), img, image.Point{})
+	if err := d.Draw(d.Bounds(), img, image.Point{}); err != nil {
+		t.Fatal(err)
+	}
 	if !bytes.Equal(expectedi250t5000, buf.Bytes()) {
 		t.Fatalf("%#v != %#v", expectedi250t5000, buf.Bytes())
 	}
@@ -692,10 +698,14 @@ func BenchmarkDrawNRGBAColorful(b *testing.B) {
 	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), &o)
 	r := d.Bounds()
 	p := image.Point{}
-	d.Draw(r, img, p)
+	if err := d.Draw(r, img, p); err != nil {
+		b.Fatal(err)
+	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		d.Draw(r, img, p)
+		if err := d.Draw(r, img, p); err != nil {
+			b.Fatal(err)
+		}
 	}
 }
 
@@ -713,10 +723,14 @@ func BenchmarkDrawRGBAColorful(b *testing.B) {
 	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), &o)
 	r := d.Bounds()
 	p := image.Point{}
-	d.Draw(r, img, p)
+	if err := d.Draw(r, img, p); err != nil {
+		b.Fatal(err)
+	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		d.Draw(r, img, p)
+		if err := d.Draw(r, img, p); err != nil {
+			b.Fatal(err)
+		}
 	}
 }
 

@@ -24,10 +24,10 @@ import (
 	"strings"
 	"time"
 
+	"periph.io/x/periph/conn/display"
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/gpio/gpiostream"
 	"periph.io/x/periph/conn/physic"
-	"periph.io/x/periph/devices"
 	"periph.io/x/periph/experimental/devices/nrzled"
 	"periph.io/x/periph/host"
 )
@@ -88,8 +88,8 @@ func resize(src image.Image, width, height int) *image.NRGBA {
 	return dst
 }
 
-func showImage(display devices.Display, img image.Image, sleep time.Duration, loop bool, height int) {
-	r := display.Bounds()
+func showImage(disp display.Drawer, img image.Image, sleep time.Duration, loop bool, height int) {
+	r := disp.Bounds()
 	w := r.Dx()
 	orig := img.Bounds().Size()
 	if height == 0 {
@@ -103,7 +103,10 @@ func showImage(display devices.Display, img image.Image, sleep time.Duration, lo
 	for {
 		for p.Y = 0; p.Y < height; p.Y++ {
 			c := time.After(sleep)
-			display.Draw(r, img, p)
+			if err := disp.Draw(r, img, image.Point{}); err != nil {
+				log.Printf("error drawing: %v", err)
+				return
+			}
 			if p.Y == height-1 && !loop {
 				log.Printf("done %s", time.Since(now))
 				return
@@ -150,7 +153,7 @@ func mainImpl() error {
 	opts.NumPixels = *numPixels
 	opts.Freq = physic.Frequency(*hz) * physic.Hertz
 	opts.Channels = *channels
-	display, err := nrzled.New(s, &opts)
+	disp, err := nrzled.New(s, &opts)
 	if err != nil {
 		return err
 	}
@@ -161,7 +164,7 @@ func mainImpl() error {
 		if err != nil {
 			return err
 		}
-		showImage(display, img, time.Duration(*lineMs)*time.Millisecond, *imgLoop, *imgHeight)
+		showImage(disp, img, time.Duration(*lineMs)*time.Millisecond, *imgLoop, *imgHeight)
 		return nil
 	}
 
@@ -190,7 +193,7 @@ func mainImpl() error {
 			buf[i+3] = a
 		}
 	}
-	_, err = display.Write(buf)
+	_, err = disp.Write(buf)
 	return err
 }
 

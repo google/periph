@@ -92,7 +92,9 @@ func TestDraw_NRGBA_3(t *testing.T) {
 	d, _ := New(&g, &opts)
 	img := image.NewNRGBA(d.Bounds())
 	copy(img.Pix, getRGBW())
-	d.Draw(d.Bounds(), img, image.Point{})
+	if err := d.Draw(d.Bounds(), img, image.Point{}); err != nil {
+		t.Fatal(err)
+	}
 	if err := g.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -120,7 +122,9 @@ func TestDraw_RGBA_3(t *testing.T) {
 	d, _ := New(&g, &opts)
 	img := image.NewRGBA(d.Bounds())
 	copy(img.Pix, getRGBW())
-	d.Draw(d.Bounds(), img, image.Point{})
+	if err := d.Draw(d.Bounds(), img, image.Point{}); err != nil {
+		t.Fatal(err)
+	}
 	if err := g.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -151,7 +155,9 @@ func TestDraw_RGBA_4(t *testing.T) {
 	d, _ := New(&g, &opts)
 	img := image.NewRGBA(d.Bounds())
 	copy(img.Pix, getRGBW())
-	d.Draw(d.Bounds(), img, image.Point{})
+	if err := d.Draw(d.Bounds(), img, image.Point{}); err != nil {
+		t.Fatal(err)
+	}
 	if err := g.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -179,7 +185,9 @@ func TestDraw_Limits(t *testing.T) {
 	d, _ := New(&g, &opts)
 	img := image.NewRGBA(image.Rect(-1, -1, 20, 20))
 	copy(img.Pix, getRGBW())
-	d.Draw(d.Bounds(), img, image.Point{})
+	if err := d.Draw(d.Bounds(), img, image.Point{}); err != nil {
+		t.Fatal(err)
+	}
 	if err := g.Close(); err != nil {
 		t.Fatal(err)
 	}

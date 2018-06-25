@@ -10,10 +10,9 @@ import (
 	"image"
 	"image/color"
 
-	"periph.io/x/periph/conn"
+	"periph.io/x/periph/conn/display"
 	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/spi"
-	"periph.io/x/periph/devices"
 )
 
 // ToRGB converts a slice of color.NRGBA to a byte stream of RGB pixels.
@@ -109,23 +108,25 @@ func (d *Dev) String() string {
 	return fmt.Sprintf("APA102{I:%d, T:%dK, %dLEDs, %s}", d.Intensity, d.Temperature, d.numPixels, d.s)
 }
 
-// ColorModel implements devices.Display. There's no surprise, it is
+// ColorModel implements display.Drawer. There's no surprise, it is
 // color.NRGBAModel.
 func (d *Dev) ColorModel() color.Model {
 	return color.NRGBAModel
 }
 
-// Bounds implements devices.Display. Min is guaranteed to be {0, 0}.
+// Bounds implements display.Drawer. Min is guaranteed to be {0, 0}.
 func (d *Dev) Bounds() image.Rectangle {
 	return d.rect
 }
 
-// Draw implements devices.Display.
+// Draw implements display.Drawer.
 //
 // Using something else than image.NRGBA is 10x slower. When using image.NRGBA,
 // the alpha channel is ignored.
-func (d *Dev) Draw(r image.Rectangle, src image.Image, sp image.Point) {
-	r = r.Intersect(d.rect)
+func (d *Dev) Draw(r image.Rectangle, src image.Image, sp image.Point) error {
+	if r = r.Intersect(d.rect); r.Empty() {
+		return nil
+	}
 	srcR := src.Bounds()
 	srcR.Min = srcR.Min.Add(sp)
 	if dX := r.Dx(); dX < srcR.Dx() {
@@ -134,9 +135,12 @@ func (d *Dev) Draw(r image.Rectangle, src image.Image, sp image.Point) {
 	if dY := r.Dy(); dY < srcR.Dy() {
 		srcR.Max.Y = srcR.Min.Y + dY
 	}
+	if srcR.Empty() {
+		return nil
+	}
 	d.l.init(d.Intensity, d.Temperature)
 	d.l.rasterImg(d.pixels, r, src, srcR)
-	_ = d.s.Tx(d.rawBuf, nil)
+	return d.s.Tx(d.rawBuf, nil)
 }
 
 // Write accepts a stream of raw RGB pixels and sends it as APA102 encoded
@@ -301,10 +305,10 @@ func (l *lut) raster(dst []byte, src []byte) {
 }
 
 // rasterImg is the generic version of raster.
-func (l *lut) rasterImg(dst []byte, r image.Rectangle, src image.Image, srcR image.Rectangle) {
+func (l *lut) rasterImg(dst []byte, rect image.Rectangle, src image.Image, srcR image.Rectangle) {
 	// Render directly into the buffer for maximum performance and to keep
 	// untouched sections intact.
-	deltaX4 := 4 * (r.Min.X - srcR.Min.X)
+	deltaX4 := 4 * (rect.Min.X - srcR.Min.X)
 	if img, ok := src.(*image.NRGBA); ok {
 		// Fast path for image.NRGBA.
 		pix := img.Pix[srcR.Min.Y*img.Stride:]
@@ -354,6 +358,4 @@ func (l *lut) rasterImg(dst []byte, r image.Rectangle, src image.Image, srcR ima
 	}
 }
 
-var _ conn.Resource = &Dev{}
-var _ devices.Display = &Dev{}
-var _ fmt.Stringer = &Dev{}
+var _ display.Drawer = &Dev{}

@@ -84,8 +84,7 @@ func TestI2C_Draw_VerticalLSD_fast(t *testing.T) {
 	}
 	img := image1bit.NewVerticalLSB(dev.Bounds())
 	img.Pix[22] = 1
-	dev.Draw(dev.Bounds(), img, image.Point{})
-	if err := dev.Err(); err != nil {
+	if err := dev.Draw(dev.Bounds(), img, image.Point{}); err != nil {
 		t.Fatal(err)
 	}
 	if err := bus.Close(); err != nil {
@@ -203,8 +202,7 @@ func TestI2C_Draw_fail(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dev.Draw(dev.Bounds(), makeGrayCheckboard(dev.Bounds()), image.Point{})
-	if err := dev.Err(); !conntest.IsErr(err) {
+	if err := dev.Draw(dev.Bounds(), makeGrayCheckboard(dev.Bounds()), image.Point{}); !conntest.IsErr(err) {
 		t.Fatalf("expected conntest error: %v", err)
 	}
 	if err := bus.Close(); err != nil {
@@ -225,13 +223,11 @@ func TestI2C_DrawGray(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dev.Draw(dev.Bounds(), makeGrayCheckboard(dev.Bounds()), image.Point{0, 0})
-	if err := dev.Err(); err != nil {
+	if err := dev.Draw(dev.Bounds(), makeGrayCheckboard(dev.Bounds()), image.Point{}); err != nil {
 		t.Fatal(err)
 	}
 	// No-op (skip path).
-	dev.Draw(dev.Bounds(), makeGrayCheckboard(dev.Bounds()), image.Point{0, 0})
-	if err := dev.Err(); err != nil {
+	if err := dev.Draw(dev.Bounds(), makeGrayCheckboard(dev.Bounds()), image.Point{}); err != nil {
 		t.Fatal(err)
 	}
 	if err := bus.Close(); err != nil {

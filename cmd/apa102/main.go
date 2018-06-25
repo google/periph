@@ -21,10 +21,10 @@ import (
 	"strings"
 	"time"
 
+	"periph.io/x/periph/conn/display"
 	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/spi"
 	"periph.io/x/periph/conn/spi/spireg"
-	"periph.io/x/periph/devices"
 	"periph.io/x/periph/devices/apa102"
 )
 
@@ -83,8 +83,8 @@ func resize(src image.Image, width, height int) *image.NRGBA {
 	return dst
 }
 
-func showImage(display devices.Display, img image.Image, sleep time.Duration, loop bool, height int) {
-	r := display.Bounds()
+func showImage(disp display.Drawer, img image.Image, sleep time.Duration, loop bool, height int) {
+	r := disp.Bounds()
 	w := r.Dx()
 	orig := img.Bounds().Size()
 	if height == 0 {
@@ -98,7 +98,10 @@ func showImage(display devices.Display, img image.Image, sleep time.Duration, lo
 	for {
 		for p.Y = 0; p.Y < height; p.Y++ {
 			c := time.After(sleep)
-			display.Draw(r, img, p)
+			if err := disp.Draw(disp.Bounds(), img, image.Point{}); err != nil {
+				log.Printf("error drawing: %v", err)
+				return
+			}
 			if p.Y == height-1 && !loop {
 				log.Printf("done %s", time.Since(now))
 				return
@@ -158,7 +161,7 @@ func mainImpl() error {
 	o.NumPixels = *numPixels
 	o.Intensity = uint8(*intensity)
 	o.Temperature = uint16(*temperature)
-	display, err := apa102.New(s, &o)
+	disp, err := apa102.New(s, &o)
 	if err != nil {
 		return err
 	}
@@ -169,7 +172,7 @@ func mainImpl() error {
 		if err != nil {
 			return err
 		}
-		showImage(display, img, time.Duration(*lineMs)*time.Millisecond, *imgLoop, *imgHeight)
+		showImage(disp, img, time.Duration(*lineMs)*time.Millisecond, *imgLoop, *imgHeight)
 		return nil
 	}
 
@@ -187,7 +190,7 @@ func mainImpl() error {
 		buf[i+1] = g
 		buf[i+2] = b
 	}
-	_, err = display.Write(buf)
+	_, err = disp.Write(buf)
 	return err
 }
 

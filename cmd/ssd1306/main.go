@@ -23,6 +23,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"periph.io/x/periph/conn/display"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/i2c"
@@ -115,8 +116,8 @@ func drawTextBottomRight(img draw.Image, text string) {
 
 // convert resizes and converts to black and white an image while keeping
 // aspect ratio, put it in a centered image of the same size as the display.
-func convert(s *ssd1306.Dev, src image.Image) *image1bit.VerticalLSB {
-	screenBounds := s.Bounds()
+func convert(disp display.Drawer, src image.Image) *image1bit.VerticalLSB {
+	screenBounds := disp.Bounds()
 	size := screenBounds.Size()
 	src = resize(src, size)
 	img := image1bit.NewVerticalLSB(screenBounds)
@@ -217,7 +218,9 @@ func mainImpl() error {
 			index := i % len(g.Image)
 			c := time.After(time.Duration(10*g.Delay[index]) * time.Millisecond)
 			img := imgs[index]
-			s.Draw(img.Bounds(), img, image.Point{})
+			if err := s.Draw(s.Bounds(), img, image.Point{}); err != nil {
+				return err
+			}
 			<-c
 		}
 		return nil
@@ -230,7 +233,9 @@ func mainImpl() error {
 
 	img := convert(s, src)
 	drawTextBottomRight(img, *text)
-	s.Draw(img.Bounds(), img, image.Point{})
+	if err := s.Draw(s.Bounds(), img, image.Point{}); err != nil {
+		return err
+	}
 	return s.Halt()
 }
 

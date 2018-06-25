@@ -10,10 +10,9 @@ import (
 	"image"
 	"image/color"
 
-	"periph.io/x/periph/conn"
+	"periph.io/x/periph/conn/display"
 	"periph.io/x/periph/conn/gpio/gpiostream"
 	"periph.io/x/periph/conn/physic"
-	"periph.io/x/periph/devices"
 )
 
 // NRZ converts a byte into the MSB-first Non-Return-to-Zero encoded 24 bits.
@@ -119,19 +118,19 @@ func (d *Dev) Halt() error {
 	return nil
 }
 
-// ColorModel implements devices.Display.
+// ColorModel implements display.Drawer.
 //
 // It is color.NRGBAModel.
 func (d *Dev) ColorModel() color.Model {
 	return color.NRGBAModel
 }
 
-// Bounds implements devices.Display. Min is guaranteed to be {0, 0}.
+// Bounds implements display.Drawer. Min is guaranteed to be {0, 0}.
 func (d *Dev) Bounds() image.Rectangle {
 	return d.rect
 }
 
-// Draw implements devices.Display.
+// Draw implements display.Drawer.
 //
 // Using something else than image.NRGBA is 10x slower and is not recommended.
 // When using image.NRGBA, the alpha channel is ignored in RGB mode and used as
@@ -139,8 +138,10 @@ func (d *Dev) Bounds() image.Rectangle {
 //
 // A back buffer is kept so that partial updates are supported, albeit the full
 // LED strip is updated synchronously.
-func (d *Dev) Draw(r image.Rectangle, src image.Image, sp image.Point) {
-	r = r.Intersect(d.rect)
+func (d *Dev) Draw(r image.Rectangle, src image.Image, sp image.Point) error {
+	if r = r.Intersect(d.rect); r.Empty() {
+		return nil
+	}
 	srcR := src.Bounds()
 	srcR.Min = srcR.Min.Add(sp)
 	if dX := r.Dx(); dX < srcR.Dx() {
@@ -180,7 +181,7 @@ func (d *Dev) Draw(r image.Rectangle, src image.Image, sp image.Point) {
 			}
 		}
 	}
-	_ = d.p.StreamOut(&d.b)
+	return d.p.StreamOut(&d.b)
 }
 
 // Write accepts a stream of raw RGB/RGBW pixels and sends it as NRZ encoded
@@ -237,6 +238,4 @@ func put(out []byte, v byte) {
 	out[2] = byte(w)
 }
 
-var _ conn.Resource = &Dev{}
-var _ devices.Display = &Dev{}
-var _ fmt.Stringer = &Dev{}
+var _ display.Drawer = &Dev{}
