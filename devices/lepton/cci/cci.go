@@ -32,6 +32,7 @@ import (
 	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/mmr"
 	"periph.io/x/periph/conn/physic"
+	"periph.io/x/periph/conn/weather"
 	"periph.io/x/periph/devices/lepton/internal"
 )
 
@@ -277,22 +278,22 @@ func (d *Dev) GetTempHousing() (physic.Temperature, error) {
 	return v.Temperature(), nil
 }
 
-// Sense implements physic.SenseEnv. It returns the housing temperature.
-func (d *Dev) Sense(e *physic.Env) error {
+// Sense implements weather.SenseEnv. It returns the housing temperature.
+func (d *Dev) Sense(e *weather.Env) error {
 	var err error
 	e.Temperature, err = d.GetTempHousing()
 	return err
 }
 
-// SenseContinuous implements physic.SenseEnv.
-func (d *Dev) SenseContinuous(time.Duration) (<-chan physic.Env, error) {
+// SenseContinuous implements weather.SenseEnv.
+func (d *Dev) SenseContinuous(time.Duration) (<-chan weather.Env, error) {
 	// TODO(maruel): Manually poll in a loop via time.NewTicker, or better
 	// leverage the frames being read.
 	return nil, errors.New("cci: not implemented")
 }
 
-// Precision implements physic.SenseEnv.
-func (d *Dev) Precision(e *physic.Env) {
+// Precision implements weather.SenseEnv.
+func (d *Dev) Precision(e *weather.Env) {
 	e.Temperature = 10 * physic.MilliKelvin
 }
 
@@ -578,5 +579,5 @@ const (
 var sleep = time.Sleep
 
 var _ conn.Resource = &Dev{}
-var _ physic.SenseEnv = &Dev{}
+var _ weather.SenseEnv = &Dev{}
 var _ fmt.Stringer = &cciConn{}

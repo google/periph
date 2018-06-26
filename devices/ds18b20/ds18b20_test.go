@@ -12,6 +12,7 @@ import (
 	"periph.io/x/periph/conn/onewire"
 	"periph.io/x/periph/conn/onewire/onewiretest"
 	"periph.io/x/periph/conn/physic"
+	"periph.io/x/periph/conn/weather"
 )
 
 func TestNew_fail_resolution(t *testing.T) {
@@ -64,7 +65,7 @@ func TestSense(t *testing.T) {
 	var sleeps []time.Duration
 	sleep = func(d time.Duration) { sleeps = append(sleeps, d) }
 	defer func() { sleep = func(time.Duration) {} }()
-	e := physic.Env{}
+	e := weather.Env{}
 	if err := dev.Sense(&e); err != nil {
 		t.Fatal(err)
 	}

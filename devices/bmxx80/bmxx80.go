@@ -41,6 +41,7 @@ import (
 	"periph.io/x/periph/conn/mmr"
 	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/spi"
+	"periph.io/x/periph/conn/weather"
 )
 
 // Oversampling affects how much time is taken to measure each of temperature,
@@ -251,7 +252,7 @@ func (d *Dev) String() string {
 // Sense requests a one time measurement as °C, kPa and % of relative humidity.
 //
 // The very first measurements may be of poor quality.
-func (d *Dev) Sense(e *physic.Env) error {
+func (d *Dev) Sense(e *weather.Env) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	if d.stop != nil {
@@ -285,7 +286,7 @@ func (d *Dev) Sense(e *physic.Env) error {
 //
 // It's the responsibility of the caller to retrieve the values from the
 // channel as fast as possible, otherwise the interval may not be respected.
-func (d *Dev) SenseContinuous(interval time.Duration) (<-chan physic.Env, error) {
+func (d *Dev) SenseContinuous(interval time.Duration) (<-chan weather.Env, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	if d.stop != nil {
@@ -308,7 +309,7 @@ func (d *Dev) SenseContinuous(interval time.Duration) (<-chan physic.Env, error)
 		}
 	}
 
-	sensing := make(chan physic.Env)
+	sensing := make(chan weather.Env)
 	d.stop = make(chan struct{})
 	d.wg.Add(1)
 	go func() {
@@ -319,8 +320,8 @@ func (d *Dev) SenseContinuous(interval time.Duration) (<-chan physic.Env, error)
 	return sensing, nil
 }
 
-// Precision implements physic.SenseEnv.
-func (d *Dev) Precision(e *physic.Env) {
+// Precision implements weather.SenseEnv.
+func (d *Dev) Precision(e *weather.Env) {
 	if d.is280 {
 		e.Temperature = 10 * physic.MilliKelvin
 		e.Pressure = 15625 * physic.MicroPascal / 4
@@ -451,14 +452,14 @@ func (d *Dev) makeDev(opts *Opts) error {
 	return nil
 }
 
-func (d *Dev) sensingContinuous(interval time.Duration, sensing chan<- physic.Env, stop <-chan struct{}) {
+func (d *Dev) sensingContinuous(interval time.Duration, sensing chan<- weather.Env, stop <-chan struct{}) {
 	t := time.NewTicker(interval)
 	defer t.Stop()
 
 	var err error
 	for {
 		// Do one initial sensing right away.
-		e := physic.Env{}
+		e := weather.Env{}
 		d.mu.Lock()
 		if d.is280 {
 			err = d.sense280(&e)
@@ -526,5 +527,5 @@ func (d *Dev) wrap(err error) error {
 var doSleep = time.Sleep
 
 var _ conn.Resource = &Dev{}
-var _ physic.SenseEnv = &Dev{}
+var _ weather.SenseEnv = &Dev{}
 var _ fmt.Stringer = &Dev{}

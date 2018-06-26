@@ -10,6 +10,7 @@ import (
 
 	"periph.io/x/periph/conn/i2c/i2ctest"
 	"periph.io/x/periph/conn/physic"
+	"periph.io/x/periph/conn/weather"
 )
 
 var opts180 = &Opts{Temperature: O1x, Pressure: O1x}
@@ -110,7 +111,7 @@ func TestSense180_success(t *testing.T) {
 		if s := dev.String(); s != "BMP180{playback(119)}" {
 			t.Fatal(s)
 		}
-		e := physic.Env{}
+		e := weather.Env{}
 		if err := dev.Sense(&e); err != nil {
 			t.Fatal(err)
 		}
@@ -151,7 +152,7 @@ func TestSense180_fail_1(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	e := physic.Env{}
+	e := weather.Env{}
 	if dev.Sense(&e) == nil {
 		t.Fatal("sensing should have failed")
 	}
@@ -181,7 +182,7 @@ func TestSense180_fail_2(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	e := physic.Env{}
+	e := weather.Env{}
 	if dev.Sense(&e) == nil {
 		t.Fatal("sensing should have failed")
 	}
@@ -213,7 +214,7 @@ func TestSense180_fail_3(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	e := physic.Env{}
+	e := weather.Env{}
 	if dev.Sense(&e) == nil {
 		t.Fatal("sensing should have failed")
 	}
@@ -247,7 +248,7 @@ func TestSense180_fail_4(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	e := physic.Env{}
+	e := weather.Env{}
 	if dev.Sense(&e) == nil {
 		t.Fatal("sensing should have failed")
 	}
@@ -349,7 +350,7 @@ func TestBmp180Precision(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	e := physic.Env{}
+	e := weather.Env{}
 	dev.Precision(&e)
 	if e.Temperature != 100*physic.MilliKelvin {
 		t.Fatal(e.Temperature)

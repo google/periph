@@ -2,19 +2,20 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-package physic
+package weather
 
 import (
 	"time"
 
 	"periph.io/x/periph/conn"
+	"periph.io/x/periph/conn/physic"
 )
 
 // Env represents measurements from an environmental sensor.
 type Env struct {
-	Temperature Temperature
-	Pressure    Pressure
-	Humidity    RelativeHumidity
+	Temperature physic.Temperature
+	Pressure    physic.Pressure
+	Humidity    physic.RelativeHumidity
 }
 
 // SenseEnv represents an environmental sensor.

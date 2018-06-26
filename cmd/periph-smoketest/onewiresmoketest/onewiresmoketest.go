@@ -22,6 +22,7 @@ import (
 	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/conn/onewire"
 	"periph.io/x/periph/conn/physic"
+	"periph.io/x/periph/conn/weather"
 	"periph.io/x/periph/devices/ds18b20"
 	"periph.io/x/periph/devices/ds248x"
 )
@@ -119,7 +120,7 @@ func (s *SmokeTest) ds18b20(bus onewire.Bus, addr onewire.Address) error {
 		return err
 	}
 
-	e := physic.Env{}
+	e := weather.Env{}
 	if err := dev.Sense(&e); err != nil {
 		return err
 	}

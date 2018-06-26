@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"periph.io/x/periph/conn/physic"
+	"periph.io/x/periph/conn/weather"
 )
 
 func TestThermalSensorByName_not_present(t *testing.T) {
@@ -52,7 +53,7 @@ func TestThermalSensor_fail(t *testing.T) {
 	if s := d.Type(); s != "sysfs-thermal: file I/O is inhibited" {
 		t.Fatal(s)
 	}
-	e := physic.Env{}
+	e := weather.Env{}
 	if err := d.Sense(&e); err == nil || err.Error() != "sysfs-thermal: file I/O is inhibited" {
 		t.Fatal("should have failed")
 	}
@@ -136,7 +137,7 @@ func TestThermalSensor_Sense_success(t *testing.T) {
 		}
 	}
 	d := ThermalSensor{name: "cpu", root: "//\000/"}
-	e := physic.Env{}
+	e := weather.Env{}
 	if err := d.Sense(&e); err != nil {
 		t.Fatal(err)
 	}
@@ -160,7 +161,7 @@ func TestThermalSensor_Sense_fail_1(t *testing.T) {
 		}
 	}
 	d := ThermalSensor{name: "cpu", root: "//\000/"}
-	e := physic.Env{}
+	e := weather.Env{}
 	if err := d.Sense(&e); err == nil || err.Error() != "sysfs-thermal: not implemented" {
 		t.Fatal(err)
 	}
@@ -181,7 +182,7 @@ func TestThermalSensor_Sense_fail_2(t *testing.T) {
 		}
 	}
 	d := ThermalSensor{name: "cpu", root: "//\000/"}
-	e := physic.Env{}
+	e := weather.Env{}
 	if err := d.Sense(&e); err == nil || err.Error() != "sysfs-thermal: failed to read temperature" {
 		t.Fatal(err)
 	}
@@ -202,7 +203,7 @@ func TestThermalSensor_Sense_fail_3(t *testing.T) {
 		}
 	}
 	d := ThermalSensor{name: "cpu", root: "//\000/"}
-	e := physic.Env{}
+	e := weather.Env{}
 	err := d.Sense(&e)
 	if err == nil {
 		t.Fatal("expected error")
@@ -232,7 +233,7 @@ func TestThermalSensor_Precision_Kelvin(t *testing.T) {
 		}
 	}
 	d := ThermalSensor{name: "cpu", root: "//\000/"}
-	e := physic.Env{}
+	e := weather.Env{}
 	d.Precision(&e)
 	if e.Temperature != physic.Kelvin {
 		t.Fatal(e.Temperature)
@@ -254,7 +255,7 @@ func TestThermalSensor_Precision_MilliKelvin(t *testing.T) {
 		}
 	}
 	d := ThermalSensor{name: "cpu", root: "//\000/"}
-	e := physic.Env{}
+	e := weather.Env{}
 	d.Precision(&e)
 	if e.Temperature != physic.MilliKelvin {
 		t.Fatal(e.Temperature)

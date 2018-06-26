@@ -9,12 +9,13 @@ import (
 	"time"
 
 	"periph.io/x/periph/conn/physic"
+	"periph.io/x/periph/conn/weather"
 )
 
 // sense180 reads the device's registers for bmp180.
 //
 // It must be called with d.mu lock held.
-func (d *Dev) sense180(e *physic.Env) error {
+func (d *Dev) sense180(e *weather.Env) error {
 	// Request temperature conversion and read measurement.
 	if err := d.writeCommands([]byte{0xF4, 0x20 | 0x0E}); err != nil {
 		return d.wrap(err)
