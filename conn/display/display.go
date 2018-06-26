@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Package display implements interfaces for visual output devices. These can
+// be pixel or text based.
 package display
 
 import (
