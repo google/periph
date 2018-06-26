@@ -6,8 +6,9 @@
 // 1-wire bus search returns two devices, that a ds18b20 temperature sensor can
 // be read, and that a ds2431 eeprom can be written and read.
 //
-// This assumes the presence of the periph-tester board, which includes these two devices.
-// See https://github.com/tve/periph-tester
+// This assumes the presence of the periph-tester board, which includes these
+// two devices.
+// See https://github.com/periph/periph-tester
 package onewiresmoketest
 
 import (

@@ -6,7 +6,8 @@
 // EEPROM device can be accessed on a SPI port.
 //
 // This assumes the presence of the periph-tester board, which includes these
-// two devices. See https://github.com/tve/periph-tester
+// two devices.
+// See https://github.com/periph/periph-tester
 package spismoketest
 
 import (

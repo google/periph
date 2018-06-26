@@ -5,8 +5,9 @@
 // Package i2csmoketest is leveraged by periph-smoketest to verify that an I²C
 // EEPROM device and a DS2483 device can be accessed on an I²C bus.
 //
-// This assumes the presence of the periph-tester board, which includes these two devices.
-// See https://github.com/tve/periph-tester
+// This assumes the presence of the periph-tester board, which includes these
+// two devices.
+// See https://github.com/periph/periph-tester
 package i2csmoketest
 
 import (
