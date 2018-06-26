@@ -129,8 +129,11 @@ func (i *I2C) Tx(addr uint16, w, r []byte) error {
 
 // SetSpeed implements i2c.Bus.
 func (i *I2C) SetSpeed(f physic.Frequency) error {
-	if f < 100*physic.KiloHertz || f > 10*physic.MegaHertz {
-		return fmt.Errorf("sysfs-i2c: invalid speed %s; did you forget to multiply by physic.KiloHertz?", f)
+	if f > 100*physic.MegaHertz {
+		return fmt.Errorf("sysfs-i2c: invalid speed %s; maximum supported clock is 100MHz", f)
+	}
+	if f < physic.KiloHertz {
+		return fmt.Errorf("sysfs-i2c: invalid speed %s; minimum supported clock is 1KHz; did you forget to multiply by physic.KiloHertz?", f)
 	}
 	drvI2C.mu.Lock()
 	defer drvI2C.mu.Unlock()
