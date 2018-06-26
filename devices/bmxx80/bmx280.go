@@ -8,12 +8,13 @@ import (
 	"time"
 
 	"periph.io/x/periph/conn/physic"
+	"periph.io/x/periph/conn/weather"
 )
 
 // sense280 reads the device's registers for bme280/bmp280.
 //
 // It must be called with d.mu lock held.
-func (d *Dev) sense280(e *physic.Env) error {
+func (d *Dev) sense280(e *weather.Env) error {
 	// All registers must be read in a single pass, as noted at page 21, section
 	// 4.1.
 	// Pressure: 0xF7~0xF9

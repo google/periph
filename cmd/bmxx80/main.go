@@ -22,6 +22,7 @@ import (
 	"periph.io/x/periph/conn/pin/pinreg"
 	"periph.io/x/periph/conn/spi"
 	"periph.io/x/periph/conn/spi/spireg"
+	"periph.io/x/periph/conn/weather"
 	"periph.io/x/periph/devices/bmxx80"
 )
 
@@ -34,7 +35,7 @@ func printPin(fn string, p pin.Pin) {
 	}
 }
 
-func printEnv(e *physic.Env) {
+func printEnv(e *weather.Env) {
 	if e.Humidity == 0 {
 		fmt.Printf("%8s %10s\n", e.Temperature, e.Pressure)
 	} else {
@@ -42,9 +43,9 @@ func printEnv(e *physic.Env) {
 	}
 }
 
-func run(dev physic.SenseEnv, interval time.Duration) error {
+func run(dev weather.SenseEnv, interval time.Duration) error {
 	if interval == 0 {
-		e := physic.Env{}
+		e := weather.Env{}
 		if err := dev.Sense(&e); err != nil {
 			return err
 		}

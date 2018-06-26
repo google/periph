@@ -17,6 +17,7 @@ import (
 	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/spi"
 	"periph.io/x/periph/conn/spi/spitest"
+	"periph.io/x/periph/conn/weather"
 )
 
 // Real data extracted from a device.
@@ -86,7 +87,7 @@ func TestSPISenseBME280_success(t *testing.T) {
 	if s := dev.String(); s != "BME280{playback}" {
 		t.Fatal(s)
 	}
-	e := physic.Env{}
+	e := weather.Env{}
 	if err := dev.Sense(&e); err != nil {
 		t.Fatal(err)
 	}
@@ -287,7 +288,7 @@ func TestI2CSenseBME280_fail(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if dev.Sense(&physic.Env{}) == nil {
+	if dev.Sense(&weather.Env{}) == nil {
 		t.Fatal("sense fail read")
 	}
 	// The I/O didn't occur.
@@ -327,7 +328,7 @@ func TestI2CSenseBMP280_success(t *testing.T) {
 	if s := dev.String(); s != "BMP280{playback(118)}" {
 		t.Fatal(s)
 	}
-	e := physic.Env{}
+	e := weather.Env{}
 	if err := dev.Sense(&e); err != nil {
 		t.Fatal(err)
 	}
@@ -380,7 +381,7 @@ func TestI2CSenseBME280_success(t *testing.T) {
 	if s := dev.String(); s != "BME280{playback(118)}" {
 		t.Fatal(s)
 	}
-	e := physic.Env{}
+	e := weather.Env{}
 	if err := dev.Sense(&e); err != nil {
 		t.Fatal(err)
 	}
@@ -429,7 +430,7 @@ func TestI2CSense280_idle_fail(t *testing.T) {
 	if s := dev.String(); s != "BME280{playback(118)}" {
 		t.Fatal(s)
 	}
-	e := physic.Env{}
+	e := weather.Env{}
 	if dev.Sense(&e) == nil {
 		t.Fatal("isIdle() should have failed")
 	}
@@ -465,7 +466,7 @@ func TestI2CSense280_command_fail(t *testing.T) {
 	if s := dev.String(); s != "BME280{playback(118)}" {
 		t.Fatal(s)
 	}
-	e := physic.Env{}
+	e := weather.Env{}
 	if dev.Sense(&e) == nil {
 		t.Fatal("isIdle() should have failed")
 	}
@@ -510,7 +511,7 @@ func TestI2CSenseContinuous280_success(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	e := physic.Env{}
+	e := weather.Env{}
 	select {
 	case e = <-c:
 	case <-time.After(2 * time.Second):
@@ -755,7 +756,7 @@ func TestBme280Precision(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	e := physic.Env{}
+	e := weather.Env{}
 	dev.Precision(&e)
 	if e.Temperature != 10*physic.MilliKelvin {
 		t.Fatal(e.Temperature)

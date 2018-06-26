@@ -13,7 +13,7 @@ import (
 	"log"
 	"os"
 
-	"periph.io/x/periph/conn/physic"
+	"periph.io/x/periph/conn/weather"
 	"periph.io/x/periph/host"
 	"periph.io/x/periph/host/sysfs"
 )
@@ -33,7 +33,7 @@ func mainImpl() error {
 		return err
 	}
 	for _, t := range sysfs.ThermalSensors {
-		e := physic.Env{}
+		e := weather.Env{}
 		if err := t.Sense(&e); err != nil {
 			return err
 		}
