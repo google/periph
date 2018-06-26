@@ -20,7 +20,6 @@ import (
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/pin"
 	"periph.io/x/periph/conn/pin/pinreg"
-	_ "periph.io/x/periph/host/am335x"
 	"periph.io/x/periph/host/beagle/black"
 	"periph.io/x/periph/host/beagle/green"
 	"periph.io/x/periph/host/sysfs"
@@ -28,6 +27,7 @@ import (
 
 // TODO(maruel): Use specialized am335x or pru implementation once available.
 
+// Common pin types on BeagleBones.
 var (
 	PWR_BUT   = &pin.BasicPin{N: "PWR_BUT"}   //
 	RESET_OUT = &pin.BasicPin{N: "RESET_OUT"} // SYS_RESETn
@@ -42,6 +42,7 @@ var (
 	AIN1      = &pin.BasicPin{N: "AIN1"}      // AIN1
 )
 
+// Headers found on BeagleBones.
 var (
 	// Port J1 is the UART port where the default terminal is connected to.
 	J1_1 pin.Pin    = pin.GROUND

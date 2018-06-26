@@ -38,10 +38,10 @@ func TestCalcSource_err(t *testing.T) {
 
 func TestClock(t *testing.T) {
 	// Necessary to zap out setRaw failing on non-working fake CPU memory map.
-	oldClockRawError := clockRawError
-	clockRawError = nil
+	oldErrClockRegister := errClockRegister
+	errClockRegister = nil
 	defer func() {
-		clockRawError = oldClockRawError
+		errClockRegister = oldErrClockRegister
 	}()
 	c := clock{}
 	if _, _, err := c.set(0, dmaWaitcyclesMax+1); err != nil {

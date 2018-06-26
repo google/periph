@@ -138,10 +138,10 @@ func TestPin(t *testing.T) {
 
 func TestPinPWM(t *testing.T) {
 	// Necessary to zap out setRaw failing on non-working fake CPU memory map.
-	oldClockRawError := clockRawError
-	clockRawError = nil
+	oldErrClockRegister := errClockRegister
+	errClockRegister = nil
 	defer func() {
-		clockRawError = oldClockRawError
+		errClockRegister = oldErrClockRegister
 	}()
 	defer reset()
 	setMemory()

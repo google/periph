@@ -58,7 +58,7 @@ func (p *Pin) Halt() error {
 	return nil
 }
 
-// In is concurrent safe.
+// In implements gpio.PinIn.
 func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	p.Lock()
 	defer p.Unlock()
@@ -81,7 +81,7 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	}
 }
 
-// Read is concurrent safe.
+// Read implements gpio.PinIn.
 func (p *Pin) Read() gpio.Level {
 	p.Lock()
 	defer p.Unlock()
@@ -113,7 +113,7 @@ func (p *Pin) DefaultPull() gpio.Pull {
 	return p.P
 }
 
-// Out is concurrent safe.
+// Out implements gpio.PinOut.
 func (p *Pin) Out(l gpio.Level) error {
 	p.Lock()
 	defer p.Unlock()
@@ -121,6 +121,7 @@ func (p *Pin) Out(l gpio.Level) error {
 	return nil
 }
 
+// PWM implements gpio.PinOut.
 func (p *Pin) PWM(duty gpio.Duty, f physic.Frequency) error {
 	p.Lock()
 	defer p.Unlock()

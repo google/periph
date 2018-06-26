@@ -1210,7 +1210,7 @@ func resetDMA(ch int) error {
 	} else if ch == 15 {
 		drvDMA.dmaChannel15.reset()
 	} else {
-		return fmt.Errorf("Invalid dma channel %d.", ch)
+		return fmt.Errorf("invalid dma channel %d", ch)
 	}
 	return nil
 }

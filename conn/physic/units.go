@@ -9,6 +9,7 @@ import (
 	"time"
 )
 
+// Common constants.
 const (
 	NanoMetre  Distance = 1
 	MicroMetre          = 1000 * NanoMetre

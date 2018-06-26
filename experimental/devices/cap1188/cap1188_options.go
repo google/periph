@@ -13,6 +13,7 @@ import (
 // SamplingTime determines the time to make a single sample.
 type SamplingTime uint8
 
+// Valid SamplingTime values.
 const (
 	S320us SamplingTime = 0
 	S640us SamplingTime = 1
@@ -24,6 +25,7 @@ const (
 // AvgSampling set the number of samples per measurement that get averaged.
 type AvgSampling uint8
 
+// Valid AvgSampling values.
 const (
 	// Avg1 means that 1 sample is taken per measurement
 	Avg1   AvgSampling = iota // 0
@@ -40,7 +42,7 @@ const (
 // normal operation.
 type CycleTime uint8
 
-// Possible cycle time values. (written as 2 bits)
+// Valid CycleTime values.
 const (
 	C35ms CycleTime = iota // 0
 	C70ms                  // default
@@ -52,7 +54,7 @@ const (
 // recalibration.
 type MaxDur uint8
 
-// Possible touch duration values. (written as 4 bits)
+// Valid MaxDur values.
 const (
 	MaxDur560ms MaxDur = iota
 	MaxDur840ms

@@ -125,9 +125,7 @@ const (
 	F16      Filter = 4
 )
 
-// DefaultsOpts returns the default options used.
-//
-// Defaults to use O4x (4x oversampling) for all measurements.
+// DefaultOpts is the recommended default options.
 var DefaultOpts = Opts{
 	Temperature: O4x,
 	Pressure:    O4x,

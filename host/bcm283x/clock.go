@@ -13,9 +13,9 @@ import (
 	"periph.io/x/periph/conn/physic"
 )
 
-// clockRawError is returned in a situation where the clock memory is not
+// errClockRegister is returned in a situation where the clock memory is not
 // working as expected. It is mocked in tests.
-var clockRawError = errors.New("can't write to clock divisor CPU register")
+var errClockRegister = errors.New("can't write to clock divisor CPU register")
 
 // Clock sources frequency in hertz.
 const (
@@ -296,7 +296,7 @@ func (c *clock) setRaw(ctl clockCtl, div uint32) error {
 	if c.div != d {
 		// This error is mocked out in tests, so the code path of set() callers can
 		// follow on.
-		return clockRawError
+		return errClockRegister
 	}
 	return nil
 }

@@ -931,7 +931,7 @@ func BenchmarkCalibration280Float64(b *testing.B) {
 
 //
 
-var epsilon float64 = 0.000000001
+const epsilon = 0.000000001
 
 func floatEqual(a, b float64) bool {
 	return (a-b) < epsilon && (b-a) < epsilon

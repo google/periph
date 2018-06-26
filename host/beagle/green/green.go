@@ -28,6 +28,7 @@ import (
 	"periph.io/x/periph/host/sysfs"
 )
 
+// Headers found on BeagleBone Green.
 var (
 	// I2C Groove port.
 	I2C_SCL gpio.PinIO = gpio.INVALID // GPIO13, I2C2_SCL, UART1_RTSn, SPI1_CS1
