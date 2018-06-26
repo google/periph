@@ -614,7 +614,7 @@ func (p *Pin) StreamOut(s gpiostream.Stream) error {
 
 // DefaultPull returns the default pull for the pin.
 //
-// Implements gpio.PinDefaultPull.
+// Implements gpio.PinIn.
 //
 // The CPU doesn't return the current pull.
 func (p *Pin) DefaultPull() gpio.Pull {
