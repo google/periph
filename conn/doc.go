@@ -60,7 +60,4 @@
 //
 // → XXXtest: fake implementation that can be leveraged when writing device
 // driver unit test.
-//
-// → XXXsmoketest: smoke test that tests against real hardware to ensure the
-// whole stack work correctly, including the OS supplied drivers.
 package conn
