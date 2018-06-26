@@ -15,17 +15,12 @@ all:
 
 # test runs the platform independent tests
 # (gofmt|grep is used to obtain a non-zero exit status if the formatting is off)
-test: depend
-	go test -i ./...
+test:
 	go test ./...
 	@if gofmt -l . | grep .go; then \
 	  echo "Repo contains improperly formatted go files; run gofmt on above files" && exit 1; \
 	else echo "OK gofmt"; fi
 	-go vet -unsafeptr=false ./...
-
-# depend fetches dependencies, this takes <0.2s if the dependencies are there already so just do it...
-depend:
-	go get -d ./...
 
 # BUILD
 #
