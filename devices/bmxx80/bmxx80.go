@@ -5,14 +5,19 @@
 // Package bmxx80 controls a Bosch BMP180/BME280/BMP280 device over I²C, or SPI
 // for the BMx280.
 //
-// BMx280
+// Datasheets
 //
-// https://ae-bst.resource.bosch.com/media/_tech/media/datasheets/BST-BME280_DS001-11.pdf
-// https://www.mouser.com/datasheet/2/783/BST-BME280_DS001-11-844833.pdf
+// The URLs tend to rot, visit https://www.bosch-sensortec.com if they become
+// invalid.
 //
-// https://ae-bst.resource.bosch.com/media/_tech/media/datasheets/BST-BMP280-DS001-18.pdf
+// BME280:
+// https://ae-bst.resource.bosch.com/media/_tech/media/datasheets/BST-BME280_DS001-12.pdf
 //
-// https://ae-bst.resource.bosch.com/media/_tech/media/datasheets/BST-BMP180-DS000-121.pdf
+// BMP280:
+// https://ae-bst.resource.bosch.com/media/_tech/media/datasheets/BST-BMP280-DS001-19.pdf
+//
+// BMP180:
+// https://ae-bst.resource.bosch.com/media/_tech/media/datasheets/BST-BMP180-DS000-12.pdf
 //
 // The font the official datasheet on page 15 is hard to read, a copy with
 // readable text can be found here:
