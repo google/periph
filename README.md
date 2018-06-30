@@ -31,9 +31,10 @@ import (
 
 func main() {
     host.Init()
+    t := time.NewTicker(500 * time.Millisecond)
     for l := gpio.Low; ; l = !l {
         rpi.P1_33.Out(l)
-        time.Sleep(500 * time.Millisecond)
+        <-t.C
     }
 }
 ~~~
