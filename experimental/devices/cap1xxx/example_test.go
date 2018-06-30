@@ -2,7 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-package cap1188_test
+package cap1xxx_test
 
 import (
 	"fmt"
@@ -11,7 +11,7 @@ import (
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/i2c/i2creg"
-	"periph.io/x/periph/experimental/devices/cap1188"
+	"periph.io/x/periph/experimental/devices/cap1xxx"
 )
 
 func Example() {
@@ -42,14 +42,14 @@ func Example() {
 
 	// We will configure the cap1188 by setting some options, we can start by the
 	// defaults.
-	opts := cap1188.DefaultOpts
+	opts := cap1xxx.DefaultOpts
 	opts.AlertPin = alertPin
 	opts.ResetPin = resetPin
 
 	// Open the device so we can detect touch events.
-	dev, err := cap1188.NewI2C(i2cBus, &opts)
+	dev, err := cap1xxx.NewI2C(i2cBus, &opts)
 	if err != nil {
-		log.Fatalf("couldn't open cap1188: %v", err)
+		log.Fatalf("couldn't open cap1xxx: %v", err)
 	}
 
 	fmt.Println("Monitoring for touch events")
@@ -57,7 +57,7 @@ func Example() {
 	for maxTouches > 0 {
 		if alertPin.WaitForEdge(-1) {
 			maxTouches--
-			var statuses [8]cap1188.TouchStatus
+			var statuses [8]cap1xxx.TouchStatus
 			if err := dev.InputStatus(statuses[:]); err != nil {
 				fmt.Printf("Error reading inputs: %v\n", err)
 				continue

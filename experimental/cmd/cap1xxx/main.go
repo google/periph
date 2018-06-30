@@ -2,7 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// cap1188 sense touches.
+// cap1xxx sense touches.
 package main
 
 import (
@@ -21,7 +21,7 @@ import (
 	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/pin"
 	"periph.io/x/periph/conn/pin/pinreg"
-	"periph.io/x/periph/experimental/devices/cap1188"
+	"periph.io/x/periph/experimental/devices/cap1xxx"
 	"periph.io/x/periph/host"
 )
 
@@ -38,7 +38,7 @@ func mainImpl() error {
 	}
 	log.SetFlags(log.Lmicroseconds)
 
-	opts := cap1188.DefaultOpts
+	opts := cap1xxx.DefaultOpts
 	if *i2cAddr != 0 {
 		if *i2cAddr < 0 || *i2cAddr > 65535 {
 			return errors.New("invlaid -i2c value")
@@ -50,7 +50,7 @@ func mainImpl() error {
 		return err
 	}
 
-	var dev *cap1188.Dev
+	var dev *cap1xxx.Dev
 	i2cBus, err := i2creg.Open(*i2cID)
 	if err != nil {
 		return fmt.Errorf("couldn't open the i2c bus - %s", err)
@@ -75,7 +75,7 @@ func mainImpl() error {
 	if err := alertPin.In(gpio.PullUp, gpio.BothEdges); err != nil {
 		return err
 	}
-	log.Printf("cap1188: alert pin: %#v", alertPin)
+	log.Printf("cap1xxx: alert pin: %#v", alertPin)
 
 	resetPin := gpioreg.ByName(*resetPinName)
 	if resetPin == nil {
@@ -87,8 +87,8 @@ func mainImpl() error {
 		opts.Debug = true
 	}
 
-	if dev, err = cap1188.NewI2C(i2cBus, &opts); err != nil {
-		return fmt.Errorf("couldn't open cap1188 - %s", err)
+	if dev, err = cap1xxx.NewI2C(i2cBus, &opts); err != nil {
+		return fmt.Errorf("couldn't open cap1xxx - %s", err)
 	}
 
 	userAskedToLinkLEDs := opts.LinkedLEDs
@@ -122,7 +122,7 @@ func mainImpl() error {
 
 	if alertPin != nil {
 		log.Println("Monitoring for touch events")
-		var status [8]cap1188.TouchStatus
+		var status [8]cap1xxx.TouchStatus
 		for {
 			if alertPin.WaitForEdge(-1) {
 				if err := dev.InputStatus(status[:]); err != nil {
@@ -145,7 +145,7 @@ func mainImpl() error {
 
 func main() {
 	if err := mainImpl(); err != nil {
-		fmt.Fprintf(os.Stderr, "cap1188: %s.\n", err)
+		fmt.Fprintf(os.Stderr, "cap1xxx: %s.\n", err)
 		os.Exit(1)
 	}
 }
@@ -159,7 +159,7 @@ func printPin(fn string, p pin.Pin) {
 	}
 }
 
-func printSensorsStatus(statuses []cap1188.TouchStatus) {
+func printSensorsStatus(statuses []cap1xxx.TouchStatus) {
 	for i, st := range statuses {
 		fmt.Printf("#%d: %s", i, st)
 		if i != len(statuses)-1 {

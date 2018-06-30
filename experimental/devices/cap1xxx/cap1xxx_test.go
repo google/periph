@@ -2,7 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-package cap1188
+package cap1xxx
 
 import (
 	"flag"
@@ -46,7 +46,7 @@ func TestNewI2C(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if s := d.String(); s != "cap1188{playback(40)}" {
+	if s := d.String(); s != "cap1xxx{playback(40)}" {
 		t.Fatal(s)
 	}
 	if err := d.Halt(); err != nil {

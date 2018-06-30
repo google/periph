@@ -4,7 +4,7 @@
 
 // +build go1.8
 
-package cap1188
+package cap1xxx
 
 import (
 	"reflect"

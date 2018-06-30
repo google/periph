@@ -2,19 +2,40 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package cap1188 controls a Microchip cap1188 device over I²C.
+// Package cap1xxx controls a Microchip
+// cap1105/cap1106/cap1114/cap1133/cap1126/cap1128/cap1166/cap1188 device over
+// I²C.
 //
-// The cap1188 device is a 8 channel capacitive touch sensor with 8 LED drivers.
+// The cap1xxx devices are a 3/5/6/8/14 channel capacitive touch sensor with
+// 2/3/6/8/11 LED drivers.
 //
 // Datasheet
 //
-// The official data sheet can be found here:
+// 3 sensors, 3 LEDs:
+// http://ww1.microchip.com/downloads/en/DeviceDoc/CAP1133.pdf
 //
+// 5-6 sensors, no LED:
+// http://ww1.microchip.com/downloads/en/DeviceDoc/CAP1105_CAP1106.pdf
+//
+// 6 sensors, 2 LEDs:
+// http://ww1.microchip.com/downloads/en/DeviceDoc/CAP1126.pdf
+//
+// 6 sensors, 6 LEDs:
+// http://ww1.microchip.com/downloads/en/DeviceDoc/CAP1166.pdf
+//
+// 8 sensors, 2 LEDs:
+// http://ww1.microchip.com/downloads/en/DeviceDoc/CAP1128.pdf
+//
+// 8 sensors, 8 LEDs:
 // http://ww1.microchip.com/downloads/en/DeviceDoc/CAP1188.pdf
-package cap1188
+//
+// 14 sensors, 11 LEDs:
+// http://ww1.microchip.com/downloads/en/DeviceDoc/CAP1114.pdf
+package cap1xxx
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -53,7 +74,8 @@ func (i TouchStatus) String() string {
 	return touchStatusName[touchStatusIndex[i]:touchStatusIndex[i+1]]
 }
 
-// NewI2C returns a new device that communicates over I²C to cap1188.
+// NewI2C returns a new device that communicates over I²C to
+// one of the supported cap1xxx device.
 //
 // Use default options if nil is used.
 func NewI2C(b i2c.Bus, opts *Opts) (*Dev, error) {
@@ -68,36 +90,37 @@ func NewI2C(b i2c.Bus, opts *Opts) (*Dev, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("cap1188: Connected via I²C address: %#x", addr)
 	return d, nil
 }
 
 /*
-// NewSPI returns an object that communicates over SPI to cap1188 environmental
+// NewSPI returns an object that communicates over SPI to cap1xxx touch
 // sensor.
 //
 // TODO(mattetti): Expose once implemented and tested.
 func NewSPI(p spi.Port, opts *Opts) (*Dev, error) {
-	return nil, fmt.Errorf("cap1188: not implemented")
+	return nil, fmt.Errorf("cap1xxx: not implemented")
 }
 */
 
-// Dev is a handle to a cap1188.
+// Dev is a handle to a device of the cap1xxx family.
 type Dev struct {
 	c     mmr.Dev8
 	opts  Opts
 	isSPI bool
 
-	inputStatuses [8]TouchStatus
+	inputStatuses []TouchStatus
+	numLEDs       int
 	lastReset     time.Time
 }
 
 func (d *Dev) String() string {
-	return fmt.Sprintf("cap1188{%s}", d.c.Conn)
+	return fmt.Sprintf("cap1xxx{%s}", d.c.Conn)
 }
 
-// Halt is a noop for the cap1188.
+// Halt is a noop for the cap1xxx.
 func (d *Dev) Halt() error {
+	// TODO(maruel): Turn off the LEDs?
 	return nil
 }
 
@@ -176,13 +199,13 @@ func (d *Dev) AllLEDs(on bool) error {
 	if d.opts.LinkedLEDs {
 		return wrapf("can't manually set LEDs when they are linked to sensors")
 	}
+	// TODO(maruel): support > 8 LEDs.
+	var v byte
 	if on {
-		if err := d.c.WriteUint8(regLEDOutputControl, 0xff); err != nil {
-			return wrapf("failed to turn all LEDs on: %v", err)
-		}
+		v = 0xFF
 	}
-	if err := d.c.WriteUint8(regLEDOutputControl, 0x00); err != nil {
-		return wrapf("failed to turn all LEDs off: %v", err)
+	if err := d.c.WriteUint8(regLEDOutputControl, v); err != nil {
+		return wrapf("failed to set all LEDs: %v", err)
 	}
 	return nil
 }
@@ -194,12 +217,13 @@ func (d *Dev) SetLED(idx int, state bool) error {
 	if d.opts.LinkedLEDs {
 		return wrapf("can't manually set LEDs when they are linked to sensors")
 	}
-	if idx > 7 || idx < 0 {
+	if idx >= d.numLEDs || idx < 0 {
 		return wrapf("invalid led idx %d", idx)
 	}
 	if d.opts.Debug {
-		log.Printf("cap1188: Set LED state %d - %t", idx, state)
+		log.Printf("cap1xxx: Set LED state %d - %t", idx, state)
 	}
+	// TODO(maruel): support > 8 LEDs.
 	if state {
 		if err := d.setBit(regLEDOutputControl, idx); err != nil {
 			return wrapf("failed to set LED #%d to %t: %v", idx, state, err)
@@ -218,7 +242,7 @@ func (d *Dev) Reset() error {
 	}
 	if d.opts.ResetPin != nil {
 		if d.opts.Debug {
-			log.Println("cap1188: Resetting the device using the reset pin")
+			log.Println("cap1xxx: Resetting the device using the reset pin")
 		}
 		if err := d.opts.ResetPin.Out(gpio.Low); err != nil {
 			return wrapf("failed to set reset pin low: %v", err)
@@ -259,10 +283,62 @@ func makeDev(c conn.Conn, isSPI bool, opts *Opts) (*Dev, error) {
 	}
 
 	// Read the product id to confirm it matches our expectations.
-	if productID, err := d.c.ReadUint8(0xFD); err != nil {
+	productID, err := d.c.ReadUint8(0xFD)
+	if err != nil {
 		return nil, wrapf("failed to read product id: %v", err)
-	} else if productID != 0x50 {
-		return nil, wrapf("unexpected chip id %x; is this a cap1188?", productID)
+	}
+	switch productID {
+	case 0x3A: // cap1114
+		d.inputStatuses = make([]TouchStatus, 14)
+		d.numLEDs = 11
+		return nil, errors.New("cap1xxx: cap1114 is not yet supported")
+	case 0x50: // cap1188
+		d.inputStatuses = make([]TouchStatus, 8)
+		d.numLEDs = 8
+	case 0x51: // cap1166
+		d.inputStatuses = make([]TouchStatus, 6)
+		d.numLEDs = 6
+	case 0x52: // cap1128
+		d.inputStatuses = make([]TouchStatus, 8)
+		d.numLEDs = 2
+	case 0x53: // cap1126
+		d.inputStatuses = make([]TouchStatus, 6)
+		d.numLEDs = 2
+	case 0x54: // cap1133
+		d.inputStatuses = make([]TouchStatus, 3)
+		d.numLEDs = 3
+	case 0x55: // cap1106
+		// No LED.
+		d.inputStatuses = make([]TouchStatus, 6)
+	case 0x56: // cap1105
+		// No LED.
+		d.inputStatuses = make([]TouchStatus, 5)
+	case 0x67: // cap1206
+		// http://ww1.microchip.com/downloads/en/DeviceDoc/00001567B.pdf
+		d.inputStatuses = make([]TouchStatus, 6)
+		return nil, errors.New("cap1xxx: cap1206 is not yet supported")
+	case 0x69: // cap1296
+		// http://ww1.microchip.com/downloads/en/DeviceDoc/00001569B.pdf
+		d.inputStatuses = make([]TouchStatus, 6)
+		return nil, errors.New("cap1xxx: cap1296 is not yet supported")
+	case 0x6B: // cap1208
+		// http://ww1.microchip.com/downloads/en/DeviceDoc/00001570C.pdf
+		d.inputStatuses = make([]TouchStatus, 8)
+		return nil, errors.New("cap1xxx: cap1208 is not yet supported")
+	case 0x6D: // cap1203
+		// http://ww1.microchip.com/downloads/en/DeviceDoc/00001572B.pdf
+		d.inputStatuses = make([]TouchStatus, 3)
+		return nil, errors.New("cap1xxx: cap1203 is not yet supported")
+	case 0x6F: // cap1293
+		// http://ww1.microchip.com/downloads/en/DeviceDoc/00001566B.pdf
+		d.inputStatuses = make([]TouchStatus, 3)
+		return nil, errors.New("cap1xxx: cap1293 is not yet supported")
+	case 0x71: // cap1298
+		// http://ww1.microchip.com/downloads/en/DeviceDoc/00001571B.pdf
+		d.inputStatuses = make([]TouchStatus, 8)
+		return nil, errors.New("cap1xxx: cap1298 is not yet supported")
+	default:
+		return nil, wrapf("unexpected chip id %x; is this a cap1xxx?", productID)
 	}
 	// manufacturer ID on 0xFE, should be 0x5D
 	// revision ID on 0xFF, should be 0x83
@@ -331,7 +407,7 @@ func makeDev(c conn.Conn, isSPI bool, opts *Opts) (*Dev, error) {
 		byte(0)<<1 |
 		byte(0)<<0)
 	if d.opts.Debug {
-		log.Printf("cap1188: Sampling config mask: %08b", samplingConfig)
+		log.Printf("cap1xxx: Sampling config mask: %08b", samplingConfig)
 	}
 	if err := d.c.WriteUint8(0x24, samplingConfig); err != nil {
 		return nil, wrapf("failed to enable multitouch: %v", err)
@@ -352,7 +428,7 @@ func makeDev(c conn.Conn, isSPI bool, opts *Opts) (*Dev, error) {
 		byte(1)<<6 | byte(0)<<5 | byte(1)<<4 |
 		byte(0)<<3 | byte(0)<<2 | byte(0)<<1 | byte(0)<<0)
 	if d.opts.Debug {
-		log.Printf("cap1188: Sensitivity mask: %08b", sensitivity)
+		log.Printf("cap1xxx: Sensitivity mask: %08b", sensitivity)
 	}
 	if err := d.c.WriteUint8(0x1F, sensitivity); err != nil {
 		return nil, wrapf("failed to set sensitivity: %v", err)
@@ -410,7 +486,7 @@ func makeDev(c conn.Conn, isSPI bool, opts *Opts) (*Dev, error) {
 		byte(0)<<1 |
 		byte(0)<<0)
 	if d.opts.Debug {
-		log.Printf("cap1188: Config mask: %08b", config)
+		log.Printf("cap1xxx: Config mask: %08b", config)
 	}
 	if err := d.c.WriteUint8(0x20, config); err != nil {
 		return nil, wrapf("failed to set the device configuration: %v", err)
@@ -459,7 +535,7 @@ func makeDev(c conn.Conn, isSPI bool, opts *Opts) (*Dev, error) {
 		//   repeat rate but not when a release is detected.
 		intOnRel<<0)
 	if d.opts.Debug {
-		log.Printf("cap1188: Config2 mask: %08b", config2)
+		log.Printf("cap1xxx: Config2 mask: %08b", config2)
 	}
 	if err := d.c.WriteUint8(0x44, config2); err != nil {
 		return nil, wrapf("failed to set the device configuration 2: %v", err)
@@ -516,7 +592,7 @@ const (
 var sleep = time.Sleep
 
 func wrapf(format string, a ...interface{}) error {
-	return fmt.Errorf("cap1188: "+format, a...)
+	return fmt.Errorf("cap1xxx: "+format, a...)
 }
 
 var _ conn.Resource = &Dev{}
