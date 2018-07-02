@@ -2,18 +2,6 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package lepton drivers a FLIR Lepton.
-//
-// References
-//
-// Official FLIR reference:
-//   http://www.flir.com/cvs/cores/view/?id=51878
-//
-// Product page:
-//   http://www.flir.com/cores/content/?id=66257
-//
-// Datasheet:
-//   http://www.flir.com/uploadedFiles/OEM/Products/LWIR-Cameras/Lepton/Lepton%20Engineering%20Datasheet%20-%20with%20Radiometry.pdf
 package lepton
 
 import (

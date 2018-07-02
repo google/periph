@@ -5,17 +5,6 @@
 // "stringer" can be installed with "go get golang.org/x/tools/cmd/stringer"
 //go:generate stringer -output=strings_gen.go -type=CameraStatus,command,FFCShutterMode,FFCState,ShutterPos,ShutterTempLockoutState
 
-// Package cci declares the Camera Command Interface to interact with a FLIR
-// Lepton over I²C.
-//
-// This protocol controls and queries the camera but is not used to read the
-// images.
-//
-// Datasheet
-//
-// http://www.flir.com/uploadedFiles/OEM/Products/LWIR-Cameras/Lepton/FLIR-Lepton-Software-Interface-Description-Document.pdf
-//
-// Found via http://www.flir.com/cores/display/?id=51878
 package cci
 
 import (
