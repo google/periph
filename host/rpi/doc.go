@@ -5,7 +5,8 @@
 // Package rpi contains Raspberry Pi hardware logic. It is intrinsically
 // related to package bcm283x.
 //
-// Assumes Raspbian Jessie. Windows IoT is currently not supported.
+// Assumes Raspbian but does not directly depend on the distro being Raspbian.
+// Windows IoT is currently not supported.
 //
 // Physical
 //
