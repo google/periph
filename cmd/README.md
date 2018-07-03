@@ -46,6 +46,7 @@ it](https://periph.io/project/contributing/).
   Can show an image animating on the Y axis.
 - [bmxx80](bmxx80): Reads the temperature, pressure and humidity off a
   bmp180/bme280/bmp280. Humidity sensing is only supported on bme280.
+- [cap1xxx](cap1xxx): Reads the capacitive sensor family.
 - [ir](ir): Reads codes (button presses) on an InfraRed remote sensor.
 - [led](led): Reads the state of on-board LEDs.
 - [ssd1306](ssd1306): Writes text, an image or an animated GIF to an OLED
