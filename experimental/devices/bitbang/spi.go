@@ -24,12 +24,12 @@ import (
 	"periph.io/x/periph/host/cpu"
 )
 
-// NewSPI returns an object that communicates SPI over 3 or 4 pins.
+// NewSPI returns an spi.PortCloser that communicates SPI over 3 or 4 pins.
 //
 // BUG(maruel): Completely untested.
 //
 // cs can be nil.
-func NewSPI(clk, mosi gpio.PinOut, miso gpio.PinIn, cs gpio.PinOut, speedHz int64) (*SPI, error) {
+func NewSPI(clk, mosi gpio.PinOut, miso gpio.PinIn, cs gpio.PinOut) (*SPI, error) {
 	if err := clk.Out(gpio.High); err != nil {
 		return nil, err
 	}
@@ -47,25 +47,88 @@ func NewSPI(clk, mosi gpio.PinOut, miso gpio.PinIn, cs gpio.PinOut, speedHz int6
 			return nil, err
 		}
 	}
-	s := &SPI{
-		sck:       clk,
-		sdi:       miso,
-		sdo:       mosi,
-		csn:       cs,
-		mode:      spi.Mode3,
-		bits:      8,
-		halfCycle: time.Second / time.Duration(speedHz) / time.Duration(2),
-	}
-	return s, nil
+	return &SPI{spiConn: spiConn{sck: clk, sdi: miso, sdo: mosi, csn: cs}}, nil
 }
 
-// SPI represents a SPI master implemented as bit-banging on 3 or 4 GPIO pins.
+// SPI represents a SPI master port implemented as bit-banging on 3 or 4 GPIO
+// pins.
 type SPI struct {
+	spiConn spiConn
+}
+
+func (s *SPI) String() string {
+	return fmt.Sprintf("bitbang/spi(%s, %s, %s, %s)", s.spiConn.sck, s.spiConn.sdi, s.spiConn.sdo, s.spiConn.csn)
+}
+
+// Close implements spi.PortCloser.
+func (s *SPI) Close() error {
+	return nil
+}
+
+// Connect implements spi.PortCloser.
+func (s *SPI) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, error) {
+	if f < 0 {
+		return nil, errors.New("bitbang-spi: invalid frequency")
+	}
+	if mode != spi.Mode3 {
+		return nil, fmt.Errorf("bitbang-spi: mode %v is not implemented", mode)
+	}
+	s.spiConn.mu.Lock()
+	defer s.spiConn.mu.Unlock()
+	s.spiConn.freqDev = f
+	if s.spiConn.freqDev != 0 && (s.spiConn.freqPort == 0 || s.spiConn.freqDev < s.spiConn.freqPort) {
+		s.spiConn.halfCycle = f.Duration() / 2
+	}
+	s.spiConn.mode = mode
+	s.spiConn.bits = bits
+	return &s.spiConn, nil
+}
+
+// LimitSpeed implements spi.PortCloser.
+func (s *SPI) LimitSpeed(f physic.Frequency) error {
+	if f <= 0 {
+		return errors.New("bitbang-spi: invalid frequency")
+	}
+	s.spiConn.mu.Lock()
+	defer s.spiConn.mu.Unlock()
+	s.spiConn.freqPort = f
+	if s.spiConn.freqDev == 0 || s.spiConn.freqPort < s.spiConn.freqDev {
+		s.spiConn.halfCycle = f.Duration() / 2
+	}
+	return nil
+}
+
+// CLK implements spi.Pins.
+func (s *SPI) CLK() gpio.PinOut {
+	return s.spiConn.sck
+}
+
+// MOSI implements spi.Pins.
+func (s *SPI) MOSI() gpio.PinOut {
+	return s.spiConn.sdo
+}
+
+// MISO implements spi.Pins.
+func (s *SPI) MISO() gpio.PinIn {
+	return s.spiConn.sdi
+}
+
+// CS implements spi.Pins.
+func (s *SPI) CS() gpio.PinOut {
+	return s.spiConn.csn
+}
+
+//
+
+// spiConn implements spi.Conn.
+type spiConn struct {
+	// Immutable.
 	sck gpio.PinOut // Clock
 	sdi gpio.PinIn  // MISO
 	sdo gpio.PinOut // MOSI
 	csn gpio.PinOut // CS
 
+	// Mutable.
 	mu        sync.Mutex
 	freqPort  physic.Frequency
 	freqDev   physic.Frequency
@@ -74,52 +137,14 @@ type SPI struct {
 	halfCycle time.Duration
 }
 
-func (s *SPI) String() string {
+func (s *spiConn) String() string {
 	return fmt.Sprintf("bitbang/spi(%s, %s, %s, %s)", s.sck, s.sdi, s.sdo, s.csn)
 }
 
-// Close implements spi.ConnCloser.
-func (s *SPI) Close() error {
-	return nil
-}
-
 // Duplex implements spi.Conn.
-func (s *SPI) Duplex() conn.Duplex {
+func (s *spiConn) Duplex() conn.Duplex {
 	// Maybe implement bitbanging SPI only in half mode?
 	return conn.Full
-}
-
-// LimitSpeed implements spi.ConnCloser.
-func (s *SPI) LimitSpeed(f physic.Frequency) error {
-	if f <= 0 {
-		return errors.New("bitbang-spi: invalid frequency")
-	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.freqPort = f
-	if s.freqDev == 0 || s.freqPort < s.freqDev {
-		s.halfCycle = f.Duration() / 2
-	}
-	return nil
-}
-
-// Connect implements spi.Conn.
-func (s *SPI) Connect(f physic.Frequency, mode spi.Mode, bits int) error {
-	if f < 0 {
-		return errors.New("bitbang-spi: invalid frequency")
-	}
-	if mode != spi.Mode3 {
-		return fmt.Errorf("bitbang-spi: mode %v is not implemented", mode)
-	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.freqDev = f
-	if s.freqDev != 0 && (s.freqPort == 0 || s.freqDev < s.freqPort) {
-		s.halfCycle = f.Duration() / 2
-	}
-	s.mode = mode
-	s.bits = bits
-	return nil
 }
 
 // Tx implements spi.Conn.
@@ -127,7 +152,7 @@ func (s *SPI) Connect(f physic.Frequency, mode spi.Mode, bits int) error {
 // BUG(maruel): Implement mode.
 // BUG(maruel): Implement bits.
 // BUG(maruel): Test if read works.
-func (s *SPI) Tx(w, r []byte) error {
+func (s *spiConn) Tx(w, r []byte) error {
 	if len(r) != 0 && len(w) != len(r) {
 		return errors.New("bitbang-spi: write and read buffers must be the same length")
 	}
@@ -156,12 +181,12 @@ func (s *SPI) Tx(w, r []byte) error {
 }
 
 // TxPackets implements spi.Conn.
-func (s *SPI) TxPackets(p []spi.Packet) error {
+func (s *spiConn) TxPackets(p []spi.Packet) error {
 	return errors.New("bitbang-spi: not implemented")
 }
 
 // Write implements io.Writer.
-func (s *SPI) Write(d []byte) (int, error) {
+func (s *spiConn) Write(d []byte) (int, error) {
 	if err := s.Tx(d, nil); err != nil {
 		return 0, err
 	}
@@ -169,31 +194,31 @@ func (s *SPI) Write(d []byte) (int, error) {
 }
 
 // CLK implements spi.Pins.
-func (s *SPI) CLK() gpio.PinOut {
+func (s *spiConn) CLK() gpio.PinOut {
 	return s.sck
 }
 
 // MOSI implements spi.Pins.
-func (s *SPI) MOSI() gpio.PinOut {
+func (s *spiConn) MOSI() gpio.PinOut {
 	return s.sdo
 }
 
 // MISO implements spi.Pins.
-func (s *SPI) MISO() gpio.PinIn {
+func (s *spiConn) MISO() gpio.PinIn {
 	return s.sdi
 }
 
 // CS implements spi.Pins.
-func (s *SPI) CS() gpio.PinOut {
+func (s *spiConn) CS() gpio.PinOut {
 	return s.csn
 }
 
 //
 
 // sleep does a busy loop to act as fast as possible.
-func (s *SPI) sleepHalfCycle() {
+func (s *spiConn) sleepHalfCycle() {
 	cpu.Nanospin(s.halfCycle)
 }
 
-var _ spi.Conn = &SPI{}
+var _ spi.PortCloser = &SPI{}
 var _ fmt.Stringer = &SPI{}
