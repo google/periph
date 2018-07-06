@@ -11,13 +11,15 @@ import (
 	"image/color"
 	"image/draw"
 
+	"periph.io/x/periph/conn/display"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/spi"
 )
 
 const (
 	Height = 16
 	Width  = 16
-	speed  = 9000000
+	speed  = 9 * physic.MegaHertz
 	bits   = 8
 	prefix = 0x72
 )
@@ -29,7 +31,6 @@ type Dev struct {
 	connector spi.Conn
 	pixels    *image.NRGBA
 	txBuffer  []byte
-	err       error
 }
 
 // New returns a unicornHD driver that communicates over SPI.
@@ -48,13 +49,20 @@ func NewUnicornhd(port spi.Port) (*Dev, error) {
 	}, nil
 }
 
+// Implement display.Drawer
+//
 // Returns a string with the driver name and the width and height of the display.
 func (device *Dev) String() string {
 	return fmt.Sprintf("UnicornHD{%d, %d}", Width, Height)
 }
 
-// Implement devices.Display
-//
+// Halting the unicorn HD sets all the pixels to black. Error is always nil.
+func (device *Dev) Halt() error {
+	black := color.RGBA{0, 0, 0, 0}
+	device.Draw(device.Bounds(), &image.Uniform{black}, image.ZP)
+	return nil
+}
+
 // ColorModel implements devices.Display. There's no surprise, it is
 // color.RGBAModel.
 func (device *Dev) ColorModel() color.Model {
@@ -72,14 +80,14 @@ func (device *Dev) Bounds() image.Rectangle {
 //
 // Using something else than image.NRGBA is 10x slower. When using image.NRGBA,
 // the alpha channel is ignored.
-func (device *Dev) Draw(area image.Rectangle, img image.Image, origin image.Point) {
+func (device *Dev) Draw(dstRect image.Rectangle, src image.Image, srcPts image.Point) error {
 	// Use stdlib image copying functionality.
-	draw.Draw(device.pixels, area, img, origin, draw.Src)
+	draw.Draw(device.pixels, dstRect, src, srcPts, draw.Src)
 	// And then copy the image into the transmission buffer, where it is sent via SPI.
-	device.flush()
+	return device.flush()
 }
 
-func (device *Dev) flush() {
+func (device *Dev) flush() error {
 	device.txBuffer[0] = prefix
 	x := 0
 	y := 0
@@ -100,9 +108,9 @@ func (device *Dev) flush() {
 		device.txBuffer[k+2] = blue
 	}
 
-	device.err = device.connector.Tx(device.txBuffer, nil)
+	return device.connector.Tx(device.txBuffer, nil)
 }
 
-func (device *Dev) Err() error {
-	return device.err
-}
+// Test that driver implements display.Drawer interface.  This is
+// enforced at compile time.
+var _ display.Drawer = (*Dev)(nil)
