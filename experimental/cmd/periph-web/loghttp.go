@@ -2,11 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Copyright 2017 Marc-Antoine Ruel. All rights reserved.
-// Use of this source code is governed under the Apache License, Version 2.0
-// that can be found in the LICENSE file.
-
-// Original source:
+// Inspired by:
 // https://github.com/maruel/serve-dir/blob/master/loghttp/loghttp.go
 
 package main
@@ -20,30 +16,20 @@ import (
 	"time"
 )
 
-// Handler wraps a http.Handler and logs the request and response.
-//
-// It handles Hijack() for websocket support.
-type Handler struct {
-	http.Handler
-
-	unused struct{}
-}
-
-// ServeHTTP implements http.Handler.
-//
-// It logs the handler's HTTP status code and the response size.
-func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	received := time.Now()
-	rwh := responseWriteHijacker{responseWriter: responseWriter{ResponseWriter: w}}
-	w = &rwh
-	// Not all ResponseWriter implement Hijack, so query its support upfront.
-	if _, ok := w.(http.Hijacker); !ok {
-		w = &rwh.responseWriter
-	}
-	defer func() {
-		defaultOnDone(r, received, rwh.status, rwh.length, rwh.hijacked)
-	}()
-	h.Handler.ServeHTTP(w, r)
+func loggingHandler(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		received := time.Now()
+		rwh := responseWriteHijacker{responseWriter: responseWriter{ResponseWriter: w}}
+		w = &rwh
+		// Not all ResponseWriter implement Hijack, so query its support upfront.
+		if _, ok := w.(http.Hijacker); !ok {
+			w = &rwh.responseWriter
+		}
+		defer func() {
+			defaultOnDone(r, received, rwh.status, rwh.length, rwh.hijacked)
+		}()
+		h.ServeHTTP(w, r)
+	})
 }
 
 // Private.

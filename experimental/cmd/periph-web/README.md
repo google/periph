@@ -15,3 +15,7 @@ export TARGET_HOST=raspberrypi:7080
 export XSRF_TOKEN="$(curl -s -X POST http://${TARGET_HOST}/api/periph/v1/xsrf_token/raw)"
 curl -s -b "XSRF-TOKEN=${XSRF_TOKEN}" -d '{}' -H 'Content-Type: application/json' http://${TARGET_HOST}/api/periph/v1/header/_all | python -mjson.tool
 ```
+
+By default, the HTTP server binds to localhost. If you want to access it from
+another host, pass the argument `-http=0.0.0.0:7080` or the port of your
+choosing.

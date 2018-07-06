@@ -16,7 +16,7 @@ import (
 )
 
 func mainImpl() error {
-	port := flag.String("http", ":7080", "IP and port to bind to")
+	port := flag.String("http", "localhost:7080", "IP and port to bind to; listens to localhost by default; use 0.0.0.0:<port> to listen on all ports")
 	verbose := flag.Bool("v", false, "verbose log")
 	flag.Parse()
 	if flag.NArg() != 0 {
@@ -34,6 +34,7 @@ func mainImpl() error {
 	if err != nil {
 		return err
 	}
+	fmt.Printf("Listening on %s as %s\n", s.server.Addr, s.hostname)
 	c := make(chan os.Signal)
 	go func() { <-c }()
 	signal.Notify(c, os.Interrupt)

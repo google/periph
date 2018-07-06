@@ -63,24 +63,60 @@ type webServer struct {
 	key      [8]byte
 }
 
-func newWebServer(port string, state *periph.State, verbose bool) (*webServer, error) {
-	s := &webServer{}
+func getHostAndPort(hostport string) (string, int, error) {
+	host, portStr, err := net.SplitHostPort(hostport)
+	if err != nil {
+		return "", 0, fmt.Errorf("could not split http address: %v", err)
+	}
+	if host == "" {
+		host = "localhost"
+	}
+	var port int
+	if portStr != "" {
+		if port, err = strconv.Atoi(portStr); err != nil {
+			return "", 0, fmt.Errorf("invalid port number: %v", err)
+		}
+	}
+	return host, port, nil
+}
+
+func isLocalhost(host string) bool {
+	switch host {
+	case "localhost", "127.0.0.1", "[::1]", "::1":
+		return true
+	}
+	return false
+}
+
+func newWebServer(hostport string, state *periph.State, verbose bool) (*webServer, error) {
+	s := &webServer{server: http.Server{Handler: http.DefaultServeMux}}
 	if _, err := rand.Read(s.key[:]); err != nil {
 		return nil, err
 	}
 	s.state.init(state)
-	log.Printf("%#v", s.state)
 	var err error
-	if s.hostname, err = os.Hostname(); err != nil {
+	host, port, err := getHostAndPort(hostport)
+	if err != nil {
 		return nil, err
 	}
+
 	s.registerAPIs()
 	http.HandleFunc("/favicon.ico", getOnly(s.getFavicon))
 	http.HandleFunc("/", getOnly(s.getRoot))
-	if verbose {
-		s.server.Handler = &Handler{Handler: http.DefaultServeMux}
+	// We love middlewares!
+	if isLocalhost(host) {
+		s.hostname = "localhost"
+		s.server.Handler = localOnly(s.server.Handler)
+	} else {
+		if s.hostname, err = os.Hostname(); err != nil {
+			return nil, err
+		}
 	}
-	if s.ln, err = net.Listen("tcp", port); err != nil {
+	if verbose {
+		s.server.Handler = loggingHandler(s.server.Handler)
+	}
+
+	if s.ln, err = net.Listen("tcp", fmt.Sprintf("%s:%d", host, port)); err != nil {
 		return nil, err
 	}
 	s.server.Addr = s.ln.Addr().String()
@@ -182,4 +218,14 @@ func getOnly(h http.HandlerFunc) http.HandlerFunc {
 		}
 		h(w, r)
 	}
+}
+
+func localOnly(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if host, _, err := net.SplitHostPort(r.RemoteAddr); err != nil || !isLocalhost(host) {
+			http.Error(w, "permission denied", http.StatusForbidden)
+			return
+		}
+		h.ServeHTTP(w, r)
+	})
 }
