@@ -8,8 +8,6 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"periph.io/x/periph/conn/gpio"
-	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/conn/pin"
@@ -20,8 +18,9 @@ import (
 
 // registerAPIs registers the API handlers.
 func (s *webServer) registerAPIs() {
-	http.HandleFunc("/api/gpio/_aliases", api(s.apiGPIOAliases))
-	http.HandleFunc("/api/gpio/_all", api(s.apiGPIOAll))
+	//http.HandleFunc("/api/gpio/_aliases", api(s.apiGPIOAliases))
+	//http.HandleFunc("/api/gpio/_all", api(s.apiGPIOAll))
+	//http.HandleFunc("/api/gpio/_all", api(s.apiGPIOAll))
 	http.HandleFunc("/api/header/_all", api(s.apiHeaderAll))
 	http.HandleFunc("/api/i2c/_all", api(s.apiI2CAll))
 	http.HandleFunc("/api/spi/_all", api(s.apiSPIAll))
@@ -48,6 +47,17 @@ func api(h func() (interface{}, int)) http.HandlerFunc {
 	}
 }
 
+type gpioPin struct {
+	Name string
+	Num  int
+	Func string
+}
+
+func toPin(p pin.Pin) gpioPin {
+	return gpioPin{p.Name(), p.Number(), p.Function()}
+}
+
+/*
 // /api/gpio/_aliases
 type gpioAliases []pinAlias
 
@@ -69,16 +79,6 @@ func (s *webServer) apiGPIOAliases() (interface{}, int) {
 // /api/gpio/_all
 type gpioAll []gpioPin
 
-type gpioPin struct {
-	Name string
-	Num  int
-	Func string
-}
-
-func toPin(p pin.Pin) gpioPin {
-	return gpioPin{p.Name(), p.Number(), p.Function()}
-}
-
 func (s *webServer) apiGPIOAll() (interface{}, int) {
 	all := gpioreg.All()
 	data := make(gpioAll, 0, len(all))
@@ -87,6 +87,7 @@ func (s *webServer) apiGPIOAll() (interface{}, int) {
 	}
 	return data, 200
 }
+*/
 
 // /api/header/_all
 type headerAll map[string]header

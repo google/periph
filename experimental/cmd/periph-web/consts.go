@@ -29,6 +29,9 @@ h1, h2, h3, h4, h5, h6 {
 	padding: 10px;
 	display: none;
 }
+#periphExtra-section {
+	margin-bottom: 1rem;
+}
 `
 
 var rootJs = `
@@ -61,76 +64,308 @@ function onError(url, err) {
 }
 
 window.onload = function() {
-	refreshGPIO();
 	refreshHeader();
 	refreshI2C();
 	refreshSPI();
 	refreshState();
 };
 
-function refreshGPIO() {
-	post("/api/gpio/_all", {}, function(res) {
-		document.getElementById('gpio').innerText = JSON.stringify(res);
-	});
-}
-
 function refreshHeader() {
 	post("/api/header/_all", {}, function(res) {
-		document.getElementById('header').innerText = JSON.stringify(res);
+		let root = document.getElementById("section-gpio");
+		for (var key in res) {
+			let e = root.appendChild(document.createElement("header-elem"));
+			e.setup(key, res[key].Pins);
+		}
 	});
 }
 
 function refreshI2C() {
 	post("/api/i2c/_all", {}, function(res) {
-		document.getElementById('i2c').innerText = JSON.stringify(res);
+		let root = document.getElementById("section-i2c");
+		for (let i = 0; i < res.length; i++) {
+			let e = root.appendChild(document.createElement("i2c-elem"));
+			e.setup(res[i].Name, res[i].Number, res[i].Err, res[i].SCL, res[i].SDA);
+		}
 	});
 }
 
 function refreshSPI() {
 	post("/api/spi/_all", {}, function(res) {
-		document.getElementById('spi').innerText = JSON.stringify(res);
+		let root = document.getElementById("section-spi");
+		for (let i = 0; i < res.length; i++) {
+			let e = root.appendChild(document.createElement("spi-elem"));
+			e.setup(res[i].Name, res[i].Number, res[i].Err, res[i].CLK, res[i].MOSI, res[i].MISO, res[i].CS);
+		}
 	});
 }
 
 function refreshState() {
 	post("/api/server/state", {}, function(res) {
 		document.title = "periph-web - " + res.Hostname;
-		document.getElementById('periphExtra').innerText = res.PeriphExtra;
-		document.getElementById('drivers-loaded').innerText = JSON.stringify(res.State.Loaded);
-		document.getElementById('drivers-skipped').innerText = JSON.stringify(res.State.Skipped);
-		document.getElementById('drivers-failed').innerText = JSON.stringify(res.State.Failed);
+		document.getElementById("periphExtra").innerText = res.PeriphExtra;
+		let root = document.getElementById("section-drivers-loaded");
+		if (!res.State.Loaded.length) {
+			root.display = "hidden";
+		} else {
+			root.setup(["Drivers loaded"]);
+			for (var i = 0; i < res.State.Loaded.length; i++) {
+				root.appendRow([res.State.Loaded[i]]);
+			}
+		}
+		root = document.getElementById("section-drivers-skipped");
+		if (!res.State.Skipped.length) {
+			root.display = "hidden";
+		} else {
+			root.setup(["Drivers skipped", "Reason"]);
+			for (var i = 0; i < res.State.Skipped.length; i++) {
+				root.appendRow([res.State.Skipped[i].D, res.State.Skipped[i].Err]);
+			}
+		}
+		root = document.getElementById("section-drivers-failed");
+		if (!res.State.Failed.length) {
+			root.display = "hidden";
+		} else {
+			root.setup(["Drivers failed", "Error"]);
+			for (var i = 0; i < res.State.Failed.length; i++) {
+				root.appendRow([res.State.Failed[i].D, res.State.Failed[i].Err]);
+			}
+		}
 	});
 }
+`
+
+var customElems = `
+<template id="template-data-table-elem">
+	<style>
+		th {
+			background-color: #4CAF50;
+			color: white;
+		}
+		th, td {
+			padding: 0.5rem;
+			border-bottom: 1px solid #ddd;
+		}
+		tr:hover {
+			background-color: #CCC;
+		}
+		tr:nth-child(even):not(:hover) {
+			background: #f5f5f5;
+		}
+		table {
+			margin-bottom: 1rem;
+		}
+	</style>
+	<div>
+		<table>
+		<thead></thead>
+		<tbody></tbody>
+		</table>
+	</div>
+</template>
+<script>
+(function() {
+  let tmpl = document.querySelector("#template-data-table-elem");
+	window.customElements.define("data-table-elem", class extends HTMLElement {
+		constructor() {super(); this.attachShadow({mode: "open"}).appendChild(tmpl.content.cloneNode(true));}
+		setup(hdr) {
+			let root = this.shadowRoot.querySelector("thead");
+			for (let i = 0; i < hdr.length; i++) {
+				root.appendChild(document.createElement("th")).innerText = hdr[i];
+			}
+		}
+		appendRow(line) {
+			let tr = this.shadowRoot.querySelector("tbody").appendChild(document.createElement("tr"));
+			let items = [];
+			for (let i = 0; i < line.length; i++) {
+				let cell = tr.appendChild(document.createElement("td"));
+				if (line[i] instanceof Element) {
+					cell.appendChild(line[i]);
+					items[i] = line[i];
+				} else {
+					cell.innerText = line[i];
+					items[i] = cell;
+				}
+			}
+			return items;
+		}
+	});
+}());
+</script>
+
+<template id="template-drivers-elem">
+	<data-table-elem></data-table-elem>
+</template>
+<script>
+(function() {
+  let tmpl = document.querySelector("#template-drivers-elem");
+	window.customElements.define("drivers-elem", class extends HTMLElement {
+		constructor() {super(); this.attachShadow({mode: "open"}).appendChild(tmpl.content.cloneNode(true));}
+		setup(hdr) {
+			this.shadowRoot.querySelector("data-table-elem").setup(hdr);
+		}
+		appendRow(row) {
+			this.shadowRoot.querySelector("data-table-elem").appendRow(row);
+		}
+	});
+}());
+</script>
+
+<template id="template-gpio-elem">
+	<style>
+	div {
+		background: #FCF;
+		border: 1px solid #888;
+		border-radius: 10px;
+		padding: 10px;
+	}
+	</style>
+	<div>
+		<input type="checkbox" id="state">
+		<label for="state"></label>
+	</div>
+</template>
+<script>
+(function() {
+  let tmpl = document.querySelector("#template-gpio-elem");
+	window.customElements.define("gpio-elem", class extends HTMLElement {
+		constructor() {super(); this.attachShadow({mode: "open"}).appendChild(tmpl.content.cloneNode(true));}
+		connectedCallback() {
+			let l = this.shadowRoot.querySelector("label");
+			l.addEventListener("click", function(e) {
+				//e.preventDefault();
+				alert(e);
+			});
+		}
+		setup(name, func) {
+			this.shadowRoot.querySelector("label").textContent = name + "/" + func;
+		}
+	});
+}());
+</script>
+
+<template id="template-header-elem">
+	<data-table-elem></data-table-elem>
+</template>
+<script>
+(function() {
+  let tmpl = document.querySelector("#template-header-elem");
+	window.customElements.define("header-elem", class extends HTMLElement {
+		constructor() {super(); this.attachShadow({mode: "open"}).appendChild(tmpl.content.cloneNode(true));}
+		setup(name, pins) {
+			let data = this.shadowRoot.querySelector("data-table-elem");
+			let cols = 1;
+			if (pins) {
+				cols = pins[0].length;
+			}
+			let hdr = [name];
+			for (let i = 1; i < cols; i++) {
+				hdr[i] = "";
+			}
+			data.setup(hdr);
+			for (let y = 0; y < pins.length; y++) {
+				let row = pins[y];
+				let items = [];
+				for (let x = 0; x < row.length; x++) {
+					items[x] = document.createElement("gpio-elem");
+				}
+				items = data.appendRow(items);
+				for (let x = 0; x < items.length; x++) {
+					items[x].setup(row[x].Name, row[x].Func);
+				}
+			}
+		}
+	});
+}());
+</script>
+
+<template id="template-i2c-elem">
+	<data-table-elem></data-table-elem>
+</template>
+<script>
+(function() {
+  let tmpl = document.querySelector("#template-i2c-elem");
+	window.customElements.define("i2c-elem", class extends HTMLElement {
+		constructor() { super(); this.attachShadow({mode: "open"}).appendChild(tmpl.content.cloneNode(true)); }
+		setup(name, number, err, scl, sda) {
+			let data = this.shadowRoot.querySelector("data-table-elem");
+			data.setup([name, ""]);
+			if (number != -1) {
+				data.appendRow(["Number", number]);
+			}
+			if (err) {
+				data.appendRow(["Error", err]);
+			}
+			if (scl) {
+				data.appendRow(["SCL", scl]);
+			}
+			if (sda) {
+				data.appendRow(["SDA", sda]);
+			}
+		}
+	});
+}());
+</script>
+
+<template id="template-spi-elem">
+	<data-table-elem></data-table-elem>
+</template>
+<script>
+(function() {
+  let tmpl = document.querySelector("#template-spi-elem");
+	window.customElements.define("spi-elem", class extends HTMLElement {
+		constructor() {super(); this.attachShadow({mode: "open"}).appendChild(tmpl.content.cloneNode(true));}
+		setup(name, number, err, clk, mosi, miso, cs) {
+			let data = this.shadowRoot.querySelector("data-table-elem");
+			data.setup([name, ""]);
+			if (number != -1) {
+				data.appendRow(["Number", number]);
+			}
+			if (err) {
+				data.appendRow(["Error", err]);
+			}
+			if (clk) {
+				data.appendRow(["CLK", clk]);
+			}
+			if (mosi) {
+				data.appendRow(["MOSI", mosi]);
+			}
+			if (mosi) {
+				data.appendRow(["MISO", miso]);
+			}
+			if (cs) {
+				data.appendRow(["CS", cs]);
+			}
+		}
+	});
+}());
+</script>
 `
 
 var rootPage = []byte(`<!DOCTYPE html>
 <meta charset="utf-8" />
 <title>periph-web</title>
-<style>` + rootStyle + `
-</style>
-<script>` + rootJs + `
-</script>
+<style>` + rootStyle + `</style>
+<script>` + rootJs + `</script>
+` + customElems + `
 <div class="err" id="err"></div>
-<h1>periph's state</h1>
-<div>
-	Using <strong>periph.io/x/extra</strong>: <span id="periphExtra"></span>
-</div>
-<div>
-	<h2>Drivers loaded</h2>
-	<div id="drivers-loaded"></div>
-	<h2>Drivers skipped</h2>
-	<div id="drivers-skipped"></div>
-	<h2>Drivers failed</h2>
-	<div id="drivers-failed"></div>
+<div id="section-state">
+	<h1>periph's state</h1>
+	<div id="periphExtra-section">
+		Using <strong>periph.io/x/extra</strong>: <span id="periphExtra"></span>
+	</div>
+	<div>
+		<drivers-elem id="section-drivers-loaded"></drivers-elem>
+		<drivers-elem id="section-drivers-skipped"></drivers-elem>
+		<drivers-elem id="section-drivers-failed"></drivers-elem>
+	</div>
 </div>
 <h1>GPIO</h1>
-<div id="gpio"></div>
-<h1>Header</h1>
-<div id="header"></div>
+<div id="section-gpio"></div>
 <h1>I²C</h1>
-<div id="i2c"></div>
+<div id="section-i2c"></div>
 <h1>SPI</h1>
-<div id="spi"></div>
+<div id="section-spi"></div>
 `)
 
 // Created with:
