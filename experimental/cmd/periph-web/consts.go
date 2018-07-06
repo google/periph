@@ -46,12 +46,13 @@ function post(url, data, callback) {
 }
 
 function checkStatus(res) {
+  if (res.status == 401) {
+		throw new Error("Please refresh the page");
+	}
   if (res.status >= 200 && res.status < 300) {
     return res.json();
   }
-	var err = new Error(res.statusText);
-	err.response = res;
-	throw err;
+	throw new Error(res.statusText);
 }
 
 function onError(url, err) {
@@ -71,7 +72,7 @@ window.onload = function() {
 };
 
 function refreshHeader() {
-	post("/api/header/_all", {}, function(res) {
+	post("/api/periph/v1/header/_all", {}, function(res) {
 		let root = document.getElementById("section-gpio");
 		for (var key in res) {
 			let e = root.appendChild(document.createElement("header-elem"));
@@ -81,7 +82,7 @@ function refreshHeader() {
 }
 
 function refreshI2C() {
-	post("/api/i2c/_all", {}, function(res) {
+	post("/api/periph/v1/i2c/_all", {}, function(res) {
 		let root = document.getElementById("section-i2c");
 		for (let i = 0; i < res.length; i++) {
 			let e = root.appendChild(document.createElement("i2c-elem"));
@@ -91,7 +92,7 @@ function refreshI2C() {
 }
 
 function refreshSPI() {
-	post("/api/spi/_all", {}, function(res) {
+	post("/api/periph/v1/spi/_all", {}, function(res) {
 		let root = document.getElementById("section-spi");
 		for (let i = 0; i < res.length; i++) {
 			let e = root.appendChild(document.createElement("spi-elem"));
@@ -101,7 +102,7 @@ function refreshSPI() {
 }
 
 function refreshState() {
-	post("/api/server/state", {}, function(res) {
+	post("/api/periph/v1/server/state", {}, function(res) {
 		document.title = "periph-web - " + res.Hostname;
 		document.getElementById("periphExtra").innerText = res.PeriphExtra;
 		let root = document.getElementById("section-drivers-loaded");

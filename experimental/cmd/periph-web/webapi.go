@@ -18,18 +18,18 @@ import (
 
 // registerAPIs registers the API handlers.
 func (s *webServer) registerAPIs() {
-	//http.HandleFunc("/api/gpio/_aliases", api(s.apiGPIOAliases))
-	//http.HandleFunc("/api/gpio/_all", api(s.apiGPIOAll))
-	//http.HandleFunc("/api/gpio/_all", api(s.apiGPIOAll))
-	http.HandleFunc("/api/header/_all", api(s.apiHeaderAll))
-	http.HandleFunc("/api/i2c/_all", api(s.apiI2CAll))
-	http.HandleFunc("/api/spi/_all", api(s.apiSPIAll))
-	http.HandleFunc("/api/server/state", api(s.apiServerState))
+	//http.HandleFunc("/api/periph/v1/gpio/_aliases", s.api(s.apiGPIOAliases))
+	//http.HandleFunc("/api/periph/v1/gpio/_all", s.api(s.apiGPIOAll))
+	http.HandleFunc("/api/periph/v1/header/_all", s.api(s.apiHeaderAll))
+	http.HandleFunc("/api/periph/v1/i2c/_all", s.api(s.apiI2CAll))
+	http.HandleFunc("/api/periph/v1/spi/_all", s.api(s.apiSPIAll))
+	http.HandleFunc("/api/periph/v1/server/state", s.api(s.apiServerState))
+	http.HandleFunc("/api/periph/v1/xsrf_token/raw", s.apiXSRFTokenHandler)
 }
 
 // api is a simple JSON api wrapper.
-func api(h func() (interface{}, int)) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func (s *webServer) api(h func() (interface{}, int)) http.HandlerFunc {
+	return s.enforceXSRF(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			http.Error(w, "Only POST is allowed", http.StatusMethodNotAllowed)
 			return
@@ -44,7 +44,7 @@ func api(h func() (interface{}, int)) http.HandlerFunc {
 		w.Header().Set("Cache-Control", cacheControlNone)
 		w.WriteHeader(code)
 		w.Write(raw)
-	}
+	})
 }
 
 type gpioPin struct {
@@ -193,4 +193,16 @@ func (s *webServer) apiServerState() (interface{}, int) {
 		PeriphExtra: periphExtra,
 	}
 	return data, 200
+}
+
+func (s *webServer) apiXSRFTokenHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Only POST is allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	t := s.setXSRFCookie(r.RemoteAddr, w)
+	w.Header().Set("Content-Type", "text/plain")
+	w.Header().Set("Cache-Control", cacheControlNone)
+	w.WriteHeader(200)
+	w.Write([]byte(t))
 }

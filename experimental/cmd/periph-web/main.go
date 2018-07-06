@@ -30,7 +30,7 @@ func mainImpl() error {
 	if err != nil {
 		return err
 	}
-	s, err := newWebServer(*port, state)
+	s, err := newWebServer(*port, state, *verbose)
 	if err != nil {
 		return err
 	}
