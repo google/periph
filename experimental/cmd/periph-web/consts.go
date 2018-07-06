@@ -51,12 +51,12 @@ function post(url, data, callback) {
 }
 
 function checkStatus(res) {
-  if (res.status == 401) {
+	if (res.status == 401) {
 		throw new Error("Please refresh the page");
 	}
-  if (res.status >= 200 && res.status < 300) {
-    return res.json();
-  }
+	if (res.status >= 200 && res.status < 300) {
+		return res.json();
+	}
 	throw new Error(res.statusText);
 }
 
@@ -175,7 +175,7 @@ function refreshState() {
 </template>
 <script>
 (function() {
-  let tmpl = document.querySelector("#template-data-table-elem");
+	let tmpl = document.querySelector("#template-data-table-elem");
 	window.customElements.define("data-table-elem", class extends HTMLElement {
 		constructor() {super(); this.attachShadow({mode: "open"}).appendChild(tmpl.content.cloneNode(true));}
 		setup(hdr) {
@@ -215,7 +215,7 @@ function refreshState() {
 </template>
 <script>
 (function() {
-  let tmpl = document.querySelector("#template-drivers-elem");
+	let tmpl = document.querySelector("#template-drivers-elem");
 	window.customElements.define("drivers-elem", class extends HTMLElement {
 		constructor() {super(); this.attachShadow({mode: "open"}).appendChild(tmpl.content.cloneNode(true));}
 		setup(hdr) {
@@ -244,7 +244,7 @@ function refreshState() {
 </template>
 <script>
 (function() {
-  let tmpl = document.querySelector("#template-gpio-elem");
+	let tmpl = document.querySelector("#template-gpio-elem");
 	window.customElements.define("gpio-elem", class extends HTMLElement {
 		constructor() {super(); this.attachShadow({mode: "open"}).appendChild(tmpl.content.cloneNode(true));}
 		connectedCallback() {
@@ -266,7 +266,7 @@ function refreshState() {
 </template>
 <script>
 (function() {
-  let tmpl = document.querySelector("#template-header-elem");
+	let tmpl = document.querySelector("#template-header-elem");
 	window.customElements.define("header-elem", class extends HTMLElement {
 		constructor() {super(); this.attachShadow({mode: "open"}).appendChild(tmpl.content.cloneNode(true));}
 		setup(name, pins) {
@@ -301,7 +301,7 @@ function refreshState() {
 </template>
 <script>
 (function() {
-  let tmpl = document.querySelector("#template-i2c-elem");
+	let tmpl = document.querySelector("#template-i2c-elem");
 	window.customElements.define("i2c-elem", class extends HTMLElement {
 		constructor() { super(); this.attachShadow({mode: "open"}).appendChild(tmpl.content.cloneNode(true)); }
 		setup(name, number, err, scl, sda) {
@@ -329,7 +329,7 @@ function refreshState() {
 </template>
 <script>
 (function() {
-  let tmpl = document.querySelector("#template-spi-elem");
+	let tmpl = document.querySelector("#template-spi-elem");
 	window.customElements.define("spi-elem", class extends HTMLElement {
 		constructor() {super(); this.attachShadow({mode: "open"}).appendChild(tmpl.content.cloneNode(true));}
 		setup(name, number, err, clk, mosi, miso, cs) {
