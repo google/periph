@@ -41,53 +41,225 @@ h1, h2, h3 {
 
 <script>
 "use strict";
+class EventSource {
+	constructor() {
+		this._triggers = {};
+	}
+	on(event, callback) {
+		if (!this._triggers[event]) {
+			this._triggers[event] = [];
+		}
+		this._triggers[event].push(callback);
+	}
+	/*
+	remove(event, callback) {
+		for (let i in this._triggers[event]) {
+			if (this._triggers[event] === callback) {
+				this._triggers[event].pop(i);
+				return;
+			}
+		}
+	}
+	*/
+	triggerHandlers(event, params) {
+		if (this._triggers[event]) {
+			for (let i in this._triggers[event]) {
+				this._triggers[event][i](params);
+				/* TODO(maruel): Self-destruct the event handler if returning false.
+				if (!this._triggers[event][i](params)) {
+					this._triggers[event].pop(i);
+				}
+				*/
+			}
+		}
+	}
+};
+
+// Pin is a pin on an header. It could be a GPIO, but it can be a dead pin too.
+class Pin {
+	constructor(name, number, func, gpio) {
+		this.name = name;
+		this.number = number;
+		this._func = func;
+		this.gpio = gpio;
+	}
+	get func() {
+		if (this.gpio) {
+			return this.gpio.func;
+		}
+		return this._func;
+	}
+};
+
+// GPIO is a pin that supports digital I/O. A Pin can point to a GPIO.
 class GPIO {
 	constructor(name, number, func) {
 		this.name = name;
 		this.number = number;
 		this.func = func;
+		this.eventUpdate = new EventSource();
+		this._value = null;
 	}
-	// TODO(maruel): Action and events go there.
+	get value() {
+		return this._value;
+	}
+	onValueRead(v) {
+		if (this._value == v) {
+			return;
+		}
+		this._value = v;
+		this.func = this._makeFunc(this.type, v);
+		this.eventUpdate.triggerHandlers("update", v);
+	}
+	get type() {
+		if (this.func.startsWith("Out")) {
+			return "out";
+		}
+		if (this.func.startsWith("In")) {
+			return "in";
+		}
+		return this.func;
+	}
+	out(v) {
+		this._value = null;
+		this.func = this._makeFunc("out", v);
+		this.onValueRead(v);
+		let params = {};
+		params[this.name] = v;
+		post("/api/periph/v1/gpio/out", params, res => {
+			if (res[0]) {
+				alert(res[0]);
+			}
+		});
+	}
+	_makeFunc(t, v) {
+		if (v != null) {
+			if (t == "in") {
+				if (v) {
+					return "In/High";
+				} else {
+					return "In/Low";
+				}
+			} else if (t == "out") {
+				if (v) {
+					return "Out/High";
+				} else {
+					return "Out/Low";
+				}
+			}
+		}
+		return this.func;
+	}
 };
 
+// Header is a collection of pins on a board.
 class Header {
 	constructor(name, pins) {
 		this.name = name;
-		// [[names]]
+		// [[Pin]]
 		this.pins = pins;
 	}
 	updateRefs() {
 	}
 };
 
-var events = new function() {
-	var _triggers = {};
-	this.on = function(event, callback) {
-		if (!_triggers[event]) {
-			_triggers[event] = [];
-		}
-		_triggers[event].push(callback);
-	}
-	this.triggerHandler = function(event, params) {
-		if (_triggers[event]) {
-			for (let i in _triggers[event]) {
-				_triggers[event][i](params);
+// PinData contains all the GPIOs and headers.
+var PinData = new class {
+	constructor() {
+		this.eventNewGPIO = new EventSource();
+		this.eventGPIODone = new EventSource();
+		this.eventHeaderDone = new EventSource();
+		// {name: GPIO}
+		this.gpios = {};
+		// {name: Header}
+		this.headers = {};
+		// [name]
+		this._polling = {};
+		this._pollingID = null;
+		document.addEventListener("DOMContentLoaded", () => {
+			post("/api/periph/v1/gpio/list", {}, res => {
+				for (let i = 0; i < res.length; i++) {
+					let name = res[i].Name;
+					this.gpios[name] = new GPIO(name, res[i].Number, res[i].Func)
+					this.eventNewGPIO.triggerHandlers(name);
+				}
+				this.eventGPIODone.triggerHandlers("done");
+			});
+			post("/api/periph/v1/header/list", {}, res => {
+				for (let key in res) {
+					let pins = [];
+					for (let y = 0; y < res[key].Pins.length; y++) {
+						let row = res[key].Pins[y];
+						let items = [];
+						for (let x = 0; x < row.length; x++) {
+							let src = row[x];
+							// As the Pin instances are connected, look up the corresponding
+							// GPIO instance. If it is not present, hook up an event to catch
+							// it if one ever show up.
+							let p = new Pin(src.Name, src.Number, src.Func, this.gpios[src.Name]);
+							if (!p.gpio) {
+								this.eventNewGPIO.on(p.name, () => {
+									p.gpio = this.gpios[p.name];
+									return false;
+								});
+							}
+							items[x] = p;
+						}
+						pins[y] = items;
+					}
+					this.headers[key] = new Header(key, pins);
+				}
+				this.eventHeaderDone.triggerHandlers("done");
+			});
+		});
+	};
+	poll(gpioName) {
+		this._polling[gpioName] = true;
+		if (this._pollingID == null) {
+			this._pollingID = window.setTimeout(this._refreshGPIO.bind(this), 1000);
+		};
+	};
+	_refreshGPIO() {
+		// Keep a copy of the pins that were fetched.
+		let pins = Object.keys(this._polling).sort();
+		post("/api/periph/v1/gpio/read", pins, res => {
+			for (let i = 0; i < pins.length; i++) {
+				switch (res[i]) {
+				case 0:
+					this.gpios[pins[i]].onValueRead(false);
+					break;
+				case 1:
+					this.gpios[pins[i]].onValueRead(true);
+					break;
+				default:
+					this.gpios[pins[i]].onValueRead(null);
+					break;
+				}
 			}
-		}
-	}
-};
-
-var global = {
-	// {name: GPIO}
-	gpio: null,
-	// {name: Header}
-	header: null,
-	refreshingGPIO: false,
-	// [names]
-	visibleGPIOs: null,
+			this._pollingID = setTimeout(this._refreshGPIO.bind(this), 1000);
+		});
+	};
 };
 
 function post(url, data, callback) {
+	function checkStatus(res) {
+		if (res.status == 401) {
+			throw new Error("Please refresh the page");
+		}
+		if (res.status >= 200 && res.status < 300) {
+			return res.json();
+		}
+		throw new Error(res.statusText);
+	}
+	function onError(url, err) {
+		console.log(err);
+		let e = document.getElementById("err");
+		if (e.innerText) {
+			e.innerText = e.innerText + "\n";
+		}
+		e.innerText = e.innerText + url + ": " + err.toString() + "\n";
+		e.style.display = "block";
+	}
 	let hdr = {
 		body: JSON.stringify(data),
 		credentials: "same-origin",
@@ -97,102 +269,35 @@ function post(url, data, callback) {
 	fetch(url, hdr).then(checkStatus).then(callback).catch(err => onError(url, err));
 }
 
-function checkStatus(res) {
-	if (res.status == 401) {
-		throw new Error("Please refresh the page");
-	}
-	if (res.status >= 200 && res.status < 300) {
-		return res.json();
-	}
-	throw new Error(res.statusText);
-}
-
-function onError(url, err) {
-	console.log(err);
-	let e = document.getElementById("err");
-	if (e.innerText) {
-		e.innerText = e.innerText + "\n";
-	}
-	e.innerText = e.innerText + url + ": " + err.toString() + "\n";
-	e.style.display = "block";
-}
-
-window.onload = function() {
-	fetchGPIO();
-	fetchHeader();
-	fetchI2C();
-	fetchSPI();
-	fetchState();
-};
-
-function fetchGPIO() {
-	post("/api/periph/v1/gpio/list", {}, function(res) {
-		// The list of GPIOs is not shown.
-		global.gpio = {};
-		for (let i = 0; i < res.length; i++) {
-			let name = res[i].Name;
-			global.gpio[name] = new GPIO(name, res[i].Number, res[i].Func)
-			events.triggerHandler("gpio_" + name);
-		}
-		maybeStartRefreshingGPIO();
-	});
-}
-
-function fetchHeader() {
-	post("/api/periph/v1/header/list", {}, function(res) {
-		global.header = {};
-		for (var key in res) {
-			let pins = [];
-			for (let y = 0; y < res[key].Pins.length; y++) {
-				let row = res[key].Pins[y];
-				let items = [];
-				for (let x = 0; x < row.length; x++) {
-					items[x] = row[x].Name;
-				}
-				pins[y] = items;
-			}
-			global.header[key] = new Header(key, pins);
-		}
-
-		// Show them.
-		let root = document.getElementById("section-gpio");
-		for (var key in global.header) {
-			let e = root.appendChild(document.createElement("header-view"));
-			e.setup(global.header[key]);
-		}
-		maybeStartRefreshingGPIO();
-	});
-}
-
 function fetchI2C() {
-	post("/api/periph/v1/i2c/list", {}, function(res) {
+	post("/api/periph/v1/i2c/list", {}, res => {
 		let root = document.getElementById("section-i2c");
 		for (let i = 0; i < res.length; i++) {
 			let e = root.appendChild(document.createElement("i2c-elem"));
-			e.setup(res[i].Name, res[i].Number, res[i].Err, res[i].SCL, res[i].SDA);
+			e.setupI2C(res[i].Name, res[i].Number, res[i].Err, res[i].SCL, res[i].SDA);
 		}
 	});
 }
 
 function fetchSPI() {
-	post("/api/periph/v1/spi/list", {}, function(res) {
+	post("/api/periph/v1/spi/list", {}, res => {
 		let root = document.getElementById("section-spi");
 		for (let i = 0; i < res.length; i++) {
 			let e = root.appendChild(document.createElement("spi-elem"));
-			e.setup(res[i].Name, res[i].Number, res[i].Err, res[i].CLK, res[i].MOSI, res[i].MISO, res[i].CS);
+			e.setupSPI(res[i].Name, res[i].Number, res[i].Err, res[i].CLK, res[i].MOSI, res[i].MISO, res[i].CS);
 		}
 	});
 }
 
 function fetchState() {
-	post("/api/periph/v1/server/state", {}, function(res) {
+	post("/api/periph/v1/server/state", {}, res => {
 		document.title = "periph-web - " + res.Hostname;
 		document.getElementById("periphExtra").innerText = res.PeriphExtra;
 		let root = document.getElementById("section-drivers-loaded");
 		if (!res.State.Loaded.length) {
 			root.display = "hidden";
 		} else {
-			root.setup(["Drivers loaded"]);
+			root.setupDrivers(["Drivers loaded"]);
 			for (var i = 0; i < res.State.Loaded.length; i++) {
 				root.appendRow([res.State.Loaded[i]]);
 			}
@@ -201,7 +306,7 @@ function fetchState() {
 		if (!res.State.Skipped.length) {
 			root.display = "hidden";
 		} else {
-			root.setup(["Drivers skipped", "Reason"]);
+			root.setupDrivers(["Drivers skipped", "Reason"]);
 			for (var i = 0; i < res.State.Skipped.length; i++) {
 				root.appendRow([res.State.Skipped[i].D, res.State.Skipped[i].Err]);
 			}
@@ -210,7 +315,7 @@ function fetchState() {
 		if (!res.State.Failed.length) {
 			root.display = "hidden";
 		} else {
-			root.setup(["Drivers failed", "Error"]);
+			root.setupDrivers(["Drivers failed", "Error"]);
 			for (var i = 0; i < res.State.Failed.length; i++) {
 				root.appendRow([res.State.Failed[i].D, res.State.Failed[i].Err]);
 			}
@@ -218,36 +323,19 @@ function fetchState() {
 	});
 }
 
-function maybeStartRefreshingGPIO() {
-	if (global.gpio != null && global.header != null && !global.refreshingGPIO) {
-		global.refreshingGPIO = true;
-		global.visibleGPIOs = [];
-		for (let key in global.header) {
-			let h = global.header[key];
-			for (let y = 0; y < h.pins.length; y++) {
-				for (let x = 0; x < h.pins[y].length; x++) {
-					let name = h.pins[y][x];
-					for (let j = 0; j < global.gpio.length; j++) {
-						if (name == global.gpio[j].name) {
-							global.visibleGPIOs.append(name);
-							break;
-						}
-					}
-				}
-			}
-		}
-		if (global.visibleGPIOs) {
-			refreshGPIO();
-		}
-	}
-}
-
-function refreshGPIO() {
-	// If fetching fails, the loop stops.
-	post("/api/periph/v1/gpio/read", global.visibleGPIOs, function(res) {
-		setTimeout(refreshGPIO, 1000);
+PinData.eventHeaderDone.on("done", () => {
+	let root = document.getElementById("section-gpio");
+	Object.keys(PinData.headers).sort().forEach(key => {
+		root.appendChild(document.createElement("header-view")).setupHeader(key);
 	});
-}
+	return false;
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+	fetchI2C();
+	fetchSPI();
+	fetchState();
+});
 </script>
 
 <!-- Custom elements-->
@@ -288,7 +376,7 @@ function refreshGPIO() {
 	let tmpl = document.querySelector("#template-data-table-elem");
 	window.customElements.define("data-table-elem", class extends HTMLElement {
 		constructor() {super(); this.attachShadow({mode: "open"}).appendChild(tmpl.content.cloneNode(true));}
-		setup(hdr) {
+		setupTable(hdr) {
 			let root = this.shadowRoot.querySelector("thead");
 			for (let i = 0; i < hdr.length; i++) {
 				root.appendChild(document.createElement("th")).innerText = hdr[i];
@@ -329,8 +417,8 @@ function refreshGPIO() {
 	let tmpl = document.querySelector("#template-drivers-elem");
 	window.customElements.define("drivers-elem", class extends HTMLElement {
 		constructor() {super(); this.attachShadow({mode: "open"}).appendChild(tmpl.content.cloneNode(true));}
-		setup(hdr) {
-			this.shadowRoot.querySelector("data-table-elem").setup(hdr);
+		setupDrivers(hdr) {
+			this.shadowRoot.querySelector("data-table-elem").setupTable(hdr);
 		}
 		appendRow(row) {
 			this.shadowRoot.querySelector("data-table-elem").appendRow(row);
@@ -347,6 +435,9 @@ function refreshGPIO() {
 		border-radius: 10px;
 		padding: 10px;
 	}
+	#state {
+		display: none;
+	}
 	</style>
 	<div>
 		<input type="checkbox" id="state">
@@ -360,26 +451,36 @@ function refreshGPIO() {
 	window.customElements.define("gpio-view", class extends HTMLElement {
 		constructor() {super(); this.attachShadow({mode: "open"}).appendChild(tmpl.content.cloneNode(true));}
 		connectedCallback() {
-			let l = this.shadowRoot.querySelector("label");
-			l.addEventListener("click", function(e) {
-				//e.preventDefault();
+			let l = this.shadowRoot.getElementById("state");
+			l.addEventListener("click", e => {
+				this.pin.gpio.out(l.checked);
 			});
 		}
-		setup(name) {
-			this.name = name;
-			this.gpio = null;
-			events.on("gpio_" + name, function (event, params) {
-				this.gpio = global.gpio[name];
-				this.shadowRoot.querySelector("label").textContent = this.name + ": " + this.gpio.func;
+		setupPin(pin) {
+			this.pin = pin;
+			if (this.pin.gpio) {
+				this._isGPIO();
+				return;
+			}
+			this.shadowRoot.querySelector("label").textContent = this.pin.name;
+			PinData.eventNewGPIO.on(this.pin.name, () => {
+				this._isGPIO();
+				return false;
 			});
-			if (global.gpio) {
-				this.gpio = global.gpio[name];
+		}
+		_isGPIO() {
+			this.shadowRoot.querySelector("label").textContent = this.pin.name + ": " + this.pin.gpio.func;
+			if (this.pin.func.startsWith("In") || this.pin.func.startsWith("Out")) {
+				this.shadowRoot.getElementById("state").style.display = "inline-block";
 			}
-			if (this.gpio) {
-				this.shadowRoot.querySelector("label").textContent = this.name + ": " + this.gpio.func;
-			} else {
-				this.shadowRoot.querySelector("label").textContent = this.name;
-			}
+			this.pin.gpio.eventUpdate.on("update", v => {
+				this.shadowRoot.querySelector("label").textContent = this.pin.name + ": " + this.pin.gpio.func;
+				let t = this.pin.gpio.type;
+				if (t == "in" || t == "out") {
+					this.shadowRoot.getElementById("state").checked = v;
+				}
+			});
+			PinData.poll(this.pin.name);
 		}
 	});
 }());
@@ -394,27 +495,27 @@ function refreshGPIO() {
 	let tmpl = document.querySelector("#template-header-view");
 	window.customElements.define("header-view", class extends HTMLElement {
 		constructor() {super(); this.attachShadow({mode: "open"}).appendChild(tmpl.content.cloneNode(true));}
-		setup(header) {
-			this.header = header;
+		setupHeader(name) {
+			this.header = PinData.headers[name];
 			let data = this.shadowRoot.querySelector("data-table-elem");
 			let cols = 1;
-			if (header.pins) {
-				cols = header.pins[0].length;
+			if (this.header.pins) {
+				cols = this.header.pins[0].length;
 			}
-			let hdr = [header.name];
+			let hdr = [this.header.name];
 			for (let i = 1; i < cols; i++) {
 				hdr[i] = "";
 			}
-			data.setup(hdr);
-			for (let y = 0; y < header.pins.length; y++) {
-				let row = header.pins[y];
+			data.setupTable(hdr);
+			for (let y = 0; y < this.header.pins.length; y++) {
+				let row = this.header.pins[y];
 				let items = [];
 				for (let x = 0; x < row.length; x++) {
 					items[x] = document.createElement("gpio-view");
 				}
 				items = data.appendRow(items);
 				for (let x = 0; x < items.length; x++) {
-					items[x].setup(row[x]);
+					items[x].setupPin(row[x]);
 				}
 			}
 		}
@@ -431,9 +532,9 @@ function refreshGPIO() {
 	let tmpl = document.querySelector("#template-i2c-elem");
 	window.customElements.define("i2c-elem", class extends HTMLElement {
 		constructor() { super(); this.attachShadow({mode: "open"}).appendChild(tmpl.content.cloneNode(true)); }
-		setup(name, number, err, scl, sda) {
+		setupI2C(name, number, err, scl, sda) {
 			let data = this.shadowRoot.querySelector("data-table-elem");
-			data.setup([name, ""]);
+			data.setupTable([name, ""]);
 			if (number != -1) {
 				data.appendRow(["Number", number]);
 			}
@@ -460,9 +561,9 @@ function refreshGPIO() {
 	let tmpl = document.querySelector("#template-spi-elem");
 	window.customElements.define("spi-elem", class extends HTMLElement {
 		constructor() {super(); this.attachShadow({mode: "open"}).appendChild(tmpl.content.cloneNode(true));}
-		setup(name, number, err, clk, mosi, miso, cs) {
+		setupSPI(name, number, err, clk, mosi, miso, cs) {
 			let data = this.shadowRoot.querySelector("data-table-elem");
-			data.setup([name, ""]);
+			data.setupTable([name, ""]);
 			if (number != -1) {
 				data.appendRow(["Number", number]);
 			}

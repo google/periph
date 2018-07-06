@@ -25,6 +25,7 @@ func (s *webServer) registerAPIs() {
 	http.HandleFunc("/api/periph/v1/gpio/aliases", s.api(s.apiGPIOAliases))
 	http.HandleFunc("/api/periph/v1/gpio/list", s.api(s.apiGPIOList))
 	http.HandleFunc("/api/periph/v1/gpio/read", s.api(s.apiGPIORead))
+	http.HandleFunc("/api/periph/v1/gpio/out", s.api(s.apiGPIOOut))
 	http.HandleFunc("/api/periph/v1/header/list", s.api(s.apiHeaderList))
 	http.HandleFunc("/api/periph/v1/i2c/list", s.api(s.apiI2CList))
 	http.HandleFunc("/api/periph/v1/spi/list", s.api(s.apiSPIList))
@@ -120,6 +121,31 @@ func (s *webServer) apiGPIORead(b []byte) (interface{}, int) {
 			}
 		}
 		out = append(out, v)
+	}
+	return out, 200
+}
+
+// /api/periph/v1/gpio/out
+type gpioOutIn map[string]bool
+type gpioOutOut []string
+
+func (s *webServer) apiGPIOOut(b []byte) (interface{}, int) {
+	var in gpioOutIn
+	if err := json.Unmarshal(b, &in); err != nil {
+		log.Printf("Malformed user data: %v", err)
+		return map[string]string{"error": err.Error()}, 400
+	}
+	out := make(gpioOutOut, 0, len(in))
+	for name, l := range in {
+		if p := gpioreg.ByName(name); p != nil {
+			if err := p.Out(gpio.Level(l)); err != nil {
+				out = append(out, err.Error())
+			} else {
+				out = append(out, "")
+			}
+		} else {
+			out = append(out, "Pin not found")
+		}
 	}
 	return out, 200
 }
