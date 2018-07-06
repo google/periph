@@ -152,14 +152,17 @@ var customElems = `
 		tr:nth-child(even):not(:hover) {
 			background: #f5f5f5;
 		}
-		table {
+		.inline {
+			display: inline-block;
 			margin-bottom: 1rem;
+			margin-right: 5rem;
+			vertical-align: top;
 		}
 	</style>
-	<div>
+	<div class="inline">
 		<table>
-		<thead></thead>
-		<tbody></tbody>
+			<thead></thead>
+			<tbody></tbody>
 		</table>
 	</div>
 </template>
@@ -194,7 +197,14 @@ var customElems = `
 </script>
 
 <template id="template-drivers-elem">
-	<data-table-elem></data-table-elem>
+	<style>
+		.inline {
+			display: inline-block;
+		}
+	</style>
+	<div class="inline">
+		<data-table-elem></data-table-elem>
+	</div>
 </template>
 <script>
 (function() {
