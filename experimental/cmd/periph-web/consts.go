@@ -40,6 +40,16 @@ h1, h2, h3 {
 <!-- Javascript -->
 
 <script>
+var global = {
+	// {name: {number, funct}}
+	gpio: null,
+	// {name: {pins}
+	header: null,
+	refreshingGPIO: false,
+	// [names]
+	visibleGPIOs: null,
+};
+
 function post(url, data, callback) {
 	let hdr = {
 		body: JSON.stringify(data),
@@ -70,24 +80,55 @@ function onError(url, err) {
 }
 
 window.onload = function() {
-	refreshHeader();
-	refreshI2C();
-	refreshSPI();
-	refreshState();
+	fetchGPIO();
+	fetchHeader();
+	fetchI2C();
+	fetchSPI();
+	fetchState();
 };
 
-function refreshHeader() {
-	post("/api/periph/v1/header/_all", {}, function(res) {
+function fetchGPIO() {
+	post("/api/periph/v1/gpio/list", {}, function(res) {
+		// The list of GPIOs is not shown.
+		global.gpio = {};
+		for (let i = 0; i < res.length; i++) {
+			global.gpio[res[i].Name] = {
+				number: res[i].Number,
+				func: res[i].Func,
+			}
+		}
+		maybeStartRefreshingGPIO();
+	});
+}
+
+function fetchHeader() {
+	post("/api/periph/v1/header/list", {}, function(res) {
+		global.header = {};
+		for (var key in res) {
+			let pins = [];
+			for (let y = 0; y < res[key].Pins.length; y++) {
+				let row = res[key].Pins[y];
+				let items = [];
+				for (let x = 0; x < row.length; x++) {
+					items[x] = row[x].Name;
+				}
+				pins[y] = items;
+			}
+			global.header[key] = {pins: pins};
+		}
+
+		// Show them.
 		let root = document.getElementById("section-gpio");
 		for (var key in res) {
 			let e = root.appendChild(document.createElement("header-elem"));
 			e.setup(key, res[key].Pins);
 		}
+		maybeStartRefreshingGPIO();
 	});
 }
 
-function refreshI2C() {
-	post("/api/periph/v1/i2c/_all", {}, function(res) {
+function fetchI2C() {
+	post("/api/periph/v1/i2c/list", {}, function(res) {
 		let root = document.getElementById("section-i2c");
 		for (let i = 0; i < res.length; i++) {
 			let e = root.appendChild(document.createElement("i2c-elem"));
@@ -96,8 +137,8 @@ function refreshI2C() {
 	});
 }
 
-function refreshSPI() {
-	post("/api/periph/v1/spi/_all", {}, function(res) {
+function fetchSPI() {
+	post("/api/periph/v1/spi/list", {}, function(res) {
 		let root = document.getElementById("section-spi");
 		for (let i = 0; i < res.length; i++) {
 			let e = root.appendChild(document.createElement("spi-elem"));
@@ -106,7 +147,7 @@ function refreshSPI() {
 	});
 }
 
-function refreshState() {
+function fetchState() {
 	post("/api/periph/v1/server/state", {}, function(res) {
 		document.title = "periph-web - " + res.Hostname;
 		document.getElementById("periphExtra").innerText = res.PeriphExtra;
@@ -137,6 +178,37 @@ function refreshState() {
 				root.appendRow([res.State.Failed[i].D, res.State.Failed[i].Err]);
 			}
 		}
+	});
+}
+
+function maybeStartRefreshingGPIO() {
+	if (global.gpio != null && global.header != null && !global.refreshingGPIO) {
+		global.refreshingGPIO = true;
+		global.visibleGPIOs = [];
+		for (let i = 0; i < global.header.length; i++) {
+			let h = global.header[i];
+			for (let y = 0; y < h.Pins.length; y++) {
+				for (let x = 0; x < h.Pins[y].length; x++) {
+					let name = h.Pins[y][x];
+					for (let j = 0; j < global.gpio.length; j++) {
+						if (name == global.gpio[j].Name) {
+							global.visibleGPIOs.append(name);
+							break;
+						}
+					}
+				}
+			}
+		}
+		if (global.visibleGPIOs) {
+			refreshGPIO();
+		}
+	}
+}
+
+function refreshGPIO() {
+	// If fetching fails, the loop stops.
+	post("/api/periph/v1/gpio/read", global.visibleGPIOs, function(res) {
+		setTimeout(refreshGPIO, 1000);
 	});
 }
 </script>
@@ -240,6 +312,8 @@ function refreshState() {
 	<div>
 		<input type="checkbox" id="state">
 		<label for="state"></label>
+		<input type="checkbox" id="output">
+		<label for="output"></label>
 	</div>
 </template>
 <script>
@@ -251,11 +325,12 @@ function refreshState() {
 			let l = this.shadowRoot.querySelector("label");
 			l.addEventListener("click", function(e) {
 				//e.preventDefault();
-				alert(e);
 			});
 		}
 		setup(name, func) {
-			this.shadowRoot.querySelector("label").textContent = name + "/" + func;
+			this.name = name;
+			this.func = func;
+			this.shadowRoot.querySelector("label").textContent = name + ": " + func;
 		}
 	});
 }());

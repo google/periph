@@ -136,11 +136,13 @@ func (s *webServer) enforceXSRF(h http.HandlerFunc) http.HandlerFunc {
 		if c == nil {
 			log.Printf("Missing XSRF-TOKEN cookie")
 			http.Error(w, "Missing XSRF-TOKEN cookie", 400)
+			r.Body.Close()
 			return
 		}
 		if !s.validateToken(c.Value, strings.SplitN(r.RemoteAddr, ":", 2)[0]) {
 			log.Printf("Invalid XSRF-TOKEN cookie %q", c.Value)
 			http.Error(w, "Invalid XSRF-TOKEN cookie", 400)
+			r.Body.Close()
 			return
 		}
 		h(w, r)
@@ -150,6 +152,7 @@ func (s *webServer) enforceXSRF(h http.HandlerFunc) http.HandlerFunc {
 // Static handlers.
 
 func (s *webServer) getRoot(w http.ResponseWriter, r *http.Request) {
+	r.Body.Close()
 	if r.URL.Path != "/" {
 		http.Error(w, "Not Found", http.StatusNotFound)
 		return
@@ -161,6 +164,7 @@ func (s *webServer) getRoot(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *webServer) getFavicon(w http.ResponseWriter, r *http.Request) {
+	r.Body.Close()
 	w.Header().Set("Content-Type", "image/png")
 	w.Header().Set("Cache-Control", cacheControl30d)
 	w.Write(favicon)
@@ -173,6 +177,7 @@ func getOnly(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" && r.Method != "HEAD" {
 			http.Error(w, "Only GET is allowed", http.StatusMethodNotAllowed)
+			r.Body.Close()
 			return
 		}
 		h(w, r)
