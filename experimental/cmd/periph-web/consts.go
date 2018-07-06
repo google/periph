@@ -19,6 +19,7 @@ func init() {
 
 var rootPage = []byte(`<!DOCTYPE html>
 <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>periph-web</title>
 <style>
 h1, h2, h3 {
@@ -35,12 +36,18 @@ h1, h2, h3 {
 #periphExtra-section {
 	margin-bottom: 1rem;
 }
+@media only screen and (max-width: 600px) {
+	body {
+		font-size: 3vw;
+	}
+}
 </style>
 
 <!-- Javascript -->
 
 <script>
 "use strict";
+// Pure javascript event system.
 class EventSource {
 	constructor() {
 		this._triggers = {};
@@ -51,7 +58,6 @@ class EventSource {
 		}
 		this._triggers[event].push(callback);
 	}
-	/*
 	remove(event, callback) {
 		for (let i in this._triggers[event]) {
 			if (this._triggers[event] === callback) {
@@ -60,22 +66,21 @@ class EventSource {
 			}
 		}
 	}
-	*/
 	triggerHandlers(event, params) {
 		if (this._triggers[event]) {
-			for (let i in this._triggers[event]) {
-				this._triggers[event][i](params);
-				/* TODO(maruel): Self-destruct the event handler if returning false.
-				if (!this._triggers[event][i](params)) {
+			let l = this._triggers[event].slice();
+			for (let i in l) {
+				// Self-destruct the event handler if returning false.
+				if (!l[i](params)) {
 					this._triggers[event].pop(i);
 				}
-				*/
 			}
 		}
 	}
 };
 
 // Pin is a pin on an header. It could be a GPIO, but it can be a dead pin too.
+// PinData eventually resolves these.
 class Pin {
 	constructor(name, number, func, gpio) {
 		this.name = name;
@@ -152,7 +157,7 @@ class GPIO {
 	}
 };
 
-// Header is a collection of pins on a board.
+// Header is a collection of Pin on a board.
 class Header {
 	constructor(name, pins) {
 		this.name = name;
@@ -298,7 +303,7 @@ function fetchState() {
 			root.display = "hidden";
 		} else {
 			root.setupDrivers(["Drivers loaded"]);
-			for (var i = 0; i < res.State.Loaded.length; i++) {
+			for (let i = 0; i < res.State.Loaded.length; i++) {
 				root.appendRow([res.State.Loaded[i]]);
 			}
 		}
@@ -307,7 +312,7 @@ function fetchState() {
 			root.display = "hidden";
 		} else {
 			root.setupDrivers(["Drivers skipped", "Reason"]);
-			for (var i = 0; i < res.State.Skipped.length; i++) {
+			for (let i = 0; i < res.State.Skipped.length; i++) {
 				root.appendRow([res.State.Skipped[i].D, res.State.Skipped[i].Err]);
 			}
 		}
@@ -316,7 +321,7 @@ function fetchState() {
 			root.display = "hidden";
 		} else {
 			root.setupDrivers(["Drivers failed", "Error"]);
-			for (var i = 0; i < res.State.Failed.length; i++) {
+			for (let i = 0; i < res.State.Failed.length; i++) {
 				root.appendRow([res.State.Failed[i].D, res.State.Failed[i].Err]);
 			}
 		}
@@ -359,7 +364,7 @@ document.addEventListener("DOMContentLoaded", () => {
 		.inline {
 			display: inline-block;
 			margin-bottom: 1rem;
-			margin-right: 5rem;
+			margin-right: 2rem;
 			vertical-align: top;
 		}
 	</style>

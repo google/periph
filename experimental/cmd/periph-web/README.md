@@ -2,6 +2,15 @@
 
 Simple webcomponents based self-contained web UI for periph.
 
+If you want to play with a FTDI FT232H/FT232R, you have to build with
+periph.io/x/extra built in. You can do with:
+
+```
+go get -u -tags periphextra periph.io/x/periph/experimental/cmd/periph-web
+```
+
+Cross-compiling won't work with extra.
+
 
 ## Using with curl
 
