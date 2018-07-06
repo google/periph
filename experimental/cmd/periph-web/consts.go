@@ -17,8 +17,11 @@ func init() {
 	}
 }
 
-var rootStyle = `
-h1, h2, h3, h4, h5, h6 {
+var rootPage = []byte(`<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>periph-web</title>
+<style>
+h1, h2, h3 {
 	margin-bottom: 0.2em;
 	margin-top: 0.2em;
 }
@@ -32,9 +35,11 @@ h1, h2, h3, h4, h5, h6 {
 #periphExtra-section {
 	margin-bottom: 1rem;
 }
-`
+</style>
 
-var rootJs = `
+<!-- Javascript -->
+
+<script>
 function post(url, data, callback) {
 	let hdr = {
 		body: JSON.stringify(data),
@@ -134,9 +139,10 @@ function refreshState() {
 		}
 	});
 }
-`
+</script>
 
-var customElems = `
+<!-- Custom elements-->
+
 <template id="template-data-table-elem">
 	<style>
 		th {
@@ -351,14 +357,9 @@ var customElems = `
 	});
 }());
 </script>
-`
 
-var rootPage = []byte(`<!DOCTYPE html>
-<meta charset="utf-8" />
-<title>periph-web</title>
-<style>` + rootStyle + `</style>
-<script>` + rootJs + `</script>
-` + customElems + `
+<!-- Content -->
+
 <div class="err" id="err"></div>
 <div id="section-state">
 	<h1>periph's state</h1>
