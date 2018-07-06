@@ -40,10 +40,47 @@ h1, h2, h3 {
 <!-- Javascript -->
 
 <script>
+"use strict";
+class GPIO {
+	constructor(name, number, func) {
+		this.name = name;
+		this.number = number;
+		this.func = func;
+	}
+	// TODO(maruel): Action and events go there.
+};
+
+class Header {
+	constructor(name, pins) {
+		this.name = name;
+		// [[names]]
+		this.pins = pins;
+	}
+	updateRefs() {
+	}
+};
+
+var events = new function() {
+	var _triggers = {};
+	this.on = function(event, callback) {
+		if (!_triggers[event]) {
+			_triggers[event] = [];
+		}
+		_triggers[event].push(callback);
+	}
+	this.triggerHandler = function(event, params) {
+		if (_triggers[event]) {
+			for (let i in _triggers[event]) {
+				_triggers[event][i](params);
+			}
+		}
+	}
+};
+
 var global = {
-	// {name: {number, funct}}
+	// {name: GPIO}
 	gpio: null,
-	// {name: {pins}
+	// {name: Header}
 	header: null,
 	refreshingGPIO: false,
 	// [names]
@@ -71,6 +108,7 @@ function checkStatus(res) {
 }
 
 function onError(url, err) {
+	console.log(err);
 	let e = document.getElementById("err");
 	if (e.innerText) {
 		e.innerText = e.innerText + "\n";
@@ -92,10 +130,9 @@ function fetchGPIO() {
 		// The list of GPIOs is not shown.
 		global.gpio = {};
 		for (let i = 0; i < res.length; i++) {
-			global.gpio[res[i].Name] = {
-				number: res[i].Number,
-				func: res[i].Func,
-			}
+			let name = res[i].Name;
+			global.gpio[name] = new GPIO(name, res[i].Number, res[i].Func)
+			events.triggerHandler("gpio_" + name);
 		}
 		maybeStartRefreshingGPIO();
 	});
@@ -114,14 +151,14 @@ function fetchHeader() {
 				}
 				pins[y] = items;
 			}
-			global.header[key] = {pins: pins};
+			global.header[key] = new Header(key, pins);
 		}
 
 		// Show them.
 		let root = document.getElementById("section-gpio");
-		for (var key in res) {
-			let e = root.appendChild(document.createElement("header-elem"));
-			e.setup(key, res[key].Pins);
+		for (var key in global.header) {
+			let e = root.appendChild(document.createElement("header-view"));
+			e.setup(global.header[key]);
 		}
 		maybeStartRefreshingGPIO();
 	});
@@ -185,13 +222,13 @@ function maybeStartRefreshingGPIO() {
 	if (global.gpio != null && global.header != null && !global.refreshingGPIO) {
 		global.refreshingGPIO = true;
 		global.visibleGPIOs = [];
-		for (let i = 0; i < global.header.length; i++) {
-			let h = global.header[i];
-			for (let y = 0; y < h.Pins.length; y++) {
-				for (let x = 0; x < h.Pins[y].length; x++) {
-					let name = h.Pins[y][x];
+		for (let key in global.header) {
+			let h = global.header[key];
+			for (let y = 0; y < h.pins.length; y++) {
+				for (let x = 0; x < h.pins[y].length; x++) {
+					let name = h.pins[y][x];
 					for (let j = 0; j < global.gpio.length; j++) {
-						if (name == global.gpio[j].Name) {
+						if (name == global.gpio[j].name) {
 							global.visibleGPIOs.append(name);
 							break;
 						}
@@ -246,6 +283,7 @@ function refreshGPIO() {
 	</div>
 </template>
 <script>
+"use strict";
 (function() {
 	let tmpl = document.querySelector("#template-data-table-elem");
 	window.customElements.define("data-table-elem", class extends HTMLElement {
@@ -286,6 +324,7 @@ function refreshGPIO() {
 	</div>
 </template>
 <script>
+"use strict";
 (function() {
 	let tmpl = document.querySelector("#template-drivers-elem");
 	window.customElements.define("drivers-elem", class extends HTMLElement {
@@ -300,7 +339,7 @@ function refreshGPIO() {
 }());
 </script>
 
-<template id="template-gpio-elem">
+<template id="template-gpio-view">
 	<style>
 	div {
 		background: #FCF;
@@ -312,14 +351,13 @@ function refreshGPIO() {
 	<div>
 		<input type="checkbox" id="state">
 		<label for="state"></label>
-		<input type="checkbox" id="output">
-		<label for="output"></label>
 	</div>
 </template>
 <script>
+"use strict";
 (function() {
-	let tmpl = document.querySelector("#template-gpio-elem");
-	window.customElements.define("gpio-elem", class extends HTMLElement {
+	let tmpl = document.querySelector("#template-gpio-view");
+	window.customElements.define("gpio-view", class extends HTMLElement {
 		constructor() {super(); this.attachShadow({mode: "open"}).appendChild(tmpl.content.cloneNode(true));}
 		connectedCallback() {
 			let l = this.shadowRoot.querySelector("label");
@@ -327,43 +365,56 @@ function refreshGPIO() {
 				//e.preventDefault();
 			});
 		}
-		setup(name, func) {
+		setup(name) {
 			this.name = name;
-			this.func = func;
-			this.shadowRoot.querySelector("label").textContent = name + ": " + func;
+			this.gpio = null;
+			events.on("gpio_" + name, function (event, params) {
+				this.gpio = global.gpio[name];
+				this.shadowRoot.querySelector("label").textContent = this.name + ": " + this.gpio.func;
+			});
+			if (global.gpio) {
+				this.gpio = global.gpio[name];
+			}
+			if (this.gpio) {
+				this.shadowRoot.querySelector("label").textContent = this.name + ": " + this.gpio.func;
+			} else {
+				this.shadowRoot.querySelector("label").textContent = this.name;
+			}
 		}
 	});
 }());
 </script>
 
-<template id="template-header-elem">
+<template id="template-header-view">
 	<data-table-elem></data-table-elem>
 </template>
 <script>
+"use strict";
 (function() {
-	let tmpl = document.querySelector("#template-header-elem");
-	window.customElements.define("header-elem", class extends HTMLElement {
+	let tmpl = document.querySelector("#template-header-view");
+	window.customElements.define("header-view", class extends HTMLElement {
 		constructor() {super(); this.attachShadow({mode: "open"}).appendChild(tmpl.content.cloneNode(true));}
-		setup(name, pins) {
+		setup(header) {
+			this.header = header;
 			let data = this.shadowRoot.querySelector("data-table-elem");
 			let cols = 1;
-			if (pins) {
-				cols = pins[0].length;
+			if (header.pins) {
+				cols = header.pins[0].length;
 			}
-			let hdr = [name];
+			let hdr = [header.name];
 			for (let i = 1; i < cols; i++) {
 				hdr[i] = "";
 			}
 			data.setup(hdr);
-			for (let y = 0; y < pins.length; y++) {
-				let row = pins[y];
+			for (let y = 0; y < header.pins.length; y++) {
+				let row = header.pins[y];
 				let items = [];
 				for (let x = 0; x < row.length; x++) {
-					items[x] = document.createElement("gpio-elem");
+					items[x] = document.createElement("gpio-view");
 				}
 				items = data.appendRow(items);
 				for (let x = 0; x < items.length; x++) {
-					items[x].setup(row[x].Name, row[x].Func);
+					items[x].setup(row[x]);
 				}
 			}
 		}
@@ -375,6 +426,7 @@ function refreshGPIO() {
 	<data-table-elem></data-table-elem>
 </template>
 <script>
+"use strict";
 (function() {
 	let tmpl = document.querySelector("#template-i2c-elem");
 	window.customElements.define("i2c-elem", class extends HTMLElement {
@@ -403,6 +455,7 @@ function refreshGPIO() {
 	<data-table-elem></data-table-elem>
 </template>
 <script>
+"use strict";
 (function() {
 	let tmpl = document.querySelector("#template-spi-elem");
 	window.customElements.define("spi-elem", class extends HTMLElement {
