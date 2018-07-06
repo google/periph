@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	Height = 16
-	Width  = 16
+	height = 16
+	width  = 16
 	speed  = 9 * physic.MegaHertz
 	bits   = 8
 	prefix = 0x72
@@ -44,8 +44,8 @@ func NewUnicornhd(port spi.Port) (*Dev, error) {
 	}
 	return &Dev{
 		connector: connector,
-		pixels:    image.NewNRGBA(image.Rect(0, 0, Width, Height)),
-		txBuffer:  make([]byte, Width*Height*3+1),
+		pixels:    image.NewNRGBA(image.Rect(0, 0, width, height)),
+		txBuffer:  make([]byte, width*height*3+1),
 	}, nil
 }
 
@@ -53,7 +53,7 @@ func NewUnicornhd(port spi.Port) (*Dev, error) {
 //
 // Returns a string with the driver name and the width and height of the display.
 func (device *Dev) String() string {
-	return fmt.Sprintf("UnicornHD{%d, %d}", Width, Height)
+	return fmt.Sprintf("UnicornHD{%d, %d}", width, height)
 }
 
 // Halting the unicorn HD sets all the pixels to black. Error is always nil.
@@ -91,10 +91,10 @@ func (device *Dev) flush() error {
 	device.txBuffer[0] = prefix
 	x := 0
 	y := 0
-	for i := 0; i < Width*Height; i++ {
+	for i := 0; i < width*height; i++ {
 		color := device.pixels.NRGBAAt(x, y)
 		x++
-		if x >= Width {
+		if x >= width {
 			x = 0
 			y++
 		}

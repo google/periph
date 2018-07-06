@@ -1,3 +1,7 @@
+// Copyright 2016 The Periph Authors. All rights reserved.
+// Use of this source code is governed under the Apache License, Version 2.0
+// that can be found in the LICENSE file.
+
 package unicornhd
 
 import (
@@ -105,11 +109,11 @@ func TestBoundsMatchDeviceSize(t *testing.T) {
 	if bounds.Min.Y != 0 {
 		t.Errorf("Min y expected to be zero (actual: %d)", bounds.Min.Y)
 	}
-	if bounds.Max.X != Width {
-		t.Errorf("Max x expected to be %d (actual: %d)", Width, bounds.Max.X)
+	if bounds.Max.X != width {
+		t.Errorf("Max x expected to be %d (actual: %d)", width, bounds.Max.X)
 	}
-	if bounds.Max.Y != Height {
-		t.Errorf("Max y expected to be %d (actual: %d)", Height, bounds.Max.Y)
+	if bounds.Max.Y != height {
+		t.Errorf("Max y expected to be %d (actual: %d)", height, bounds.Max.Y)
 	}
 }
 
@@ -260,10 +264,10 @@ func TestDrawWritesSequenceImageToSpi(t *testing.T) {
 	buf := bytes.Buffer{}
 	dev, _ := NewUnicornhd(spitest.NewRecordRaw(&buf))
 
-	img := image.NewNRGBA(image.Rect(0, 0, Width, Height))
+	img := image.NewNRGBA(image.Rect(0, 0, width, height))
 	var c uint8 = 0
-	for y := 0; y < Height; y++ {
-		for x := 0; x < Width; x++ {
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
 			r := c
 			c++
 			if c > 255 {
