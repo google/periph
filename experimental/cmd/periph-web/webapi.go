@@ -30,7 +30,8 @@ func (s *webServer) registerAPIs() {
 	http.HandleFunc("/api/periph/v1/i2c/list", s.api(s.apiI2CList))
 	http.HandleFunc("/api/periph/v1/spi/list", s.api(s.apiSPIList))
 	http.HandleFunc("/api/periph/v1/server/state", s.api(s.apiServerState))
-	http.HandleFunc("/api/periph/v1/xsrf_token/raw", s.apiXSRFTokenHandler)
+	// Not JSON:
+	http.HandleFunc("/raw/periph/v1/xsrf_token", s.apiXSRFTokenHandler)
 }
 
 // api is a simple JSON api wrapper.

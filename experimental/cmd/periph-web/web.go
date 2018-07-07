@@ -102,7 +102,8 @@ func newWebServer(hostport string, state *periph.State, verbose bool) (*webServe
 
 	s.registerAPIs()
 	http.HandleFunc("/favicon.ico", getOnly(s.getFavicon))
-	http.HandleFunc("/", getOnly(s.getRoot))
+	// Do not use getOnly here as it is the 'catch all, one.
+	http.HandleFunc("/", s.getRoot)
 	// We love middlewares!
 	if isLocalhost(host) {
 		s.hostname = "localhost"
@@ -191,6 +192,10 @@ func (s *webServer) getRoot(w http.ResponseWriter, r *http.Request) {
 	r.Body.Close()
 	if r.URL.Path != "/" {
 		http.Error(w, "Not Found", http.StatusNotFound)
+		return
+	}
+	if r.Method != "GET" && r.Method != "HEAD" {
+		http.Error(w, "Only GET is allowed", http.StatusMethodNotAllowed)
 		return
 	}
 	s.setXSRFCookie(r.RemoteAddr, w)

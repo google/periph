@@ -20,8 +20,23 @@ func init() {
 var rootPage = []byte(`<!DOCTYPE html>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="blue" />
 <title>periph-web</title>
 <style>
+* {
+	font-family: sans-serif;
+	font-size: 14px;
+}
+h1 {
+	font-size: 24px;
+}
+h2 {
+	font-size: 20px;
+}
+h3 {
+	font-size: 16px;
+}
 h1, h2, h3 {
 	margin-bottom: 0.2em;
 	margin-top: 0.2em;
@@ -36,9 +51,10 @@ h1, h2, h3 {
 #periphExtra-section {
 	margin-bottom: 1rem;
 }
-@media only screen and (max-width: 600px) {
-	body {
-		font-size: 3vw;
+
+@media only screen and (max-width: 500px) {
+	* {
+		font-size: 12px;
 	}
 }
 </style>
@@ -329,6 +345,7 @@ function fetchState() {
 }
 
 PinData.eventHeaderDone.on("done", () => {
+	// Fill the headers.
 	let root = document.getElementById("section-gpio");
 	Object.keys(PinData.headers).sort().forEach(key => {
 		root.appendChild(document.createElement("header-view")).setupHeader(key);
@@ -345,6 +362,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 <!-- Custom elements-->
 
+<!-- A generic table -->
 <template id="template-data-table-elem">
 	<style>
 		th {
@@ -406,6 +424,7 @@ document.addEventListener("DOMContentLoaded", () => {
 }());
 </script>
 
+<!-- List of drivers -->
 <template id="template-drivers-elem">
 	<style>
 		.inline {
@@ -432,6 +451,7 @@ document.addEventListener("DOMContentLoaded", () => {
 }());
 </script>
 
+<!-- A single Pin or GPIO -->
 <template id="template-gpio-view">
 	<style>
 	div {
@@ -491,6 +511,7 @@ document.addEventListener("DOMContentLoaded", () => {
 }());
 </script>
 
+<!-- A single Header -->
 <template id="template-header-view">
 	<data-table-elem></data-table-elem>
 </template>
@@ -528,6 +549,7 @@ document.addEventListener("DOMContentLoaded", () => {
 }());
 </script>
 
+<!-- A single I2C bus -->
 <template id="template-i2c-elem">
 	<data-table-elem></data-table-elem>
 </template>
@@ -557,6 +579,7 @@ document.addEventListener("DOMContentLoaded", () => {
 }());
 </script>
 
+<!-- A single SPI port -->
 <template id="template-spi-elem">
 	<data-table-elem></data-table-elem>
 </template>
@@ -595,6 +618,8 @@ document.addEventListener("DOMContentLoaded", () => {
 <!-- Content -->
 
 <div class="err" id="err"></div>
+<h1>GPIO</h1>
+<div id="section-gpio"></div>
 <div id="section-state">
 	<h1>periph's state</h1>
 	<div id="periphExtra-section">
@@ -606,8 +631,6 @@ document.addEventListener("DOMContentLoaded", () => {
 		<drivers-elem id="section-drivers-failed"></drivers-elem>
 	</div>
 </div>
-<h1>GPIO</h1>
-<div id="section-gpio"></div>
 <h1>I²C</h1>
 <div id="section-i2c"></div>
 <h1>SPI</h1>
