@@ -9,10 +9,17 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strings"
 	"testing"
 )
 
 func TestContent(t *testing.T) {
+	if _, err := exec.Command("minify", "-h").CombinedOutput(); err != nil {
+		if strings.HasSuffix(err.Error(), exec.ErrNotFound.Error()) {
+			t.Skip("Please install minify with: go get github.com/tdewolff/minify/cmd/minify")
+		}
+		t.Fatal(err)
+	}
 	actual, err := ioutil.ReadFile("content_prod.go")
 	if err != nil {
 		t.Fatal(err)
