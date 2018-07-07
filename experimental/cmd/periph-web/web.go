@@ -2,6 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+//go:generate go run internal/gen.go -o content_prod.go
+
 package main
 
 import (
@@ -199,16 +201,26 @@ func (s *webServer) getRoot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.setXSRFCookie(r.RemoteAddr, w)
+	content := getContent("ui/index.html")
+	if content == nil {
+		http.Error(w, "Content missing", 500)
+		return
+	}
 	w.Header().Set("Content-Type", "text/html")
-	w.Header().Set("Cache-Control", cacheControl5m)
-	w.Write(rootPage)
+	w.Header().Set("Cache-Control", cacheControlContent)
+	w.Write(content)
 }
 
 func (s *webServer) getFavicon(w http.ResponseWriter, r *http.Request) {
 	r.Body.Close()
+	content := getContent("ui/favicon.ico")
+	if content == nil {
+		http.Error(w, "Content missing", 500)
+		return
+	}
 	w.Header().Set("Content-Type", "image/png")
-	w.Header().Set("Cache-Control", cacheControl30d)
-	w.Write(favicon)
+	w.Header().Set("Cache-Control", cacheControlContent)
+	w.Write(content)
 }
 
 //

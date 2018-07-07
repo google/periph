@@ -34,7 +34,7 @@ func (s *webServer) registerAPIs() {
 	http.HandleFunc("/raw/periph/v1/xsrf_token", s.apiXSRFTokenHandler)
 }
 
-// api is a simple JSON api wrapper.
+// api wraps a JSON api handler.
 func (s *webServer) api(h func(b []byte) (interface{}, int)) http.HandlerFunc {
 	return s.enforceXSRF(func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
@@ -61,6 +61,8 @@ func (s *webServer) api(h func(b []byte) (interface{}, int)) http.HandlerFunc {
 	})
 }
 
+//
+
 type gpioPin struct {
 	// Immutable.
 	Name string
@@ -74,6 +76,7 @@ func toPin(p pin.Pin) gpioPin {
 }
 
 // /api/periph/v1/gpio/aliases
+
 type gpioAliasesOut []pinAlias
 
 type pinAlias struct {
@@ -92,6 +95,7 @@ func (s *webServer) apiGPIOAliases(b []byte) (interface{}, int) {
 }
 
 // /api/periph/v1/gpio/list
+
 type gpioListOut []gpioPin
 
 func (s *webServer) apiGPIOList(b []byte) (interface{}, int) {
@@ -104,6 +108,7 @@ func (s *webServer) apiGPIOList(b []byte) (interface{}, int) {
 }
 
 // /api/periph/v1/gpio/read
+
 type gpioReadIn []string
 type gpioReadOut []int
 
@@ -127,6 +132,7 @@ func (s *webServer) apiGPIORead(b []byte) (interface{}, int) {
 }
 
 // /api/periph/v1/gpio/out
+
 type gpioOutIn map[string]bool
 type gpioOutOut []string
 
@@ -152,6 +158,7 @@ func (s *webServer) apiGPIOOut(b []byte) (interface{}, int) {
 }
 
 // /api/periph/v1/header/list
+
 type headerListOut map[string]header
 
 type header struct {
@@ -176,6 +183,7 @@ func (s *webServer) apiHeaderList(b []byte) (interface{}, int) {
 }
 
 // /api/periph/v1/i2c/list
+
 type i2cListOut []i2cRef
 
 type i2cRef struct {
@@ -207,6 +215,7 @@ func (s *webServer) apiI2CList(b []byte) (interface{}, int) {
 }
 
 // /api/spi/list
+
 type spiListOut []spiRef
 
 type spiRef struct {
@@ -242,6 +251,7 @@ func (s *webServer) apiSPIList(b []byte) (interface{}, int) {
 }
 
 // /api/periph/v1/server/state
+
 type serverStateOut struct {
 	Hostname    string
 	State       state
@@ -256,6 +266,8 @@ func (s *webServer) apiServerState(b []byte) (interface{}, int) {
 	}
 	return data, 200
 }
+
+// /raw/periph/v1/xsrf_token
 
 func (s *webServer) apiXSRFTokenHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {

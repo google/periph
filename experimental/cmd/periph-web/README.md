@@ -75,7 +75,17 @@ another host, pass the argument `-http=0.0.0.0:7080` or the port of your
 choosing.
 
 
-## Extended support
+# Live reload
+
+To use the files in `ui/` instead of the ones embedded in the executable by `go
+generate`, use:
+
+```
+go install -tags debug periph.io/x/periph/experimental/cmd/periph-web
+```
+
+
+# Extended support
 
 If you want to play with a [FTDI FT232H/FT232R](https://periph.io/device/ftdi/),
 you have to build with [periph.io/x/extra](https://periph.io/x/extra) built in.
