@@ -304,6 +304,10 @@ func (s *webServer) api(h interface{}) http.HandlerFunc {
 			http.Error(w, "Only POST is allowed", http.StatusMethodNotAllowed)
 			return
 		}
+		if r.URL.RawQuery != "" {
+			http.Error(w, "Do not use query argment", 400)
+			return
+		}
 		// Ignore suffix "; charset=utf-8" for now.
 		if !strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
 			http.Error(w, "Content-Type must be application/json", 400)
