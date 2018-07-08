@@ -55,7 +55,7 @@ type apiHandler struct {
 type webServer struct {
 	ln     net.Listener
 	server http.Server
-	apis   apiState
+	apis   jsonAPI
 	key    [8]byte
 }
 

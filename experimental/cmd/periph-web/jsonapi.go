@@ -15,23 +15,23 @@ import (
 	"periph.io/x/periph/conn/spi/spireg"
 )
 
-// apiState contains the global state/caches for the JSON API.
-type apiState struct {
+// jsonAPI contains the global state/caches for the JSON API.
+type jsonAPI struct {
 	hostname string
 	state    drvState
 }
 
 // getAPIs returns the JSON API handlers.
-func (a *apiState) getAPIs() []apiHandler {
+func (j *jsonAPI) getAPIs() []apiHandler {
 	return []apiHandler{
-		{"/api/periph/v1/gpio/aliases", a.apiGPIOAliases},
-		{"/api/periph/v1/gpio/list", a.apiGPIOList},
-		{"/api/periph/v1/gpio/read", a.apiGPIORead},
-		{"/api/periph/v1/gpio/out", a.apiGPIOOut},
-		{"/api/periph/v1/header/list", a.apiHeaderList},
-		{"/api/periph/v1/i2c/list", a.apiI2CList},
-		{"/api/periph/v1/spi/list", a.apiSPIList},
-		{"/api/periph/v1/server/state", a.apiServerState},
+		{"/api/periph/v1/gpio/aliases", j.apiGPIOAliases},
+		{"/api/periph/v1/gpio/list", j.apiGPIOList},
+		{"/api/periph/v1/gpio/read", j.apiGPIORead},
+		{"/api/periph/v1/gpio/out", j.apiGPIOOut},
+		{"/api/periph/v1/header/list", j.apiHeaderList},
+		{"/api/periph/v1/i2c/list", j.apiI2CList},
+		{"/api/periph/v1/spi/list", j.apiSPIList},
+		{"/api/periph/v1/server/state", j.apiServerState},
 	}
 }
 
@@ -56,7 +56,7 @@ type pinAlias struct {
 	Dest string
 }
 
-func (a *apiState) apiGPIOAliases() ([]pinAlias, int) {
+func (j *jsonAPI) apiGPIOAliases() ([]pinAlias, int) {
 	all := gpioreg.Aliases()
 	out := make([]pinAlias, 0, len(all))
 	for _, p := range all {
@@ -68,7 +68,7 @@ func (a *apiState) apiGPIOAliases() ([]pinAlias, int) {
 
 // /api/periph/v1/gpio/list
 
-func (a *apiState) apiGPIOList() ([]gpioPin, int) {
+func (j *jsonAPI) apiGPIOList() ([]gpioPin, int) {
 	all := gpioreg.All()
 	out := make([]gpioPin, 0, len(all))
 	for _, p := range all {
@@ -79,7 +79,7 @@ func (a *apiState) apiGPIOList() ([]gpioPin, int) {
 
 // /api/periph/v1/gpio/read
 
-func (a *apiState) apiGPIORead(in []string) ([]int, int) {
+func (j *jsonAPI) apiGPIORead(in []string) ([]int, int) {
 	out := make([]int, 0, len(in))
 	for _, name := range in {
 		v := -1
@@ -95,7 +95,7 @@ func (a *apiState) apiGPIORead(in []string) ([]int, int) {
 
 // /api/periph/v1/gpio/out
 
-func (a *apiState) apiGPIOOut(in map[string]bool) ([]string, int) {
+func (j *jsonAPI) apiGPIOOut(in map[string]bool) ([]string, int) {
 	out := make([]string, 0, len(in))
 	for name, l := range in {
 		if p := gpioreg.ByName(name); p != nil {
@@ -117,7 +117,7 @@ type header struct {
 	Pins [][]gpioPin
 }
 
-func (a *apiState) apiHeaderList() (map[string]header, int) {
+func (j *jsonAPI) apiHeaderList() (map[string]header, int) {
 	hdrs := pinreg.All()
 	out := make(map[string]header, len(hdrs))
 	for name, pins := range hdrs {
@@ -145,7 +145,7 @@ type i2cRef struct {
 	SDA     string
 }
 
-func (a *apiState) apiI2CList() ([]i2cRef, int) {
+func (j *jsonAPI) apiI2CList() ([]i2cRef, int) {
 	buses := i2creg.All()
 	out := make([]i2cRef, 0, len(buses))
 	for _, ref := range buses {
@@ -177,7 +177,7 @@ type spiRef struct {
 	CS      string
 }
 
-func (a *apiState) apiSPIList() ([]spiRef, int) {
+func (j *jsonAPI) apiSPIList() ([]spiRef, int) {
 	buses := spireg.All()
 	out := make([]spiRef, 0, len(buses))
 	for _, ref := range buses {
@@ -218,10 +218,10 @@ type drvState struct {
 	Failed  []driverFailure
 }
 
-func (a *apiState) apiServerState() (*serverStateOut, int) {
+func (j *jsonAPI) apiServerState() (*serverStateOut, int) {
 	out := &serverStateOut{
-		Hostname:    a.hostname,
-		State:       a.state,
+		Hostname:    j.hostname,
+		State:       j.state,
 		PeriphExtra: periphExtra,
 	}
 	return out, 200
