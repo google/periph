@@ -28,8 +28,6 @@ import (
 	"periph.io/x/periph"
 )
 
-const cacheControl30d = "Cache-Control:public,max-age=259200" // 30d
-const cacheControl5m = "Cache-Control:public,max-age=300"     // 5m
 const cacheControlNone = "Cache-Control:no-cache,private"
 
 type driverFailure struct {
