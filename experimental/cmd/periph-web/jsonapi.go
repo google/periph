@@ -5,8 +5,6 @@
 package main
 
 import (
-	"net/http"
-
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/i2c"
@@ -17,18 +15,24 @@ import (
 	"periph.io/x/periph/conn/spi/spireg"
 )
 
-// registerAPIs registers the JSON API handlers.
-func (s *webServer) registerAPIs() {
-	http.HandleFunc("/api/periph/v1/gpio/aliases", s.api(s.apiGPIOAliases))
-	http.HandleFunc("/api/periph/v1/gpio/list", s.api(s.apiGPIOList))
-	http.HandleFunc("/api/periph/v1/gpio/read", s.api(s.apiGPIORead))
-	http.HandleFunc("/api/periph/v1/gpio/out", s.api(s.apiGPIOOut))
-	http.HandleFunc("/api/periph/v1/header/list", s.api(s.apiHeaderList))
-	http.HandleFunc("/api/periph/v1/i2c/list", s.api(s.apiI2CList))
-	http.HandleFunc("/api/periph/v1/spi/list", s.api(s.apiSPIList))
-	http.HandleFunc("/api/periph/v1/server/state", s.api(s.apiServerState))
-	// Not JSON but here since it can be used by the same client:
-	http.HandleFunc("/raw/periph/v1/xsrf_token", noContent(s.apiXSRFTokenHandler))
+// apiState contains the global state/caches for the JSON API.
+type apiState struct {
+	hostname string
+	state    drvState
+}
+
+// getAPIs returns the JSON API handlers.
+func (a *apiState) getAPIs() []apiHandler {
+	return []apiHandler{
+		{"/api/periph/v1/gpio/aliases", a.apiGPIOAliases},
+		{"/api/periph/v1/gpio/list", a.apiGPIOList},
+		{"/api/periph/v1/gpio/read", a.apiGPIORead},
+		{"/api/periph/v1/gpio/out", a.apiGPIOOut},
+		{"/api/periph/v1/header/list", a.apiHeaderList},
+		{"/api/periph/v1/i2c/list", a.apiI2CList},
+		{"/api/periph/v1/spi/list", a.apiSPIList},
+		{"/api/periph/v1/server/state", a.apiServerState},
+	}
 }
 
 //
@@ -52,7 +56,7 @@ type pinAlias struct {
 	Dest string
 }
 
-func (s *webServer) apiGPIOAliases() ([]pinAlias, int) {
+func (a *apiState) apiGPIOAliases() ([]pinAlias, int) {
 	all := gpioreg.Aliases()
 	out := make([]pinAlias, 0, len(all))
 	for _, p := range all {
@@ -64,7 +68,7 @@ func (s *webServer) apiGPIOAliases() ([]pinAlias, int) {
 
 // /api/periph/v1/gpio/list
 
-func (s *webServer) apiGPIOList() ([]gpioPin, int) {
+func (a *apiState) apiGPIOList() ([]gpioPin, int) {
 	all := gpioreg.All()
 	out := make([]gpioPin, 0, len(all))
 	for _, p := range all {
@@ -75,7 +79,7 @@ func (s *webServer) apiGPIOList() ([]gpioPin, int) {
 
 // /api/periph/v1/gpio/read
 
-func (s *webServer) apiGPIORead(in []string) ([]int, int) {
+func (a *apiState) apiGPIORead(in []string) ([]int, int) {
 	out := make([]int, 0, len(in))
 	for _, name := range in {
 		v := -1
@@ -91,7 +95,7 @@ func (s *webServer) apiGPIORead(in []string) ([]int, int) {
 
 // /api/periph/v1/gpio/out
 
-func (s *webServer) apiGPIOOut(in map[string]bool) ([]string, int) {
+func (a *apiState) apiGPIOOut(in map[string]bool) ([]string, int) {
 	out := make([]string, 0, len(in))
 	for name, l := range in {
 		if p := gpioreg.ByName(name); p != nil {
@@ -113,7 +117,7 @@ type header struct {
 	Pins [][]gpioPin
 }
 
-func (s *webServer) apiHeaderList() (map[string]header, int) {
+func (a *apiState) apiHeaderList() (map[string]header, int) {
 	hdrs := pinreg.All()
 	out := make(map[string]header, len(hdrs))
 	for name, pins := range hdrs {
@@ -141,7 +145,7 @@ type i2cRef struct {
 	SDA     string
 }
 
-func (s *webServer) apiI2CList() ([]i2cRef, int) {
+func (a *apiState) apiI2CList() ([]i2cRef, int) {
 	buses := i2creg.All()
 	out := make([]i2cRef, 0, len(buses))
 	for _, ref := range buses {
@@ -173,7 +177,7 @@ type spiRef struct {
 	CS      string
 }
 
-func (s *webServer) apiSPIList() ([]spiRef, int) {
+func (a *apiState) apiSPIList() ([]spiRef, int) {
 	buses := spireg.All()
 	out := make([]spiRef, 0, len(buses))
 	for _, ref := range buses {
@@ -198,29 +202,27 @@ func (s *webServer) apiSPIList() ([]spiRef, int) {
 
 type serverStateOut struct {
 	Hostname    string
-	State       state
+	State       drvState
 	PeriphExtra bool
 }
 
-func (s *webServer) apiServerState() (*serverStateOut, int) {
+type driverFailure struct {
+	D   string
+	Err string
+}
+
+// Similar to periph.State but is JSON marshalable as-is.
+type drvState struct {
+	Loaded  []string
+	Skipped []driverFailure
+	Failed  []driverFailure
+}
+
+func (a *apiState) apiServerState() (*serverStateOut, int) {
 	out := &serverStateOut{
-		Hostname:    s.hostname,
-		State:       s.state,
+		Hostname:    a.hostname,
+		State:       a.state,
 		PeriphExtra: periphExtra,
 	}
 	return out, 200
-}
-
-// /raw/periph/v1/xsrf_token
-
-func (s *webServer) apiXSRFTokenHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		http.Error(w, "Only POST is allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	t := s.setXSRFCookie(r.RemoteAddr, w)
-	w.Header().Set("Content-Type", "text/plain")
-	w.Header().Set("Cache-Control", cacheControlNone)
-	w.WriteHeader(200)
-	w.Write([]byte(t))
 }

@@ -30,19 +30,7 @@ import (
 
 const cacheControlNone = "Cache-Control:no-cache,private"
 
-type driverFailure struct {
-	D   string
-	Err string
-}
-
-// Similar to periph.State but is JSON marshalable as-is.
-type state struct {
-	Loaded  []string
-	Skipped []driverFailure
-	Failed  []driverFailure
-}
-
-func (s *state) init(st *periph.State) {
+func initState(s *drvState, st *periph.State) {
 	s.Loaded = make([]string, len(st.Loaded))
 	for i, v := range st.Loaded {
 		s.Loaded[i] = v.String()
@@ -59,12 +47,16 @@ func (s *state) init(st *periph.State) {
 	}
 }
 
+type apiHandler struct {
+	path string
+	fn   interface{}
+}
+
 type webServer struct {
-	ln       net.Listener
-	server   http.Server
-	state    state
-	hostname string
-	key      [8]byte
+	ln     net.Listener
+	server http.Server
+	apis   apiState
+	key    [8]byte
 }
 
 func getHostAndPort(hostport string) (string, int, error) {
@@ -97,24 +89,27 @@ func newWebServer(hostport string, state *periph.State, verbose bool) (*webServe
 	if _, err := rand.Read(s.key[:]); err != nil {
 		return nil, err
 	}
-	s.state.init(state)
+	initState(&s.apis.state, state)
 	var err error
 	host, port, err := getHostAndPort(hostport)
 	if err != nil {
 		return nil, err
 	}
 
-	s.registerAPIs()
+	for _, h := range s.apis.getAPIs() {
+		http.HandleFunc(h.path, s.api(h.fn))
+	}
+	http.HandleFunc("/raw/periph/v1/xsrf_token", noContent(s.apiXSRFTokenHandler))
 	http.HandleFunc("/favicon.ico", getOnly(s.getFavicon))
 	// Do not use getOnly here as it is the 'catch all, one and we want to check
 	// that before the method.
 	http.HandleFunc("/", noContent(s.getRoot))
 	// We love middlewares!
 	if isLocalhost(host) {
-		s.hostname = "localhost"
+		s.apis.hostname = "localhost"
 		s.server.Handler = localOnly(s.server.Handler)
 	} else {
-		if s.hostname, err = os.Hostname(); err != nil {
+		if s.apis.hostname, err = os.Hostname(); err != nil {
 			return nil, err
 		}
 	}
@@ -171,8 +166,9 @@ func (s *webServer) setXSRFCookie(addr string, w http.ResponseWriter) string {
 	return t
 }
 
-// Static handlers.
+// Handlers.
 
+// /
 func (s *webServer) getRoot(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		http.Error(w, "Not Found", http.StatusNotFound)
@@ -193,6 +189,7 @@ func (s *webServer) getRoot(w http.ResponseWriter, r *http.Request) {
 	w.Write(content)
 }
 
+// /favicon.ico
 func (s *webServer) getFavicon(w http.ResponseWriter, r *http.Request) {
 	content := getContent("ui/favicon.ico")
 	if content == nil {
@@ -202,6 +199,19 @@ func (s *webServer) getFavicon(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "image/png")
 	w.Header().Set("Cache-Control", cacheControlContent)
 	w.Write(content)
+}
+
+// /raw/periph/v1/xsrf_token
+func (s *webServer) apiXSRFTokenHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Only POST is allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	t := s.setXSRFCookie(r.RemoteAddr, w)
+	w.Header().Set("Content-Type", "text/plain")
+	w.Header().Set("Cache-Control", cacheControlNone)
+	w.WriteHeader(200)
+	w.Write([]byte(t))
 }
 
 // http.Handler/HandlerFunc decorators.
