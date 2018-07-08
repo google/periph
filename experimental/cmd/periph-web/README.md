@@ -17,7 +17,7 @@ periph-web
 
 # API
 
-periph-web exposes a [JSON API](webapi.go) to enable the web UI:
+periph-web exposes a [JSON API](jsonapi.go) to enable the web UI:
 
 Getters (read only, no side effect):
 

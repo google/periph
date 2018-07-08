@@ -5,9 +5,6 @@
 package main
 
 import (
-	"encoding/json"
-	"io/ioutil"
-	"log"
 	"net/http"
 
 	"periph.io/x/periph/conn/gpio"
@@ -20,7 +17,7 @@ import (
 	"periph.io/x/periph/conn/spi/spireg"
 )
 
-// registerAPIs registers the API handlers.
+// registerAPIs registers the JSON API handlers.
 func (s *webServer) registerAPIs() {
 	http.HandleFunc("/api/periph/v1/gpio/aliases", s.api(s.apiGPIOAliases))
 	http.HandleFunc("/api/periph/v1/gpio/list", s.api(s.apiGPIOList))
@@ -30,35 +27,8 @@ func (s *webServer) registerAPIs() {
 	http.HandleFunc("/api/periph/v1/i2c/list", s.api(s.apiI2CList))
 	http.HandleFunc("/api/periph/v1/spi/list", s.api(s.apiSPIList))
 	http.HandleFunc("/api/periph/v1/server/state", s.api(s.apiServerState))
-	// Not JSON:
-	http.HandleFunc("/raw/periph/v1/xsrf_token", s.apiXSRFTokenHandler)
-}
-
-// api wraps a JSON api handler.
-func (s *webServer) api(h func(b []byte) (interface{}, int)) http.HandlerFunc {
-	return s.enforceXSRF(func(w http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
-		if r.Method != "POST" {
-			http.Error(w, "Only POST is allowed", http.StatusMethodNotAllowed)
-			return
-		}
-		b, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-			return
-		}
-		data, code := h(b)
-		raw, err := json.Marshal(data)
-		if err != nil {
-			log.Printf("Malformed response: %v", err)
-			http.Error(w, err.Error(), 500)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Cache-Control", cacheControlNone)
-		w.WriteHeader(code)
-		w.Write(raw)
-	})
+	// Not JSON but here since it can be used by the same client:
+	http.HandleFunc("/raw/periph/v1/xsrf_token", noContent(s.apiXSRFTokenHandler))
 }
 
 //
@@ -77,48 +47,36 @@ func toPin(p pin.Pin) gpioPin {
 
 // /api/periph/v1/gpio/aliases
 
-type gpioAliasesOut []pinAlias
-
 type pinAlias struct {
 	Name string
 	Dest string
 }
 
-func (s *webServer) apiGPIOAliases(b []byte) (interface{}, int) {
+func (s *webServer) apiGPIOAliases() ([]pinAlias, int) {
 	all := gpioreg.Aliases()
-	data := make(gpioAliasesOut, 0, len(all))
+	out := make([]pinAlias, 0, len(all))
 	for _, p := range all {
 		r := p.(gpio.RealPin).Real()
-		data = append(data, pinAlias{p.Name(), r.Name()})
+		out = append(out, pinAlias{p.Name(), r.Name()})
 	}
-	return data, 200
+	return out, 200
 }
 
 // /api/periph/v1/gpio/list
 
-type gpioListOut []gpioPin
-
-func (s *webServer) apiGPIOList(b []byte) (interface{}, int) {
+func (s *webServer) apiGPIOList() ([]gpioPin, int) {
 	all := gpioreg.All()
-	data := make(gpioListOut, 0, len(all))
+	out := make([]gpioPin, 0, len(all))
 	for _, p := range all {
-		data = append(data, toPin(p))
+		out = append(out, toPin(p))
 	}
-	return data, 200
+	return out, 200
 }
 
 // /api/periph/v1/gpio/read
 
-type gpioReadIn []string
-type gpioReadOut []int
-
-func (s *webServer) apiGPIORead(b []byte) (interface{}, int) {
-	var in gpioReadIn
-	if err := json.Unmarshal(b, &in); err != nil {
-		log.Printf("Malformed user data: %v", err)
-		return map[string]string{"error": err.Error()}, 400
-	}
-	out := make(gpioReadOut, 0, len(in))
+func (s *webServer) apiGPIORead(in []string) ([]int, int) {
+	out := make([]int, 0, len(in))
 	for _, name := range in {
 		v := -1
 		if p := gpioreg.ByName(name); p != nil {
@@ -133,16 +91,8 @@ func (s *webServer) apiGPIORead(b []byte) (interface{}, int) {
 
 // /api/periph/v1/gpio/out
 
-type gpioOutIn map[string]bool
-type gpioOutOut []string
-
-func (s *webServer) apiGPIOOut(b []byte) (interface{}, int) {
-	var in gpioOutIn
-	if err := json.Unmarshal(b, &in); err != nil {
-		log.Printf("Malformed user data: %v", err)
-		return map[string]string{"error": err.Error()}, 400
-	}
-	out := make(gpioOutOut, 0, len(in))
+func (s *webServer) apiGPIOOut(in map[string]bool) ([]string, int) {
+	out := make([]string, 0, len(in))
 	for name, l := range in {
 		if p := gpioreg.ByName(name); p != nil {
 			if err := p.Out(gpio.Level(l)); err != nil {
@@ -159,15 +109,13 @@ func (s *webServer) apiGPIOOut(b []byte) (interface{}, int) {
 
 // /api/periph/v1/header/list
 
-type headerListOut map[string]header
-
 type header struct {
 	Pins [][]gpioPin
 }
 
-func (s *webServer) apiHeaderList(b []byte) (interface{}, int) {
+func (s *webServer) apiHeaderList() (map[string]header, int) {
 	hdrs := pinreg.All()
-	data := make(headerListOut, len(hdrs))
+	out := make(map[string]header, len(hdrs))
 	for name, pins := range hdrs {
 		h := header{make([][]gpioPin, len(pins))}
 		for i, r := range pins {
@@ -177,14 +125,12 @@ func (s *webServer) apiHeaderList(b []byte) (interface{}, int) {
 			}
 			h.Pins[i] = row
 		}
-		data[name] = h
+		out[name] = h
 	}
-	return data, 200
+	return out, 200
 }
 
 // /api/periph/v1/i2c/list
-
-type i2cListOut []i2cRef
 
 type i2cRef struct {
 	Name    string
@@ -195,9 +141,9 @@ type i2cRef struct {
 	SDA     string
 }
 
-func (s *webServer) apiI2CList(b []byte) (interface{}, int) {
+func (s *webServer) apiI2CList() ([]i2cRef, int) {
 	buses := i2creg.All()
-	data := make(i2cListOut, 0, len(buses))
+	out := make([]i2cRef, 0, len(buses))
 	for _, ref := range buses {
 		h := i2cRef{Name: ref.Name, Aliases: ref.Aliases, Number: ref.Number}
 		if bus, err := ref.Open(); bus != nil {
@@ -209,14 +155,12 @@ func (s *webServer) apiI2CList(b []byte) (interface{}, int) {
 		} else {
 			h.Err = err.Error()
 		}
-		data = append(data, h)
+		out = append(out, h)
 	}
-	return data, 200
+	return out, 200
 }
 
 // /api/spi/list
-
-type spiListOut []spiRef
 
 type spiRef struct {
 	Name    string
@@ -229,9 +173,9 @@ type spiRef struct {
 	CS      string
 }
 
-func (s *webServer) apiSPIList(b []byte) (interface{}, int) {
+func (s *webServer) apiSPIList() ([]spiRef, int) {
 	buses := spireg.All()
-	data := make(spiListOut, 0, len(buses))
+	out := make([]spiRef, 0, len(buses))
 	for _, ref := range buses {
 		h := spiRef{Name: ref.Name, Aliases: ref.Aliases, Number: ref.Number}
 		if bus, err := ref.Open(); bus != nil {
@@ -245,9 +189,9 @@ func (s *webServer) apiSPIList(b []byte) (interface{}, int) {
 		} else {
 			h.Err = err.Error()
 		}
-		data = append(data, h)
+		out = append(out, h)
 	}
-	return data, 200
+	return out, 200
 }
 
 // /api/periph/v1/server/state
@@ -258,13 +202,13 @@ type serverStateOut struct {
 	PeriphExtra bool
 }
 
-func (s *webServer) apiServerState(b []byte) (interface{}, int) {
-	data := serverStateOut{
+func (s *webServer) apiServerState() (*serverStateOut, int) {
+	out := &serverStateOut{
 		Hostname:    s.hostname,
 		State:       s.state,
 		PeriphExtra: periphExtra,
 	}
-	return data, 200
+	return out, 200
 }
 
 // /raw/periph/v1/xsrf_token

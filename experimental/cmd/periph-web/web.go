@@ -12,11 +12,15 @@ import (
 	"crypto/sha1"
 	"crypto/subtle"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -104,8 +108,9 @@ func newWebServer(hostport string, state *periph.State, verbose bool) (*webServe
 
 	s.registerAPIs()
 	http.HandleFunc("/favicon.ico", getOnly(s.getFavicon))
-	// Do not use getOnly here as it is the 'catch all, one.
-	http.HandleFunc("/", s.getRoot)
+	// Do not use getOnly here as it is the 'catch all, one and we want to check
+	// that before the method.
+	http.HandleFunc("/", noContent(s.getRoot))
 	// We love middlewares!
 	if isLocalhost(host) {
 		s.hostname = "localhost"
@@ -168,30 +173,9 @@ func (s *webServer) setXSRFCookie(addr string, w http.ResponseWriter) string {
 	return t
 }
 
-// enforceXSRF is an handler wrapper that enforces the XSRF token.
-func (s *webServer) enforceXSRF(h http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		c, _ := r.Cookie("XSRF-TOKEN")
-		if c == nil {
-			log.Printf("Missing XSRF-TOKEN cookie")
-			http.Error(w, "Missing XSRF-TOKEN cookie", 400)
-			r.Body.Close()
-			return
-		}
-		if !s.validateToken(c.Value, strings.SplitN(r.RemoteAddr, ":", 2)[0]) {
-			log.Printf("Invalid XSRF-TOKEN cookie %q", c.Value)
-			http.Error(w, "Invalid XSRF-TOKEN cookie", 400)
-			r.Body.Close()
-			return
-		}
-		h(w, r)
-	}
-}
-
 // Static handlers.
 
 func (s *webServer) getRoot(w http.ResponseWriter, r *http.Request) {
-	r.Body.Close()
 	if r.URL.Path != "/" {
 		http.Error(w, "Not Found", http.StatusNotFound)
 		return
@@ -212,7 +196,6 @@ func (s *webServer) getRoot(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *webServer) getFavicon(w http.ResponseWriter, r *http.Request) {
-	r.Body.Close()
 	content := getContent("ui/favicon.ico")
 	if content == nil {
 		http.Error(w, "Content missing", 500)
@@ -223,13 +206,37 @@ func (s *webServer) getFavicon(w http.ResponseWriter, r *http.Request) {
 	w.Write(content)
 }
 
-//
+// http.Handler/HandlerFunc decorators.
 
-// getOnly returns an http.Handler that refuses other verbs than GET or HEAD.
-func getOnly(h http.HandlerFunc) http.HandlerFunc {
+// localOnly disallow remote access.
+//
+// It must be the front line decorator.
+func localOnly(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if host, _, err := net.SplitHostPort(r.RemoteAddr); err != nil || !isLocalhost(host) {
+			http.Error(w, "permission denied", http.StatusForbidden)
+			r.Body.Close()
+			return
+		}
+		h.ServeHTTP(w, r)
+	})
+}
+
+// enforceXSRF is an handler wrapper that enforces the XSRF token.
+//
+// In practice it's only used for the APIs within the api() decorator.
+func (s *webServer) enforceXSRF(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "GET" && r.Method != "HEAD" {
-			http.Error(w, "Only GET is allowed", http.StatusMethodNotAllowed)
+		c, _ := r.Cookie("XSRF-TOKEN")
+		if c == nil {
+			log.Printf("Missing XSRF-TOKEN cookie")
+			http.Error(w, "Missing XSRF-TOKEN cookie", 400)
+			r.Body.Close()
+			return
+		}
+		if !s.validateToken(c.Value, strings.SplitN(r.RemoteAddr, ":", 2)[0]) {
+			log.Printf("Invalid XSRF-TOKEN cookie %q", c.Value)
+			http.Error(w, "Invalid XSRF-TOKEN cookie", 400)
 			r.Body.Close()
 			return
 		}
@@ -237,12 +244,91 @@ func getOnly(h http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-func localOnly(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if host, _, err := net.SplitHostPort(r.RemoteAddr); err != nil || !isLocalhost(host) {
-			http.Error(w, "permission denied", http.StatusForbidden)
+// getOnly returns an http.Handler that refuses other verbs than GET or HEAD.
+//
+// Also uses noContent().
+func getOnly(h http.HandlerFunc) http.HandlerFunc {
+	return noContent(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" && r.Method != "HEAD" {
+			http.Error(w, "Only GET is allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		h.ServeHTTP(w, r)
+		h(w, r)
+	})
+}
+
+// noContent ensure no content is posted. It closes r.Body.
+func noContent(h http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		n, err := io.Copy(ioutil.Discard, r.Body)
+		r.Body.Close()
+		if n != 0 {
+			http.Error(w, "Unexpected content", 400)
+			return
+		}
+		if err != nil {
+			http.Error(w, err.Error(), 400)
+			return
+		}
+		h(w, r)
+	})
+}
+
+// api wraps a JSON api handler.
+func (s *webServer) api(h interface{}) http.HandlerFunc {
+	v := reflect.ValueOf(h)
+	t := v.Type()
+	if t.Kind() != reflect.Func {
+		panic("send API func")
+	}
+	var inT reflect.Type
+	if nArg := t.NumIn(); nArg == 1 {
+		inT = t.In(0)
+	} else if nArg != 0 {
+		panic("pass func that accepts zero or one arg")
+	}
+	if t.NumOut() != 2 {
+		panic("pass func that returns two args")
+	}
+	return s.enforceXSRF(func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+		if r.Method != "POST" {
+			http.Error(w, "Only POST is allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		// Ignore suffix "; charset=utf-8" for now.
+		if !strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
+			http.Error(w, "Content-Type must be application/json", 400)
+			return
+		}
+		d := json.NewDecoder(r.Body)
+		// d.DisallowUnknownFields() is only available in Go 1.10+.
+		callDisallowUnknownFields(d)
+		var in []reflect.Value
+		if inT != nil {
+			inv := reflect.New(inT)
+			if err := d.Decode(inv.Interface()); err != nil {
+				http.Error(w, fmt.Sprintf("Malformed user data: %v", err), 400)
+			}
+			in = append(in, inv.Elem())
+		} else {
+			var m map[string]string
+			if err := d.Decode(&m); err != nil {
+				http.Error(w, fmt.Sprintf("Malformed user data: %v", err), 400)
+			}
+			if len(m) != 0 {
+				http.Error(w, "Unexpected data", 400)
+			}
+		}
+		out := v.Call(in)
+		raw, err := json.Marshal(out[0].Interface())
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Malformed response: %v", err), 500)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cache-Control", cacheControlNone)
+		w.WriteHeader(int(out[1].Int()))
+		w.Write(raw)
 	})
 }
