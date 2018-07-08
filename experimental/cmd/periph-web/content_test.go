@@ -24,7 +24,7 @@ func TestContent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	c := exec.Command("go", "run", "internal/gen.go")
+	c := exec.Command("go", "run", "internal/content_gen.go")
 	c.Stderr = os.Stderr
 	expected, err := c.Output()
 	if err != nil {

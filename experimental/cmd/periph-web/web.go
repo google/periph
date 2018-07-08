@@ -2,7 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-//go:generate go run internal/gen.go -o content_prod.go
+//go:generate go run internal/content_gen.go -o content_prod.go
 
 package main
 
