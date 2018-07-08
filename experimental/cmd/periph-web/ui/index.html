@@ -114,10 +114,10 @@ class GPIO {
     this.eventUpdate.triggerHandlers("update", v);
   }
   get type() {
-    if (this.func.startsWith("Out")) {
+    if (this.func.startsWith("Out/")) {
       return "out";
     }
-    if (this.func.startsWith("In")) {
+    if (this.func.startsWith("In/")) {
       return "in";
     }
     return this.func;
@@ -339,6 +339,20 @@ document.addEventListener("DOMContentLoaded", () => {
   fetchSPI();
   fetchState();
 });
+
+// HTMLElementTemplate is a base class for a custom element that uses a template
+// element and stores it in its shadowDOM.
+class HTMLElementTemplate extends HTMLElement {
+  constructor(template_name) {
+    super();
+    let tmpl = document.querySelector("template#" + template_name);
+    this.attachShadow({mode: "open"}).appendChild(tmpl.content.cloneNode(true));
+  }
+  static get observedAttributes() {return [];}
+  emitEvent(name, detail) {
+    this.dispatchEvent(new CustomEvent(name, {detail, bubbles: true}));
+  }
+};
 </script>
 
 <!-- Custom elements-->
@@ -377,9 +391,8 @@ document.addEventListener("DOMContentLoaded", () => {
 <script>
 "use strict";
 (function() {
-  let tmpl = document.querySelector("#template-data-table-elem");
-  window.customElements.define("data-table-elem", class extends HTMLElement {
-    constructor() {super(); this.attachShadow({mode: "open"}).appendChild(tmpl.content.cloneNode(true));}
+  window.customElements.define("data-table-elem", class extends HTMLElementTemplate {
+    constructor() {super("template-data-table-elem");}
     setupTable(hdr) {
       let root = this.shadowRoot.querySelector("thead");
       for (let i = 0; i < hdr.length; i++) {
@@ -405,6 +418,80 @@ document.addEventListener("DOMContentLoaded", () => {
 }());
 </script>
 
+<!-- A checkbox -->
+<template id="template-checkout-elem">
+  <style>
+    div {
+      display: inline-block;
+      background-color: #ccc;
+      padding-bottom: 3px;
+      padding-right: 3px;
+      border-radius: 3px;
+    }
+  </style>
+  <div>
+    <label>
+      <input type="checkbox"><span><slot></slot></span>
+    </label>
+  </div>
+</template>
+<script>
+"use strict";
+(function() {
+  window.customElements.define("checkout-elem", class extends HTMLElementTemplate {
+    constructor() {super("template-checkout-elem");}
+    connectedCallback() {
+      this.contentElem = this.shadowRoot.querySelector("span");
+      this.checkboxElem = this.shadowRoot.querySelector("input");
+      this.checkboxElem.addEventListener("click", e => {
+        this._setAttr("checked", this.checkboxElem.checked);
+      });
+    }
+    static get observedAttributes() {
+      return ["checked", "disabled", "indeterminate", "text"];
+    }
+    attributeChangedCallback(name, oldValue, newValue) {
+      switch (name) {
+        case "checked", "disabled", "indeterminate":
+          this._setAttr(name, newValue);
+          if (name == "checked") {
+            this.emitEvent("update", {});
+          }
+          break;
+        case "text":
+          this.contentElem.innerText = newValue;
+          break;
+      }
+    }
+    _setAttr(name, v) {
+      if (v) {
+        this.checkboxElem.setAttribute(name, "");
+      } else {
+        this.checkboxElem.removeAttribute(name);
+      }
+    }
+    get checked() {
+      return this.hasAttribute("checked");
+    }
+    set checked(v) {
+      this._setAttr("checked", v);
+    }
+    get disabled() {
+      return this.hasAttribute("disabled");
+    }
+    set disabled(v) {
+      this._setAttr("disabled", v);
+    }
+    get text() {
+      return this.contentElem.innerText;
+    }
+    set text(v) {
+      this.contentElem.innerText = v;
+    }
+  });
+}());
+</script>
+
 <!-- List of drivers -->
 <template id="template-drivers-elem">
   <style>
@@ -419,9 +506,8 @@ document.addEventListener("DOMContentLoaded", () => {
 <script>
 "use strict";
 (function() {
-  let tmpl = document.querySelector("#template-drivers-elem");
-  window.customElements.define("drivers-elem", class extends HTMLElement {
-    constructor() {super(); this.attachShadow({mode: "open"}).appendChild(tmpl.content.cloneNode(true));}
+  window.customElements.define("drivers-elem", class extends HTMLElementTemplate {
+    constructor() {super("template-drivers-elem");}
     setupDrivers(hdr) {
       this.shadowRoot.querySelector("data-table-elem").setupTable(hdr);
     }
@@ -441,52 +527,114 @@ document.addEventListener("DOMContentLoaded", () => {
     border-radius: 10px;
     padding: 10px;
   }
-  #state {
+  .controls {
     display: none;
+  }
+  .box {
+    border: 1px solid #888;
+    border-radius: 6px;
+    padding: 3px;
+  }
+  #func {
+    display: none;
+    background-color: #ccc;
+    padding-bottom: 3px;
+    padding-right: 3px;
+    border-radius: 3px;
   }
   </style>
   <div>
-    <input type="checkbox" id="state">
-    <label for="state"></label>
+    <span id="name">L</span>
+    <span>
+      <span class="controls">
+        <span>
+          <checkout-elem id="io">I/O</checkout-elem>
+          <checkout-elem id="level">Level</checkout-elem>
+        </span>
+      </span>
+      <span id="func"></span>
+    </span>
   </div>
 </template>
 <script>
 "use strict";
 (function() {
-  let tmpl = document.querySelector("#template-gpio-view");
-  window.customElements.define("gpio-view", class extends HTMLElement {
-    constructor() {super(); this.attachShadow({mode: "open"}).appendChild(tmpl.content.cloneNode(true));}
+  window.customElements.define("gpio-view", class extends HTMLElementTemplate {
+    constructor() {super("template-gpio-view");}
     connectedCallback() {
-      let l = this.shadowRoot.getElementById("state");
-      l.addEventListener("click", e => {
-        this.pin.gpio.out(l.checked);
+      this.funcElem = this.shadowRoot.getElementById("func");
+      this.ioElem = this.shadowRoot.getElementById("io");
+      this.ioElem.addEventListener("click", e => {
+        //this.pin.gpio.out(l.checked);
+      });
+      this.levelElem = this.shadowRoot.getElementById("level");
+      this.levelElem.addEventListener("click", e => {
+        //this.pin.gpio.out(l.checked);
       });
     }
     setupPin(pin) {
       this.pin = pin;
+      this.shadowRoot.getElementById("name").textContent = this.pin.name;
       if (this.pin.gpio) {
         this._isGPIO();
         return;
       }
-      this.shadowRoot.querySelector("label").textContent = this.pin.name;
+      if (this.pin.func) {
+        this.funcElem.textContent = this.pin.func;
+        this.funcElem.style.display = "inline-block";
+      }
+      // It could become a GPIO later when the /gpio/list RPC comes back.
       PinData.eventNewGPIO.on(this.pin.name, () => {
         this._isGPIO();
         return false;
       });
     }
     _isGPIO() {
-      this.shadowRoot.querySelector("label").textContent = this.pin.name + ": " + this.pin.gpio.func;
-      if (this.pin.func.startsWith("In") || this.pin.func.startsWith("Out")) {
-        this.shadowRoot.getElementById("state").style.display = "inline-block";
-      }
-      this.pin.gpio.eventUpdate.on("update", v => {
-        this.shadowRoot.querySelector("label").textContent = this.pin.name + ": " + this.pin.gpio.func;
-        let t = this.pin.gpio.type;
-        if (t == "in" || t == "out") {
-          this.shadowRoot.getElementById("state").checked = v;
-        }
-      });
+      this.pin.gpio.eventUpdate.on("update", v => this._gpioUpdate());
+      this._gpioUpdate();
       PinData.poll(this.pin.name);
+    }
+    _gpioUpdate() {
+      // Assumes a GPIO has a function.
+      if (this.pin.func.startsWith("In/") || this.pin.func.startsWith("Out/")) {
+        this.funcElem.textContent = "";
+        this.funcElem.style.display = "none";
+        this.shadowRoot.querySelector(".controls").style.display = "inline-block";
+        this.ioElem.disabled = false;
+        this.ioElem.indeterminate = false;
+        this.levelElem.disabled = false;
+        this.levelElem.indeterminate = false;
+        if (this.pin.func.startsWith("In/")) {
+          this.ioElem.checked = false;
+          this.ioElem.text = "In";
+          this.levelElem.disabled = true;
+        } else {
+          this.ioElem.checked = true;
+          this.ioElem.text = "Out";
+          this.levelElem.disabled = false;
+        }
+        if (this.pin.func.endsWith("/High")) {
+          this.levelElem.checked = true;
+          this.levelElem.text = "High";
+        } else {
+          this.levelElem.checked = false;
+          this.levelElem.text = "Low";
+        }
+      } else {
+        if (this.pin.func) {
+          this.funcElem.textContent = this.pin.func;
+          this.funcElem.style.display = "inline-block";
+        } else {
+          this.funcElem.textContent = "";
+          this.funcElem.style.display = "none";
+        }
+        this.ioElem.disabled = true;
+        this.ioElem.text = "I/O";
+        this.ioElem.indeterminate = true;
+        this.levelElem.disabled = true;
+        this.levelElem.text = "Level";
+        this.levelElem.indeterminate = true;
+      }
     }
   });
 }());
@@ -499,9 +647,8 @@ document.addEventListener("DOMContentLoaded", () => {
 <script>
 "use strict";
 (function() {
-  let tmpl = document.querySelector("#template-header-view");
-  window.customElements.define("header-view", class extends HTMLElement {
-    constructor() {super(); this.attachShadow({mode: "open"}).appendChild(tmpl.content.cloneNode(true));}
+  window.customElements.define("header-view", class extends HTMLElementTemplate {
+    constructor() {super("template-header-view");}
     setupHeader(name) {
       this.header = PinData.headers[name];
       let data = this.shadowRoot.querySelector("data-table-elem");
@@ -537,9 +684,8 @@ document.addEventListener("DOMContentLoaded", () => {
 <script>
 "use strict";
 (function() {
-  let tmpl = document.querySelector("#template-i2c-elem");
-  window.customElements.define("i2c-elem", class extends HTMLElement {
-    constructor() { super(); this.attachShadow({mode: "open"}).appendChild(tmpl.content.cloneNode(true)); }
+  window.customElements.define("i2c-elem", class extends HTMLElementTemplate {
+    constructor() {super("template-i2c-elem");}
     setupI2C(name, number, err, scl, sda) {
       let data = this.shadowRoot.querySelector("data-table-elem");
       data.setupTable([name, ""]);
@@ -567,9 +713,8 @@ document.addEventListener("DOMContentLoaded", () => {
 <script>
 "use strict";
 (function() {
-  let tmpl = document.querySelector("#template-spi-elem");
-  window.customElements.define("spi-elem", class extends HTMLElement {
-    constructor() {super(); this.attachShadow({mode: "open"}).appendChild(tmpl.content.cloneNode(true));}
+  window.customElements.define("spi-elem", class extends HTMLElementTemplate {
+    constructor() {super("template-spi-elem");}
     setupSPI(name, number, err, clk, mosi, miso, cs) {
       let data = this.shadowRoot.querySelector("data-table-elem");
       data.setupTable([name, ""]);
