@@ -451,21 +451,19 @@ var writeTests = []struct {
 
 func TestWrites(t *testing.T) {
 	for _, tt := range writeTests {
-		t.Run(tt.name, func(t *testing.T) {
-			buf := bytes.Buffer{}
-			tt.opts.NumPixels = len(tt.pixels) / 3
-			d, _ := New(spitest.NewRecordRaw(&buf), &tt.opts)
-			n, err := d.Write(tt.pixels)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if n != len(tt.pixels) {
-				t.Fatalf("Got %d bytes result, want %d", n, len(tt.pixels)*3)
-			}
-			if !bytes.Equal(buf.Bytes(), tt.want) {
-				t.Fatalf("\ngot: %#v\nwant: %#v\n", buf.Bytes(), tt.want)
-			}
-		})
+		buf := bytes.Buffer{}
+		tt.opts.NumPixels = len(tt.pixels) / 3
+		d, _ := New(spitest.NewRecordRaw(&buf), &tt.opts)
+		n, err := d.Write(tt.pixels)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if n != len(tt.pixels) {
+			t.Fatalf("%s: Got %d bytes result, want %d", tt.name, n, len(tt.pixels)*3)
+		}
+		if !bytes.Equal(buf.Bytes(), tt.want) {
+			t.Fatalf("%s:\ngot: %#v\nwant: %#v\n", tt.name, buf.Bytes(), tt.want)
+		}
 	}
 }
 
@@ -596,16 +594,14 @@ var drawTests = []struct {
 
 func TestDraws(t *testing.T) {
 	for _, tt := range drawTests {
-		t.Run(tt.name, func(t *testing.T) {
-			buf := bytes.Buffer{}
-			d, _ := New(spitest.NewRecordRaw(&buf), &tt.opts)
-			if err := d.Draw(d.Bounds(), tt.img, image.Point{}); err != nil {
-				t.Fatal(err)
-			}
-			if !bytes.Equal(buf.Bytes(), tt.want) {
-				t.Fatalf("\ngot: %#v\nwant: %#v\n", buf.Bytes(), tt.want)
-			}
-		})
+		buf := bytes.Buffer{}
+		d, _ := New(spitest.NewRecordRaw(&buf), &tt.opts)
+		if err := d.Draw(d.Bounds(), tt.img, image.Point{}); err != nil {
+			t.Fatalf("%s: %v", tt.name, err)
+		}
+		if !bytes.Equal(buf.Bytes(), tt.want) {
+			t.Fatalf("%s:\ngot: %#v\nwant: %#v\n", tt.name, buf.Bytes(), tt.want)
+		}
 	}
 }
 
