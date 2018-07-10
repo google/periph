@@ -122,7 +122,21 @@ class GPIO {
     }
     return this.func;
   }
-  out(v) {
+  setIn() {
+    this._value = null;
+    this.func = this._makeFunc("in", v);
+    let params = {
+      Name: this.name,
+      Pull: "",
+      Edge: "",
+    };
+    post("/api/periph/v1/gpio/in", [params], res => {
+      if (res[0]) {
+        alert(res[0]);
+      }
+    });
+  }
+  setOut(v) {
     this._value = null;
     this.func = this._makeFunc("out", v);
     this.onValueRead(v);
@@ -608,10 +622,13 @@ class HTMLElementTemplate extends HTMLElement {
 <template id="template-gpio-view">
   <style>
   div {
-    background: #FCF;
+    background: #CCC;
     border: 1px solid #888;
     border-radius: 10px;
     padding: 10px;
+  }
+  .gpio {
+    background: #FCF;
   }
   .controls {
     display: none;
@@ -650,12 +667,16 @@ class HTMLElementTemplate extends HTMLElement {
     connectedCallback() {
       this.funcElem = this.shadowRoot.getElementById("func");
       this.ioElem = this.shadowRoot.getElementById("io");
-      this.ioElem.addEventListener("click", e => {
-        //this.pin.gpio.out(l.checked);
-      });
       this.levelElem = this.shadowRoot.getElementById("level");
+      this.ioElem.addEventListener("click", e => {
+        if (this.levelElem.checked) {
+          this.pin.gpio.setIn();
+        } else {
+          this.pin.gpio.setOut(this.levelElem.checked);
+        }
+      });
       this.levelElem.addEventListener("click", e => {
-        //this.pin.gpio.out(l.checked);
+        this.pin.gpio.setOut(this.levelElem.checked);
       });
     }
     setupPin(pin) {
@@ -677,6 +698,7 @@ class HTMLElementTemplate extends HTMLElement {
     }
     _isGPIO() {
       this.pin.gpio.eventUpdate.on("update", v => this._gpioUpdate());
+      this.shadowRoot.querySelector("div").classList.add("gpio");
       this._gpioUpdate();
       PinData.poll(this.pin.name);
     }

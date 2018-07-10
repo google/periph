@@ -12,7 +12,6 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"strconv"
 	"time"
 )
 
@@ -26,36 +25,14 @@ func loggingHandler(h http.Handler) http.Handler {
 			w = &rwh.responseWriter
 		}
 		defer func() {
-			defaultOnDone(r, received, rwh.status, rwh.length, rwh.hijacked)
+			m := r.Method
+			if rwh.hijacked {
+				m = "HIJACKED"
+			}
+			log.Printf("%s - %3d %6db %-4s %6s %s", r.RemoteAddr, rwh.status, rwh.length, m, roundDuration(time.Since(received)), r.RequestURI)
 		}()
 		h.ServeHTTP(w, r)
 	})
-}
-
-// Private.
-
-func defaultOnDone(r *http.Request, received time.Time, status, length int, hijacked bool) {
-	m := r.Method
-	if hijacked {
-		m = "HIJACKED"
-	}
-	log.Printf("%s - %3d %6db %-4s %6s %s", r.RemoteAddr, status, length, m, roundDuration(time.Since(received), 3), r.RequestURI)
-}
-
-// roundDuration returns time rounded to 'precision' digits.
-func roundDuration(t time.Duration, precision int) time.Duration {
-	// Find the highest digit in base 10.
-	// TODO(maruel): Optimize.
-	l := len(strconv.FormatInt(int64(t), 10))
-	if l < precision {
-		return t
-	}
-	// TODO(maruel): Optimize.
-	r := time.Duration(1)
-	for i := precision; i < l; i++ {
-		r *= 10
-	}
-	return (t + r/2) / r * r
 }
 
 type responseWriter struct {
@@ -84,10 +61,60 @@ type responseWriteHijacker struct {
 }
 
 // Hijack is needed for websocket.
-//
-// TODO(maruel): For now the write length is lost, it would require querying
-// the ReadWriter and overriding Conn.Write().
 func (r *responseWriteHijacker) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	r.hijacked = true
 	return r.ResponseWriter.(http.Hijacker).Hijack()
+}
+
+//
+
+func roundDuration(d time.Duration) time.Duration {
+	if l := log10(int64(d)); l > 3 {
+		m := time.Duration(1)
+		for i := uint(3); i < l; i++ {
+			m *= 10
+		}
+		d = (d + (m / 2)) / m * m
+	}
+	return d
+}
+
+// log10 is a cheap way to find the most significant digit.
+func log10(i int64) uint {
+	switch {
+	case i < 10:
+		return 0
+	case i < 100:
+		return 1
+	case i < 1000:
+		return 2
+	case i < 10000:
+		return 3
+	case i < 100000:
+		return 4
+	case i < 1000000:
+		return 5
+	case i < 10000000:
+		return 6
+	case i < 100000000:
+		return 7
+	case i < 1000000000:
+		return 8
+	case i < 10000000000:
+		return 9
+	case i < 100000000000:
+		return 10
+	case i < 1000000000000:
+		return 11
+	case i < 10000000000000:
+		return 12
+	case i < 100000000000000:
+		return 13
+	case i < 1000000000000000:
+		return 14
+	case i < 10000000000000000:
+		return 15
+	default:
+		return 16
+	}
 }

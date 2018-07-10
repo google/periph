@@ -25,6 +25,7 @@ type jsonAPI struct {
 func (j *jsonAPI) getAPIs() []apiHandler {
 	return []apiHandler{
 		{"/api/periph/v1/gpio/aliases", j.apiGPIOAliases},
+		{"/api/periph/v1/gpio/in", j.apiGPIOIn},
 		{"/api/periph/v1/gpio/list", j.apiGPIOList},
 		{"/api/periph/v1/gpio/read", j.apiGPIORead},
 		{"/api/periph/v1/gpio/out", j.apiGPIOOut},
@@ -62,6 +63,48 @@ func (j *jsonAPI) apiGPIOAliases() ([]pinAlias, int) {
 	for _, p := range all {
 		r := p.(gpio.RealPin).Real()
 		out = append(out, pinAlias{p.Name(), r.Name()})
+	}
+	return out, 200
+}
+
+// /api/periph/v1/gpio/in
+
+type pinIn struct {
+	Name string
+	Pull string
+	Edge string
+}
+
+func (j *jsonAPI) apiGPIOIn(in []pinIn) ([]string, int) {
+	out := make([]string, 0, len(in))
+	for _, l := range in {
+		if p := gpioreg.ByName(l.Name); p != nil {
+			pull := gpio.PullNoChange
+			switch l.Pull {
+			case "down":
+				pull = gpio.PullDown
+			case "float":
+				pull = gpio.Float
+			case "up":
+				pull = gpio.PullUp
+			}
+			edge := gpio.NoEdge
+			switch l.Edge {
+			case "both":
+				edge = gpio.BothEdges
+			case "falling":
+				edge = gpio.FallingEdge
+			case "rising":
+				edge = gpio.RisingEdge
+			}
+			if err := p.In(pull, edge); err != nil {
+				out = append(out, err.Error())
+			} else {
+				out = append(out, "")
+			}
+		} else {
+			out = append(out, "Pin not found")
+		}
 	}
 	return out, 200
 }
