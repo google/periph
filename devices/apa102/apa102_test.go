@@ -334,7 +334,7 @@ func TestDevEmpty(t *testing.T) {
 		t.Fatalf("%d %v", n, err)
 	}
 	if expected := []byte{0x0, 0x0, 0x0, 0x0, 0xFF}; !bytes.Equal(expected, buf.Bytes()) {
-		t.Fatalf("%#v != %#v", expected, buf.Bytes())
+		t.Fatalf("\ngot: %#v\nwant: %#v\n", buf.Bytes(), expected)
 	}
 	if s := d.String(); s != "APA102{I:255, T:5000K, 0LEDs, recordraw}" {
 		t.Fatal(s)
@@ -356,94 +356,120 @@ func TestDevLen(t *testing.T) {
 		t.Fatalf("%d %v", n, err)
 	}
 	if expected := []byte{}; !bytes.Equal(expected, buf.Bytes()) {
-		t.Fatalf("%#v != %#v", expected, buf.Bytes())
+		t.Fatalf("\ngot: %#v\nwant: %#v\n", buf.Bytes(), expected)
 	}
 }
 
-func TestDev(t *testing.T) {
-	buf := bytes.Buffer{}
-	colors := []color.NRGBA{
-		{0xFF, 0xFF, 0xFF, 0x00},
-		{0xFE, 0xFE, 0xFE, 0x00},
-		{0xF0, 0xF0, 0xF0, 0x00},
-		{0x80, 0x80, 0x80, 0x00},
-		{0x80, 0x00, 0x00, 0x00},
-		{0x00, 0x80, 0x00, 0x00},
-		{0x00, 0x00, 0x80, 0x00},
-		{0x00, 0x00, 0x10, 0x00},
-		{0x00, 0x00, 0x01, 0x00},
-		{0x00, 0x00, 0x00, 0x00},
-	}
-	o := DefaultOpts
-	o.NumPixels = len(colors)
-	o.Temperature = 6500
-	d, _ := New(spitest.NewRecordRaw(&buf), &o)
-	if n, err := d.Write(ToRGB(colors)); n != len(colors)*3 || err != nil {
-		t.Fatalf("%d %v", n, err)
-	}
-	expected := []byte{
-		0x00, 0x00, 0x00, 0x00,
-		0xFF, 0xFF, 0xFF, 0xFF,
-		0xFF, 0xFB, 0xFB, 0xFB,
-		0xFF, 0xC4, 0xC4, 0xC4,
-		0xE1, 0xF8, 0xF8, 0xF8,
-		0xE1, 0x00, 0x00, 0xF8,
-		0xE1, 0x00, 0xF8, 0x00,
-		0xE1, 0xF8, 0x00, 0x00,
-		0xE1, 0x10, 0x00, 0x00,
-		0xE1, 0x01, 0x00, 0x00,
-		0xE1, 0x00, 0x00, 0x00,
-		0xFF,
-	}
-	if !bytes.Equal(expected, buf.Bytes()) {
-		t.Fatalf("%#v != %#v", expected, buf.Bytes())
+var writeTests = []struct {
+	name   string
+	pixels []byte
+	want   []byte
+	opts   Opts
+}{
+	{
+		name: "Temperature",
+		pixels: ToRGB([]color.NRGBA{
+			{0xFF, 0xFF, 0xFF, 0x00},
+			{0xFE, 0xFE, 0xFE, 0x00},
+			{0xF0, 0xF0, 0xF0, 0x00},
+			{0x80, 0x80, 0x80, 0x00},
+			{0x80, 0x00, 0x00, 0x00},
+			{0x00, 0x80, 0x00, 0x00},
+			{0x00, 0x00, 0x80, 0x00},
+			{0x00, 0x00, 0x10, 0x00},
+			{0x00, 0x00, 0x01, 0x00},
+			{0x00, 0x00, 0x00, 0x00},
+		}),
+		want: []byte{
+			0x00, 0x00, 0x00, 0x00,
+			0xFF, 0xFF, 0xFF, 0xFF,
+			0xFF, 0xFB, 0xFB, 0xFB,
+			0xFF, 0xC4, 0xC4, 0xC4,
+			0xE1, 0xF8, 0xF8, 0xF8,
+			0xE1, 0x00, 0x00, 0xF8,
+			0xE1, 0x00, 0xF8, 0x00,
+			0xE1, 0xF8, 0x00, 0x00,
+			0xE1, 0x10, 0x00, 0x00,
+			0xE1, 0x01, 0x00, 0x00,
+			0xE1, 0x00, 0x00, 0x00,
+			0xFF,
+		},
+		opts: Opts{
+			Intensity:   255,
+			Temperature: 6500,
+		},
+	},
+	{
+		name: "Intensity",
+		pixels: ToRGB([]color.NRGBA{
+			{0xFF, 0xFF, 0xFF, 0x00},
+			{0xFE, 0xFE, 0xFE, 0x00},
+			{0xF0, 0xF0, 0xF0, 0x00},
+			{0x80, 0x80, 0x80, 0x00},
+			{0x80, 0x00, 0x00, 0x00},
+			{0x00, 0x80, 0x00, 0x00},
+			{0x00, 0x00, 0x80, 0x00},
+			{0x00, 0x00, 0x10, 0x00},
+			{0x00, 0x00, 0x01, 0x00},
+			{0x00, 0x00, 0x00, 0x00},
+		}),
+		want: []byte{
+			0x00, 0x00, 0x00, 0x00,
+			0xFF, 0x7F, 0x7F, 0x7F,
+			0xFF, 0x7D, 0x7D, 0x7D,
+			0xFF, 0x67, 0x67, 0x67,
+			0xE2, 0x9B, 0x9B, 0x9B,
+			0xE2, 0x00, 0x00, 0x9B,
+			0xE2, 0x00, 0x9B, 0x00,
+			0xE2, 0x9B, 0x00, 0x00,
+			0xE1, 0x10, 0x00, 0x00,
+			0xE1, 0x01, 0x00, 0x00,
+			0xE1, 0x00, 0x00, 0x00,
+			0xFF,
+		},
+		opts: Opts{
+			Intensity:   127,
+			Temperature: 6500,
+		},
+	},
+	{
+		name: "Intensity and temperature",
+		pixels: func() []byte {
+			var p []byte
+			for i := 0; i < 16*3; i++ {
+				p = append(p, uint8(i<<2))
+			}
+			return p
+		}(),
+		want: expectedi250t5000,
+		opts: Opts{
+			Intensity:   250,
+			Temperature: 5000,
+		},
+	},
+}
+
+func TestWrites(t *testing.T) {
+	for _, tt := range writeTests {
+		buf := bytes.Buffer{}
+		tt.opts.NumPixels = len(tt.pixels) / 3
+		d, _ := New(spitest.NewRecordRaw(&buf), &tt.opts)
+		n, err := d.Write(tt.pixels)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if n != len(tt.pixels) {
+			t.Fatalf("%s: Got %d bytes result, want %d", tt.name, n, len(tt.pixels)*3)
+		}
+		if !bytes.Equal(buf.Bytes(), tt.want) {
+			t.Fatalf("%s:\ngot: %#v\nwant: %#v\n", tt.name, buf.Bytes(), tt.want)
+		}
 	}
 }
 
-func TestDevColo(t *testing.T) {
+func TestDevColor(t *testing.T) {
 	if (&Dev{}).ColorModel() != color.NRGBAModel {
 		t.Fail()
-	}
-}
-
-func TestDevIntensity(t *testing.T) {
-	buf := bytes.Buffer{}
-	colors := []color.NRGBA{
-		{0xFF, 0xFF, 0xFF, 0x00},
-		{0xFE, 0xFE, 0xFE, 0x00},
-		{0xF0, 0xF0, 0xF0, 0x00},
-		{0x80, 0x80, 0x80, 0x00},
-		{0x80, 0x00, 0x00, 0x00},
-		{0x00, 0x80, 0x00, 0x00},
-		{0x00, 0x00, 0x80, 0x00},
-		{0x00, 0x00, 0x10, 0x00},
-		{0x00, 0x00, 0x01, 0x00},
-		{0x00, 0x00, 0x00, 0x00},
-	}
-	o := DefaultOpts
-	o.Intensity = 127
-	o.NumPixels = len(colors)
-	o.Temperature = 6500
-	d, _ := New(spitest.NewRecordRaw(&buf), &o)
-	if n, err := d.Write(ToRGB(colors)); n != len(colors)*3 || err != nil {
-		t.Fatalf("%d %v", n, err)
-	}
-	expected := []byte{
-		0x00, 0x00, 0x00, 0x00,
-		0xFF, 0x7F, 0x7F, 0x7F,
-		0xFF, 0x7D, 0x7D, 0x7D,
-		0xFF, 0x67, 0x67, 0x67,
-		0xE2, 0x9B, 0x9B, 0x9B,
-		0xE2, 0x00, 0x00, 0x9B,
-		0xE2, 0x00, 0x9B, 0x00,
-		0xE2, 0x9B, 0x00, 0x00,
-		0xE1, 0x10, 0x00, 0x00,
-		0xE1, 0x01, 0x00, 0x00,
-		0xE1, 0x00, 0x00, 0x00,
-		0xFF,
-	}
-	if !bytes.Equal(expected, buf.Bytes()) {
-		t.Fatalf("%#v != %#v", expected, buf.Bytes())
 	}
 }
 
@@ -465,7 +491,7 @@ func TestDevLong(t *testing.T) {
 		trailer[i] = 0xFF
 	}
 	if !bytes.Equal(expected, buf.Bytes()) {
-		t.Fatalf("%#v != %#v", expected, buf.Bytes())
+		t.Fatalf("\ngot: %#v\nwant: %#v\n", buf.Bytes(), expected)
 	}
 }
 
@@ -479,7 +505,7 @@ func TestDevWrite_Long(t *testing.T) {
 	}
 }
 
-// expectedi250t5000 is the expected output for 3 test cases. Each test case
+// expectedi250t5000 is the expected output for multiple test cases. Each test case
 // use a completely different code path so make sure each code path results in
 // the exact same output.
 var expectedi250t5000 = []byte{
@@ -501,89 +527,81 @@ var expectedi250t6500 = []byte{
 	0x3E, 0x38, 0x32, 0xFF, 0xFF,
 }
 
-func TestDevTemperatureWarm(t *testing.T) {
-	buf := bytes.Buffer{}
-	pixels := [16 * 3]byte{}
-	for i := range pixels {
-		// Test all intensity code paths.
-		pixels[i] = uint8(i << 2)
-	}
-	o := DefaultOpts
-	o.NumPixels = len(pixels) / 3
-	o.Intensity = 250
-	o.Temperature = 5000
-	d, _ := New(spitest.NewRecordRaw(&buf), &o)
-	if n, err := d.Write(pixels[:]); n != len(pixels) || err != nil {
-		t.Fatalf("%d %v", n, err)
-	}
-	if !bytes.Equal(expectedi250t5000, buf.Bytes()) {
-		t.Fatalf("%#v != %#v", expectedi250t5000, buf.Bytes())
-	}
+var drawTests = []struct {
+	name string
+	img  image.Image
+	want []byte
+	opts Opts
+}{
+	{
+		name: "Draw NRGBA",
+		img: func() image.Image {
+			im := image.NewNRGBA(image.Rect(0, 0, 16, 1))
+			for i := 0; i < 16; i++ {
+				// Test all intensity code paths. Confirm that alpha is ignored.
+				im.Pix[4*i] = uint8((3 * i) << 2)
+				im.Pix[4*i+1] = uint8((3*i + 1) << 2)
+				im.Pix[4*i+2] = uint8((3*i + 2) << 2)
+				im.Pix[4*i+3] = 0
+			}
+			return im
+		}(),
+		want: expectedi250t5000,
+		opts: Opts{
+			NumPixels:   16,
+			Intensity:   250,
+			Temperature: 5000,
+		},
+	},
+	{
+		name: "Draw NRGBA Wide",
+		img: func() image.Image {
+			im := image.NewNRGBA(image.Rect(0, 0, 17, 2))
+			for x := 0; x < 16; x++ {
+				// Test all intensity code paths. Confirm that alpha is ignored.
+				im.SetNRGBA(x, 0, color.NRGBA{uint8((3 * x) << 2), uint8((3*x + 1) << 2), uint8((3*x + 2) << 2), 0})
+			}
+			return im
+		}(),
+		want: expectedi250t6500,
+		opts: Opts{
+			NumPixels:   16,
+			Intensity:   250,
+			Temperature: 6500,
+		},
+	},
+	{
+		name: "Draw RGBA",
+		img: func() image.Image {
+			im := image.NewRGBA(image.Rect(0, 0, 16, 1))
+			for i := 0; i < 16; i++ {
+				// Test all intensity code paths. Alpha is not ignored in this case.
+				im.Pix[4*i] = uint8((3 * i) << 2)
+				im.Pix[4*i+1] = uint8((3*i + 1) << 2)
+				im.Pix[4*i+2] = uint8((3*i + 2) << 2)
+				im.Pix[4*i+3] = 0xFF
+			}
+			return im
+		}(),
+		want: expectedi250t5000,
+		opts: Opts{
+			NumPixels:   16,
+			Intensity:   250,
+			Temperature: 5000,
+		},
+	},
 }
 
-func TestDrawNRGBA(t *testing.T) {
-	img := image.NewNRGBA(image.Rect(0, 0, 16, 1))
-	for i := 0; i < 16; i++ {
-		// Test all intensity code paths. Confirm that alpha is ignored.
-		img.Pix[4*i] = uint8((3 * i) << 2)
-		img.Pix[4*i+1] = uint8((3*i + 1) << 2)
-		img.Pix[4*i+2] = uint8((3*i + 2) << 2)
-		img.Pix[4*i+3] = 0
-	}
-	buf := bytes.Buffer{}
-	o := DefaultOpts
-	o.NumPixels = 16
-	o.Intensity = 250
-	o.Temperature = 5000
-	d, _ := New(spitest.NewRecordRaw(&buf), &o)
-	if err := d.Draw(d.Bounds(), img, image.Point{}); err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Equal(expectedi250t5000, buf.Bytes()) {
-		t.Fatalf("%#v != %#v", expectedi250t5000, buf.Bytes())
-	}
-}
-
-func TestDrawNRGBA_wide(t *testing.T) {
-	img := image.NewNRGBA(image.Rect(0, 0, 17, 2))
-	for x := 0; x < 16; x++ {
-		// Test all intensity code paths. Confirm that alpha is ignored.
-		img.SetNRGBA(x, 0, color.NRGBA{uint8((3 * x) << 2), uint8((3*x + 1) << 2), uint8((3*x + 2) << 2), 0})
-	}
-	buf := bytes.Buffer{}
-	o := DefaultOpts
-	o.NumPixels = 16
-	o.Intensity = 250
-	o.Temperature = 6500
-	d, _ := New(spitest.NewRecordRaw(&buf), &o)
-	if err := d.Draw(d.Bounds(), img, image.Point{}); err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Equal(expectedi250t6500, buf.Bytes()) {
-		t.Fatalf("%#v != %#v", expectedi250t5000, buf.Bytes())
-	}
-}
-
-func TestDrawRGBA(t *testing.T) {
-	img := image.NewRGBA(image.Rect(0, 0, 16, 1))
-	for i := 0; i < 16; i++ {
-		// Test all intensity code paths. Alpha is not ignored in this case.
-		img.Pix[4*i] = uint8((3 * i) << 2)
-		img.Pix[4*i+1] = uint8((3*i + 1) << 2)
-		img.Pix[4*i+2] = uint8((3*i + 2) << 2)
-		img.Pix[4*i+3] = 0xFF
-	}
-	buf := bytes.Buffer{}
-	o := DefaultOpts
-	o.NumPixels = 16
-	o.Intensity = 250
-	o.Temperature = 5000
-	d, _ := New(spitest.NewRecordRaw(&buf), &o)
-	if err := d.Draw(d.Bounds(), img, image.Point{}); err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Equal(expectedi250t5000, buf.Bytes()) {
-		t.Fatalf("%#v != %#v", expectedi250t5000, buf.Bytes())
+func TestDraws(t *testing.T) {
+	for _, tt := range drawTests {
+		buf := bytes.Buffer{}
+		d, _ := New(spitest.NewRecordRaw(&buf), &tt.opts)
+		if err := d.Draw(d.Bounds(), tt.img, image.Point{}); err != nil {
+			t.Fatalf("%s: %v", tt.name, err)
+		}
+		if !bytes.Equal(buf.Bytes(), tt.want) {
+			t.Fatalf("%s:\ngot: %#v\nwant: %#v\n", tt.name, buf.Bytes(), tt.want)
+		}
 	}
 }
 
