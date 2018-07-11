@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"image/draw"
 	"io/ioutil"
 	"testing"
 
@@ -708,29 +709,14 @@ func BenchmarkWriteColorfulVariation(b *testing.B) {
 	}
 }
 
-func fillImage(img image.Image, f genColor) {
-	switch im := img.(type) {
-	case *image.NRGBA:
-		for x := 0; x < im.Bounds().Dx(); x++ {
-			for y := 0; y < im.Bounds().Dy(); y++ {
-				pix := f(x)
-				c := color.NRGBA{R: pix[0], G: pix[1], B: pix[2], A: 255}
-				im.Set(x, y, c)
-			}
-		}
-	case *image.RGBA:
-		for x := 0; x < im.Bounds().Dx(); x++ {
-			for y := 0; y < im.Bounds().Dy(); y++ {
-				pix := f(x)
-				c := color.NRGBA{R: pix[0], G: pix[1], B: pix[2], A: 255}
-				im.Set(x, y, c)
-			}
+func benchmarkDraw(b *testing.B, o Opts, img draw.Image, f genColor) {
+	for x := 0; x < img.Bounds().Dx(); x++ {
+		for y := 0; y < img.Bounds().Dy(); y++ {
+			pix := f(x)
+			c := color.NRGBA{R: pix[0], G: pix[1], B: pix[2], A: 255}
+			img.Set(x, y, c)
 		}
 	}
-}
-
-func benchmarkDraw(b *testing.B, o Opts, img image.Image, f genColor) {
-	fillImage(img, f)
 	o.NumPixels = img.Bounds().Max.X
 	b.ReportAllocs()
 	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), &o)
