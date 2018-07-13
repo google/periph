@@ -636,120 +636,55 @@ func TestInit(t *testing.T) {
 
 //
 
-func BenchmarkWriteWhite(b *testing.B) {
-	b.ReportAllocs()
-	pixels := [150 * 3]byte{}
-	for i := range pixels {
-		pixels[i] = 0xFF
+type genColor func(int) [3]byte
+
+func benchmarkWrite(b *testing.B, o Opts, length int, f genColor) {
+	var pixels []byte
+	for i := 0; i < length; i++ {
+		c := f(i)
+		pixels = append(pixels, c[:]...)
 	}
-	o := DefaultOpts
-	o.NumPixels = len(pixels) / 3
-	o.Intensity = 250
+	o.NumPixels = length
+	b.ReportAllocs()
 	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), &o)
 	_, _ = d.Write(pixels[:])
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, _ = d.Write(pixels[:])
 	}
+}
+
+func BenchmarkWriteWhite(b *testing.B) {
+	o := DefaultOpts
+	o.Intensity = 250
+	benchmarkWrite(b, o, 150, func(i int) [3]byte { return [3]byte{0xFF, 0xFF, 0xFF} })
 }
 
 func BenchmarkWriteDim(b *testing.B) {
-	b.ReportAllocs()
-	pixels := [150 * 3]byte{}
-	for i := range pixels {
-		pixels[i] = 1
-	}
 	o := DefaultOpts
-	o.NumPixels = len(pixels) / 3
 	o.Intensity = 250
-	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), &o)
-	_, _ = d.Write(pixels[:])
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, _ = d.Write(pixels[:])
-	}
+	benchmarkWrite(b, o, 150, func(i int) [3]byte { return [3]byte{0x01, 0x01, 0x01} })
 }
 
 func BenchmarkWriteBlack(b *testing.B) {
-	b.ReportAllocs()
-	pixels := [150 * 3]byte{}
 	o := DefaultOpts
-	o.NumPixels = len(pixels) / 3
 	o.Intensity = 250
-	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), &o)
-	_, _ = d.Write(pixels[:])
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, _ = d.Write(pixels[:])
+	benchmarkWrite(b, o, 150, func(i int) [3]byte { return [3]byte{0x0, 0x0, 0x0} })
+}
+
+func genColorfulPixel(x int) [3]byte {
+	i := x * 3
+	return [3]byte{uint8(i) + uint8(i>>8),
+		uint8(i+1) + uint8(i+1>>8),
+		uint8(i+2) + uint8(i+2>>8),
 	}
 }
 
 func BenchmarkWriteColorful(b *testing.B) {
-	b.ReportAllocs()
-	pixels := [150 * 3]byte{}
-	for i := range pixels {
-		pixels[i] = uint8(i) + uint8(i>>8)
-	}
 	o := DefaultOpts
-	o.NumPixels = len(pixels) / 3
 	o.Intensity = 250
 	o.Temperature = 5000
-	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), &o)
-	_, _ = d.Write(pixels[:])
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, _ = d.Write(pixels[:])
-	}
-}
-
-func BenchmarkDrawNRGBAColorful(b *testing.B) {
-	// Takes the fast path.
-	b.ReportAllocs()
-	img := image.NewNRGBA(image.Rect(0, 0, 150, 1))
-	for i := range img.Pix {
-		img.Pix[i] = uint8(i) + uint8(i>>8)
-	}
-	o := DefaultOpts
-	o.NumPixels = img.Bounds().Max.X
-	o.Intensity = 250
-	o.Temperature = 5000
-	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), &o)
-	r := d.Bounds()
-	p := image.Point{}
-	if err := d.Draw(r, img, p); err != nil {
-		b.Fatal(err)
-	}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		if err := d.Draw(r, img, p); err != nil {
-			b.Fatal(err)
-		}
-	}
-}
-
-func BenchmarkDrawRGBAColorful(b *testing.B) {
-	// Takes the slow path.
-	b.ReportAllocs()
-	img := image.NewRGBA(image.Rect(0, 0, 256, 1))
-	for i := range img.Pix {
-		img.Pix[i] = uint8(i) + uint8(i>>8)
-	}
-	o := DefaultOpts
-	o.NumPixels = img.Bounds().Max.X
-	o.Intensity = 250
-	o.Temperature = 5000
-	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), &o)
-	r := d.Bounds()
-	p := image.Point{}
-	if err := d.Draw(r, img, p); err != nil {
-		b.Fatal(err)
-	}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		if err := d.Draw(r, img, p); err != nil {
-			b.Fatal(err)
-		}
-	}
+	benchmarkWrite(b, o, 150, genColorfulPixel)
 }
 
 func BenchmarkWriteColorfulVariation(b *testing.B) {
@@ -771,6 +706,59 @@ func BenchmarkWriteColorfulVariation(b *testing.B) {
 		d.Temperature = uint16((3000 + i) & 0x1FFF)
 		_, _ = d.Write(pixels[:])
 	}
+}
+
+func fillImage(img image.Image, f genColor) {
+	switch im := img.(type) {
+	case *image.NRGBA:
+		for x := 0; x < im.Bounds().Dx(); x++ {
+			for y := 0; y < im.Bounds().Dy(); y++ {
+				pix := f(x)
+				c := color.NRGBA{R: pix[0], G: pix[1], B: pix[2], A: 255}
+				im.Set(x, y, c)
+			}
+		}
+	case *image.RGBA:
+		for x := 0; x < im.Bounds().Dx(); x++ {
+			for y := 0; y < im.Bounds().Dy(); y++ {
+				pix := f(x)
+				c := color.NRGBA{R: pix[0], G: pix[1], B: pix[2], A: 255}
+				im.Set(x, y, c)
+			}
+		}
+	}
+}
+
+func benchmarkDraw(b *testing.B, o Opts, img image.Image, f genColor) {
+	fillImage(img, f)
+	o.NumPixels = img.Bounds().Max.X
+	b.ReportAllocs()
+	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), &o)
+	r := d.Bounds()
+	p := image.Point{}
+	if err := d.Draw(r, img, p); err != nil {
+		b.Fatal(err)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if err := d.Draw(r, img, p); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkDrawNRGBAColorful(b *testing.B) {
+	o := DefaultOpts
+	o.Intensity = 250
+	o.Temperature = 5000
+	benchmarkDraw(b, o, image.NewNRGBA(image.Rect(0, 0, 150, 1)), genColorfulPixel)
+}
+
+func BenchmarkDrawRGBAColorful(b *testing.B) {
+	o := DefaultOpts
+	o.Intensity = 250
+	o.Temperature = 5000
+	benchmarkDraw(b, o, image.NewRGBA(image.Rect(0, 0, 256, 1)), genColorfulPixel)
 }
 
 func BenchmarkHalt(b *testing.B) {
