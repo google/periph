@@ -89,21 +89,29 @@ class EventSource {
   }
   // https://devdocs.io/dom/eventtarget/dispatchevent
   dispatchEvent(type, params) {
-    log("dispatchEvent("+type+")");
+    log("dispatchEvent("+type+", "+params+")");
     let l = this._triggers[type];
     if (!l) {
       return;
     }
+    // The challenge here is that during the dispatch, an addEventListener()
+    // may have been called. This needs to be handled explicitly.
     let rm = [];
     for (let i = 0; i < l.length; i++) {
       let opt = l[i];
       opt.listener.call(params);
       if (opt.once) {
-        rm.push(i);
+        rm.push(opt);
       }
     }
-    for (let i = rm.length; i > 0; i--) {
-      this._triggers[type].pop(rm[i-1]);
+    for (let i = 0; i < rm.length; i++) {
+      // This is inefficient but safe.
+      for (let j = 0; j < l.length; l++) {
+        if (l[j] === rm[i]) {
+         l.pop(j);
+         break;
+       }
+      }
     }
   }
 }
@@ -276,17 +284,17 @@ var Controller = new class {
         switch (res[i]) {
         case 0:
           if (p.onValueRead(false)) {
-            this.eventGPIO.dispatchEvent(p.name);
+            this.eventGPIO.dispatchEvent(p.name, false);
           }
           break;
         case 1:
           if (p.onValueRead(true)) {
-            this.eventGPIO.dispatchEvent(p.name);
+            this.eventGPIO.dispatchEvent(p.name, true);
           }
           break;
         default:
           if (p.onValueRead(null)) {
-            this.eventGPIO.dispatchEvent(p.name);
+            this.eventGPIO.dispatchEvent(p.name, null);
           }
           break;
         }
@@ -303,7 +311,7 @@ var Controller = new class {
     };
     gpio.onFuncUpdate("in", null);
     // Trigger right away as if it had succeeded to remove latency in the UI.
-    this.eventGPIO.dispatchEvent(gpio.name);
+    this.eventGPIO.dispatchEvent(gpio.name, "in");
     postJSON("/api/periph/v1/gpio/in", [params], res => {
       if (res[0]) {
         alertError(res[0]);
@@ -317,7 +325,7 @@ var Controller = new class {
     params[gpio.name] = l;
     gpio.onFuncUpdate("out", l);
     // Trigger right away as if it had succeeded to remove latency in the UI.
-    this.eventGPIO.dispatchEvent(gpio.name);
+    this.eventGPIO.dispatchEvent(gpio.name, "out");
     postJSON("/api/periph/v1/gpio/out", params, res => {
       if (res[0]) {
         alertError(res[0]);
@@ -774,15 +782,18 @@ class HTMLElementTemplate extends HTMLElement {
       this.id = this.pin.name;
       this.shadowRoot.getElementById("name").textContent = this.pin.name;
       if (this.pin.gpio) {
+       log(this.id + " is GPIO");
         this._isGPIO();
         return;
       }
+      log(this.id + " is indeterminate");
       if (this.pin.func) {
         this.funcElem.textContent = this.pin.func;
         this.funcElem.style.display = "inline-block";
       }
       // It could become a GPIO later when the /gpio/list RPC comes back.
       Controller.eventGPIO.addEventListener(this.pin.name, () => {
+       log(this.id + " is GPIO (late)");
         this._isGPIO();
       }, {once: true});
     }
