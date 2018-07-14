@@ -89,6 +89,7 @@ class EventSource {
   }
   // https://devdocs.io/dom/eventtarget/dispatchevent
   dispatchEvent(type, params) {
+    log("dispatchEvent("+type+")");
     let l = this._triggers[type];
     if (!l) {
       return;
@@ -174,12 +175,26 @@ class GPIO {
   get value() {
     return this._value;
   }
+  onFuncUpdate(f, v) {
+    if (this.func === this._makeFunc(f, v)) {
+      return false;
+    }
+    this._value = v;
+    this.func = this._makeFunc(f, v);
+    return true;
+  }
   onValueRead(v) {
-    if (this._value == v) {
-      return;
+    if (this._value === v) {
+      return false;
+    }
+    if (this.type === "out") {
+      // This happens when toggling an output GPIO level and a concurrent
+      // returns the previous value. Skip it.
+      return false;
     }
     this._value = v;
     this.func = this._makeFunc(this.type, v);
+    return true;
   }
   get type() {
     if (this.func.startsWith("Out/")) {
@@ -191,22 +206,22 @@ class GPIO {
     return this.func;
   }
   _makeFunc(t, v) {
-    if (v != null) {
-      if (t == "in") {
-        if (v) {
-          return "In/High";
-        } else {
-          return "In/Low";
-        }
-      } else if (t == "out") {
-        if (v) {
-          return "Out/High";
-        } else {
-          return "Out/Low";
-        }
+    if (t == "in") {
+      if (v === true) {
+        return "In/High";
+      } else if (v === false) {
+        return "In/Low";
       }
+      return "In/Ind";
+    } else if (t == "out") {
+      if (v === true) {
+        return "Out/High";
+      } else if (v === false) {
+        return "Out/Low";
+      }
+      return "Out/Ind";
     }
-    return this.func;
+    return t;
   }
 }
 
@@ -257,15 +272,22 @@ var Controller = new class {
     let pins = Object.keys(this._polling).sort();
     postJSON("/api/periph/v1/gpio/read", pins, res => {
       for (let i = 0; i < pins.length; i++) {
+        let p = this.gpios[pins[i]];
         switch (res[i]) {
         case 0:
-          this.gpios[pins[i]].onValueRead(false);
+          if (p.onValueRead(false)) {
+            this.eventGPIO.dispatchEvent(p.name);
+          }
           break;
         case 1:
-          this.gpios[pins[i]].onValueRead(true);
+          if (p.onValueRead(true)) {
+            this.eventGPIO.dispatchEvent(p.name);
+          }
           break;
         default:
-          this.gpios[pins[i]].onValueRead(null);
+          if (p.onValueRead(null)) {
+            this.eventGPIO.dispatchEvent(p.name);
+          }
           break;
         }
       }
@@ -279,30 +301,28 @@ var Controller = new class {
       Pull: "",
       Edge: "",
     };
+    gpio.onFuncUpdate("in", null);
+    // Trigger right away as if it had succeeded to remove latency in the UI.
+    this.eventGPIO.dispatchEvent(gpio.name);
     postJSON("/api/periph/v1/gpio/in", [params], res => {
       if (res[0]) {
         alertError(res[0]);
         return;
       }
-      // Iffy.
-      gpio.func = gpio._makeFunc("in", gpio.value);
-      // Value will be updated on the next poll. It's a tad late?
-      gpio.onValueRead(gpio.value);
-      this.eventGPIO.dispatchEvent(gpio.name);
     });
   }
   setGPIOOut(gpio, l) {
-    log("setGPIOIn("+gpio.name+", "+l+")");
+    log("setGPIOOut("+gpio.name+", "+l+")");
     let params = {};
     params[gpio.name] = l;
+    gpio.onFuncUpdate("out", l);
+    // Trigger right away as if it had succeeded to remove latency in the UI.
+    this.eventGPIO.dispatchEvent(gpio.name);
     postJSON("/api/periph/v1/gpio/out", params, res => {
       if (res[0]) {
         alertError(res[0]);
         return;
       }
-      gpio.func = gpio._makeFunc("out", l);
-      gpio.onValueRead(l);
-      this.eventGPIO.dispatchEvent(gpio.name);
     });
   }
 
@@ -532,6 +552,7 @@ class HTMLElementTemplate extends HTMLElement {
     }
     span {
       cursor: pointer;
+      margin-left: 0.25em;
       padding-left: 40px;
       user-select: none;
     }
@@ -589,6 +610,9 @@ class HTMLElementTemplate extends HTMLElement {
     input:disabled:checked + span:before {
       background: #adb5bd;
     }
+    input:indeterminate + span:after {
+      margin-left: 10px;
+    }
     input:focus + span:before {
       outline: solid #cce5ff 2px;
     }
@@ -606,56 +630,16 @@ class HTMLElementTemplate extends HTMLElement {
     constructor() {super("template-checkout-elem");}
     connectedCallback() {
       // Note: I tried to have this custom element sync the embedded checkbox
-      // attributes "checked", "disabled" and "indeterminate" but I failed. This
-      // would be useful to style checkout-elem based on its state.
-      // A fix for this would be appreciated!
+      // attributes "checked", "disabled" and "indeterminate" through
+      // observedAttributes() and attributeChangedCallback() but I failed. This
+      // would be useful to style <checkout-elem> based on its state.
+      // A contribution for this would be appreciated!
       this.contentElem = this.shadowRoot.querySelector("span");
       this.checkboxElem = this.shadowRoot.querySelector("input");
       this.checkboxElem.addEventListener("click", e => {
-        //this._setClearAttr(this, "checked", this.checkboxElem.checked);
+        // Trigger "change" instead of "click" because click mistriggers.
         this.emitEvent("change", {});
       }, {passive: true});
-    }
-    /*
-    static get observedAttributes() {
-      return ["checked", "disabled", "indeterminate"];
-    }
-    attributeChangedCallback(name, oldValue, newValue) {
-      log(this.id + ".attributeChangedCallback("+name+", "+oldValue+", "+newValue+")")
-      switch (name) {
-        case "checked":
-          // This in important to realize that at this point,
-          // this.checkboxElem.checked and
-          // this.checkboxElem.hasAttribute("checked") do not match!
-          // Only this.checkboxElem.checked is accurate.
-          let has = this.checkboxElem.checked;
-          let nv = newValue === "";
-          if ((has && nv) || (!has && !nv)) {
-            // This change did not come from the checkbox itself.
-            this._setClearAttr(this.checkboxElem, "checked", nv);
-          }
-          if (oldValue != newValue) {
-            // Converts the "click" event into a "change" event. This is because
-            // "click" will be triggered on normal clicks too.
-            this.emitEvent("change", {});
-          }
-          break;
-        case "disabled":
-        case "indeterminate":
-          this._setClearAttr(this.checkboxElem, name, newValue === "");
-          break;
-      }
-    }
-    */
-    _setClearAttr(obj, name, v) {
-      if (v !== false && v !== true) {
-        alert("internal error");
-      }
-      if (v) {
-        obj.setAttribute(name, "");
-      } else {
-        obj.removeAttribute(name);
-      }
     }
     _setClearVal(obj, name, v) {
       if (v !== false && v !== true) {
@@ -664,32 +648,21 @@ class HTMLElementTemplate extends HTMLElement {
       obj[name] = v;
     }
     get checked() {
-      //return this.checkboxElem.hasAttribute("checked");
       return this.checkboxElem.checked;
     }
     set checked(v) {
-      // When this is used, this doesn't calls attributeChangedCallback().
-      //this._setClearAttr(this.checkboxElem, "checked", v);
       this._setClearVal(this.checkboxElem, "checked", v);
     }
     get disabled() {
-      //return this.checkboxElem.hasAttribute("disabled");
       return this.checkboxElem.disabled;
     }
     set disabled(v) {
-      // When this is used, this doesn't calls attributeChangedCallback().
-      //this._setClearAttr(this, "disabled", v);
-      //this._setClearAttr(this.checkboxElem, "disabled", v);
       this._setClearVal(this.checkboxElem, "disabled", v);
     }
     get indeterminate() {
-      //return this.checkboxElem.hasAttribute("indeterminate");
       return this.checkboxElem.indeterminate;
     }
     set indeterminate(v) {
-      // When this is used, this doesn't calls attributeChangedCallback().
-      //this._setClearAttr(this, "indeterminate", v);
-      //this._setClearAttr(this.checkboxElem, "indeterminate", v);
       this._setClearVal(this.checkboxElem, "indeterminate", v);
     }
     get text() {
@@ -820,31 +793,33 @@ class HTMLElementTemplate extends HTMLElement {
       Controller.poll(this.pin.name);
     }
     _gpioUpdate() {
-      log(this.id+"_gpioUpdate("+this.pin.func+")")
+      log(this.id+"._gpioUpdate("+this.pin.func+")")
       // Assumes a GPIO has a function.
       if (this.pin.func.startsWith("In/") || this.pin.func.startsWith("Out/")) {
         this.funcElem.textContent = "";
         this.funcElem.style.display = "none";
         this.shadowRoot.querySelector(".controls").style.display = "inline-block";
+
+        this.ioElem.checked = this.pin.func.startsWith("Out/");
         this.ioElem.disabled = false;
         this.ioElem.indeterminate = false;
-        this.levelElem.disabled = false;
-        this.levelElem.indeterminate = false;
-        if (this.pin.func.startsWith("In/")) {
-          this.ioElem.checked = false;
-          this.ioElem.text = "In";
-          this.levelElem.disabled = true;
-        } else {
-          this.ioElem.checked = true;
+        this.levelElem.checked = this.pin.func.endsWith("/High");
+        this.levelElem.disabled = !this.ioElem.checked;
+
+        if (this.ioElem.checked) {
           this.ioElem.text = "Out";
-          this.levelElem.disabled = false;
-        }
-        if (this.pin.func.endsWith("/High")) {
-          this.levelElem.checked = true;
-          this.levelElem.text = "High";
         } else {
-          this.levelElem.checked = false;
+          this.ioElem.text = "In";
+        }
+        if (this.levelElem.checked) {
+          this.levelElem.text = "High";
+          this.levelElem.indeterminate = false;
+        } else if (this.pin.func.endsWith("/Low")) {
           this.levelElem.text = "Low";
+          this.levelElem.indeterminate = false;
+        } else {
+          this.levelElem.indeterminate = true;
+          this.levelElem.text = "Ind";
         }
       } else {
         if (this.pin.func) {
@@ -854,12 +829,14 @@ class HTMLElementTemplate extends HTMLElement {
           this.funcElem.textContent = "";
           this.funcElem.style.display = "none";
         }
+        this.ioElem.checked = false;
         this.ioElem.disabled = true;
-        this.ioElem.text = "I/O";
         this.ioElem.indeterminate = true;
+        this.ioElem.text = "I/O";
+        this.levelElem.checked = false;
         this.levelElem.disabled = true;
-        this.levelElem.text = "Level";
         this.levelElem.indeterminate = true;
+        this.levelElem.text = "Level";
       }
     }
   });
