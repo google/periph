@@ -29,9 +29,10 @@ func ToRGB(p []color.NRGBA) []byte {
 
 // DefaultOpts is the recommended default options.
 var DefaultOpts = Opts{
-	NumPixels:   150,  // 150 LEDs is a common strip length.
-	Intensity:   255,  // Full blinding power.
-	Temperature: 5000, // More pleasing white balance.
+	NumPixels:   150,   // 150 LEDs is a common strip length.
+	Intensity:   255,   // Full blinding power.
+	Temperature: 5000,  // More pleasing white balance.
+	RawColors:   false, // Do perceptual color mapping.
 }
 
 // Opts defines the options for the device.
@@ -43,10 +44,14 @@ type Opts struct {
 	// Intensity is the maximum intensity level to use, on a logarithmic scale.
 	// This is useful to safely limit current draw.
 	Intensity uint8
-	// Temperature declares the white color to use, specified in Kelvin.
+	// Temperature declares the white color to use, specified in Kelvin.  Has no
+	// effect when RawColors is true.
 	//
 	// This driver assumes the LEDs are emitting a 6500K white color.
 	Temperature uint16
+	// Skip color mapping and directly write RGB values as received.  Temperature
+	// has no effect when this is set to true.
+	RawColors bool
 }
 
 // New returns a strip that communicates over SPI to APA102 LEDs.
@@ -74,6 +79,7 @@ func New(p spi.Port, o *Opts) (*Dev, error) {
 	return &Dev{
 		Intensity:   o.Intensity,
 		Temperature: o.Temperature,
+		RawColors:   o.RawColors,
 		s:           c,
 		numPixels:   o.NumPixels,
 		rawBuf:      buf,
@@ -92,10 +98,16 @@ type Dev struct {
 	//
 	// It can be changed, it will take effect on the next Draw() or Write() call.
 	Intensity uint8
-	// Temperature is the white adjustment in °Kelvin.
+	// Temperature is the white adjustment in °Kelvin.  Has no effect when
+	// RawColors is true.
 	//
 	// It can be changed, it will take effect on the next Draw() or Write() call.
 	Temperature uint16
+	// Whether to write raw RGB as received or do perceptual remapping.
+	//
+	// It can be changed, it will take effect on the next Draw() or Write() call.
+	// When true, Temperature has no effect.
+	RawColors bool
 
 	s         spi.Conn        //
 	l         lut             // Updated at each .Write() call.
@@ -106,7 +118,7 @@ type Dev struct {
 }
 
 func (d *Dev) String() string {
-	return fmt.Sprintf("APA102{I:%d, T:%dK, %dLEDs, %s}", d.Intensity, d.Temperature, d.numPixels, d.s)
+	return fmt.Sprintf("APA102{I:%d, T:%dK, R:%t, %dLEDs, %s}", d.Intensity, d.Temperature, d.RawColors, d.numPixels, d.s)
 }
 
 // ColorModel implements display.Drawer. There's no surprise, it is
@@ -190,6 +202,8 @@ func (d *Dev) raster(dst []byte, src []byte, hasAlpha bool) {
 		length = len(dst) / pBytes
 	}
 	d.l.init(d.Intensity, d.Temperature)
+	// For the d.RawColors == true case, allow for fast brightness scaling
+	brightness := int(d.Intensity) + 1
 	for i := 0; i < length; i++ {
 		// The response as seen by the human eye is very non-linear. The APA-102
 		// provides an overall brightness PWM but it is relatively slower and
@@ -213,17 +227,26 @@ func (d *Dev) raster(dst []byte, src []byte, hasAlpha bool) {
 		// Computes brightness, blue, green, red.
 		sOff := pBytes * i
 		dOff := 4 * i
-		r, g, b := d.l.r[src[sOff]], d.l.g[src[sOff+1]], d.l.b[src[sOff+2]]
-		m := r | g | b
-		switch {
-		case m <= 255:
-			dst[dOff], dst[dOff+1], dst[dOff+2], dst[dOff+3] = 0xE1, byte(b), byte(g), byte(r)
-		case m <= 511:
-			dst[dOff], dst[dOff+1], dst[dOff+2], dst[dOff+3] = 0xE2, byte(b/2), byte(g/2), byte(r/2)
-		case m <= 1023:
-			dst[dOff], dst[dOff+1], dst[dOff+2], dst[dOff+3] = 0xE4, byte((b+2)/4), byte((g+2)/4), byte((r+2)/4)
-		default:
-			dst[dOff], dst[dOff+1], dst[dOff+2], dst[dOff+3] = 0xFF, byte((b+15)/31), byte((g+15)/31), byte((r+15)/31)
+		if d.RawColors {
+			r, g, b := src[sOff], src[sOff+1], src[sOff+2]
+			// Fast brightness scaling
+			r = uint8((uint16(r) * uint16(brightness)) >> 8)
+			g = uint8((uint16(g) * uint16(brightness)) >> 8)
+			b = uint8((uint16(b) * uint16(brightness)) >> 8)
+			dst[dOff], dst[dOff+1], dst[dOff+2], dst[dOff+3] = 0xFF, byte(b), byte(g), byte(r)
+		} else {
+			r, g, b := d.l.r[src[sOff]], d.l.g[src[sOff+1]], d.l.b[src[sOff+2]]
+			m := r | g | b
+			switch {
+			case m <= 255:
+				dst[dOff], dst[dOff+1], dst[dOff+2], dst[dOff+3] = 0xE1, byte(b), byte(g), byte(r)
+			case m <= 511:
+				dst[dOff], dst[dOff+1], dst[dOff+2], dst[dOff+3] = 0xE2, byte(b/2), byte(g/2), byte(r/2)
+			case m <= 1023:
+				dst[dOff], dst[dOff+1], dst[dOff+2], dst[dOff+3] = 0xE4, byte((b+2)/4), byte((g+2)/4), byte((r+2)/4)
+			default:
+				dst[dOff], dst[dOff+1], dst[dOff+2], dst[dOff+3] = 0xFF, byte((b+15)/31), byte((g+15)/31), byte((r+15)/31)
+			}
 		}
 	}
 }
@@ -320,6 +343,7 @@ func (l *lut) init(i uint8, t uint16) {
 		l.intensity = i
 		l.temperature = t
 		tr, tg, tb := toRGBFast(l.temperature)
+		// maxR, maxG and maxB are the maximum light intensity to use per channel.
 		maxR := uint16((uint32(maxOut)*uint32(l.intensity)*uint32(tr) + 127*127) / 65025)
 		maxG := uint16((uint32(maxOut)*uint32(l.intensity)*uint32(tg) + 127*127) / 65025)
 		maxB := uint16((uint32(maxOut)*uint32(l.intensity)*uint32(tb) + 127*127) / 65025)
