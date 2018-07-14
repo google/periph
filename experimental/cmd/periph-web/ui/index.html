@@ -44,18 +44,21 @@ h1, h2, h3 {
 
 <script>
 "use strict";
-// Pure javascript event system.
+// Pure javascript event system that implements EventTarget.
+// https://devdocs.io/dom/eventtarget
 class EventSource {
   constructor() {
     this._triggers = {};
   }
-  on(event, callback) {
+  // https://devdocs.io/dom/eventtarget/addeventlistener
+  addEventListener(event, callback) {
     if (!this._triggers[event]) {
       this._triggers[event] = [];
     }
     this._triggers[event].push(callback);
   }
-  remove(event, callback) {
+  // https://devdocs.io/dom/eventtarget/removeeventlistener
+  removeEventListener(event, callback) {
     for (let i in this._triggers[event]) {
       if (this._triggers[event] === callback) {
         this._triggers[event].pop(i);
@@ -63,7 +66,8 @@ class EventSource {
       }
     }
   }
-  triggerHandlers(event, params) {
+  // https://devdocs.io/dom/eventtarget/dispatchevent
+  dispatchEvent(event, params) {
     if (this._triggers[event]) {
       let l = this._triggers[event].slice();
       for (let i = l.length; i > 0; i--) {
@@ -219,7 +223,7 @@ var Controller = new class {
       gpio.func = gpio._makeFunc("in", gpio.value);
       // Value will be updated on the next poll. It's a tad late?
       gpio.onValueRead(gpio.value);
-      this.eventGPIO.triggerHandlers(gpio.name);
+      this.eventGPIO.dispatchEvent(gpio.name);
     });
   }
   setGPIOOut(gpio) {
@@ -233,7 +237,7 @@ var Controller = new class {
       // Iffy.
       gpio.func = gpio._makeFunc("out", gpio.value);
       gpio.onValueRead(gpio.value);
-      this.eventGPIO.triggerHandlers(gpio.name);
+      this.eventGPIO.dispatchEvent(gpio.name);
     });
   }
 
@@ -243,9 +247,9 @@ var Controller = new class {
       for (let i = 0; i < res.length; i++) {
         let name = res[i].Name;
         this.gpios[name] = new GPIO(name, res[i].Number, res[i].Func)
-        this.eventGPIO.triggerHandlers(name);
+        this.eventGPIO.dispatchEvent(name);
       }
-      this.eventDone.triggerHandlers("gpio");
+      this.eventDone.dispatchEvent("gpio");
     });
   }
   _fetchHeader() {
@@ -262,7 +266,7 @@ var Controller = new class {
             // it if one ever show up.
             let p = new Pin(src.Name, src.Number, src.Func, this.gpios[src.Name]);
             if (!p.gpio) {
-              this.eventGPIO.on(p.name, () => {
+              this.eventGPIO.addEventListener(p.name, () => {
                 p.gpio = this.gpios[p.name];
                 return false;
               });
@@ -273,7 +277,7 @@ var Controller = new class {
         }
         this.headers[key] = new Header(key, pins);
       }
-      this.eventDone.triggerHandlers("header");
+      this.eventDone.dispatchEvent("header");
     });
   }
 }
@@ -365,7 +369,7 @@ function fetchState() {
   });
 }
 
-Controller.eventDone.on("header", () => {
+Controller.eventDone.addEventListener("header", () => {
   // Fill the headers.
   let root = document.getElementById("section-gpio");
   Object.keys(Controller.headers).sort().forEach(key => {
@@ -720,13 +724,13 @@ class HTMLElementTemplate extends HTMLElement {
         this.funcElem.style.display = "inline-block";
       }
       // It could become a GPIO later when the /gpio/list RPC comes back.
-      Controller.eventGPIO.on(this.pin.name, () => {
+      Controller.eventGPIO.addEventListener(this.pin.name, () => {
         this._isGPIO();
         return false;
       });
     }
     _isGPIO() {
-      Controller.eventGPIO.on(this.pin.name, () => this._gpioUpdate());
+      Controller.eventGPIO.addEventListener(this.pin.name, () => this._gpioUpdate());
       this.shadowRoot.querySelector("div").classList.add("gpio");
       this._gpioUpdate();
       Controller.poll(this.pin.name);
