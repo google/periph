@@ -51,31 +51,51 @@ class EventSource {
     this._triggers = {};
   }
   // https://devdocs.io/dom/eventtarget/addeventlistener
-  addEventListener(event, callback) {
-    if (!this._triggers[event]) {
-      this._triggers[event] = [];
+  addEventListener(type, listener, options) {
+    if (!this._triggers[type]) {
+      this._triggers[type] = [];
     }
-    this._triggers[event].push(callback);
+    let opt = options || {};
+    let v = {
+      capture: opt.capture,
+      listener: listener,
+      once: opt.once,
+      passive: opt.passive,
+    };
+    this._triggers[type].push(v);
   }
   // https://devdocs.io/dom/eventtarget/removeeventlistener
-  removeEventListener(event, callback) {
-    for (let i in this._triggers[event]) {
-      if (this._triggers[event] === callback) {
-        this._triggers[event].pop(i);
-        return;
+  removeEventListener(type, listener, options) {
+    if (!this._triggers[type]) {
+      return;
+    }
+    let l = this._triggers[type].slice();
+    let opt = options || {};
+    for (let i = l.length; i > 0; i--) {
+      let v = l[i-1];
+      if (v.callback === callback &&
+          v.capture === opt.capture &&
+          v.passive === opt.passive) {
+        this._triggers[type].pop(i);
       }
     }
   }
   // https://devdocs.io/dom/eventtarget/dispatchevent
-  dispatchEvent(event, params) {
-    if (this._triggers[event]) {
-      let l = this._triggers[event].slice();
-      for (let i = l.length; i > 0; i--) {
-        // Self-destruct the event handler if returning false.
-        if (!l[i-1](params)) {
-          this._triggers[event].pop(i-1);
-        }
+  dispatchEvent(type, params) {
+    let l = this._triggers[type];
+    if (!l) {
+      return;
+    }
+    let rm = [];
+    for (let i = 0; i < l.length; i++) {
+      let opt = l[i];
+      opt.listener.call(params);
+      if (opt.once) {
+        rm.push(i);
       }
+    }
+    for (let i = rm.length; i > 0; i--) {
+      this._triggers[type].pop(rm[i-1]);
     }
   }
 }
@@ -180,7 +200,7 @@ var Controller = new class {
       // Both are asynchronous.
       this._fetchGPIO();
       this._fetchHeader();
-    });
+    }, {once: true});
   }
   poll(gpioName) {
     this._polling[gpioName] = true;
@@ -267,8 +287,7 @@ var Controller = new class {
             if (!p.gpio) {
               this.eventGPIO.addEventListener(p.name, () => {
                 p.gpio = this.gpios[p.name];
-                return false;
-              });
+              }, {once: true});
             }
             items[x] = p;
           }
@@ -374,14 +393,13 @@ Controller.eventDone.addEventListener("header", () => {
   Object.keys(Controller.headers).sort().forEach(key => {
     root.appendChild(document.createElement("header-view")).setupHeader(key);
   });
-  return false;
-});
+}, {once: true});
 
 document.addEventListener("DOMContentLoaded", () => {
   fetchI2C();
   fetchSPI();
   fetchState();
-});
+}, {once: true});
 
 // HTMLElementTemplate is a base class for a custom element that uses a template
 // element and stores it in its shadowDOM.
@@ -574,7 +592,7 @@ class HTMLElementTemplate extends HTMLElement {
       this.checkboxElem = this.shadowRoot.querySelector("input");
       this.checkboxElem.addEventListener("click", e => {
         this._setClearAttr(this, "checked", this.checkboxElem.checked);
-      });
+      }, {passive: true});
     }
     static get observedAttributes() {
       return ["checked", "disabled", "indeterminate"];
@@ -717,12 +735,12 @@ class HTMLElementTemplate extends HTMLElement {
         } else {
           Controller.setGPIOIn(this.pin.gpio);
         }
-      });
+      }, {passive: true});
       this.levelElem.addEventListener("change", e => {
         if (this.ioElem.checked) {
           Controller.setGPIOOut(this.pin.gpio, this.levelElem.checked);
         }
-      });
+      }, {passive: true});
     }
     setupPin(pin) {
       this.pin = pin;
@@ -738,8 +756,7 @@ class HTMLElementTemplate extends HTMLElement {
       // It could become a GPIO later when the /gpio/list RPC comes back.
       Controller.eventGPIO.addEventListener(this.pin.name, () => {
         this._isGPIO();
-        return false;
-      });
+      }, {once: true});
     }
     _isGPIO() {
       Controller.eventGPIO.addEventListener(this.pin.name, () => this._gpioUpdate());
@@ -788,7 +805,6 @@ class HTMLElementTemplate extends HTMLElement {
         this.levelElem.text = "Level";
         this.levelElem.indeterminate = true;
       }
-      return true;
     }
   });
 }());
