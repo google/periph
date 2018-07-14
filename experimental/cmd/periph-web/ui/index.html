@@ -226,17 +226,16 @@ var Controller = new class {
       this.eventGPIO.dispatchEvent(gpio.name);
     });
   }
-  setGPIOOut(gpio) {
+  setGPIOOut(gpio, l) {
     let params = {};
-    params[gpio.name] = gpio.value;
+    params[gpio.name] = l;
     post("/api/periph/v1/gpio/out", params, res => {
       if (res[0]) {
         alertError(res[0]);
         return;
       }
-      // Iffy.
-      gpio.func = gpio._makeFunc("out", gpio.value);
-      gpio.onValueRead(gpio.value);
+      gpio.func = gpio._makeFunc("out", l);
+      gpio.onValueRead(l);
       this.eventGPIO.dispatchEvent(gpio.name);
     });
   }
@@ -574,44 +573,57 @@ class HTMLElementTemplate extends HTMLElement {
       this.contentElem = this.shadowRoot.querySelector("span");
       this.checkboxElem = this.shadowRoot.querySelector("input");
       this.checkboxElem.addEventListener("click", e => {
-        this._setAttr("checked", this.checkboxElem.checked);
-        this.emitEvent("update", {});
+        this._setClearAttr(this, "checked", this.checkboxElem.checked);
       });
     }
     static get observedAttributes() {
-      return ["checked", "disabled", "indeterminate", "text"];
+      return ["checked", "disabled", "indeterminate"];
     }
     attributeChangedCallback(name, oldValue, newValue) {
       switch (name) {
-        case "checked", "disabled", "indeterminate":
-          this._setAttr(name, newValue);
-          if (name == "checked") {
-            this.emitEvent("update", {});
+        case "checked":
+          // This in important to realize that at this point,
+          // this.checkboxElem.checked and
+          // this.checkboxElem.hasAttribute("checked") do not match!
+          // Only this.checkboxElem.checked is accurate.
+          let has = this.checkboxElem.checked;
+          let nv = newValue === "";
+          if ((has && nv) || (!has && !nv)) {
+            // This change did not come from the checkbox itself.
+            this._setClearAttr(this.checkboxElem, "checked", nv);
+          }
+          if (oldValue != newValue) {
+            // Converts the "click" event into a "change" event. This is because
+            // "click" will be triggered on normal clicks too.
+            this.emitEvent("change", {});
           }
           break;
-        case "text":
-          this.contentElem.innerText = newValue;
+        case "disabled", "indeterminate":
+          this._setClearAttr(this.checkboxElem, name, newValue === "");
           break;
       }
     }
-    _setAttr(name, v) {
+    _setClearAttr(obj, name, v) {
+      if (v !== false && v !== true) {
+        alert("internal error");
+      }
       if (v) {
-        this.checkboxElem.setAttribute(name, "");
+        obj.setAttribute(name, "");
       } else {
-        this.checkboxElem.removeAttribute(name);
+        obj.removeAttribute(name);
       }
     }
     get checked() {
-      return this.checkboxElem.hasAttribute("checked");
+      return this.hasAttribute("checked");
     }
     set checked(v) {
-      this._setAttr("checked", v);
+      this._setClearAttr(this, "checked", v);
     }
     get disabled() {
-      return this.checkboxElem.hasAttribute("disabled");
+      return this.hasAttribute("disabled");
     }
     set disabled(v) {
-      this._setAttr("disabled", v);
+      this._setClearAttr(this, "disabled", v);
     }
     get text() {
       return this.contentElem.innerText;
@@ -699,17 +711,17 @@ class HTMLElementTemplate extends HTMLElement {
       this.funcElem = this.shadowRoot.getElementById("func");
       this.ioElem = this.shadowRoot.getElementById("io");
       this.levelElem = this.shadowRoot.getElementById("level");
-      this.ioElem.addEventListener("update", e => {
+      this.ioElem.addEventListener("change", e => {
         if (this.ioElem.checked) {
-          // this.levelElem.checked.
-          Controller.setGPIOOut(this.pin.gpio);
+          Controller.setGPIOOut(this.pin.gpio, this.levelElem.checked);
         } else {
           Controller.setGPIOIn(this.pin.gpio);
         }
       });
-      this.levelElem.addEventListener("update", e => {
-        // this.levelElem.checked.
-        Controller.setGPIOOut(this.pin.gpio);
+      this.levelElem.addEventListener("change", e => {
+        if (this.ioElem.checked) {
+          Controller.setGPIOOut(this.pin.gpio, this.levelElem.checked);
+        }
       });
     }
     setupPin(pin) {
