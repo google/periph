@@ -44,6 +44,8 @@ h1, h2, h3 {
 
 <script>
 "use strict";
+/* *** Generic Javascript tools *** */
+
 // Pure javascript event system that implements EventTarget.
 // https://devdocs.io/dom/eventtarget
 class EventSource {
@@ -99,6 +101,43 @@ class EventSource {
     }
   }
 }
+
+// postJSON sends a HTTPS POST to a JSON API and calls the callback with the
+// decoded JSON reply.
+function postJSON(url, data, callback) {
+  function checkStatus(res) {
+    if (res.status == 401) {
+      throw new Error("Please refresh the page");
+    }
+    if (res.status >= 200 && res.status < 300) {
+      return res.json();
+    }
+    throw new Error(res.statusText);
+  }
+  function onError(url, err) {
+    console.log(err);
+    alertError(url + ": " + err.toString());
+  }
+  let hdr = {
+    body: JSON.stringify(data),
+    credentials: "same-origin",
+    headers: {"Content-Type": "application/json; charset=utf-8"},
+    method: "POST",
+  };
+  fetch(url, hdr).then(checkStatus).then(callback).catch(err => onError(url, err));
+}
+
+// alertError shows or appends the error message in a top red bubble.
+function alertError(errText) {
+  let e = document.getElementById("err");
+  if (e.innerText) {
+    e.innerText = e.innerText + "\n";
+  }
+  e.innerText = e.innerText + errText + "\n";
+  e.style.display = "block";
+}
+
+/* *** periph specific Javascript logic *** */
 
 // Pin is a pin on an header. It could be a GPIO, but it can be a dead pin too.
 // Controller eventually resolves these.
@@ -211,7 +250,7 @@ var Controller = new class {
   _refreshGPIO() {
     // Keep a copy of the pins that were fetched.
     let pins = Object.keys(this._polling).sort();
-    post("/api/periph/v1/gpio/read", pins, res => {
+    postJSON("/api/periph/v1/gpio/read", pins, res => {
       for (let i = 0; i < pins.length; i++) {
         switch (res[i]) {
         case 0:
@@ -234,7 +273,7 @@ var Controller = new class {
       Pull: "",
       Edge: "",
     };
-    post("/api/periph/v1/gpio/in", [params], res => {
+    postJSON("/api/periph/v1/gpio/in", [params], res => {
       if (res[0]) {
         alertError(res[0]);
         return;
@@ -249,7 +288,7 @@ var Controller = new class {
   setGPIOOut(gpio, l) {
     let params = {};
     params[gpio.name] = l;
-    post("/api/periph/v1/gpio/out", params, res => {
+    postJSON("/api/periph/v1/gpio/out", params, res => {
       if (res[0]) {
         alertError(res[0]);
         return;
@@ -262,7 +301,7 @@ var Controller = new class {
 
   // Private code.
   _fetchGPIO() {
-    post("/api/periph/v1/gpio/list", {}, res => {
+    postJSON("/api/periph/v1/gpio/list", {}, res => {
       for (let i = 0; i < res.length; i++) {
         let name = res[i].Name;
         this.gpios[name] = new GPIO(name, res[i].Number, res[i].Func)
@@ -272,7 +311,7 @@ var Controller = new class {
     });
   }
   _fetchHeader() {
-    post("/api/periph/v1/header/list", {}, res => {
+    postJSON("/api/periph/v1/header/list", {}, res => {
       for (let key in res) {
         let pins = [];
         for (let y = 0; y < res[key].Pins.length; y++) {
@@ -300,41 +339,8 @@ var Controller = new class {
   }
 }
 
-function post(url, data, callback) {
-  function checkStatus(res) {
-    if (res.status == 401) {
-      throw new Error("Please refresh the page");
-    }
-    if (res.status >= 200 && res.status < 300) {
-      return res.json();
-    }
-    throw new Error(res.statusText);
-  }
-  function onError(url, err) {
-    console.log(err);
-    alertError(url + ": " + err.toString());
-  }
-  let hdr = {
-    body: JSON.stringify(data),
-    credentials: "same-origin",
-    headers: {"Content-Type": "application/json; charset=utf-8"},
-    method: "POST",
-  };
-  fetch(url, hdr).then(checkStatus).then(callback).catch(err => onError(url, err));
-}
-
-// alertError shows or appends the error message in a top red bubble.
-function alertError(errText) {
-  let e = document.getElementById("err");
-  if (e.innerText) {
-    e.innerText = e.innerText + "\n";
-  }
-  e.innerText = e.innerText + errText + "\n";
-  e.style.display = "block";
-}
-
 function fetchI2C() {
-  post("/api/periph/v1/i2c/list", {}, res => {
+  postJSON("/api/periph/v1/i2c/list", {}, res => {
     let root = document.getElementById("section-i2c");
     for (let i = 0; i < res.length; i++) {
       let e = root.appendChild(document.createElement("i2c-elem"));
@@ -344,7 +350,7 @@ function fetchI2C() {
 }
 
 function fetchSPI() {
-  post("/api/periph/v1/spi/list", {}, res => {
+  postJSON("/api/periph/v1/spi/list", {}, res => {
     let root = document.getElementById("section-spi");
     for (let i = 0; i < res.length; i++) {
       let e = root.appendChild(document.createElement("spi-elem"));
@@ -354,7 +360,7 @@ function fetchSPI() {
 }
 
 function fetchState() {
-  post("/api/periph/v1/server/state", {}, res => {
+  postJSON("/api/periph/v1/server/state", {}, res => {
     document.title = "periph-web - " + res.Hostname;
     document.getElementById("periphExtra").innerText = res.PeriphExtra;
     let root = document.getElementById("section-drivers-loaded");
@@ -418,6 +424,8 @@ class HTMLElementTemplate extends HTMLElement {
 
 <!-- *** Custom elements *** -->
 
+<!-- Generic custom elements -->
+
 <!-- A generic table -->
 <template id="template-data-table-elem">
   <style>
@@ -479,7 +487,7 @@ class HTMLElementTemplate extends HTMLElement {
 }());
 </script>
 
-<!-- A checkbox -->
+<!-- A generic checkbox -->
 <template id="template-checkout-elem">
   <style>
     @keyframes popIn {
@@ -652,6 +660,8 @@ class HTMLElementTemplate extends HTMLElement {
   });
 }());
 </script>
+
+<!-- periph specific custom elements -->
 
 <!-- List of drivers -->
 <template id="template-drivers-elem">
