@@ -46,6 +46,11 @@ h1, h2, h3 {
 "use strict";
 /* *** Generic Javascript tools *** */
 
+// log logs to the console, only if enabled.
+function log(v) {
+  //console.log(v);
+}
+
 // Pure javascript event system that implements EventTarget.
 // https://devdocs.io/dom/eventtarget
 class EventSource {
@@ -268,6 +273,7 @@ var Controller = new class {
     });
   }
   setGPIOIn(gpio) {
+    log("setGPIOIn("+gpio.name+")");
     let params = {
       Name: gpio.name,
       Pull: "",
@@ -286,6 +292,7 @@ var Controller = new class {
     });
   }
   setGPIOOut(gpio, l) {
+    log("setGPIOIn("+gpio.name+", "+l+")");
     let params = {};
     params[gpio.name] = l;
     postJSON("/api/periph/v1/gpio/out", params, res => {
@@ -302,6 +309,7 @@ var Controller = new class {
   // Private code.
   _fetchGPIO() {
     postJSON("/api/periph/v1/gpio/list", {}, res => {
+      log("/api/periph/v1/gpio/list");
       for (let i = 0; i < res.length; i++) {
         let name = res[i].Name;
         this.gpios[name] = new GPIO(name, res[i].Number, res[i].Func)
@@ -312,6 +320,7 @@ var Controller = new class {
   }
   _fetchHeader() {
     postJSON("/api/periph/v1/header/list", {}, res => {
+      log("/api/periph/v1/header/list");
       for (let key in res) {
         let pins = [];
         for (let y = 0; y < res[key].Pins.length; y++) {
@@ -596,16 +605,23 @@ class HTMLElementTemplate extends HTMLElement {
   window.customElements.define("checkout-elem", class extends HTMLElementTemplate {
     constructor() {super("template-checkout-elem");}
     connectedCallback() {
+      // Note: I tried to have this custom element sync the embedded checkbox
+      // attributes "checked", "disabled" and "indeterminate" but I failed. This
+      // would be useful to style checkout-elem based on its state.
+      // A fix for this would be appreciated!
       this.contentElem = this.shadowRoot.querySelector("span");
       this.checkboxElem = this.shadowRoot.querySelector("input");
       this.checkboxElem.addEventListener("click", e => {
-        this._setClearAttr(this, "checked", this.checkboxElem.checked);
+        //this._setClearAttr(this, "checked", this.checkboxElem.checked);
+        this.emitEvent("change", {});
       }, {passive: true});
     }
+    /*
     static get observedAttributes() {
       return ["checked", "disabled", "indeterminate"];
     }
     attributeChangedCallback(name, oldValue, newValue) {
+      log(this.id + ".attributeChangedCallback("+name+", "+oldValue+", "+newValue+")")
       switch (name) {
         case "checked":
           // This in important to realize that at this point,
@@ -624,11 +640,13 @@ class HTMLElementTemplate extends HTMLElement {
             this.emitEvent("change", {});
           }
           break;
-        case "disabled", "indeterminate":
+        case "disabled":
+        case "indeterminate":
           this._setClearAttr(this.checkboxElem, name, newValue === "");
           break;
       }
     }
+    */
     _setClearAttr(obj, name, v) {
       if (v !== false && v !== true) {
         alert("internal error");
@@ -639,17 +657,40 @@ class HTMLElementTemplate extends HTMLElement {
         obj.removeAttribute(name);
       }
     }
+    _setClearVal(obj, name, v) {
+      if (v !== false && v !== true) {
+        alert("internal error");
+      }
+      obj[name] = v;
+    }
     get checked() {
-      return this.hasAttribute("checked");
+      //return this.checkboxElem.hasAttribute("checked");
+      return this.checkboxElem.checked;
     }
     set checked(v) {
-      this._setClearAttr(this, "checked", v);
+      // When this is used, this doesn't calls attributeChangedCallback().
+      //this._setClearAttr(this.checkboxElem, "checked", v);
+      this._setClearVal(this.checkboxElem, "checked", v);
     }
     get disabled() {
-      return this.hasAttribute("disabled");
+      //return this.checkboxElem.hasAttribute("disabled");
+      return this.checkboxElem.disabled;
     }
     set disabled(v) {
-      this._setClearAttr(this, "disabled", v);
+      // When this is used, this doesn't calls attributeChangedCallback().
+      //this._setClearAttr(this, "disabled", v);
+      //this._setClearAttr(this.checkboxElem, "disabled", v);
+      this._setClearVal(this.checkboxElem, "disabled", v);
+    }
+    get indeterminate() {
+      //return this.checkboxElem.hasAttribute("indeterminate");
+      return this.checkboxElem.indeterminate;
+    }
+    set indeterminate(v) {
+      // When this is used, this doesn't calls attributeChangedCallback().
+      //this._setClearAttr(this, "indeterminate", v);
+      //this._setClearAttr(this.checkboxElem, "indeterminate", v);
+      this._setClearVal(this.checkboxElem, "indeterminate", v);
     }
     get text() {
       return this.contentElem.innerText;
@@ -739,7 +780,9 @@ class HTMLElementTemplate extends HTMLElement {
       this.funcElem = this.shadowRoot.getElementById("func");
       this.ioElem = this.shadowRoot.getElementById("io");
       this.levelElem = this.shadowRoot.getElementById("level");
+      // This uses "change" instead of "click" because click mistriggers.
       this.ioElem.addEventListener("change", e => {
+        log(this.id + ".io.change("+this.ioElem.checked+")");
         if (this.ioElem.checked) {
           Controller.setGPIOOut(this.pin.gpio, this.levelElem.checked);
         } else {
@@ -747,6 +790,7 @@ class HTMLElementTemplate extends HTMLElement {
         }
       }, {passive: true});
       this.levelElem.addEventListener("change", e => {
+        log(this.id + ".level.change("+this.levelElem.checked+")");
         if (this.ioElem.checked) {
           Controller.setGPIOOut(this.pin.gpio, this.levelElem.checked);
         }
@@ -754,6 +798,7 @@ class HTMLElementTemplate extends HTMLElement {
     }
     setupPin(pin) {
       this.pin = pin;
+      this.id = this.pin.name;
       this.shadowRoot.getElementById("name").textContent = this.pin.name;
       if (this.pin.gpio) {
         this._isGPIO();
@@ -775,6 +820,7 @@ class HTMLElementTemplate extends HTMLElement {
       Controller.poll(this.pin.name);
     }
     _gpioUpdate() {
+      log(this.id+"_gpioUpdate("+this.pin.func+")")
       // Assumes a GPIO has a function.
       if (this.pin.func.startsWith("In/") || this.pin.func.startsWith("Out/")) {
         this.funcElem.textContent = "";

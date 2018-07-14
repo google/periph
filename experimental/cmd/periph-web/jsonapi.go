@@ -164,13 +164,13 @@ func (j *jsonAPI) apiHeaderList() (map[string]header, int) {
 	hdrs := pinreg.All()
 	out := make(map[string]header, len(hdrs))
 	for name, pins := range hdrs {
-		h := header{make([][]gpioPin, len(pins))}
-		for i, r := range pins {
+		h := header{make([][]gpioPin, 0, len(pins))}
+		for _, r := range pins {
 			row := make([]gpioPin, 0, len(r))
 			for _, p := range r {
 				row = append(row, toPin(p))
 			}
-			h.Pins[i] = row
+			h.Pins = append(h.Pins, row)
 		}
 		out[name] = h
 	}
