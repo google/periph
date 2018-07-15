@@ -3,6 +3,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="blue" />
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="Periph web UI">
+<meta name="author" content="Periph Authors">
 <title>periph-web</title>
 <style>
 * {
@@ -400,7 +404,7 @@ var Controller = new class {
       this._pollingID = setTimeout(this._refreshGPIO.bind(this), this._pollingRate);
     });
   }
-}
+};
 
 function fetchI2C() {
   postJSON("/api/periph/v1/i2c/list", {}, res => {
