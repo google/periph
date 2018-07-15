@@ -11,7 +11,7 @@ import (
 	"log"
 )
 
-const cacheControlContent = "Cache-Control:public,max-age=300" // 5m
+const cacheControlContent = "Cache-Control:no-cache,private"
 
 func getContent(path string) []byte {
 	r, err := ioutil.ReadFile(path)

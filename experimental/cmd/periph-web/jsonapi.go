@@ -5,6 +5,7 @@
 package main
 
 import (
+	"periph.io/x/periph"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/i2c"
@@ -19,6 +20,24 @@ import (
 type jsonAPI struct {
 	hostname string
 	state    drvState
+}
+
+func (j *jsonAPI) init(hostname string, st *periph.State) {
+	j.hostname = hostname
+	j.state.Loaded = make([]string, len(st.Loaded))
+	for i, v := range st.Loaded {
+		j.state.Loaded[i] = v.String()
+	}
+	j.state.Skipped = make([]driverFailure, len(st.Skipped))
+	for i, v := range st.Skipped {
+		j.state.Skipped[i].D = v.D.String()
+		j.state.Skipped[i].Err = v.Err.Error()
+	}
+	j.state.Failed = make([]driverFailure, len(st.Failed))
+	for i, v := range st.Failed {
+		j.state.Failed[i].D = v.D.String()
+		j.state.Failed[i].Err = v.Err.Error()
+	}
 }
 
 // getAPIs returns the JSON API handlers.

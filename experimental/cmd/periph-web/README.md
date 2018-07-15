@@ -77,8 +77,8 @@ choosing.
 
 # Live reload
 
-To use the files in `ui/` instead of the ones embedded in the executable by `go
-generate`, use:
+To use the files in `static/` instead of the ones embedded in the executable by
+`go generate`, use:
 
 ```
 go install -tags debug periph.io/x/periph/experimental/cmd/periph-web

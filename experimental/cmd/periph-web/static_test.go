@@ -20,11 +20,11 @@ func TestContent(t *testing.T) {
 		}
 		t.Fatal(err)
 	}
-	actual, err := ioutil.ReadFile("content_prod.go")
+	actual, err := ioutil.ReadFile("static_prod.go")
 	if err != nil {
 		t.Fatal(err)
 	}
-	c := exec.Command("go", "run", "internal/content_gen.go")
+	c := exec.Command("go", "run", "internal/static_gen.go")
 	c.Stderr = os.Stderr
 	expected, err := c.Output()
 	if err != nil {
