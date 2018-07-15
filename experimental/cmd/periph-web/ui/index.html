@@ -258,9 +258,14 @@ var Controller = new class {
     this.headers = {};
 
     // State transitions.
-    // [name]
+    // Pins that are being polled. Only pins set as In are polled.
+    // {name: true}
     this._polling = {};
+    // timer ID to be able to cancel it.
     this._pollingID = null;
+    // Rate in ms. 10Hz is a bit intense but until we have an API that is purely
+    // event based via gpio.PinIn.WaitForEdge(), that's the best we can do.
+    this._pollingRate = 100;
 
     // Initialization.
     document.addEventListener("DOMContentLoaded", () => {
@@ -268,39 +273,6 @@ var Controller = new class {
       this._fetchGPIO();
       this._fetchHeader();
     }, {once: true});
-  }
-  poll(gpioName) {
-    this._polling[gpioName] = true;
-    if (this._pollingID == null) {
-      this._pollingID = window.setTimeout(this._refreshGPIO.bind(this), 1000);
-    };
-  }
-  _refreshGPIO() {
-    // Keep a copy of the pins that were fetched.
-    let pins = Object.keys(this._polling).sort();
-    postJSON("/api/periph/v1/gpio/read", pins, res => {
-      for (let i = 0; i < pins.length; i++) {
-        let p = this.gpios[pins[i]];
-        switch (res[i]) {
-        case 0:
-          if (p.onValueRead(false)) {
-            this.eventGPIO.dispatchEvent(p.name, false);
-          }
-          break;
-        case 1:
-          if (p.onValueRead(true)) {
-            this.eventGPIO.dispatchEvent(p.name, true);
-          }
-          break;
-        default:
-          if (p.onValueRead(null)) {
-            this.eventGPIO.dispatchEvent(p.name, null);
-          }
-          break;
-        }
-      }
-      this._pollingID = setTimeout(this._refreshGPIO.bind(this), 1000);
-    });
   }
   setGPIOIn(gpio) {
     log("setGPIOIn("+gpio.name+")");
@@ -340,7 +312,9 @@ var Controller = new class {
       log("/api/periph/v1/gpio/list");
       for (let i = 0; i < res.length; i++) {
         let name = res[i].Name;
-        this.gpios[name] = new GPIO(name, res[i].Number, res[i].Func)
+        let gpio = new GPIO(name, res[i].Number, res[i].Func);
+        this.gpios[name] = gpio;
+        this._autoPoll(gpio);
         this.eventGPIO.dispatchEvent(name);
       }
       this.eventDone.dispatchEvent("gpio");
@@ -372,6 +346,49 @@ var Controller = new class {
         this.headers[key] = new Header(key, pins);
       }
       this.eventDone.dispatchEvent("header");
+    });
+  }
+  _autoPoll(gpio) {
+    this.eventGPIO.addEventListener(gpio.name, () => {
+      if (gpio.type == "in") {
+        this._polling[gpio.name] = true;
+        if (this._pollingID === null) {
+          this._pollingID = window.setTimeout(this._refreshGPIO.bind(this), this._pollingRate);
+        };
+      } else {
+        delete this._polling[gpio.name];
+        if (this._pollingID && !this._polling.length) {
+          window.clearTimeout(this._pollingID);
+          this._pollingID = null;
+        };
+      }
+    });
+  }
+  _refreshGPIO() {
+    // Keep a copy of the pins that were fetched.
+    let pins = Object.keys(this._polling).sort();
+    postJSON("/api/periph/v1/gpio/read", pins, res => {
+      for (let i = 0; i < pins.length; i++) {
+        let p = this.gpios[pins[i]];
+        switch (res[i]) {
+        case 0:
+          if (p.onValueRead(false)) {
+            this.eventGPIO.dispatchEvent(p.name, false);
+          }
+          break;
+        case 1:
+          if (p.onValueRead(true)) {
+            this.eventGPIO.dispatchEvent(p.name, true);
+          }
+          break;
+        default:
+          if (p.onValueRead(null)) {
+            this.eventGPIO.dispatchEvent(p.name, null);
+          }
+          break;
+        }
+      }
+      this._pollingID = setTimeout(this._refreshGPIO.bind(this), this._pollingRate);
     });
   }
 }
@@ -801,7 +818,6 @@ class HTMLElementTemplate extends HTMLElement {
       Controller.eventGPIO.addEventListener(this.pin.name, () => this._gpioUpdate());
       this.shadowRoot.querySelector("div").classList.add("gpio");
       this._gpioUpdate();
-      Controller.poll(this.pin.name);
     }
     _gpioUpdate() {
       log(this.id+"._gpioUpdate("+this.pin.func+")")
