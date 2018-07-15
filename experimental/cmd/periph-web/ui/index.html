@@ -314,7 +314,6 @@ var Controller = new class {
         let name = res[i].Name;
         let gpio = new GPIO(name, res[i].Number, res[i].Func);
         this.gpios[name] = gpio;
-        this._autoPoll(gpio);
         this.eventGPIO.dispatchEvent(name);
       }
       this.eventDone.dispatchEvent("gpio");
@@ -334,10 +333,20 @@ var Controller = new class {
             // GPIO instance. If it is not present, hook up an event to catch
             // it if one ever show up.
             let p = new Pin(src.Name, src.Number, src.Func, this.gpios[src.Name]);
+            // Only poll the GPIOs in an header.
             if (!p.gpio) {
               this.eventGPIO.addEventListener(p.name, () => {
                 p.gpio = this.gpios[p.name];
+                this._autoPoll(p.gpio);
+                this.eventGPIO.addEventListener(p.gpio.name, () => {
+                  this._autoPoll(p.gpio);
+                });
               }, {once: true});
+            } else {
+              this._autoPoll(p.gpio);
+              this.eventGPIO.addEventListener(p.gpio.name, () => {
+                this._autoPoll(p.gpio);
+              });
             }
             items[x] = p;
           }
@@ -349,20 +358,20 @@ var Controller = new class {
     });
   }
   _autoPoll(gpio) {
-    this.eventGPIO.addEventListener(gpio.name, () => {
-      if (gpio.type == "in") {
-        this._polling[gpio.name] = true;
-        if (this._pollingID === null) {
-          this._pollingID = window.setTimeout(this._refreshGPIO.bind(this), this._pollingRate);
-        };
-      } else {
-        delete this._polling[gpio.name];
-        if (this._pollingID && !this._polling.length) {
-          window.clearTimeout(this._pollingID);
-          this._pollingID = null;
-        };
+    if (gpio.type == "in") {
+      log("Now polling " + gpio.name);
+      this._polling[gpio.name] = true;
+      if (this._pollingID === null) {
+        this._pollingID = window.setTimeout(this._refreshGPIO.bind(this), this._pollingRate);
       }
-    });
+    } else {
+      log("Stop polling " + gpio.name);
+      delete this._polling[gpio.name];
+      if (this._pollingID && !this._polling.length) {
+        window.clearTimeout(this._pollingID);
+        this._pollingID = null;
+      }
+    }
   }
   _refreshGPIO() {
     // Keep a copy of the pins that were fetched.
