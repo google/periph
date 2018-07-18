@@ -740,11 +740,45 @@ func BenchmarkDrawNRGBAColorful(b *testing.B) {
 	benchmarkDraw(b, o, image.NewNRGBA(image.Rect(0, 0, 150, 1)), genColorfulPixel)
 }
 
+func BenchmarkDrawNRGBAWhite(b *testing.B) {
+	o := DefaultOpts
+	o.Intensity = 250
+	o.Temperature = 5000
+	benchmarkDraw(b, o, image.NewNRGBA(image.Rect(0, 0, 150, 1)), func(i int) [3]byte { return [3]byte{0xFF, 0xFF, 0xFF} })
+}
+
 func BenchmarkDrawRGBAColorful(b *testing.B) {
 	o := DefaultOpts
 	o.Intensity = 250
 	o.Temperature = 5000
 	benchmarkDraw(b, o, image.NewRGBA(image.Rect(0, 0, 256, 1)), genColorfulPixel)
+}
+
+func BenchmarkDrawSlowpath(b *testing.B) {
+	// Should be an image type that doesn't have a fast path
+	img := image.NewCMYK(image.Rect(0, 0, 150, 1))
+	for x := 0; x < img.Bounds().Dx(); x++ {
+		for y := 0; y < img.Bounds().Dy(); y++ {
+			pix := genColorfulPixel(x)
+			c := color.CMYK{C: pix[0], M: pix[1], Y: pix[2], K: 0xFF}
+			img.Set(x, y, c)
+		}
+	}
+	o := DefaultOpts
+	o.NumPixels = img.Bounds().Max.X
+	b.ReportAllocs()
+	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), &o)
+	r := d.Bounds()
+	p := image.Point{}
+	if err := d.Draw(r, img, p); err != nil {
+		b.Fatal(err)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if err := d.Draw(r, img, p); err != nil {
+			b.Fatal(err)
+		}
+	}
 }
 
 func BenchmarkHalt(b *testing.B) {
