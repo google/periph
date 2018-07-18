@@ -17,6 +17,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"text/template"
@@ -51,6 +52,34 @@ func pipe(cmd []string, in io.Reader) ([]byte, error) {
 	return r, err
 }
 
+func fillData(base string, content, raw []string) ([][2]string, error) {
+	var data [][2]string
+	for _, n := range content {
+		p := filepath.Join(base, n)
+		r, err := ioutil.ReadFile(p)
+		if err != nil {
+			return nil, err
+		}
+		ext := filepath.Ext(n)
+		if r, err = pipe([]string{"minify", "--type", ext[1:]}, bytes.NewReader(r)); err != nil {
+			if strings.HasSuffix(err.Error(), exec.ErrNotFound.Error()) {
+				return nil, errors.New("Please install minify with: go get github.com/tdewolff/minify/cmd/minify")
+			}
+			return nil, err
+		}
+		data = append(data, [2]string{strconv.Quote(p), fmt.Sprintf("[]byte(%q)", r)})
+	}
+	for _, n := range raw {
+		p := filepath.Join(base, n)
+		r, err := ioutil.ReadFile(p)
+		if err != nil {
+			return nil, err
+		}
+		data = append(data, [2]string{strconv.Quote(p), fmt.Sprintf("[]byte(%q)", r)})
+	}
+	return data, nil
+}
+
 func mainImpl() error {
 	output := flag.String("o", "", "output file, else stdout")
 	flag.Parse()
@@ -58,23 +87,13 @@ func mainImpl() error {
 		return errors.New("unknown argument")
 	}
 
-	data := [][2]string{}
-	r, err := ioutil.ReadFile("static/index.html")
+	data, err := fillData(
+		"static",
+		[]string{"index.html"},
+		[]string{"favicon.ico"})
 	if err != nil {
 		return err
 	}
-	if r, err = pipe([]string{"minify", "--type", "html"}, bytes.NewReader(r)); err != nil {
-		if strings.HasSuffix(err.Error(), exec.ErrNotFound.Error()) {
-			return errors.New("Please install minify with: go get github.com/tdewolff/minify/cmd/minify")
-		}
-		return err
-	}
-	data = append(data, [2]string{strconv.Quote("static/index.html"), fmt.Sprintf("[]byte(%q)", r)})
-
-	if r, err = ioutil.ReadFile("static/favicon.ico"); err != nil {
-		return err
-	}
-	data = append(data, [2]string{strconv.Quote("static/favicon.ico"), fmt.Sprintf("[]byte(%q)", r)})
 
 	t, err := template.New("").Parse(tmpl)
 	if err != nil {
@@ -84,7 +103,8 @@ func mainImpl() error {
 	if err := t.Execute(&buf, data); err != nil {
 		return err
 	}
-	if r, err = pipe([]string{"gofmt", "-s"}, &buf); err != nil {
+	r, err := pipe([]string{"gofmt", "-s"}, &buf)
+	if err != nil {
 		return err
 	}
 	if *output != "" {

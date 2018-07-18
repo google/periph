@@ -679,29 +679,23 @@ class HTMLElementTemplate extends HTMLElement {
         this.emitEvent("change", {});
       }, {passive: true});
     }
-    _setClearVal(obj, name, v) {
-      if (v !== false && v !== true) {
-        alert("internal error");
-      }
-      obj[name] = v;
-    }
     get checked() {
       return this.checkboxElem.checked;
     }
     set checked(v) {
-      this._setClearVal(this.checkboxElem, "checked", v);
+      this.checkboxElem.checked = v;
     }
     get disabled() {
       return this.checkboxElem.disabled;
     }
     set disabled(v) {
-      this._setClearVal(this.checkboxElem, "disabled", v);
+      this.checkboxElem.disabled = v;
     }
     get indeterminate() {
       return this.checkboxElem.indeterminate;
     }
     set indeterminate(v) {
-      this._setClearVal(this.checkboxElem, "indeterminate", v);
+      this.checkboxElem.indeterminate = v;
     }
     get text() {
       return this.contentElem.innerText;
