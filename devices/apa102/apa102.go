@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"image/draw"
 
 	"periph.io/x/periph/conn/display"
 	"periph.io/x/periph/conn/physic"
@@ -138,8 +139,7 @@ func (d *Dev) Draw(r image.Rectangle, src image.Image, sp image.Point) error {
 	if srcR.Empty() {
 		return nil
 	}
-	d.l.init(d.Intensity, d.Temperature)
-	d.l.rasterImg(d.pixels, r, src, srcR)
+	d.rasterImg(d.pixels, r, src, srcR)
 	return d.s.Tx(d.rawBuf, nil)
 }
 
@@ -149,9 +149,8 @@ func (d *Dev) Write(pixels []byte) (int, error) {
 	if len(pixels)%3 != 0 || len(pixels) > len(d.pixels) {
 		return 0, errors.New("apa102: invalid RGB stream length")
 	}
-	d.l.init(d.Intensity, d.Temperature)
 	// Do not touch header and footer.
-	d.l.raster(d.pixels, pixels)
+	d.raster(d.pixels, pixels, false)
 	err := d.s.Tx(d.rawBuf, nil)
 	return len(pixels), err
 }
@@ -168,6 +167,104 @@ func (d *Dev) Halt() error {
 		}
 	}
 	return d.s.Tx(d.rawBuf, nil)
+}
+
+// raster serializes a buffer of RGB bytes to the APA102 SPI format.
+//
+// It is expected to be given the part where pixels are, not the header nor
+// footer.
+//
+// dst is in APA102 SPI 32 bits word format. src is in RGB 24 bits word format.
+//
+// src cannot be longer in pixel count than dst.
+//
+// if hasAlpha is true, the input buffer is interpreted as having alpha values
+// (which are ignored).
+func (d *Dev) raster(dst []byte, src []byte, hasAlpha bool) {
+	pBytes := 3
+	if hasAlpha {
+		pBytes = 4
+	}
+	length := len(src) / pBytes
+	if len(dst) < length {
+		length = len(dst) / pBytes
+	}
+	d.l.init(d.Intensity, d.Temperature)
+	for i := 0; i < length; i++ {
+		// The response as seen by the human eye is very non-linear. The APA-102
+		// provides an overall brightness PWM but it is relatively slower and
+		// results in human visible flicker. On the other hand the minimal color
+		// (1/255) is still too intense at full brightness, so for very dark color,
+		// it is worth using the overall brightness PWM. The goal is to use
+		// brightness!=31 as little as possible.
+		//
+		// Global brightness frequency is 580Hz and color frequency at 19.2kHz.
+		// https://cpldcpu.wordpress.com/2014/08/27/apa102/
+		// Both are multiplicative, so brightness@50% and color@50% means an
+		// effective 25% duty cycle but it is not properly distributed, which is
+		// the main problem.
+		//
+		// It is unclear to me if brightness is exactly in 1/31 increment as I don't
+		// have an oscilloscope to confirm. Same for color in 1/255 increment.
+		// TODO(maruel): I have one now!
+		//
+		// Each channel duty cycle ramps from 100% to 1/(31*255) == 1/7905.
+		//
+		// Computes brightness, blue, green, red.
+		sOff := pBytes * i
+		dOff := 4 * i
+		r, g, b := d.l.r[src[sOff]], d.l.g[src[sOff+1]], d.l.b[src[sOff+2]]
+		m := r | g | b
+		switch {
+		case m <= 255:
+			dst[dOff], dst[dOff+1], dst[dOff+2], dst[dOff+3] = 0xE1, byte(b), byte(g), byte(r)
+		case m <= 511:
+			dst[dOff], dst[dOff+1], dst[dOff+2], dst[dOff+3] = 0xE2, byte(b/2), byte(g/2), byte(r/2)
+		case m <= 1023:
+			dst[dOff], dst[dOff+1], dst[dOff+2], dst[dOff+3] = 0xE4, byte((b+2)/4), byte((g+2)/4), byte((r+2)/4)
+		default:
+			dst[dOff], dst[dOff+1], dst[dOff+2], dst[dOff+3] = 0xFF, byte((b+15)/31), byte((g+15)/31), byte((r+15)/31)
+		}
+	}
+}
+
+// rasterImg is the generic version of raster that converts an image instead of raw RGB values.
+//
+// It has 'fast paths' for image.RGBA and image.NRGBA that extract and convert the RGB values
+// directly.  For other image types, it converts to image.RGBA and then does the same.  In all
+// cases, alpha values are ignored.
+//
+// rect specifies where into the output buffer to draw.
+//
+// srcR specifies what portion of the source image to use.
+func (d *Dev) rasterImg(dst []byte, rect image.Rectangle, src image.Image, srcR image.Rectangle) {
+	// Render directly into the buffer for maximum performance and to keep
+	// untouched sections intact.
+	switch im := src.(type) {
+	case *image.RGBA:
+		start := im.PixOffset(srcR.Min.X, srcR.Min.Y)
+		// srcR.Min.Y since the output display has only a single column
+		end := im.PixOffset(srcR.Max.X, srcR.Min.Y)
+		// Offset into the output buffer using rect
+		d.raster(dst[4*rect.Min.X:], im.Pix[start:end], true)
+	case *image.NRGBA:
+		// Ignores alpha
+		start := im.PixOffset(srcR.Min.X, srcR.Min.Y)
+		// srcR.Min.Y since the output display has only a single column
+		end := im.PixOffset(srcR.Max.X, srcR.Min.Y)
+		// Offset into the output buffer using rect
+		d.raster(dst[4*rect.Min.X:], im.Pix[start:end], true)
+	default:
+		// Slow path.  Convert to RGBA
+		b := im.Bounds()
+		m := image.NewRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
+		draw.Draw(m, m.Bounds(), src, b.Min, draw.Src)
+		start := m.PixOffset(srcR.Min.X, srcR.Min.Y)
+		// srcR.Min.Y since the output display has only a single column
+		end := m.PixOffset(srcR.Max.X, srcR.Min.Y)
+		// Offset into the output buffer using rect
+		d.raster(dst[4*rect.Min.X:], m.Pix[start:end], true)
+	}
 }
 
 //
@@ -243,116 +340,6 @@ func (l *lut) init(i uint8, t uint16) {
 		} else {
 			for i := range l.b {
 				l.b[i] = ramp(uint8(i), maxB)
-			}
-		}
-	}
-}
-
-// raster serializes converts a buffer of RGB bytes to the APA102 SPI format.
-//
-// It is expected to be given the part where pixels are, not the header nor
-// footer.
-//
-// dst is in APA102 SPI 32 bits word format. src is in RGB 24 bits word format.
-// maxR, maxG and maxB are the maximum light intensity to use per channel.
-//
-// src cannot be longer in pixel count than dst.
-func (l *lut) raster(dst []byte, src []byte) {
-	// Whichever is the shortest.
-	length := len(src) / 3
-	for i := 0; i < length; i++ {
-		// Converts a color into the 4 bytes needed to control an APA-102 LED.
-		//
-		// The response as seen by the human eye is very non-linear. The APA-102
-		// provides an overall brightness PWM but it is relatively slower and
-		// results in human visible flicker. On the other hand the minimal color
-		// (1/255) is still too intense at full brightness, so for very dark color,
-		// it is worth using the overall brightness PWM. The goal is to use
-		// brightness!=31 as little as possible.
-		//
-		// Global brightness frequency is 580Hz and color frequency at 19.2kHz.
-		// https://cpldcpu.wordpress.com/2014/08/27/apa102/
-		// Both are multiplicative, so brightness@50% and color@50% means an
-		// effective 25% duty cycle but it is not properly distributed, which is
-		// the main problem.
-		//
-		// It is unclear to me if brightness is exactly in 1/31 increment as I don't
-		// have an oscilloscope to confirm. Same for color in 1/255 increment.
-		// TODO(maruel): I have one now!
-		//
-		// Each channel duty cycle ramps from 100% to 1/(31*255) == 1/7905.
-		//
-		// Computes brighness, blue, green, red.
-		j := 3 * i
-		r := l.r[src[j]]
-		g := l.g[src[j+1]]
-		b := l.b[src[j+2]]
-		m := r | g | b
-		j += i
-		if m <= 1023 {
-			if m <= 255 {
-				dst[j], dst[j+1], dst[j+2], dst[j+3] = byte(0xE0+1), byte(b), byte(g), byte(r)
-			} else if m <= 511 {
-				dst[j], dst[j+1], dst[j+2], dst[j+3] = byte(0xE0+2), byte(b>>1), byte(g>>1), byte(r>>1)
-			} else {
-				dst[j], dst[j+1], dst[j+2], dst[j+3] = byte(0xE0+4), byte((b+2)>>2), byte((g+2)>>2), byte((r+2)>>2)
-			}
-		} else {
-			// In this case we need to use a ramp of 255-1 even for lower colors.
-			dst[j], dst[j+1], dst[j+2], dst[j+3] = byte(0xE0+31), byte((b+15)/31), byte((g+15)/31), byte((r+15)/31)
-		}
-	}
-}
-
-// rasterImg is the generic version of raster.
-func (l *lut) rasterImg(dst []byte, rect image.Rectangle, src image.Image, srcR image.Rectangle) {
-	// Render directly into the buffer for maximum performance and to keep
-	// untouched sections intact.
-	deltaX4 := 4 * (rect.Min.X - srcR.Min.X)
-	if img, ok := src.(*image.NRGBA); ok {
-		// Fast path for image.NRGBA.
-		pix := img.Pix[srcR.Min.Y*img.Stride:]
-		for sX := srcR.Min.X; sX < srcR.Max.X; sX++ {
-			sX4 := 4 * sX
-			r := l.r[pix[sX4]]
-			g := l.g[pix[sX4+1]]
-			b := l.b[pix[sX4+2]]
-			m := r | g | b
-			rX := sX4 + deltaX4
-			if m <= 1023 {
-				if m <= 255 {
-					dst[rX], dst[rX+1], dst[rX+2], dst[rX+3] = byte(0xE0+1), byte(b), byte(g), byte(r)
-				} else if m <= 511 {
-					dst[rX], dst[rX+1], dst[rX+2], dst[rX+3] = byte(0xE0+2), byte(b>>1), byte(g>>1), byte(r>>1)
-				} else {
-					dst[rX], dst[rX+1], dst[rX+2], dst[rX+3] = byte(0xE0+4), byte((b+2)>>2), byte((g+2)>>2), byte((r+2)>>2)
-				}
-			} else {
-				// In this case we need to use a ramp of 255-1 even for lower colors.
-				dst[rX], dst[rX+1], dst[rX+2], dst[rX+3] = byte(0xE0+31), byte((b+15)/31), byte((g+15)/31), byte((r+15)/31)
-			}
-		}
-	} else {
-		// Generic version.
-		for sX := srcR.Min.X; sX < srcR.Max.X; sX++ {
-			// This causes a memory allocation. There's no way around it.
-			r16, g16, b16, _ := src.At(sX, srcR.Min.Y).RGBA()
-			r := l.r[byte(r16>>8)]
-			g := l.g[byte(g16>>8)]
-			b := l.b[byte(b16>>8)]
-			m := r | g | b
-			rX := sX*4 + deltaX4
-			if m <= 1023 {
-				if m <= 255 {
-					dst[rX], dst[rX+1], dst[rX+2], dst[rX+3] = byte(0xE0+1), byte(b), byte(g), byte(r)
-				} else if m <= 511 {
-					dst[rX], dst[rX+1], dst[rX+2], dst[rX+3] = byte(0xE0+2), byte(b>>1), byte(g>>1), byte(r>>1)
-				} else {
-					dst[rX], dst[rX+1], dst[rX+2], dst[rX+3] = byte(0xE0+4), byte((b+2)>>2), byte((g+2)>>2), byte((r+2)>>2)
-				}
-			} else {
-				// In this case we need to use a ramp of 255-1 even for lower colors.
-				dst[rX], dst[rX+1], dst[rX+2], dst[rX+3] = byte(0xE0+31), byte((b+15)/31), byte((g+15)/31), byte((r+15)/31)
 			}
 		}
 	}

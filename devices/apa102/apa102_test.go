@@ -576,11 +576,32 @@ var drawTests = []struct {
 		img: func() image.Image {
 			im := image.NewRGBA(image.Rect(0, 0, 16, 1))
 			for i := 0; i < 16; i++ {
-				// Test all intensity code paths. Alpha is not ignored in this case.
 				im.Pix[4*i] = uint8((3 * i) << 2)
 				im.Pix[4*i+1] = uint8((3*i + 1) << 2)
 				im.Pix[4*i+2] = uint8((3*i + 2) << 2)
 				im.Pix[4*i+3] = 0xFF
+			}
+			return im
+		}(),
+		want: expectedi250t5000,
+		opts: Opts{
+			NumPixels:   16,
+			Intensity:   250,
+			Temperature: 5000,
+		},
+	},
+	{
+		// Just something that doesn't have a fast path
+		name: "Draw NRGBA64",
+		img: func() image.Image {
+			im := image.NewNRGBA64(image.Rect(0, 0, 16, 1))
+			for i := 0; i < 16; i++ {
+				im.Set(i, 0, color.NRGBA64{
+					R: uint16(((3 * i) << 10)),
+					G: uint16(((3*i + 1) << 10)),
+					B: uint16(((3*i + 2) << 10)),
+					A: 0xFFFF,
+				})
 			}
 			return im
 		}(),
@@ -598,6 +619,111 @@ func TestDraws(t *testing.T) {
 		buf := bytes.Buffer{}
 		d, _ := New(spitest.NewRecordRaw(&buf), &tt.opts)
 		if err := d.Draw(d.Bounds(), tt.img, image.Point{}); err != nil {
+			t.Fatalf("%s: %v", tt.name, err)
+		}
+		if !bytes.Equal(buf.Bytes(), tt.want) {
+			t.Fatalf("%s:\ngot: %#v\nwant: %#v\n", tt.name, buf.Bytes(), tt.want)
+		}
+	}
+}
+
+var offsetDrawWant = []byte{
+	0x00, 0x00, 0x00, 0x00,
+	0xE1, 0x89, 0x79, 0x6B,
+	0xE1, 0x9A, 0x88, 0x75,
+	0xE1, 0xAD, 0x98, 0x82,
+	0xE1, 0xC2, 0xAB, 0x92,
+	0xE1, 0xDA, 0xC0, 0xA4,
+	0xE1, 0xF5, 0xD9, 0xB9,
+	0xE2, 0x89, 0x7A, 0x69,
+	0xE2, 0x9A, 0x8A, 0x76,
+	0xE2, 0xAC, 0x9B, 0x86,
+	0xE2, 0xC0, 0xAE, 0x98,
+	0xE2, 0xD5, 0xC3, 0xAC,
+	0xE2, 0xED, 0xDA, 0xC2,
+	0xE4, 0x83, 0x7A, 0x6E,
+	0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00,
+	0xFF,
+}
+
+var offsetDrawTests = []struct {
+	name   string
+	img    image.Image
+	point  image.Point
+	offset image.Rectangle
+	want   []byte
+	opts   Opts
+}{
+	{
+		name: "Offset Draw NRGBA",
+		img: func() image.Image {
+			im := image.NewNRGBA(image.Rect(0, 0, 16, 4))
+			for x := 0; x < 16; x++ {
+				for y := 0; y < 4; y++ {
+					i := (y*16 + x) * 3
+					im.Set(x, y, color.RGBA{R: uint8(i + 1), G: uint8(i + 2), B: uint8(i + 3), A: 0xFF})
+				}
+			}
+			return im
+		}(),
+		point:  image.Point{X: 3, Y: 2},
+		offset: image.Rect(0, 0, 16, 1),
+		want:   offsetDrawWant,
+		opts: Opts{
+			NumPixels:   15,
+			Intensity:   255,
+			Temperature: 5000,
+		},
+	},
+	{
+		name: "Both Offset Draw NRGBA",
+		img: func() image.Image {
+			im := image.NewNRGBA(image.Rect(0, 0, 16, 4))
+			for x := 0; x < 16; x++ {
+				for y := 0; y < 4; y++ {
+					i := (y*16 + x) * 3
+					im.Set(x, y, color.RGBA{R: uint8(i + 1), G: uint8(i + 2), B: uint8(i + 3), A: 0xFF})
+				}
+			}
+			return im
+		}(),
+		point:  image.Point{X: 3, Y: 2},
+		offset: image.Rect(2, 0, 16, 1),
+		want: []byte{
+			0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x00,
+			0xE1, 0x89, 0x79, 0x6B,
+			0xE1, 0x9A, 0x88, 0x75,
+			0xE1, 0xAD, 0x98, 0x82,
+			0xE1, 0xC2, 0xAB, 0x92,
+			0xE1, 0xDA, 0xC0, 0xA4,
+			0xE1, 0xF5, 0xD9, 0xB9,
+			0xE2, 0x89, 0x7A, 0x69,
+			0xE2, 0x9A, 0x8A, 0x76,
+			0xE2, 0xAC, 0x9B, 0x86,
+			0xE2, 0xC0, 0xAE, 0x98,
+			0xE2, 0xD5, 0xC3, 0xAC,
+			0xE2, 0xED, 0xDA, 0xC2,
+			0xE4, 0x83, 0x7A, 0x6E,
+			0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x00,
+			0xFF, 0xFF,
+		},
+		opts: Opts{
+			NumPixels:   17,
+			Intensity:   255,
+			Temperature: 5000,
+		},
+	},
+}
+
+func TestOffsetDraws(t *testing.T) {
+	for _, tt := range offsetDrawTests {
+		buf := bytes.Buffer{}
+		d, _ := New(spitest.NewRecordRaw(&buf), &tt.opts)
+		if err := d.Draw(tt.offset, tt.img, tt.point); err != nil {
 			t.Fatalf("%s: %v", tt.name, err)
 		}
 		if !bytes.Equal(buf.Bytes(), tt.want) {
