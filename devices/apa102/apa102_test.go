@@ -337,7 +337,7 @@ func TestDevEmpty(t *testing.T) {
 	if expected := []byte{0x0, 0x0, 0x0, 0x0, 0xFF}; !bytes.Equal(expected, buf.Bytes()) {
 		t.Fatalf("\ngot: %#v\nwant: %#v\n", buf.Bytes(), expected)
 	}
-	if s := d.String(); s != "APA102{I:255, T:5000K, 0LEDs, recordraw}" {
+	if s := d.String(); s != "APA102{I:255, T:5000K, R:false, 0LEDs, recordraw}" {
 		t.Fatal(s)
 	}
 }
@@ -431,6 +431,39 @@ var writeTests = []struct {
 		opts: Opts{
 			Intensity:   127,
 			Temperature: 6500,
+		},
+	},
+	{
+		name: "Raw",
+		pixels: ToRGB([]color.NRGBA{
+			{0xFF, 0xFF, 0xFF, 0x00},
+			{0xFE, 0xFE, 0xFE, 0x00},
+			{0xF0, 0xF0, 0xF0, 0x00},
+			{0x80, 0x80, 0x80, 0x00},
+			{0x80, 0x00, 0x00, 0x00},
+			{0x00, 0x80, 0x00, 0x00},
+			{0x00, 0x00, 0x80, 0x00},
+			{0x00, 0x00, 0x10, 0x00},
+			{0x00, 0x00, 0x01, 0x00},
+			{0x00, 0x00, 0x00, 0x00},
+		}),
+		want: []byte{
+			0x00, 0x00, 0x00, 0x00,
+			0xFF, 0xFF, 0xFF, 0xFF,
+			0xFF, 0xFE, 0xFE, 0xFE,
+			0xFF, 0xF0, 0xF0, 0xF0,
+			0xFF, 0x80, 0x80, 0x80,
+			0xFF, 0x00, 0x00, 0x80,
+			0xFF, 0x00, 0x80, 0x00,
+			0xFF, 0x80, 0x00, 0x00,
+			0xFF, 0x10, 0x00, 0x00,
+			0xFF, 0x01, 0x00, 0x00,
+			0xFF, 0x00, 0x00, 0x00,
+			0xFF,
+		},
+		opts: Opts{
+			Intensity: 255,
+			RawColors: true,
 		},
 	},
 	{
@@ -528,6 +561,16 @@ var expectedi250t6500 = []byte{
 	0x3E, 0x38, 0x32, 0xFF, 0xFF,
 }
 
+// expectedi250raw is using RawColors = true.
+var expectedi250raw = []byte{
+	0x00, 0x00, 0x00, 0x00, 0xFF, 0x07, 0x03, 0x00, 0xFF, 0x13, 0x0F, 0x0B, 0xFF,
+	0x1F, 0x1B, 0x17, 0xFF, 0x2B, 0x27, 0x23, 0xFF, 0x36, 0x32, 0x2F, 0xFF, 0x42,
+	0x3E, 0x3A, 0xFF, 0x4E, 0x4A, 0x46, 0xFF, 0x5A, 0x56, 0x52, 0xFF, 0x65, 0x62,
+	0x5E, 0xFF, 0x71, 0x6D, 0x69, 0xFF, 0x7D, 0x79, 0x75, 0xFF, 0x89, 0x85, 0x81,
+	0xFF, 0x95, 0x91, 0x8D, 0xFF, 0xA0, 0x9C, 0x98, 0xFF, 0xAC, 0xA8, 0xA4, 0xFF,
+	0xB8, 0xB4, 0xB0, 0xFF, 0xFF,
+}
+
 var drawTests = []struct {
 	name string
 	img  image.Image
@@ -572,6 +615,26 @@ var drawTests = []struct {
 		},
 	},
 	{
+		name: "Draw NRGBA Raw",
+		img: func() image.Image {
+			im := image.NewNRGBA(image.Rect(0, 0, 16, 1))
+			for i := 0; i < 16; i++ {
+				// Test all intensity code paths. Confirm that alpha is ignored.
+				im.Pix[4*i] = uint8((3 * i) << 2)
+				im.Pix[4*i+1] = uint8((3*i + 1) << 2)
+				im.Pix[4*i+2] = uint8((3*i + 2) << 2)
+				im.Pix[4*i+3] = 0
+			}
+			return im
+		}(),
+		want: expectedi250raw,
+		opts: Opts{
+			NumPixels: 16,
+			Intensity: 250,
+			RawColors: true,
+		},
+	},
+	{
 		name: "Draw RGBA",
 		img: func() image.Image {
 			im := image.NewRGBA(image.Rect(0, 0, 16, 1))
@@ -610,6 +673,25 @@ var drawTests = []struct {
 			NumPixels:   16,
 			Intensity:   250,
 			Temperature: 5000,
+		},
+	},
+	{
+		name: "Draw RGBA Raw",
+		img: func() image.Image {
+			im := image.NewRGBA(image.Rect(0, 0, 16, 1))
+			for i := 0; i < 16; i++ {
+				im.Pix[4*i] = uint8((3 * i) << 2)
+				im.Pix[4*i+1] = uint8((3*i + 1) << 2)
+				im.Pix[4*i+2] = uint8((3*i + 2) << 2)
+				im.Pix[4*i+3] = 0xFF
+			}
+			return im
+		}(),
+		want: expectedi250raw,
+		opts: Opts{
+			NumPixels: 16,
+			Intensity: 250,
+			RawColors: true,
 		},
 	},
 }
@@ -814,6 +896,13 @@ func BenchmarkWriteColorful(b *testing.B) {
 	benchmarkWrite(b, o, 150, genColorfulPixel)
 }
 
+func BenchmarkWriteColorfulRaw(b *testing.B) {
+	o := DefaultOpts
+	o.Intensity = 250
+	o.RawColors = true
+	benchmarkWrite(b, o, 150, genColorfulPixel)
+}
+
 func BenchmarkWriteColorfulVariation(b *testing.B) {
 	// Continuously vary the lookup tables.
 	b.ReportAllocs()
@@ -866,6 +955,13 @@ func BenchmarkDrawNRGBAColorful(b *testing.B) {
 	benchmarkDraw(b, o, image.NewNRGBA(image.Rect(0, 0, 150, 1)), genColorfulPixel)
 }
 
+func BenchmarkDrawNRGBAColorfulRaw(b *testing.B) {
+	o := DefaultOpts
+	o.Intensity = 250
+	o.RawColors = true
+	benchmarkDraw(b, o, image.NewNRGBA(image.Rect(0, 0, 150, 1)), genColorfulPixel)
+}
+
 func BenchmarkDrawNRGBAWhite(b *testing.B) {
 	o := DefaultOpts
 	o.Intensity = 250
@@ -877,6 +973,13 @@ func BenchmarkDrawRGBAColorful(b *testing.B) {
 	o := DefaultOpts
 	o.Intensity = 250
 	o.Temperature = 5000
+	benchmarkDraw(b, o, image.NewRGBA(image.Rect(0, 0, 256, 1)), genColorfulPixel)
+}
+
+func BenchmarkDrawRGBAColorfulRaw(b *testing.B) {
+	o := DefaultOpts
+	o.Intensity = 250
+	o.RawColors = true
 	benchmarkDraw(b, o, image.NewRGBA(image.Rect(0, 0, 256, 1)), genColorfulPixel)
 }
 
