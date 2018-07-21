@@ -27,12 +27,30 @@ func ToRGB(p []color.NRGBA) []byte {
 	return b
 }
 
+// NeutralTemp is the temperature where the color temperature correction is
+// disabled.
+//
+// Use this value for Opts.Temperature so that the driver uses the exact color
+// you specified, without temperature correction.
+const NeutralTemp uint16 = 6500
+
 // DefaultOpts is the recommended default options.
 var DefaultOpts = Opts{
-	NumPixels:   150,   // 150 LEDs is a common strip length.
-	Intensity:   255,   // Full blinding power.
-	Temperature: 5000,  // More pleasing white balance.
-	RawColors:   false, // Do perceptual color mapping.
+	NumPixels:        150,   // 150 LEDs is a common strip length.
+	Intensity:        255,   // Full blinding power.
+	Temperature:      5000,  // More pleasing white balance than NeutralTemp.
+	DisableGlobalPWM: false, // Use full 13 bits range.
+}
+
+// PassThruOpts makes the driver draw RGB pixels exactly as specified.
+//
+// Use this if you want the APA102 LEDs to behave like normal 8 bits LEDs
+// without the extended range nor any color temperature correction.
+var PassThruOpts = Opts{
+	NumPixels:        150,
+	Intensity:        255,
+	Temperature:      NeutralTemp,
+	DisableGlobalPWM: true,
 }
 
 // Opts defines the options for the device.
@@ -43,15 +61,26 @@ type Opts struct {
 	NumPixels int
 	// Intensity is the maximum intensity level to use, on a logarithmic scale.
 	// This is useful to safely limit current draw.
+	// Use 255 for full intensity, 0 turns all lights off.
 	Intensity uint8
 	// Temperature declares the white color to use, specified in Kelvin.  Has no
 	// effect when RawColors is true.
 	//
-	// This driver assumes the LEDs are emitting a 6500K white color.
+	// This driver assumes the LEDs are emitting a 6500K white color. Use
+	// NeutralTemp to disable color correction.
 	Temperature uint16
-	// Skip color mapping and directly write RGB values as received.  Temperature
-	// has no effect when this is set to true.
-	RawColors bool
+	// DisableGlobalPWM disables the global 5 bits PWM and only use the 8 bit
+	// color channels, and also disables perceptual mapping.
+	//
+	// The global PWM runs at 580Hz while the color channel PWMs run at 19.2kHz.
+	// Because of the low frequency of the global PWM, it may result in human
+	// visible flicker.
+	//
+	// The driver will by default use a non-linear intensity mapping to match
+	// what the human eye perceives. By reducing the dynamic range from 13 bits
+	// to 8 bits, this also disables the dynamic perceptual mapping of intensity
+	// since there is not enough bits of resolution to do it effectively.
+	DisableGlobalPWM bool
 }
 
 // New returns a strip that communicates over SPI to APA102 LEDs.
@@ -77,14 +106,14 @@ func New(p spi.Port, o *Opts) (*Dev, error) {
 		tail[i] = 0xFF
 	}
 	return &Dev{
-		Intensity:   o.Intensity,
-		Temperature: o.Temperature,
-		RawColors:   o.RawColors,
-		s:           c,
-		numPixels:   o.NumPixels,
-		rawBuf:      buf,
-		pixels:      buf[4 : 4+4*o.NumPixels],
-		rect:        image.Rect(0, 0, o.NumPixels, 1),
+		Intensity:        o.Intensity,
+		Temperature:      o.Temperature,
+		DisableGlobalPWM: o.DisableGlobalPWM,
+		s:                c,
+		numPixels:        o.NumPixels,
+		rawBuf:           buf,
+		pixels:           buf[4 : 4+4*o.NumPixels],
+		rect:             image.Rect(0, 0, o.NumPixels, 1),
 	}, nil
 }
 
@@ -94,20 +123,24 @@ func New(p spi.Port, o *Opts) (*Dev, error) {
 //
 // Includes intensity and temperature correction.
 type Dev struct {
-	// Intensity set the intensity between 0 (off) and 255 (full brightness).
+	// Intensity set the intensity range.
 	//
-	// It can be changed, it will take effect on the next Draw() or Write() call.
+	// See Opts.Intensity for more information.
+	//
+	// Takes effect on the next Draw() or Write() call.
 	Intensity uint8
-	// Temperature is the white adjustment in °Kelvin.  Has no effect when
-	// RawColors is true.
+	// Temperature is the white adjustment in °Kelvin.
 	//
-	// It can be changed, it will take effect on the next Draw() or Write() call.
+	// See Opts.Temperature for more information.
+	//
+	// Takes effect on the next Draw() or Write() call.
 	Temperature uint16
-	// Whether to write raw RGB as received or do perceptual remapping.
+	// DisableGlobalPWM disables the use of the global 5 bits PWM.
 	//
-	// It can be changed, it will take effect on the next Draw() or Write() call.
-	// When true, Temperature has no effect.
-	RawColors bool
+	// See Opts.DisableGlobalPWM for more information.
+	//
+	// Takes effect on the next Draw() or Write() call.
+	DisableGlobalPWM bool
 
 	s         spi.Conn        //
 	l         lut             // Updated at each .Write() call.
@@ -118,7 +151,7 @@ type Dev struct {
 }
 
 func (d *Dev) String() string {
-	return fmt.Sprintf("APA102{I:%d, T:%dK, R:%t, %dLEDs, %s}", d.Intensity, d.Temperature, d.RawColors, d.numPixels, d.s)
+	return fmt.Sprintf("APA102{I:%d, T:%dK, GPWM:%t, %dLEDs, %s}", d.Intensity, d.Temperature, !d.DisableGlobalPWM, d.numPixels, d.s)
 }
 
 // ColorModel implements display.Drawer. There's no surprise, it is
@@ -186,31 +219,38 @@ func (d *Dev) Halt() error {
 // It is expected to be given the part where pixels are, not the header nor
 // footer.
 //
-// dst is in APA102 SPI 32 bits word format. src is in RGB 24 bits word format.
+// dst is in APA102 SPI 32 bits word format. src is in RGB 24 bits, or 32 bits
+// word format when srcHasAlpha is true. The src alpha channel is ignored in
+// this case.
 //
 // src cannot be longer in pixel count than dst.
-//
-// if hasAlpha is true, the input buffer is interpreted as having alpha values
-// (which are ignored).
-func (d *Dev) raster(dst []byte, src []byte, hasAlpha bool) {
+func (d *Dev) raster(dst []byte, src []byte, srcHasAlpha bool) {
 	pBytes := 3
-	if hasAlpha {
+	if srcHasAlpha {
 		pBytes = 4
 	}
 	length := len(src) / pBytes
-	if len(dst) < length {
-		length = len(dst) / pBytes
+	if l := len(dst) / 4; l < length {
+		length = l
 	}
-	d.l.init(d.Intensity, d.Temperature)
-	// For the d.RawColors == true case, allow for fast brightness scaling
-	brightness := int(d.Intensity) + 1
+	if length == 0 {
+		// Save ourself some unneeded processing.
+		return
+	}
+	d.l.init(d.Intensity, d.Temperature, !d.DisableGlobalPWM)
+	if d.DisableGlobalPWM {
+		// Faster path when the global 5 bits PWM is forced to full intensity.
+		for i := 0; i < length; i++ {
+			sOff := pBytes * i
+			dOff := 4 * i
+			r, g, b := d.l.r[src[sOff]], d.l.g[src[sOff+1]], d.l.b[src[sOff+2]]
+			dst[dOff], dst[dOff+1], dst[dOff+2], dst[dOff+3] = 0xFF, byte(b), byte(g), byte(r)
+		}
+		return
+	}
+
 	for i := 0; i < length; i++ {
-		// The response as seen by the human eye is very non-linear. The APA-102
-		// provides an overall brightness PWM but it is relatively slower and
-		// results in human visible flicker. On the other hand the minimal color
-		// (1/255) is still too intense at full brightness, so for very dark color,
-		// it is worth using the overall brightness PWM. The goal is to use
-		// brightness!=31 as little as possible.
+		// The goal is to use brightness!=31 as little as possible.
 		//
 		// Global brightness frequency is 580Hz and color frequency at 19.2kHz.
 		// https://cpldcpu.wordpress.com/2014/08/27/apa102/
@@ -227,26 +267,17 @@ func (d *Dev) raster(dst []byte, src []byte, hasAlpha bool) {
 		// Computes brightness, blue, green, red.
 		sOff := pBytes * i
 		dOff := 4 * i
-		if d.RawColors {
-			r, g, b := src[sOff], src[sOff+1], src[sOff+2]
-			// Fast brightness scaling
-			r = uint8((uint16(r) * uint16(brightness)) >> 8)
-			g = uint8((uint16(g) * uint16(brightness)) >> 8)
-			b = uint8((uint16(b) * uint16(brightness)) >> 8)
-			dst[dOff], dst[dOff+1], dst[dOff+2], dst[dOff+3] = 0xFF, byte(b), byte(g), byte(r)
-		} else {
-			r, g, b := d.l.r[src[sOff]], d.l.g[src[sOff+1]], d.l.b[src[sOff+2]]
-			m := r | g | b
-			switch {
-			case m <= 255:
-				dst[dOff], dst[dOff+1], dst[dOff+2], dst[dOff+3] = 0xE1, byte(b), byte(g), byte(r)
-			case m <= 511:
-				dst[dOff], dst[dOff+1], dst[dOff+2], dst[dOff+3] = 0xE2, byte(b/2), byte(g/2), byte(r/2)
-			case m <= 1023:
-				dst[dOff], dst[dOff+1], dst[dOff+2], dst[dOff+3] = 0xE4, byte((b+2)/4), byte((g+2)/4), byte((r+2)/4)
-			default:
-				dst[dOff], dst[dOff+1], dst[dOff+2], dst[dOff+3] = 0xFF, byte((b+15)/31), byte((g+15)/31), byte((r+15)/31)
-			}
+		r, g, b := d.l.r[src[sOff]], d.l.g[src[sOff+1]], d.l.b[src[sOff+2]]
+		m := r | g | b
+		switch {
+		case m <= 255:
+			dst[dOff], dst[dOff+1], dst[dOff+2], dst[dOff+3] = 0xE1, byte(b), byte(g), byte(r)
+		case m <= 511:
+			dst[dOff], dst[dOff+1], dst[dOff+2], dst[dOff+3] = 0xE2, byte(b/2), byte(g/2), byte(r/2)
+		case m <= 1023:
+			dst[dOff], dst[dOff+1], dst[dOff+2], dst[dOff+3] = 0xE4, byte((b+2)/4), byte((g+2)/4), byte((r+2)/4)
+		default:
+			dst[dOff], dst[dOff+1], dst[dOff+2], dst[dOff+3] = 0xFF, byte((b+15)/31), byte((g+15)/31), byte((r+15)/31)
 		}
 	}
 }
@@ -292,7 +323,10 @@ func (d *Dev) rasterImg(dst []byte, rect image.Rectangle, src image.Image, srcR 
 
 //
 
-// maxOut is the maximum intensity of each channel on a APA102 LED.
+// maxOut is the maximum intensity of each channel on a APA102 LED via the
+// combined intensity for the 8 bit channel PWM and 5 bit global PWM.
+//
+// It is 255 * 31.
 const maxOut = 0x1EE1
 
 // ramp converts input from [0, 0xFF] as intensity to lightness on a scale of
@@ -331,40 +365,65 @@ func ramp(l uint8, max uint16) uint16 {
 
 // lut is a lookup table that initializes itself on the fly.
 type lut struct {
-	intensity   uint8  // Set an intensity between 0 (off) and 255 (full brightness).
-	temperature uint16 // In Kelvin.
-	r           [256]uint16
-	g           [256]uint16
-	b           [256]uint16
+	// Set an intensity between 0 (off) and 255 (full brightness).
+	intensity uint8
+	// In Kelvin.
+	temperature uint16
+	// When enabled, use a perceptual curve instead of a linear intensity.
+	// In this case, use a 8 bits range.
+	globalPWM bool
+	// When globalPWM is true, use maxOut range. When globalPWM is false, use 8
+	// bit range.
+	r [256]uint16
+	g [256]uint16
+	b [256]uint16
 }
 
-func (l *lut) init(i uint8, t uint16) {
-	if i != l.intensity || t != l.temperature {
-		l.intensity = i
-		l.temperature = t
-		tr, tg, tb := toRGBFast(l.temperature)
+func (l *lut) init(i uint8, t uint16, g bool) {
+	if i == l.intensity && t == l.temperature && g == l.globalPWM {
+		return
+	}
+	l.intensity = i
+	l.temperature = t
+	l.globalPWM = g
+	tr, tg, tb := toRGBFast(t)
+
+	// Linear ramp.
+	if !g {
 		// maxR, maxG and maxB are the maximum light intensity to use per channel.
-		maxR := uint16((uint32(maxOut)*uint32(l.intensity)*uint32(tr) + 127*127) / 65025)
-		maxG := uint16((uint32(maxOut)*uint32(l.intensity)*uint32(tg) + 127*127) / 65025)
-		maxB := uint16((uint32(maxOut)*uint32(l.intensity)*uint32(tb) + 127*127) / 65025)
-		for i := range l.r {
-			l.r[i] = ramp(uint8(i), maxR)
+		maxR := (int(i)*int(tr) + 127) / 255
+		maxG := (int(i)*int(tg) + 127) / 255
+		maxB := (int(i)*int(tb) + 127) / 255
+		for j := range l.r {
+			// Store uint8 range instead of uint16, so it makes the inner loop faster.
+			l.r[j] = uint16((j*maxR + 127) / 255)
+			l.g[j] = uint16((j*maxG + 127) / 255)
+			l.b[j] = uint16((j*maxB + 127) / 255)
 		}
-		if maxG == maxR {
-			copy(l.g[:], l.r[:])
-		} else {
-			for i := range l.g {
-				l.g[i] = ramp(uint8(i), maxG)
-			}
+		return
+	}
+
+	// maxR, maxG and maxB are the maximum light intensity to use per channel.
+	maxR := uint16((uint32(maxOut)*uint32(i)*uint32(tr) + 127*127) / 65025)
+	maxG := uint16((uint32(maxOut)*uint32(i)*uint32(tg) + 127*127) / 65025)
+	maxB := uint16((uint32(maxOut)*uint32(i)*uint32(tb) + 127*127) / 65025)
+	for j := range l.r {
+		l.r[j] = ramp(uint8(j), maxR)
+	}
+	if maxG == maxR {
+		copy(l.g[:], l.r[:])
+	} else {
+		for j := range l.g {
+			l.g[j] = ramp(uint8(j), maxG)
 		}
-		if maxB == maxR {
-			copy(l.b[:], l.r[:])
-		} else if maxB == maxG {
-			copy(l.b[:], l.g[:])
-		} else {
-			for i := range l.b {
-				l.b[i] = ramp(uint8(i), maxB)
-			}
+	}
+	if maxB == maxR {
+		copy(l.b[:], l.r[:])
+	} else if maxB == maxG {
+		copy(l.b[:], l.g[:])
+	} else {
+		for j := range l.b {
+			l.b[j] = ramp(uint8(j), maxB)
 		}
 	}
 }

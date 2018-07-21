@@ -335,9 +335,9 @@ func TestDevEmpty(t *testing.T) {
 		t.Fatalf("%d %v", n, err)
 	}
 	if expected := []byte{0x0, 0x0, 0x0, 0x0, 0xFF}; !bytes.Equal(expected, buf.Bytes()) {
-		t.Fatalf("\ngot: %#v\nwant: %#v\n", buf.Bytes(), expected)
+		t.Fatalf("\ngot:  %#02v\nwant: %#02v\n", buf.Bytes(), expected)
 	}
-	if s := d.String(); s != "APA102{I:255, T:5000K, R:false, 0LEDs, recordraw}" {
+	if s := d.String(); s != "APA102{I:255, T:5000K, GPWM:true, 0LEDs, recordraw}" {
 		t.Fatal(s)
 	}
 }
@@ -357,7 +357,7 @@ func TestDevLen(t *testing.T) {
 		t.Fatalf("%d %v", n, err)
 	}
 	if expected := []byte{}; !bytes.Equal(expected, buf.Bytes()) {
-		t.Fatalf("\ngot: %#v\nwant: %#v\n", buf.Bytes(), expected)
+		t.Fatalf("\ngot:  %#02v\nwant: %#02v\n", buf.Bytes(), expected)
 	}
 }
 
@@ -397,7 +397,7 @@ var writeTests = []struct {
 		},
 		opts: Opts{
 			Intensity:   255,
-			Temperature: 6500,
+			Temperature: NeutralTemp,
 		},
 	},
 	{
@@ -430,11 +430,11 @@ var writeTests = []struct {
 		},
 		opts: Opts{
 			Intensity:   127,
-			Temperature: 6500,
+			Temperature: NeutralTemp,
 		},
 	},
 	{
-		name: "Raw",
+		name: "PassThru",
 		pixels: ToRGB([]color.NRGBA{
 			{0xFF, 0xFF, 0xFF, 0x00},
 			{0xFE, 0xFE, 0xFE, 0x00},
@@ -461,9 +461,74 @@ var writeTests = []struct {
 			0xFF, 0x00, 0x00, 0x00,
 			0xFF,
 		},
+		opts: PassThruOpts,
+	},
+	{
+		name: "DisableGlobalPWM - Intensity",
+		pixels: ToRGB([]color.NRGBA{
+			{0xFF, 0xFF, 0xFF, 0x00},
+			{0xFE, 0xFE, 0xFE, 0x00},
+			{0xF0, 0xF0, 0xF0, 0x00},
+			{0x80, 0x80, 0x80, 0x00},
+			{0x80, 0x00, 0x00, 0x00},
+			{0x00, 0x80, 0x00, 0x00},
+			{0x00, 0x00, 0x80, 0x00},
+			{0x00, 0x00, 0x10, 0x00},
+			{0x00, 0x00, 0x01, 0x00},
+			{0x00, 0x00, 0x00, 0x00},
+		}),
+		want: []byte{
+			0x00, 0x00, 0x00, 0x00,
+			0xff, 0x40, 0x40, 0x40,
+			0xff, 0x40, 0x40, 0x40,
+			0xff, 0x3c, 0x3c, 0x3c,
+			0xff, 0x20, 0x20, 0x20,
+			0xff, 0x00, 0x00, 0x20,
+			0xff, 0x00, 0x20, 0x00,
+			0xff, 0x20, 0x00, 0x00,
+			0xff, 0x04, 0x00, 0x00,
+			0xff, 0x00, 0x00, 0x00,
+			0xff, 0x00, 0x00, 0x00,
+			0xff,
+		},
 		opts: Opts{
-			Intensity: 255,
-			RawColors: true,
+			Intensity:        64,
+			Temperature:      NeutralTemp,
+			DisableGlobalPWM: true,
+		},
+	},
+	{
+		name: "DisableGlobalPWM - Temp",
+		pixels: ToRGB([]color.NRGBA{
+			{0xFF, 0xFF, 0xFF, 0x00},
+			{0xFE, 0xFE, 0xFE, 0x00},
+			{0xF0, 0xF0, 0xF0, 0x00},
+			{0x80, 0x80, 0x80, 0x00},
+			{0x80, 0x00, 0x00, 0x00},
+			{0x00, 0x80, 0x00, 0x00},
+			{0x00, 0x00, 0x80, 0x00},
+			{0x00, 0x00, 0x10, 0x00},
+			{0x00, 0x00, 0x01, 0x00},
+			{0x00, 0x00, 0x00, 0x00},
+		}),
+		want: []byte{
+			0x00, 0x00, 0x00, 0x00,
+			0xff, 0xd5, 0xe8, 0xff,
+			0xff, 0xd4, 0xe7, 0xfe,
+			0xff, 0xc8, 0xda, 0xf0,
+			0xff, 0x6b, 0x74, 0x80,
+			0xff, 0x00, 0x00, 0x80,
+			0xff, 0x00, 0x74, 0x00,
+			0xff, 0x6b, 0x00, 0x00,
+			0xff, 0x0d, 0x00, 0x00,
+			0xff, 0x01, 0x00, 0x00,
+			0xff, 0x00, 0x00, 0x00,
+			0xff,
+		},
+		opts: Opts{
+			Intensity:        255,
+			Temperature:      5000,
+			DisableGlobalPWM: true,
 		},
 	},
 	{
@@ -496,7 +561,7 @@ func TestWrites(t *testing.T) {
 			t.Fatalf("%s: Got %d bytes result, want %d", tt.name, n, len(tt.pixels)*3)
 		}
 		if !bytes.Equal(buf.Bytes(), tt.want) {
-			t.Fatalf("%s:\ngot: %#v\nwant: %#v\n", tt.name, buf.Bytes(), tt.want)
+			t.Fatalf("%s:\ngot:  %#02v\nwant: %#02v\n", tt.name, buf.Bytes(), tt.want)
 		}
 	}
 }
@@ -525,7 +590,7 @@ func TestDevLong(t *testing.T) {
 		trailer[i] = 0xFF
 	}
 	if !bytes.Equal(expected, buf.Bytes()) {
-		t.Fatalf("\ngot: %#v\nwant: %#v\n", buf.Bytes(), expected)
+		t.Fatalf("\ngot:  %#02v\nwant: %#02v\n", buf.Bytes(), expected)
 	}
 }
 
@@ -561,13 +626,13 @@ var expectedi250t6500 = []byte{
 	0x3E, 0x38, 0x32, 0xFF, 0xFF,
 }
 
-// expectedi250raw is using RawColors = true.
+// expectedi250raw is using DisableGlobalPWM = true.
 var expectedi250raw = []byte{
-	0x00, 0x00, 0x00, 0x00, 0xFF, 0x07, 0x03, 0x00, 0xFF, 0x13, 0x0F, 0x0B, 0xFF,
-	0x1F, 0x1B, 0x17, 0xFF, 0x2B, 0x27, 0x23, 0xFF, 0x36, 0x32, 0x2F, 0xFF, 0x42,
-	0x3E, 0x3A, 0xFF, 0x4E, 0x4A, 0x46, 0xFF, 0x5A, 0x56, 0x52, 0xFF, 0x65, 0x62,
-	0x5E, 0xFF, 0x71, 0x6D, 0x69, 0xFF, 0x7D, 0x79, 0x75, 0xFF, 0x89, 0x85, 0x81,
-	0xFF, 0x95, 0x91, 0x8D, 0xFF, 0xA0, 0x9C, 0x98, 0xFF, 0xAC, 0xA8, 0xA4, 0xFF,
+	0x00, 0x00, 0x00, 0x00, 0xFF, 0x08, 0x04, 0x00, 0xFF, 0x14, 0x10, 0x0C, 0xFF,
+	0x1F, 0x1B, 0x18, 0xFF, 0x2B, 0x27, 0x23, 0xFF, 0x37, 0x33, 0x2F, 0xFF, 0x43,
+	0x3F, 0x3B, 0xFF, 0x4E, 0x4B, 0x47, 0xFF, 0x5A, 0x56, 0x52, 0xFF, 0x66, 0x62,
+	0x5E, 0xFF, 0x72, 0x6E, 0x6A, 0xFF, 0x7D, 0x7A, 0x76, 0xFF, 0x89, 0x85, 0x81,
+	0xFF, 0x95, 0x91, 0x8D, 0xFF, 0xA1, 0x9D, 0x99, 0xFF, 0xAD, 0xA9, 0xA5, 0xFF,
 	0xB8, 0xB4, 0xB0, 0xFF, 0xFF,
 }
 
@@ -611,11 +676,11 @@ var drawTests = []struct {
 		opts: Opts{
 			NumPixels:   16,
 			Intensity:   250,
-			Temperature: 6500,
+			Temperature: NeutralTemp,
 		},
 	},
 	{
-		name: "Draw NRGBA Raw",
+		name: "Draw NRGBA no global PWM",
 		img: func() image.Image {
 			im := image.NewNRGBA(image.Rect(0, 0, 16, 1))
 			for i := 0; i < 16; i++ {
@@ -629,9 +694,10 @@ var drawTests = []struct {
 		}(),
 		want: expectedi250raw,
 		opts: Opts{
-			NumPixels: 16,
-			Intensity: 250,
-			RawColors: true,
+			NumPixels:        16,
+			Temperature:      NeutralTemp,
+			Intensity:        250,
+			DisableGlobalPWM: true,
 		},
 	},
 	{
@@ -676,7 +742,7 @@ var drawTests = []struct {
 		},
 	},
 	{
-		name: "Draw RGBA Raw",
+		name: "Draw RGBA no global PWM",
 		img: func() image.Image {
 			im := image.NewRGBA(image.Rect(0, 0, 16, 1))
 			for i := 0; i < 16; i++ {
@@ -689,9 +755,10 @@ var drawTests = []struct {
 		}(),
 		want: expectedi250raw,
 		opts: Opts{
-			NumPixels: 16,
-			Intensity: 250,
-			RawColors: true,
+			NumPixels:        16,
+			Temperature:      NeutralTemp,
+			Intensity:        250,
+			DisableGlobalPWM: true,
 		},
 	},
 }
@@ -704,7 +771,7 @@ func TestDraws(t *testing.T) {
 			t.Fatalf("%s: %v", tt.name, err)
 		}
 		if !bytes.Equal(buf.Bytes(), tt.want) {
-			t.Fatalf("%s:\ngot: %#v\nwant: %#v\n", tt.name, buf.Bytes(), tt.want)
+			t.Fatalf("%s:\ngot:  %#02v\nwant: %#02v\n", tt.name, buf.Bytes(), tt.want)
 		}
 	}
 }
@@ -809,7 +876,7 @@ func TestOffsetDraws(t *testing.T) {
 			t.Fatalf("%s: %v", tt.name, err)
 		}
 		if !bytes.Equal(buf.Bytes(), tt.want) {
-			t.Fatalf("%s:\ngot: %#v\nwant: %#v\n", tt.name, buf.Bytes(), tt.want)
+			t.Fatalf("%s:\ngot:  %#02v\nwant: %#02v\n", tt.name, buf.Bytes(), tt.want)
 		}
 	}
 }
@@ -837,7 +904,7 @@ func TestHalt(t *testing.T) {
 func TestInit(t *testing.T) {
 	// Catch the "maxB == maxG" line.
 	l := lut{}
-	l.init(255, 6000)
+	l.init(255, 6000, true)
 	if equalUint16(l.r[:], l.g[:]) || !equalUint16(l.g[:], l.b[:]) {
 		t.Fatal("test case is for only when maxG == maxB but maxR != maxG")
 	}
@@ -896,10 +963,9 @@ func BenchmarkWriteColorful(b *testing.B) {
 	benchmarkWrite(b, o, 150, genColorfulPixel)
 }
 
-func BenchmarkWriteColorfulRaw(b *testing.B) {
-	o := DefaultOpts
+func BenchmarkWriteColorfulPassThru(b *testing.B) {
+	o := PassThruOpts
 	o.Intensity = 250
-	o.RawColors = true
 	benchmarkWrite(b, o, 150, genColorfulPixel)
 }
 
@@ -955,10 +1021,9 @@ func BenchmarkDrawNRGBAColorful(b *testing.B) {
 	benchmarkDraw(b, o, image.NewNRGBA(image.Rect(0, 0, 150, 1)), genColorfulPixel)
 }
 
-func BenchmarkDrawNRGBAColorfulRaw(b *testing.B) {
-	o := DefaultOpts
+func BenchmarkDrawNRGBAColorfulPassThru(b *testing.B) {
+	o := PassThruOpts
 	o.Intensity = 250
-	o.RawColors = true
 	benchmarkDraw(b, o, image.NewNRGBA(image.Rect(0, 0, 150, 1)), genColorfulPixel)
 }
 
@@ -976,10 +1041,9 @@ func BenchmarkDrawRGBAColorful(b *testing.B) {
 	benchmarkDraw(b, o, image.NewRGBA(image.Rect(0, 0, 256, 1)), genColorfulPixel)
 }
 
-func BenchmarkDrawRGBAColorfulRaw(b *testing.B) {
-	o := DefaultOpts
+func BenchmarkDrawRGBAColorfulPassThru(b *testing.B) {
+	o := PassThruOpts
 	o.Intensity = 250
-	o.RawColors = true
 	benchmarkDraw(b, o, image.NewRGBA(image.Rect(0, 0, 256, 1)), genColorfulPixel)
 }
 

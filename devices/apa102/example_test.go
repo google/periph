@@ -35,13 +35,37 @@ func Example() {
 	o.Temperature = 3500
 	dev, err := apa102.New(p, &o)
 	if err != nil {
-		log.Fatalf("failed to open apa102: %v", err)
+		log.Fatalf("failed to open: %v", err)
 	}
 	img := image.NewNRGBA(image.Rect(0, 0, dev.Bounds().Dy(), 1))
 	for x := 0; x < img.Rect.Max.X; x++ {
 		img.SetNRGBA(x, 0, color.NRGBA{uint8(x), uint8(255 - x), 0, 255})
 	}
 	if err := dev.Draw(dev.Bounds(), img, image.Point{}); err != nil {
+		log.Fatalf("failed to draw: %v", err)
+	}
+}
+
+func ExampleToRGB() {
+	// Make sure periph is initialized.
+	if _, err := host.Init(); err != nil {
 		log.Fatal(err)
+	}
+
+	// Use spireg SPI port registry to find the first available SPI bus.
+	p, err := spireg.Open("")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer p.Close()
+
+	o := apa102.PassThruOpts
+	o.NumPixels = 2
+	dev, err := apa102.New(p, &o)
+	if err != nil {
+		log.Fatalf("failed to open: %v", err)
+	}
+	if _, err = dev.Write(apa102.ToRGB([]color.NRGBA{{R: 0xFF, G: 0xFF, B: 0xFF}, {R: 0x80, G: 0x80, B: 0x80}})); err != nil {
+		log.Fatalf("failed to draw: %v", err)
 	}
 }
