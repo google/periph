@@ -116,8 +116,9 @@ func mainImpl() error {
 	spiID := flag.String("spi", "", "SPI port to use")
 
 	numPixels := flag.Int("n", apa102.DefaultOpts.NumPixels, "number of pixels on the strip")
-	intensity := flag.Int("l", int(apa102.DefaultOpts.Intensity), "light intensity [1-255]")
-	temperature := flag.Int("t", int(apa102.DefaultOpts.Temperature), "light temperature in Kelvin [3500-7500]")
+	intensity := flag.Int("l", int(apa102.DefaultOpts.Intensity), "light intensity [1-255]; 255 is full intensity")
+	temperature := flag.Int("t", int(apa102.DefaultOpts.Temperature), "light temperature in Kelvin [3500-7500]; 6500 is neutral")
+	globalPWM := flag.Bool("g", false, "disable the global PWM and perceptual mapping")
 	hz := flag.Int("hz", 0, "SPI port speed")
 	color := flag.String("color", "208020", "hex encoded color to show")
 	imgName := flag.String("img", "", "image to load")
@@ -161,6 +162,7 @@ func mainImpl() error {
 	o.NumPixels = *numPixels
 	o.Intensity = uint8(*intensity)
 	o.Temperature = uint16(*temperature)
+	o.DisableGlobalPWM = *globalPWM
 	disp, err := apa102.New(s, &o)
 	if err != nil {
 		return err
