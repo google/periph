@@ -11,6 +11,16 @@ import (
 	"periph.io/x/periph/conn/physic"
 )
 
+func ExampleAngle() {
+	fmt.Printf("%s\n", physic.Degree)
+	fmt.Printf("%s\n", physic.Pi)
+	fmt.Printf("%s\n", physic.Theta)
+	// Output:
+	// 1.000°
+	// 180.0°
+	// 360.0°
+}
+
 func ExampleDistance() {
 	fmt.Printf("%s\n", physic.Inch)
 	fmt.Printf("%s\n", physic.Foot)

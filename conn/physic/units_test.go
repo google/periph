@@ -11,6 +11,41 @@ import (
 	"time"
 )
 
+func TestAngle_String(t *testing.T) {
+	data := []struct {
+		in       Angle
+		expected string
+	}{
+		{0, "0°"},
+		{Degree/10000 + Degree/2000, "0.001°"},
+		{-Degree/10000 - Degree/2000, "-0.001°"},
+		{Degree / 1000, "0.001°"},
+		{-Degree / 1000, "-0.001°"},
+		{Degree / 2, "0.500°"},
+		{-Degree / 2, "-0.500°"},
+		{Degree, "1.000°"},
+		{-Degree, "-1.000°"},
+		{10 * Degree, "10.00°"},
+		{-10 * Degree, "-10.00°"},
+		{100 * Degree, "100.0°"},
+		{-100 * Degree, "-100.0°"},
+		{1000 * Degree, "1000°"},
+		{-1000 * Degree, "-1000°"},
+		{100000000000 * Degree, "100000000000°"},
+		{-100000000000 * Degree, "-100000000000°"},
+		{(9223372036854775807 - 17453293) * NanoRadian, "528460276054°"},
+		{(-9223372036854775807 + 17453293) * NanoRadian, "-528460276054°"},
+		{Pi, "180.0°"},
+		{Theta, "360.0°"},
+		{Radian, "57.296°"},
+	}
+	for i, line := range data {
+		if s := line.in.String(); s != line.expected {
+			t.Fatalf("%d: Degree(%d).String() = %s != %s", i, int64(line.in), s, line.expected)
+		}
+	}
+}
+
 func TestDistance_String(t *testing.T) {
 	if s := Mile.String(); s != "1.609km" {
 		t.Fatalf("%#v", s)
