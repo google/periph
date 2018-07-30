@@ -46,7 +46,7 @@ func (d *Dev) sense280(e *physic.Env) error {
 		hRaw := int32(buf[6])<<8 | int32(buf[7])
 		h := physic.RelativeHumidity(d.cal280.compensateHumidityInt(hRaw, tFine))
 		// Convert base 1024 to base 1000.
-		e.Humidity = h * physic.MicroRH * 1000 / 1024
+		e.Humidity = h * 10000 / 1024 * physic.MicroRH
 	}
 	return nil
 }

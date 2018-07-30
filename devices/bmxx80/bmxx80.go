@@ -307,7 +307,7 @@ func (d *Dev) Precision(e *physic.Env) {
 	}
 
 	if d.isBME {
-		e.Humidity = physic.MicroRH * 1000 / 1024
+		e.Humidity = 10000 / 1024 * physic.MicroRH
 	}
 }
 

@@ -93,14 +93,14 @@ func TestSPISenseBME280_success(t *testing.T) {
 	// TODO(maruel): The values do not make sense but I think I burned my SPI
 	// BME280 by misconnecting it in reverse for a few minutes. It still "work"
 	// but fail to read data. It could also be a bug in the driver. :(
-	if e.Temperature != 62680*physic.MilliCelsius+physic.ZeroCelsius {
-		t.Fatalf("temp %d", e.Temperature)
+	if expected := 62680*physic.MilliCelsius + physic.ZeroCelsius; e.Temperature != expected {
+		t.Fatalf("temperature %s(%d) != %s(%d)", expected, expected, e.Temperature, e.Temperature)
 	}
-	if e.Pressure != 99575933593750*physic.NanoPascal {
-		t.Fatalf("pressure %d", e.Pressure)
+	if expected := 99575933593750 * physic.NanoPascal; e.Pressure != expected {
+		t.Fatalf("pressure %s(%d) != %s(%d)", expected, expected, e.Pressure, e.Pressure)
 	}
-	if e.Humidity != 99501*physic.TenthMicroRH {
-		t.Fatalf("humidity %d", e.Humidity)
+	if expected := 995010 * physic.TenthMicroRH; e.Humidity != expected {
+		t.Fatalf("humidity %s(%d) != %s(%d)", expected, expected, e.Humidity, e.Humidity)
 	}
 	if err := s.Close(); err != nil {
 		t.Fatal(err)
@@ -331,14 +331,14 @@ func TestI2CSenseBMP280_success(t *testing.T) {
 	if err := dev.Sense(&e); err != nil {
 		t.Fatal(err)
 	}
-	if e.Temperature != 23720*physic.MilliCelsius+physic.ZeroCelsius {
-		t.Fatalf("temp %d", e.Temperature)
+	if expected := 23720*physic.MilliCelsius + physic.ZeroCelsius; e.Temperature != expected {
+		t.Fatalf("temperature %s(%d) != %s(%d)", expected, expected, e.Temperature, e.Temperature)
 	}
-	if e.Pressure != 100942695312500*physic.NanoPascal {
-		t.Fatalf("pressure %d", e.Pressure)
+	if expected := 100942695312500 * physic.NanoPascal; e.Pressure != expected {
+		t.Fatalf("pressure %s(%d) != %s(%d)", expected, expected, e.Pressure, e.Pressure)
 	}
-	if e.Humidity != 0 {
-		t.Fatalf("humidity %d", e.Humidity)
+	if expected := 0 * physic.MilliRH; e.Humidity != expected {
+		t.Fatalf("humidity %s(%d) != %s(%d)", expected, expected, e.Humidity, e.Humidity)
 	}
 	if err := dev.Halt(); err != nil {
 		t.Fatal(err)
@@ -384,14 +384,14 @@ func TestI2CSenseBME280_success(t *testing.T) {
 	if err := dev.Sense(&e); err != nil {
 		t.Fatal(err)
 	}
-	if e.Temperature != 23720*physic.MilliCelsius+physic.ZeroCelsius {
-		t.Fatalf("temp %d", e.Temperature)
+	if expected := 23720*physic.MilliCelsius + physic.ZeroCelsius; e.Temperature != expected {
+		t.Fatalf("temperature %s(%d) != %s(%d)", expected, expected, e.Temperature, e.Temperature)
 	}
-	if e.Pressure != 100942695312500*physic.NanoPascal {
-		t.Fatalf("pressure %d", e.Pressure)
+	if expected := 100942695312500 * physic.NanoPascal; e.Pressure != expected {
+		t.Fatalf("pressure %s(%d) != %s(%d)", expected, expected, e.Pressure, e.Pressure)
 	}
-	if e.Humidity != 653056*physic.TenthMicroRH {
-		t.Fatalf("humidity %d", e.Humidity)
+	if expected := 6530560 * physic.TenthMicroRH; e.Humidity != expected {
+		t.Fatalf("humidity %s(%d) != %s(%d)", expected, expected, e.Humidity, e.Humidity)
 	}
 	if err := dev.Halt(); err != nil {
 		t.Fatal(err)
@@ -516,14 +516,14 @@ func TestI2CSenseContinuous280_success(t *testing.T) {
 	case <-time.After(2 * time.Second):
 		t.Fatal("failed")
 	}
-	if e.Temperature != 23720*physic.MilliCelsius+physic.ZeroCelsius {
-		t.Fatalf("temp %d", e.Temperature)
+	if expected := 23720*physic.MilliCelsius + physic.ZeroCelsius; e.Temperature != expected {
+		t.Fatalf("temperature %s(%d) != %s(%d)", expected, expected, e.Temperature, e.Temperature)
 	}
-	if e.Pressure != 100942695312500*physic.NanoPascal {
-		t.Fatalf("pressure %d", e.Pressure)
+	if expected := 100942695312500 * physic.NanoPascal; e.Pressure != expected {
+		t.Fatalf("pressure %s(%d) != %s(%d)", expected, expected, e.Pressure, e.Pressure)
 	}
-	if e.Humidity != 653056*physic.TenthMicroRH {
-		t.Fatalf("humidity %d", e.Humidity)
+	if expected := 6530560 * physic.TenthMicroRH; e.Humidity != expected {
+		t.Fatalf("humidity %s(%d) != %s(%d)", expected, expected, e.Humidity, e.Humidity)
 	}
 
 	// This cancels the previous channel and resets the interval.
@@ -545,14 +545,14 @@ func TestI2CSenseContinuous280_success(t *testing.T) {
 	case <-time.After(2 * time.Second):
 		t.Fatal("failed")
 	}
-	if e.Temperature != 23720*physic.MilliCelsius+physic.ZeroCelsius {
-		t.Fatalf("temp %d", e.Temperature)
+	if expected := 23720*physic.MilliCelsius + physic.ZeroCelsius; e.Temperature != expected {
+		t.Fatalf("temperature %s(%d) != %s(%d)", expected, expected, e.Temperature, e.Temperature)
 	}
-	if e.Pressure != 100942695312500*physic.NanoPascal {
-		t.Fatalf("pressure %d", e.Pressure)
+	if expected := 100942695312500 * physic.NanoPascal; e.Pressure != expected {
+		t.Fatalf("pressure %s(%d) != %s(%d)", expected, expected, e.Pressure, e.Pressure)
 	}
-	if e.Humidity != 653056*physic.TenthMicroRH {
-		t.Fatalf("humidity %d", e.Humidity)
+	if expected := 6530560 * physic.TenthMicroRH; e.Humidity != expected {
+		t.Fatalf("humidity %s(%d) != %s(%d)", expected, expected, e.Humidity, e.Humidity)
 	}
 
 	if dev.Sense(&e) == nil {
@@ -763,7 +763,7 @@ func TestBme280Precision(t *testing.T) {
 	if e.Pressure != 15625*physic.MicroPascal/4 {
 		t.Fatal(e.Pressure)
 	}
-	if e.Humidity != physic.MicroRH*1000/1024 {
+	if e.Humidity != 90*physic.TenthMicroRH {
 		t.Fatal(int(e.Humidity))
 	}
 	if err := bus.Close(); err != nil {
