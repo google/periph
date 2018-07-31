@@ -91,8 +91,9 @@ func (m *MPU9250) Init() error {
 // Calibrate Calibrates the device using maximum precision for both Gyroscope and Accelerometer.
 func (m *MPU9250) Calibrate() error {
 
-	m.transferBatch(calibrateSequence, "error calibrating %d: [%x:%x] => %v")
-
+	if err := m.transferBatch(calibrateSequence, "error calibrating %d: [%x:%x] => %v"); err != nil {
+		return err
+	}
 	reads, err := m.GetFIFOCount() // read FIFO sample count
 	if err != nil {
 		return wrapf("can't get FIFO => %v", err)

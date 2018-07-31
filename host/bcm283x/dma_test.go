@@ -153,7 +153,9 @@ func TestCopyStreamToDMAbuf(t *testing.T) {
 		Freq: physic.KiloHertz,
 		LSBF: false,
 	}
-	copyStreamToDMABuf(&stream, buf)
+	if err := copyStreamToDMABuf(&stream, buf); err != nil {
+		t.Fatal(err)
+	}
 	if buf[0] != 0x01020304 {
 		t.Fatalf("Unexpected 0x%x != 0x%x", buf[0], 0x01020304)
 	}

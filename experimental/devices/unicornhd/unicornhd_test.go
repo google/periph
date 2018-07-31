@@ -82,8 +82,9 @@ func TestHalt(t *testing.T) {
 	}
 	buf := bytes.Buffer{}
 	dev, _ := NewUnicornhd(spitest.NewRecordRaw(&buf))
-
-	dev.Halt()
+	if err := dev.Halt(); err != nil {
+		t.Fatal(err)
+	}
 
 	if !bytes.Equal(expectedAllBlack, buf.Bytes()) {
 		t.Fatalf("%#v != %#v", expectedAllBlack, buf.Bytes())
@@ -163,8 +164,9 @@ func TestDrawWritesBlackImageToSpi(t *testing.T) {
 	buf := bytes.Buffer{}
 	dev, _ := NewUnicornhd(spitest.NewRecordRaw(&buf))
 	black := color.RGBA{0, 0, 0, 0}
-
-	dev.Draw(dev.Bounds(), &image.Uniform{black}, image.ZP)
+	if err := dev.Draw(dev.Bounds(), &image.Uniform{black}, image.ZP); err != nil {
+		t.Fatal(err)
+	}
 
 	if !bytes.Equal(expectedAllBlack, buf.Bytes()) {
 		t.Fatalf("%#v != %#v", expectedAllBlack, buf.Bytes())
@@ -217,8 +219,9 @@ func TestDrawWritesWhiteImageToSpi(t *testing.T) {
 	buf := bytes.Buffer{}
 	dev, _ := NewUnicornhd(spitest.NewRecordRaw(&buf))
 	white := color.RGBA{255, 255, 255, 255}
-
-	dev.Draw(dev.Bounds(), &image.Uniform{white}, image.ZP)
+	if err := dev.Draw(dev.Bounds(), &image.Uniform{white}, image.ZP); err != nil {
+		t.Fatal(err)
+	}
 
 	if !bytes.Equal(expectedAllWhite, buf.Bytes()) {
 		t.Fatalf("%#v != %#v", expectedAllWhite, buf.Bytes())
@@ -288,7 +291,9 @@ func TestDrawWritesSequenceImageToSpi(t *testing.T) {
 			img.Set(x, y, clr)
 		}
 	}
-	dev.Draw(dev.Bounds(), img, image.ZP)
+	if err := dev.Draw(dev.Bounds(), img, image.ZP); err != nil {
+		t.Fatal(err)
+	}
 
 	if !bytes.Equal(expectedSequence, buf.Bytes()) {
 		t.Fatalf("%#v != %#v", expectedSequence, buf.Bytes())
@@ -349,8 +354,9 @@ func TestDrawSupportsPartialUpdates(t *testing.T) {
 	buf := bytes.Buffer{}
 	dev, _ := NewUnicornhd(spitest.NewRecordRaw(&buf))
 	white := color.RGBA{0xFF, 0xFF, 0xFF, 0xFF}
-
-	dev.Draw(image.Rect(0, 0, 3, 3), &image.Uniform{white}, image.ZP)
+	if err := dev.Draw(image.Rect(0, 0, 3, 3), &image.Uniform{white}, image.ZP); err != nil {
+		t.Fatal(err)
+	}
 
 	if !bytes.Equal(expectedWhiteSquare, buf.Bytes()) {
 		t.Fatalf("%#v != %#v", expectedWhiteSquare, buf.Bytes())

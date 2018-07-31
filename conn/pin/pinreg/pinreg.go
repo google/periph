@@ -85,7 +85,7 @@ func Register(name string, allPins [][]pin.Pin) error {
 			if _, ok := p.(gpio.PinIO); ok {
 				if err := gpioreg.RegisterAlias(name+"_"+strconv.Itoa(count), p.Name()); err != nil {
 					// Unregister as much as possible.
-					unregister(name)
+					_ = unregister(name)
 					return errors.New("pinreg: " + err.Error())
 				}
 			}

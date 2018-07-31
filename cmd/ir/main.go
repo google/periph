@@ -46,7 +46,9 @@ func mainImpl() error {
 	signal.Notify(ctrlC, os.Interrupt)
 
 	first := true
-	defer os.Stdout.Write([]byte("\n"))
+	defer func() {
+		_, _ = os.Stdout.Write([]byte("\n"))
+	}()
 	for {
 		select {
 		case msg, ok := <-c:

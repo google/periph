@@ -119,7 +119,8 @@ func (t *ThermalSensor) SenseContinuous(interval time.Duration) (<-chan physic.E
 func (t *ThermalSensor) Precision(e *physic.Env) {
 	if t.precision == 0 {
 		dummy := physic.Env{}
-		t.Sense(&dummy)
+		// Ignore the error.
+		_ = t.Sense(&dummy)
 	}
 	t.mu.Lock()
 	defer t.mu.Unlock()

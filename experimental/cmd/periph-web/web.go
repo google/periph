@@ -100,7 +100,9 @@ func newWebServer(hostport string, state *periph.State, verbose bool) (*webServe
 		return nil, err
 	}
 	s.server.Addr = s.ln.Addr().String()
-	go s.server.Serve(s.ln)
+	go func() {
+		_ = s.server.Serve(s.ln)
+	}()
 	return s, nil
 }
 
@@ -272,6 +274,6 @@ func (s *webServer) api(h interface{}) http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Cache-Control", cacheControlNone)
 		w.WriteHeader(int(out[1].Int()))
-		w.Write(raw)
+		_, _ = w.Write(raw)
 	})
 }

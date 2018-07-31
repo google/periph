@@ -161,11 +161,15 @@ func (s *SmokeTest) testPWM(p1, p2 *loggingPin) error {
 }
 
 // testStreamIn tests gpiostream.StreamIn and gpio.PWM.
-func (s *SmokeTest) testStreamIn(p1, p2 *loggingPin) error {
+func (s *SmokeTest) testStreamIn(p1, p2 *loggingPin) (err error) {
 	const freq = 5 * physic.KiloHertz
 	fmt.Printf("- Testing StreamIn\n")
-	defer p2.Halt()
-	if err := p2.PWM(gpio.DutyHalf, freq); err != nil {
+	defer func() {
+		if err2 := p2.Halt(); err == nil {
+			err = err2
+		}
+	}()
+	if err = p2.PWM(gpio.DutyHalf, freq); err != nil {
 		return err
 	}
 	// Gather 0.1 second of readings at 10kHz sampling rate.
@@ -175,7 +179,7 @@ func (s *SmokeTest) testStreamIn(p1, p2 *loggingPin) error {
 		Freq: freq * 2,
 		LSBF: true,
 	}
-	if err := p1.StreamIn(gpio.PullDown, b); err != nil {
+	if err = p1.StreamIn(gpio.PullDown, b); err != nil {
 		fmt.Printf("%s\n", hex.EncodeToString(b.Bits))
 		return err
 	}

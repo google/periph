@@ -694,19 +694,19 @@ func dmaWriteStreamPCM(p *Pin, w gpiostream.Stream) error {
 	}
 	defer pCB.Close()
 	reg := drvDMA.pcmBaseAddr + 0x4 // pcmMap.fifo
-	if err := cb[0].initBlock(uint32(buf.PhysAddr()), reg, uint32(l), false, true, true, false, dmaPCMTX); err != nil {
+	if err = cb[0].initBlock(uint32(buf.PhysAddr()), reg, uint32(l), false, true, true, false, dmaPCMTX); err != nil {
 		return err
 	}
 
 	defer drvDMA.pcmMemory.reset()
 	// Start transfer
 	drvDMA.pcmMemory.set()
-	runIO(pCB, l <= maxLite)
+	err = runIO(pCB, l <= maxLite)
 	// We have to wait PCM to be finished even after DMA finished.
 	for drvDMA.pcmMemory.cs&pcmTXErr == 0 {
 		Nanospin(10 * time.Nanosecond)
 	}
-	return nil
+	return err
 }
 
 func dmaWritePWMFIFO() (*dmaChannel, *videocore.Mem, error) {

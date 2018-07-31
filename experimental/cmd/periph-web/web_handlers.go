@@ -36,7 +36,7 @@ func (s *webServer) getRoot(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "text/html")
 	w.Header().Set("Cache-Control", cacheControlContent)
-	w.Write(content)
+	_, _ = w.Write(content)
 }
 
 // /favicon.ico
@@ -48,7 +48,7 @@ func (s *webServer) getFavicon(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "image/png")
 	w.Header().Set("Cache-Control", cacheControlContent)
-	w.Write(content)
+	_, _ = w.Write(content)
 }
 
 // Other handlers
@@ -63,5 +63,5 @@ func (s *webServer) apiXSRFTokenHandler(w http.ResponseWriter, r *http.Request) 
 	w.Header().Set("Content-Type", "text/plain")
 	w.Header().Set("Cache-Control", cacheControlNone)
 	w.WriteHeader(200)
-	w.Write([]byte(t))
+	_, _ = w.Write([]byte(t))
 }

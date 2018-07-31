@@ -1079,7 +1079,9 @@ func BenchmarkHalt(b *testing.B) {
 	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), &DefaultOpts)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		d.Halt()
+		if err := d.Halt(); err != nil {
+			b.Fatal(err)
+		}
 	}
 }
 

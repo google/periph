@@ -59,8 +59,7 @@ func (device *Dev) String() string {
 // Halting the unicorn HD sets all the pixels to black. Error is always nil.
 func (device *Dev) Halt() error {
 	black := color.RGBA{0, 0, 0, 0}
-	device.Draw(device.Bounds(), &image.Uniform{black}, image.ZP)
-	return nil
+	return device.Draw(device.Bounds(), &image.Uniform{black}, image.ZP)
 }
 
 // ColorModel implements devices.Display. There's no surprise, it is

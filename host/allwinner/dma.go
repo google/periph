@@ -350,7 +350,9 @@ func smokeTest() error {
 		drvDMA.dmaMemory.irqEn &^= 3 << uint(2*n+16)
 		drvDMA.dmaMemory.irqPendStas = 3 << uint(2*n+16)
 		ch := &drvDMA.dmaMemory.dedicated[n]
-		defer ch.release()
+		defer func() {
+			_ = ch.release()
+		}()
 		ch.set(uint32(pSrc), uint32(pDst)+holeSize, 4096-2*holeSize, false, false, ddmaDstDrqSDRAM|ddmaSrcDrqSDRAM)
 
 		for ch.cfg&ddmaBusy != 0 {
