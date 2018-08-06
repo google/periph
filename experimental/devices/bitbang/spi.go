@@ -70,9 +70,6 @@ func (s *SPI) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, er
 	if f < 0 {
 		return nil, errors.New("bitbang-spi: invalid frequency")
 	}
-	if mode != spi.Mode3 {
-		return nil, fmt.Errorf("bitbang-spi: mode %v is not implemented", mode)
-	}
 	s.spiConn.mu.Lock()
 	defer s.spiConn.mu.Unlock()
 	s.spiConn.freqDev = f
@@ -147,6 +144,24 @@ func (s *spiConn) Duplex() conn.Duplex {
 	return conn.Full
 }
 
+func (s *spiConn) clockOn() error {
+	if s.mode&spi.Mode2 == spi.Mode2 {
+		return s.sck.Out(gpio.Low)
+	}
+	return s.sck.Out(gpio.High)
+}
+
+func (s *spiConn) clockOff() error {
+	if s.mode&spi.Mode2 == spi.Mode2 {
+		return s.sck.Out(gpio.High)
+	}
+	return s.sck.Out(gpio.Low)
+}
+
+func (s *spiConn) readAfterClockPulse() bool {
+	return s.mode&spi.Mode1 == spi.Mode1
+}
+
 // Tx implements spi.Conn.
 //
 // BUG(maruel): Implement mode.
@@ -156,6 +171,7 @@ func (s *spiConn) Tx(w, r []byte) error {
 	if len(r) != 0 && len(w) != len(r) {
 		return errors.New("bitbang-spi: write and read buffers must be the same length")
 	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.csn != nil {
@@ -165,14 +181,22 @@ func (s *spiConn) Tx(w, r []byte) error {
 	for i := uint(0); i < uint(len(w)*8); i++ {
 		_ = s.sdo.Out(w[i/8]&(1<<(i%8)) != 0)
 		s.sleepHalfCycle()
-		_ = s.sck.Out(gpio.Low)
+		_ = s.clockOn()
 		s.sleepHalfCycle()
+
+		if s.readAfterClockPulse() {
+			_ = s.clockOff()
+		}
+
 		if len(r) != 0 {
 			if s.sdi.Read() == gpio.High {
 				r[i/8] |= 1 << (i % 8)
 			}
 		}
-		_ = s.sck.Out(gpio.Low)
+
+		if !s.readAfterClockPulse() {
+			_ = s.clockOff()
+		}
 	}
 	if s.csn != nil {
 		_ = s.csn.Out(gpio.High)
