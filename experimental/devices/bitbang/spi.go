@@ -91,7 +91,9 @@ func (s *SPI) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, er
 
 	// Set clock idle polarity, ensuring an idle clock to start
 	s.spiConn.clockIdle = gpio.Level(mode&spi.Mode2 == spi.Mode2)
-	s.spiConn.sck.Out(s.spiConn.clockIdle)
+	if err := s.spiConn.sck.Out(s.spiConn.clockIdle); err != nil {
+		return nil, fmt.Errorf("bitbang-spi: failed to idle clock: %v", err)
+	}
 
 	return &s.spiConn, nil
 }
