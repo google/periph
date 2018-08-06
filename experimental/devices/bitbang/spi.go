@@ -89,12 +89,9 @@ func (s *SPI) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, er
 	s.spiConn.bits = bits
 	s.spiConn.readAfterClockPulse = mode&spi.Mode1 == spi.Mode1
 
-	// Set clock idle polarity
-	if mode&spi.Mode2 == spi.Mode2 {
-		s.spiConn.clockIdle = gpio.High
-	} else {
-		s.spiConn.clockIdle = gpio.Low
-	}
+	// Set clock idle polarity, ensuring an idle clock to start
+	s.spiConn.clockIdle = gpio.Level(mode&spi.Mode2 == spi.Mode2)
+	s.spiConn.sck.Out(s.spiConn.clockIdle)
 
 	return &s.spiConn, nil
 }
