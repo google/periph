@@ -70,6 +70,12 @@ func (s *SPI) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, er
 	if f < 0 {
 		return nil, errors.New("bitbang-spi: invalid frequency")
 	}
+	if mode&spi.HalfDuplex == spi.HalfDuplex {
+		return nil, errors.New("bitbang-spi: half-duplex mode not supported")
+	}
+	if mode&spi.LSBFirst == spi.LSBFirst {
+		return nil, errors.New("bitbang-spi: LSBFirst mode not supported")
+	}
 	s.spiConn.mu.Lock()
 	defer s.spiConn.mu.Unlock()
 	s.spiConn.freqDev = f
@@ -162,30 +168,61 @@ func (s *spiConn) readAfterClockPulse() bool {
 	return s.mode&spi.Mode1 == spi.Mode1
 }
 
+func (s *spiConn) assertCS() error {
+	if s.csn == nil || s.mode&spi.NoCS == spi.NoCS {
+		return nil
+	}
+	if err := s.csn.Out(gpio.Low); err != nil {
+		return err
+	}
+	s.sleepHalfCycle()
+	return nil
+}
+
+func (s *spiConn) unassertCS() error {
+	if s.csn == nil || s.mode&spi.NoCS == spi.NoCS {
+		return nil
+	}
+	if err := s.csn.Out(gpio.High); err != nil {
+		return err
+	}
+	s.sleepHalfCycle()
+	return nil
+}
+
 // Tx implements spi.Conn.
 //
-// BUG(maruel): Implement mode.
+// BUG(maruel): Implement mode (HalfDuplex and LSBFirst remain to be done).
 // BUG(maruel): Implement bits.
 // BUG(maruel): Test if read works.
-func (s *spiConn) Tx(w, r []byte) error {
+func (s *spiConn) Tx(w, r []byte) (err error) {
 	if len(r) != 0 && len(w) != len(r) {
 		return errors.New("bitbang-spi: write and read buffers must be the same length")
 	}
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.csn != nil {
-		_ = s.csn.Out(gpio.Low)
-		s.sleepHalfCycle()
+
+	if err = s.assertCS(); err != nil {
+		return fmt.Errorf("bitbang-spi: failed to assert chip-select: %v", err)
 	}
+
 	for i := uint(0); i < uint(len(w)*8); i++ {
-		_ = s.sdo.Out(w[i/8]&(1<<(i%8)) != 0)
+		if err = s.sdo.Out(w[i/8]&(1<<(i%8)) != 0); err != nil {
+			return fmt.Errorf("bitbang-spi: failed to send bit %d of word %d: %v", i%8, i/8, err)
+		}
+
 		s.sleepHalfCycle()
-		_ = s.clockOn()
+		if err = s.clockOn(); err != nil {
+			return fmt.Errorf("bitbang-spi: failed to assert clock: %v", err)
+		}
 		s.sleepHalfCycle()
 
 		if s.readAfterClockPulse() {
-			_ = s.clockOff()
+			if err = s.clockOff(); err != nil {
+				return fmt.Errorf("bitbang-spi: failed to unassert clock: %v", err)
+			}
+			s.sleepHalfCycle()
 		}
 
 		if len(r) != 0 {
@@ -195,12 +232,15 @@ func (s *spiConn) Tx(w, r []byte) error {
 		}
 
 		if !s.readAfterClockPulse() {
-			_ = s.clockOff()
+			if err = s.clockOff(); err != nil {
+				return fmt.Errorf("bitbang-spi: failed to unassert clock: %v", err)
+			}
 		}
 	}
-	if s.csn != nil {
-		_ = s.csn.Out(gpio.High)
+	if err = s.unassertCS(); err != nil {
+		return fmt.Errorf("bitbang-spi: failed to unassert chip-select: %v", err)
 	}
+
 	return nil
 }
 
