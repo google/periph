@@ -62,22 +62,41 @@ type Pin struct {
 	usingEdge bool // Set when edge detection is enabled.
 }
 
-// String returns the name of the pin in the processor and the GPIO pin number.
+// String implements conn.Resource.
+//
+// It returns the pin name and number, ex: "PB5(37)".
 func (p *Pin) String() string {
 	return fmt.Sprintf("%s(%d)", p.name, p.Number())
 }
 
-// Name returns the pin name.
+// Halt implements conn.Resource.
+//
+// It stops edge detection if enabled.
+func (p *Pin) Halt() error {
+	if p.usingEdge {
+		if err := p.sysfsPin.Halt(); err != nil {
+			return p.wrap(err)
+		}
+		p.usingEdge = false
+	}
+	return nil
+}
+
+// Name implements pin.Pin.
+//
+// It returns the pin name, ex: "PB5".
 func (p *Pin) Name() string {
 	return p.name
 }
 
-// Number returns the GPIO pin number as represented by gpio sysfs.
+// Number implements pin.Pin.
+//
+// It returns the GPIO pin number as represented by gpio sysfs.
 func (p *Pin) Number() int {
 	return int(p.group)*32 + int(p.offset)
 }
 
-// Function returns the current function of the pin in printable form.
+// Function implements pin.Pin.
 func (p *Pin) Function() string {
 	if !p.available {
 		return "N/A"
@@ -125,20 +144,9 @@ func (p *Pin) Function() string {
 	}
 }
 
-// Halt implements conn.Resource.
+// In implements gpio.PinIn.
 //
-// It stops edge detection if enabled.
-func (p *Pin) Halt() error {
-	if p.usingEdge {
-		if err := p.sysfsPin.Halt(); err != nil {
-			return p.wrap(err)
-		}
-		p.usingEdge = false
-	}
-	return nil
-}
-
-// In sets the pin direction to input and optionally enables a pull-up/down
+// It sets the pin direction to input and optionally enables a pull-up/down
 // resistor as well as edge detection.
 //
 // Not all pins support edge detection on Allwinner processors!
@@ -200,9 +208,9 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	return nil
 }
 
-// Read return the current pin level and implements gpio.PinIn.
+// Read implements gpio.PinIn.
 //
-// This function is fast.
+// It returns the current pin level. This function is fast.
 func (p *Pin) Read() gpio.Level {
 	if !p.available {
 		return gpio.Low
@@ -218,13 +226,15 @@ func (p *Pin) Read() gpio.Level {
 
 // FastRead return the current pin level without any error checking.
 //
-// This function is vert fast.
+// This function is very fast.
 func (p *Pin) FastRead() gpio.Level {
 	return gpio.Level(drvGPIO.gpioMemory.groups[p.group].data&(1<<p.offset) != 0)
 }
 
-// WaitForEdge waits for an edge as previously set using In() or the expiration
-// of a timeout.
+// WaitForEdge implements gpio.PinIn.
+//
+// It waits for an edge as previously set using In() or the expiration of a
+// timeout.
 func (p *Pin) WaitForEdge(timeout time.Duration) bool {
 	if p.sysfsPin != nil {
 		return p.sysfsPin.WaitForEdge(timeout)
@@ -232,7 +242,7 @@ func (p *Pin) WaitForEdge(timeout time.Duration) bool {
 	return false
 }
 
-// Pull returns the current pull-up/down registor setting.
+// Pull implements gpio.PinIn.
 func (p *Pin) Pull() gpio.Pull {
 	if drvGPIO.gpioMemory == nil || !p.available {
 		return gpio.PullNoChange
@@ -251,12 +261,12 @@ func (p *Pin) Pull() gpio.Pull {
 	}
 }
 
-// DefaultPull returns the default pull for the pin.
+// DefaultPull implements gpio.PinIn.
 func (p *Pin) DefaultPull() gpio.Pull {
 	return p.defaultPull
 }
 
-// Out ensures that the pin is configured as an output and outputs the value.
+// Out implements gpio.PinOut.
 func (p *Pin) Out(l gpio.Level) error {
 	if !p.available {
 		// We do not want the error message about uninitialized system.
@@ -336,6 +346,8 @@ func (p *Pin) PWM(gpio.Duty, physic.Frequency) error {
 	return p.wrap(errors.New("not available on this CPU architecture"))
 }
 
+//
+
 // drive returns the configured output current drive strength for this GPIO.
 //
 // The value returned by this function is not yet verified to be correct. Use
@@ -355,8 +367,6 @@ func (p *Pin) drive() physic.ElectricCurrent {
 	v := (drvGPIO.gpioMemory.groups[p.group].drv[p.offset/16] >> (2 * (p.offset & 15))) & 3
 	return physic.ElectricCurrent(v+1) * 5 * physic.MilliAmpere
 }
-
-//
 
 // function returns the current GPIO pin function.
 func (p *Pin) function() function {

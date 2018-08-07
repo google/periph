@@ -263,6 +263,14 @@ func init() {
 type invalidPin struct {
 }
 
+func (invalidPin) String() string {
+	return "INVALID"
+}
+
+func (invalidPin) Halt() error {
+	return nil
+}
+
 func (invalidPin) Number() int {
 	return -1
 }
@@ -271,16 +279,8 @@ func (invalidPin) Name() string {
 	return "INVALID"
 }
 
-func (invalidPin) String() string {
-	return "INVALID"
-}
-
 func (invalidPin) Function() string {
 	return ""
-}
-
-func (invalidPin) Halt() error {
-	return nil
 }
 
 func (invalidPin) In(Pull, Edge) error {

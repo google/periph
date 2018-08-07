@@ -39,34 +39,38 @@ type Pin interface {
 
 //
 
-// BasicPin implements Pin as a non-functional pin.
+// BasicPin implements Pin as a static pin.
 type BasicPin struct {
 	N string
 }
 
-// String returns the pin name.
+// String implements conn.Resource.
 func (b *BasicPin) String() string {
 	return b.N
-}
-
-// Name returns the pin name.
-func (b *BasicPin) Name() string {
-	return b.N
-}
-
-// Number returns -1 as pin number.
-func (b *BasicPin) Number() int {
-	return -1
-}
-
-// Function returns "" as pin function.
-func (b *BasicPin) Function() string {
-	return ""
 }
 
 // Halt implements conn.Resource.
 func (b *BasicPin) Halt() error {
 	return nil
+}
+
+// Name implements Pin.
+func (b *BasicPin) Name() string {
+	return b.N
+}
+
+// Number implements Pin.
+//
+// It returns -1 as pin number.
+func (b *BasicPin) Number() int {
+	return -1
+}
+
+// Function implements Pin.
+//
+// It returns "" as pin function.
+func (b *BasicPin) Function() string {
+	return ""
 }
 
 func init() {

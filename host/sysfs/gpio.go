@@ -48,21 +48,31 @@ type Pin struct {
 	buf        [4]byte   // scratch buffer for Function(), Read() and Out()
 }
 
+// String implements conn.Resource.
 func (p *Pin) String() string {
 	return p.name
 }
 
-// Name implements pins.Pin.
+// Halt implements conn.Resource.
+//
+// It stops edge detection if enabled.
+func (p *Pin) Halt() error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.haltEdge()
+}
+
+// Name implements pin.Pin.
 func (p *Pin) Name() string {
 	return p.name
 }
 
-// Number implements pins.Pin.
+// Number implements pin.Pin.
 func (p *Pin) Number() int {
 	return p.number
 }
 
-// Function implements pins.Pin.
+// Function implements pin.Pin.
 func (p *Pin) Function() string {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -87,16 +97,7 @@ func (p *Pin) Function() string {
 	return "ERR"
 }
 
-// Halt implements conn.Resource.
-//
-// It stops edge detection if enabled.
-func (p *Pin) Halt() error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	return p.haltEdge()
-}
-
-// In setups a pin as an input.
+// In implements gpio.PinIn.
 func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	if pull != gpio.PullNoChange && pull != gpio.Float {
 		return p.wrap(errors.New("doesn't support pull-up/pull-down"))
@@ -163,6 +164,7 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	return nil
 }
 
+// Read implements gpio.PinIn.
 func (p *Pin) Read() gpio.Level {
 	// There's no lock here.
 	if p.fValue == nil {
@@ -182,8 +184,7 @@ func (p *Pin) Read() gpio.Level {
 	return gpio.Low
 }
 
-// WaitForEdge does edge detection, returns once one is detected and implements
-// gpio.PinIn.
+// WaitForEdge implements gpio.PinIn.
 func (p *Pin) WaitForEdge(timeout time.Duration) bool {
 	// Run lockless, as the normal use is to call in a busy loop.
 	var ms int
@@ -211,19 +212,23 @@ func (p *Pin) WaitForEdge(timeout time.Duration) bool {
 	}
 }
 
-// Pull returns gpio.PullNoChange since gpio sysfs has no support for input
-// pull resistor.
+// Pull implements gpio.PinIn.
+//
+// It returns gpio.PullNoChange since gpio sysfs has no support for input pull
+// resistor.
 func (p *Pin) Pull() gpio.Pull {
 	return gpio.PullNoChange
 }
 
-// DefaultPull returns gpio.PullNoChange since gpio sysfs has no support for
-// input pull resistor.
+// DefaultPull implements gpio.PinIn.
+//
+// It returns gpio.PullNoChange since gpio sysfs has no support for input pull
+// resistor.
 func (p *Pin) DefaultPull() gpio.Pull {
 	return gpio.PullNoChange
 }
 
-// Out sets a pin as output; implements gpio.PinOut.
+// Out implements gpio.PinOut.
 func (p *Pin) Out(l gpio.Level) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -259,7 +264,9 @@ func (p *Pin) Out(l gpio.Level) error {
 	return nil
 }
 
-// PWM implements gpio.PinOut but cannot work on sysfs.
+// PWM implements gpio.PinOut.
+//
+// This is not supported on sysfs.
 func (p *Pin) PWM(gpio.Duty, physic.Frequency) error {
 	return p.wrap(errors.New("pwm is not supported via sysfs"))
 }

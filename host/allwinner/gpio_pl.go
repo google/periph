@@ -41,24 +41,41 @@ type PinPL struct {
 	usingEdge bool // Set when edge detection is enabled.
 }
 
-// PinIO implementation.
-
-// String returns the pin name and number, ex: "PL5(352)".
+// String implements conn.Resource.
+//
+// It returns the pin name and number, ex: "PL5(352)".
 func (p *PinPL) String() string {
 	return fmt.Sprintf("%s(%d)", p.name, p.Number())
 }
 
-// Name returns the pin name, ex: "PL5".
+// Halt implements conn.Resource.
+//
+// It stops edge detection if enabled.
+func (p *PinPL) Halt() error {
+	if p.usingEdge {
+		if err := p.sysfsPin.Halt(); err != nil {
+			return p.wrap(err)
+		}
+		p.usingEdge = false
+	}
+	return nil
+}
+
+// Name implements pin.Pin.
+//
+// It returns the pin name, ex: "PL5".
 func (p *PinPL) Name() string {
 	return p.name
 }
 
-// Number returns the GPIO pin number as represented by gpio sysfs.
+// Number implements pin.Pin.
+//
+// It returns the GPIO pin number as represented by gpio sysfs.
 func (p *PinPL) Number() int {
 	return 11*32 + int(p.offset)
 }
 
-// Function returns the current pin function, ex: "In/PullUp".
+// Function implements pin.Pin.
 func (p *PinPL) Function() string {
 	if !p.available {
 		// We do not want the error message about uninitialized system.
@@ -107,20 +124,7 @@ func (p *PinPL) Function() string {
 	}
 }
 
-// Halt implements conn.Resource.
-//
-// It stops edge detection if enabled.
-func (p *PinPL) Halt() error {
-	if p.usingEdge {
-		if err := p.sysfsPin.Halt(); err != nil {
-			return p.wrap(err)
-		}
-		p.usingEdge = false
-	}
-	return nil
-}
-
-// In implements gpio.PinIn. See Pin.In for more information.
+// In implements gpio.PinIn.
 func (p *PinPL) In(pull gpio.Pull, edge gpio.Edge) error {
 	if !p.available {
 		// We do not want the error message about uninitialized system.
@@ -174,7 +178,7 @@ func (p *PinPL) In(pull gpio.Pull, edge gpio.Edge) error {
 	return nil
 }
 
-// Read implements gpio.PinIn. See Pin.Read for more information.
+// Read implements gpio.PinIn.
 func (p *PinPL) Read() gpio.Level {
 	if drvGPIOPL.gpioMemoryPL == nil {
 		if p.sysfsPin == nil {
@@ -185,12 +189,12 @@ func (p *PinPL) Read() gpio.Level {
 	return gpio.Level(drvGPIOPL.gpioMemoryPL.data&(1<<p.offset) != 0)
 }
 
-// FastRead reads without verification. See Pin.FastRead for more information.
+// FastRead reads without verification.
 func (p *PinPL) FastRead() gpio.Level {
 	return gpio.Level(drvGPIOPL.gpioMemoryPL.data&(1<<p.offset) != 0)
 }
 
-// WaitForEdge implements gpio.PinIn. See Pin.WaitForEdge for more information.
+// WaitForEdge implements gpio.PinIn.
 func (p *PinPL) WaitForEdge(timeout time.Duration) bool {
 	if p.sysfsPin != nil {
 		return p.sysfsPin.WaitForEdge(timeout)
@@ -198,7 +202,7 @@ func (p *PinPL) WaitForEdge(timeout time.Duration) bool {
 	return false
 }
 
-// Pull implements gpio.PinIn. See Pin.Pull for more information.
+// Pull implements gpio.PinIn.
 func (p *PinPL) Pull() gpio.Pull {
 	if drvGPIOPL.gpioMemoryPL == nil {
 		// If gpioMemoryPL is set, p.available is true.
@@ -217,12 +221,12 @@ func (p *PinPL) Pull() gpio.Pull {
 	}
 }
 
-// DefaultPull returns the default pull for the pin.
+// DefaultPull implements gpio.PinIn.
 func (p *PinPL) DefaultPull() gpio.Pull {
 	return p.defaultPull
 }
 
-// Out implements gpio.PinOut. See Pin.Out for more information.
+// Out implements gpio.PinOut.
 func (p *PinPL) Out(l gpio.Level) error {
 	if !p.available {
 		// We do not want the error message about uninitialized system.

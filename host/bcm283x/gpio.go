@@ -200,24 +200,40 @@ type Pin struct {
 	dmaBuf     *videocore.Mem // Set when DMA is used for PWM or PCM.
 }
 
-// PinIO implementation.
-
-// String returns the pin name, ex: "GPIO10".
+// String implements conn.Resource.
 func (p *Pin) String() string {
 	return p.name
 }
 
-// Name returns the pin name, ex: "GPIO10".
+// Halt implements conn.Resource.
+//
+// If the pin is running a clock, PWM or waiting for edges, it is halted.
+//
+// In the case of clock or PWM, all pins with this clock source are also
+// disabled.
+func (p *Pin) Halt() error {
+	if p.usingEdge {
+		if err := p.sysfsPin.Halt(); err != nil {
+			return p.wrap(err)
+		}
+		p.usingEdge = false
+	}
+	return p.haltClock()
+}
+
+// Name implements pin.Pin.
 func (p *Pin) Name() string {
 	return p.name
 }
 
-// Number returns the pin number as assigned by gpio sysfs.
+// Number implements pin.Pin.
+//
+// This is the GPIO number, not the pin number on a header.
 func (p *Pin) Number() int {
 	return p.number
 }
 
-// Function returns the current pin function, ex: "In/PullUp".
+// Function implements pin.Pin.
 func (p *Pin) Function() string {
 	if drvGPIO.gpioMemory == nil {
 		if p.sysfsPin == nil {
@@ -265,23 +281,7 @@ func (p *Pin) Function() string {
 	}
 }
 
-// Halt implements conn.Resource.
-//
-// If the pin is running a clock, PWM or waiting for edges, it is halted.
-//
-// In the case of clock or PWM, all pins with this clock source are also
-// disabled.
-func (p *Pin) Halt() error {
-	if p.usingEdge {
-		if err := p.sysfsPin.Halt(); err != nil {
-			return p.wrap(err)
-		}
-		p.usingEdge = false
-	}
-	return p.haltClock()
-}
-
-// In setups a pin as an input and implements gpio.PinIn.
+// In implements gpio.PinIn.
 //
 // Specifying a value for pull other than gpio.PullNoChange causes this
 // function to be slightly slower (about 1ms).
@@ -362,7 +362,7 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	return nil
 }
 
-// Read return the current pin level and implements gpio.PinIn.
+// Read implements gpio.PinIn.
 //
 // This function is fast. It works even if the pin is set as output.
 func (p *Pin) Read() gpio.Level {
@@ -392,7 +392,7 @@ func (p *Pin) FastRead() gpio.Level {
 	return gpio.Level((drvGPIO.gpioMemory.level[1] & (1 << uint(p.number&31))) != 0)
 }
 
-// WaitForEdge does edge detection and implements gpio.PinIn.
+// WaitForEdge implements gpio.PinIn.
 func (p *Pin) WaitForEdge(timeout time.Duration) bool {
 	if p.sysfsPin != nil {
 		return p.sysfsPin.WaitForEdge(timeout)
@@ -400,7 +400,7 @@ func (p *Pin) WaitForEdge(timeout time.Duration) bool {
 	return false
 }
 
-// Pull implemented gpio.PinIn.
+// Pull implements gpio.PinIn.
 //
 // bcm283x doesn't support querying the pull resistor of any GPIO pin.
 func (p *Pin) Pull() gpio.Pull {
@@ -409,7 +409,14 @@ func (p *Pin) Pull() gpio.Pull {
 	return gpio.PullNoChange
 }
 
-// Out sets a pin as output and implements gpio.PinOut.
+// DefaultPull implements gpio.PinIn.
+//
+// The CPU doesn't return the current pull.
+func (p *Pin) DefaultPull() gpio.Pull {
+	return p.defaultPull
+}
+
+// Out implements gpio.PinOut.
 //
 // Fails if requesting to change a pin that is set to special functionality.
 func (p *Pin) Out(l gpio.Level) error {
@@ -455,7 +462,9 @@ func (p *Pin) FastOut(l gpio.Level) {
 // used simultaneously. The last call to PWM() will affect all pins of the same
 // type (GPCLK0, GPCLK2, PWM0 or PWM1).
 
-// PWM outputs a periodic signal on supported pins.
+// PWM implements gpio.PinOut.
+//
+// It outputs a periodic signal on supported pins without CPU usage.
 //
 // PWM pins
 //
@@ -610,15 +619,6 @@ func (p *Pin) StreamOut(s gpiostream.Stream) error {
 		return p.wrap(err)
 	}
 	return nil
-}
-
-// DefaultPull returns the default pull for the pin.
-//
-// Implements gpio.PinIn.
-//
-// The CPU doesn't return the current pull.
-func (p *Pin) DefaultPull() gpio.Pull {
-	return p.defaultPull
 }
 
 // Drive returns the configured output current drive strength for this GPIO.

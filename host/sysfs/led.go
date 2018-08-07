@@ -52,27 +52,9 @@ type LED struct {
 	fBrightness *fs.File // handle to /sys/class/gpio/gpio*/direction; never closed
 }
 
-// Name returns the pin name.
-func (l *LED) Name() string {
-	return l.name
-}
-
-// String returns the name(number).
+// String implements conn.Resource.
 func (l *LED) String() string {
 	return fmt.Sprintf("%s(%d)", l.name, l.number)
-}
-
-// Number returns the sysfs pin number.
-func (l *LED) Number() int {
-	return l.number
-}
-
-// Function returns the current pin function and state, ex: "LED/On".
-func (l *LED) Function() string {
-	if l.Read() {
-		return "LED/On"
-	}
-	return "LED/Off"
 }
 
 // Halt implements conn.Resource.
@@ -80,6 +62,24 @@ func (l *LED) Function() string {
 // It turns the light off.
 func (l *LED) Halt() error {
 	return l.Out(gpio.Low)
+}
+
+// Name implements pin.Pin.
+func (l *LED) Name() string {
+	return l.name
+}
+
+// Number implements pin.Pin.
+func (l *LED) Number() int {
+	return l.number
+}
+
+// Function implements pin.Pin.
+func (l *LED) Function() string {
+	if l.Read() {
+		return "LED/On"
+	}
+	return "LED/Off"
 }
 
 // In implements gpio.PinIn.
