@@ -21,21 +21,20 @@ func (d Distance) String() string {
 	return nanoAsString(int64(d)) + "m"
 }
 
-// Distance constants.
 const (
 	NanoMetre  Distance = 1
-	MicroMetre          = 1000 * NanoMetre
-	MilliMetre          = 1000 * MicroMetre
-	Metre               = 1000 * MilliMetre
-	KiloMetre           = 1000 * Metre
-	MegaMetre           = 1000 * KiloMetre
+	MicroMetre Distance = 1000 * NanoMetre
+	MilliMetre Distance = 1000 * MicroMetre
+	Metre      Distance = 1000 * MilliMetre
+	KiloMetre  Distance = 1000 * Metre
+	MegaMetre  Distance = 1000 * KiloMetre
 
 	// Conversion between Metre and imperial units.
-	Thou = 25400 * NanoMetre
-	Inch = 1000 * Thou
-	Foot = 12 * Inch
-	Yard = 3 * Foot
-	Mile = 1760 * Yard
+	Thou Distance = 25400 * NanoMetre
+	Inch Distance = 1000 * Thou
+	Foot          = 12 * Inch
+	Yard          = 3 * Foot
+	Mile          = 1760 * Yard
 )
 
 // ElectricCurrent is a measurement of a flow of electric charge stored as an
