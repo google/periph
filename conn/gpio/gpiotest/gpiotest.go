@@ -20,16 +20,18 @@ import (
 //
 // Modify its members to simulate hardware events.
 type Pin struct {
-	N   string // Should be immutable
-	Num int    // Should be immutable
-	Fn  string // Should be immutable
+	// These should be immutable.
+	N   string
+	Num int
+	Fn  string
 
-	sync.Mutex            // Grab the Mutex before modifying the members to keep it concurrent safe
-	L          gpio.Level // Used for both input and output
-	P          gpio.Pull
-	EdgesChan  chan gpio.Level  // Use it to fake edges
-	D          gpio.Duty        // PWM duty
-	F          physic.Frequency // PWM period
+	// Grab the Mutex before accessing the following members.
+	sync.Mutex
+	L         gpio.Level // Used for both input and output
+	P         gpio.Pull
+	EdgesChan chan gpio.Level  // Use it to fake edges
+	D         gpio.Duty        // PWM duty
+	F         physic.Frequency // PWM period
 }
 
 // String implements conn.Resource.
