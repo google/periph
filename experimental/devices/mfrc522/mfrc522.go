@@ -134,9 +134,17 @@ type Dev struct {
 	spiDev           spi.Conn
 }
 
+// String implements conn.Resource.
 func (r *Dev) String() string {
 	return fmt.Sprintf("Mifare MFRC522 [bus: %v, reset pin: %s, irq pin: %s]",
 		r.spiDev, r.resetPin.Name(), r.irqPin.Name())
+}
+
+// Halt implements conn.Resource.
+//
+// It soft-stops the chip - PowerDown bit set, command IDLE
+func (r *Dev) Halt() error {
+	return r.devWrite(commands.CommandReg, 16)
 }
 
 // SetOperationtimeout updates the device timeout for card operations.
@@ -163,11 +171,6 @@ func (r *Dev) Init() error {
 // Reset resets the RFID chip to initial state.
 func (r *Dev) Reset() error {
 	return r.devWrite(commands.CommandReg, commands.PCD_RESETPHASE)
-}
-
-// Halt soft-stops the chip - PowerDown bit set, command IDLE
-func (r *Dev) Halt() error {
-	return r.devWrite(commands.CommandReg, 16)
 }
 
 // SetAntenna configures the antenna state, on/off.
@@ -754,10 +757,9 @@ var sequenceCommands = struct {
 	},
 }
 
-var _ conn.Resource = &Dev{}
-var _ fmt.Stringer = &Dev{}
-var _ fmt.Stringer = &BlocksAccess{}
-
 func wrapf(format string, a ...interface{}) error {
 	return fmt.Errorf("mfrc522: "+format, a...)
 }
+
+var _ conn.Resource = &Dev{}
+var _ fmt.Stringer = &BlocksAccess{}

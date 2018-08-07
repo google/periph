@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"periph.io/x/periph"
+	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/host/fs"
@@ -233,7 +234,7 @@ func init() {
 
 var drvLED driverLED
 
+var _ conn.Resource = &LED{}
 var _ gpio.PinIn = &LED{}
 var _ gpio.PinOut = &LED{}
 var _ gpio.PinIO = &LED{}
-var _ fmt.Stringer = &LED{}

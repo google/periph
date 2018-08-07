@@ -112,8 +112,8 @@ type Packet struct {
 
 // Conn defines the interface a concrete SPI driver must implement.
 //
-// It is expected to implement fmt.Stringer and optionally io.Writer and
-// io.Reader.
+// Implementers can optionally implement io.Writer and io.Reader for
+// unidirectional operation.
 type Conn interface {
 	conn.Conn
 	// TxPackets does multiple operations over the SPI connection.

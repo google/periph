@@ -621,4 +621,3 @@ var _ spi.Pins = &spiConn{}
 var _ spi.Port = &SPI{}
 var _ spi.PortCloser = &SPI{}
 var _ fmt.Stringer = &SPI{}
-var _ fmt.Stringer = &spiConn{}

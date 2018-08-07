@@ -279,5 +279,5 @@ func (s *spiConn) unassertCS() error {
 	return nil
 }
 
+var _ spi.Conn = &spiConn{}
 var _ spi.PortCloser = &SPI{}
-var _ fmt.Stringer = &SPI{}

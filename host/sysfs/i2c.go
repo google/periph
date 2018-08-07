@@ -386,4 +386,3 @@ var drvI2C driverI2C
 
 var _ i2c.Bus = &I2C{}
 var _ i2c.BusCloser = &I2C{}
-var _ fmt.Stringer = &I2C{}

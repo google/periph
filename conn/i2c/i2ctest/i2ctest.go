@@ -7,7 +7,6 @@ package i2ctest
 
 import (
 	"bytes"
-	"fmt"
 	"sync"
 
 	"periph.io/x/periph/conn/conntest"
@@ -173,5 +172,3 @@ var _ i2c.Bus = &Record{}
 var _ i2c.Pins = &Record{}
 var _ i2c.Bus = &Playback{}
 var _ i2c.Pins = &Playback{}
-var _ fmt.Stringer = &Record{}
-var _ fmt.Stringer = &Playback{}

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"periph.io/x/periph"
+	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/physic"
@@ -472,7 +473,7 @@ func init() {
 
 var drvGPIO driverGPIO
 
+var _ conn.Resource = &Pin{}
 var _ gpio.PinIn = &Pin{}
 var _ gpio.PinOut = &Pin{}
 var _ gpio.PinIO = &Pin{}
-var _ fmt.Stringer = &Pin{}
