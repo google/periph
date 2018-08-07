@@ -32,9 +32,9 @@ const (
 	// Conversion between Metre and imperial units.
 	Thou Distance = 25400 * NanoMetre
 	Inch Distance = 1000 * Thou
-	Foot          = 12 * Inch
-	Yard          = 3 * Foot
-	Mile          = 1760 * Yard
+	Foot Distance = 12 * Inch
+	Yard Distance = 3 * Foot
+	Mile Distance = 1760 * Yard
 )
 
 // ElectricCurrent is a measurement of a flow of electric charge stored as an
@@ -50,12 +50,11 @@ func (e ElectricCurrent) String() string {
 	return nanoAsString(int64(e)) + "A"
 }
 
-// ElectricCurrent constants.
 const (
 	NanoAmpere  ElectricCurrent = 1
-	MicroAmpere                 = 1000 * NanoAmpere
-	MilliAmpere                 = 1000 * MicroAmpere
-	Ampere                      = 1000 * MilliAmpere
+	MicroAmpere ElectricCurrent = 1000 * NanoAmpere
+	MilliAmpere ElectricCurrent = 1000 * MicroAmpere
+	Ampere      ElectricCurrent = 1000 * MilliAmpere
 )
 
 // ElectricPotential is a measurement of electric potential stored as an int64
@@ -69,14 +68,13 @@ func (e ElectricPotential) String() string {
 	return nanoAsString(int64(e)) + "V"
 }
 
-// ElectricPotential constants.
 const (
 	// Volt is W/A, kg⋅m²/s³/A.
 	NanoVolt  ElectricPotential = 1
-	MicroVolt                   = 1000 * NanoVolt
-	MilliVolt                   = 1000 * MicroVolt
-	Volt                        = 1000 * MilliVolt
-	KiloVolt                    = 1000 * Volt
+	MicroVolt ElectricPotential = 1000 * NanoVolt
+	MilliVolt ElectricPotential = 1000 * MicroVolt
+	Volt      ElectricPotential = 1000 * MilliVolt
+	KiloVolt  ElectricPotential = 1000 * Volt
 )
 
 // ElectricResistance is a measurement of the difficulty to pass an electric
@@ -90,15 +88,14 @@ func (e ElectricResistance) String() string {
 	return nanoAsString(int64(e)) + "Ω"
 }
 
-// ElectricResistance constants.
 const (
 	// Ohm is V/A, kg⋅m²/s³/A².
 	NanoOhm  ElectricResistance = 1
-	MicroOhm                    = 1000 * NanoOhm
-	MilliOhm                    = 1000 * MicroOhm
-	Ohm                         = 1000 * MilliOhm
-	KiloOhm                     = 1000 * Ohm
-	MegaOhm                     = 1000 * KiloOhm
+	MicroOhm ElectricResistance = 1000 * NanoOhm
+	MilliOhm ElectricResistance = 1000 * MicroOhm
+	Ohm      ElectricResistance = 1000 * MilliOhm
+	KiloOhm  ElectricResistance = 1000 * Ohm
+	MegaOhm  ElectricResistance = 1000 * KiloOhm
 )
 
 // Force is a measurement of interaction that will change the motion of an
@@ -116,22 +113,21 @@ func (f Force) String() string {
 	return nanoAsString(int64(f)) + "N"
 }
 
-// Force constants.
 const (
 	// Newton is kg⋅m/s².
 	NanoNewton  Force = 1
-	MicroNewton       = 1000 * NanoNewton
-	MilliNewton       = 1000 * MicroNewton
-	Newton            = 1000 * MilliNewton
-	KiloNewton        = 1000 * Newton
-	MegaNewton        = 1000 * KiloNewton
+	MicroNewton Force = 1000 * NanoNewton
+	MilliNewton Force = 1000 * MicroNewton
+	Newton      Force = 1000 * MilliNewton
+	KiloNewton  Force = 1000 * Newton
+	MegaNewton  Force = 1000 * KiloNewton
 
-	EarthGravity = 9806650 * MicroNewton
+	EarthGravity Force = 9806650 * MicroNewton
 
 	// Conversion between Newton and imperial units.
-	// Pound is both a unit of mass and weight (force). The suffix Mass is added
+	// Pound is both a unit of mass and weight (force). The suffix Force is added
 	// to disambiguate the measurement it represents.
-	PoundForce = 4448221615261 * NanoNewton
+	PoundForce Force = 4448221615261 * NanoNewton
 )
 
 // Frequency is a measurement of cycle per second, stored as an int32 micro
@@ -155,15 +151,14 @@ func PeriodToFrequency(t time.Duration) Frequency {
 	return Frequency(time.Second) * Hertz / Frequency(t)
 }
 
-// Frequency constants.
 const (
 	// Hertz is 1/s.
 	MicroHertz Frequency = 1
-	MilliHertz           = 1000 * MicroHertz
-	Hertz                = 1000 * MilliHertz
-	KiloHertz            = 1000 * Hertz
-	MegaHertz            = 1000 * KiloHertz
-	GigaHertz            = 1000 * MegaHertz
+	MilliHertz Frequency = 1000 * MicroHertz
+	Hertz      Frequency = 1000 * MilliHertz
+	KiloHertz  Frequency = 1000 * Hertz
+	MegaHertz  Frequency = 1000 * KiloHertz
+	GigaHertz  Frequency = 1000 * MegaHertz
 )
 
 // Mass is a measurement of mass stored as an int64 nano gram.
@@ -178,25 +173,24 @@ func (m Mass) String() string {
 	return nanoAsString(int64(m)) + "g"
 }
 
-// Mass constants.
 const (
 	NanoGram  Mass = 1
-	MicroGram      = 1000 * NanoGram
-	MilliGram      = 1000 * MicroGram
-	Gram           = 1000 * MilliGram
-	KiloGram       = 1000 * Gram
-	MegaGram       = 1000 * KiloGram
-	Tonne          = MegaGram
+	MicroGram Mass = 1000 * NanoGram
+	MilliGram Mass = 1000 * MicroGram
+	Gram      Mass = 1000 * MilliGram
+	KiloGram  Mass = 1000 * Gram
+	MegaGram  Mass = 1000 * KiloGram
+	Tonne     Mass = MegaGram
 
 	// Conversion between Gram and imperial units.
 	// Ounce is both a unit of mass, weight (force) or volume depending on
 	// context. The suffix Mass is added to disambiguate the measurement it
 	// represents.
-	OunceMass = 28349523125 * NanoGram
+	OunceMass Mass = 28349523125 * NanoGram
 	// Pound is both a unit of mass and weight (force). The suffix Mass is added
 	// to disambiguate the measurement it represents.
-	PoundMass = 16 * OunceMass
-	Slug      = 14593903 * MilliGram
+	PoundMass Mass = 16 * OunceMass
+	Slug      Mass = 14593903 * MilliGram
 )
 
 // Pressure is a measurement of force applied to a surface per unit
@@ -210,20 +204,19 @@ func (p Pressure) String() string {
 	return nanoAsString(int64(p)) + "Pa"
 }
 
-// Pressure constants.
 const (
 	// Pascal is N/m², kg/m/s².
 	NanoPascal  Pressure = 1
-	MicroPascal          = 1000 * NanoPascal
-	MilliPascal          = 1000 * MicroPascal
-	Pascal               = 1000 * MilliPascal
-	KiloPascal           = 1000 * Pascal
+	MicroPascal Pressure = 1000 * NanoPascal
+	MilliPascal Pressure = 1000 * MicroPascal
+	Pascal      Pressure = 1000 * MilliPascal
+	KiloPascal  Pressure = 1000 * Pascal
 )
 
 // RelativeHumidity is a humidity level measurement stored as an int32 fixed
 // point integer at a precision of 0.00001%rH.
 //
-// Valid values are between 0 and 10000000.
+// Valid values are between 0% and 100%.
 type RelativeHumidity int32
 
 // String returns the humidity formatted as a string.
@@ -239,12 +232,11 @@ func (r RelativeHumidity) String() string {
 	return strconv.Itoa(int(r)/10) + "." + strconv.Itoa(frac) + "%rH"
 }
 
-// RelativeHumidity constants.
 const (
 	TenthMicroRH RelativeHumidity = 1                 // 0.00001%rH
-	MicroRH                       = 10 * TenthMicroRH // 0.0001%rH
-	MilliRH                       = 1000 * MicroRH    // 0.1%rH
-	PercentRH                     = 10 * MilliRH      // 1%rH
+	MicroRH      RelativeHumidity = 10 * TenthMicroRH // 0.0001%rH
+	MilliRH      RelativeHumidity = 1000 * MicroRH    // 0.1%rH
+	PercentRH    RelativeHumidity = 10 * MilliRH      // 1%rH
 )
 
 // Speed is a measurement of magnitude of velocity stored as an int64 nano
@@ -258,21 +250,20 @@ func (s Speed) String() string {
 	return nanoAsString(int64(s)) + "m/s"
 }
 
-// Speed constants.
 const (
 	// MetrePerSecond is m/s.
 	NanoMetrePerSecond  Speed = 1
-	MicroMetrePerSecond       = 1000 * NanoMetrePerSecond
-	MilliMetrePerSecond       = 1000 * MicroMetrePerSecond
-	MetrePerSecond            = 1000 * MilliMetrePerSecond
-	KiloMetrePerSecond        = 1000 * MetrePerSecond
-	MegaMetrePerSecond        = 1000 * KiloMetrePerSecond
+	MicroMetrePerSecond Speed = 1000 * NanoMetrePerSecond
+	MilliMetrePerSecond Speed = 1000 * MicroMetrePerSecond
+	MetrePerSecond      Speed = 1000 * MilliMetrePerSecond
+	KiloMetrePerSecond  Speed = 1000 * MetrePerSecond
+	MegaMetrePerSecond  Speed = 1000 * KiloMetrePerSecond
 
-	LightSpeed = 299792458 * MetrePerSecond
+	LightSpeed Speed = 299792458 * MetrePerSecond
 
-	KilometrePerHour = 3600 * MilliMetrePerSecond
-	MilePerHour      = 447040 * MicroMetrePerSecond
-	FootPerSecond    = 304800 * MicroMetrePerSecond
+	KilometrePerHour Speed = 3600 * MilliMetrePerSecond
+	MilePerHour      Speed = 447040 * MicroMetrePerSecond
+	FootPerSecond    Speed = 304800 * MicroMetrePerSecond
 )
 
 // Temperature is a measurement of hotness stored as a nano kelvin.
@@ -287,22 +278,21 @@ func (t Temperature) String() string {
 	return nanoAsString(int64(t-ZeroCelsius)) + "°C"
 }
 
-// Temperature constants.
 const (
 	NanoKelvin  Temperature = 1
-	MicroKelvin             = 1000 * NanoKelvin
-	MilliKelvin             = 1000 * MicroKelvin
-	Kelvin                  = 1000 * MilliKelvin
+	MicroKelvin Temperature = 1000 * NanoKelvin
+	MilliKelvin Temperature = 1000 * MicroKelvin
+	Kelvin      Temperature = 1000 * MilliKelvin
 
 	// Conversion between Kelvin and Celsius.
-	ZeroCelsius  = 273150 * MilliKelvin
-	MilliCelsius = MilliKelvin
-	Celsius      = Kelvin
+	ZeroCelsius  Temperature = 273150 * MilliKelvin
+	MilliCelsius Temperature = MilliKelvin
+	Celsius      Temperature = Kelvin
 
 	// Conversion between Kelvin and Fahrenheit.
-	ZeroFahrenheit  = 255372 * MilliKelvin
-	MilliFahrenheit = 555555 * NanoKelvin
-	Fahrenheit      = 555555555 * NanoKelvin
+	ZeroFahrenheit  Temperature = 255372 * MilliKelvin
+	MilliFahrenheit Temperature = 555555 * NanoKelvin
+	Fahrenheit      Temperature = 555555555 * NanoKelvin
 )
 
 //
