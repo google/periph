@@ -20,6 +20,8 @@ var (
 	V5       *BasicPin // 5V (filtered)
 	DC_IN    *BasicPin // DC IN; this is normally the 5V input
 	BAT_PLUS *BasicPin // LiPo Battery + connector
+	SUPPLY   *BasicPin // Supply Pin, variable voltage
+	SPECIAL  *BasicPin // Special Function Pin not represented above, not controllable by this library
 )
 
 // Pin is the minimal common interface shared between gpio.PinIO and
@@ -81,4 +83,6 @@ func init() {
 	V5 = &BasicPin{N: "V5"}
 	DC_IN = &BasicPin{N: "DC_IN"}
 	BAT_PLUS = &BasicPin{N: "BAT_PLUS"}
+	SUPPLY = &BasicPin{N: "SUPPLY"}
+	SPECIAL = &BasicPin{N: "SPECIAL"}
 }
