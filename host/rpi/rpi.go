@@ -103,6 +103,214 @@ var (
 	HDMI_HOTPLUG_DETECT = bcm283x.GPIO46 // High,
 )
 
+// Pin as connected on the SODIMM header.
+//
+// Documentation is https://www.raspberrypi.org/documentation/hardware/computemodule/datasheets/rpi_DATA_CM_1p0.pdf
+//
+// There are some differences for CM3-Lite and CM1.
+var (
+	SO_1   pin.Pin    = pin.GROUND     // GND
+	SO_2   pin.Pin    = pin.INVALID    // EMMC_DISABLE_N
+	SO_3   gpio.PinIO = bcm283x.GPIO0  // GPIO0
+	SO_4   pin.Pin    = pin.INVALID    // NC, SDX_VDD, NC
+	SO_5   gpio.PinIO = bcm283x.GPIO1  // GPIO1
+	SO_6   pin.Pin    = pin.INVALID    // NC, SDX_VDD, NC
+	SO_7   pin.Pin    = pin.GROUND     // GND
+	SO_8   pin.Pin    = pin.GROUND     // GND
+	SO_9   gpio.PinIO = bcm283x.GPIO2  // GPIO2
+	SO_10  pin.Pin    = pin.INVALID    // NC, SDX_CLK, NC
+	SO_11  gpio.PinIO = bcm283x.GPIO3  // GPIO3
+	SO_12  pin.Pin    = pin.INVALID    // NC, SDX_CMD, NC
+	SO_13  pin.Pin    = pin.GROUND     // GND
+	SO_14  pin.Pin    = pin.GROUND     // GND
+	SO_15  gpio.PinIO = bcm283x.GPIO4  // GPIO4
+	SO_16  pin.Pin    = pin.INVALID    // NC, SDX_D0, NC
+	SO_17  gpio.PinIO = bcm283x.GPIO5  // GPIO5
+	SO_18  pin.Pin    = pin.INVALID    // NC, SDX_D1, NC
+	SO_19  pin.Pin    = pin.GROUND     // GND
+	SO_20  pin.Pin    = pin.GROUND     // GND
+	SO_21  gpio.PinIO = bcm283x.GPIO6  // GPIO6
+	SO_22  pin.Pin    = pin.INVALID    // NC, SDX_D2, NC
+	SO_23  gpio.PinIO = bcm283x.GPIO7  // GPIO7
+	SO_24  pin.Pin    = pin.INVALID    // NC, SDX_D3, NC
+	SO_25  pin.Pin    = pin.GROUND     // GND
+	SO_26  pin.Pin    = pin.GROUND     // GND
+	SO_27  gpio.PinIO = bcm283x.GPIO8  // GPIO8
+	SO_28  gpio.PinIO = bcm283x.GPIO28 // GPIO28
+	SO_29  gpio.PinIO = bcm283x.GPIO9  // GPIO9
+	SO_30  gpio.PinIO = bcm283x.GPIO29 // GPIO29
+	SO_31  pin.Pin    = pin.GROUND     // GND
+	SO_32  pin.Pin    = pin.GROUND     // GND
+	SO_33  gpio.PinIO = bcm283x.GPIO10 // GPIO10
+	SO_34  gpio.PinIO = bcm283x.GPIO30 // GPIO30
+	SO_35  gpio.PinIO = bcm283x.GPIO11 // GPIO11
+	SO_36  gpio.PinIO = bcm283x.GPIO31 // GPIO31
+	SO_37  pin.Pin    = pin.GROUND     // GND
+	SO_38  pin.Pin    = pin.GROUND     // GND
+	SO_39  pin.Pin    = pin.DC_IN      // GPIO0-27_VDD
+	SO_40  pin.Pin    = pin.DC_IN      // GPIO0-27_VDD
+	SO_41  pin.Pin    = pin.DC_IN      // GPIO28-45_VDD
+	SO_42  pin.Pin    = pin.DC_IN      // GPIO28-45_VDD
+	SO_43  pin.Pin    = pin.GROUND     // GND
+	SO_44  pin.Pin    = pin.GROUND     // GND
+	SO_45  gpio.PinIO = bcm283x.GPIO12 // GPIO12
+	SO_46  gpio.PinIO = bcm283x.GPIO32 // GPIO32
+	SO_47  gpio.PinIO = bcm283x.GPIO13 // GPIO13
+	SO_48  gpio.PinIO = bcm283x.GPIO33 // GPIO33
+	SO_49  pin.Pin    = pin.GROUND     // GND
+	SO_50  pin.Pin    = pin.GROUND     // GND
+	SO_51  gpio.PinIO = bcm283x.GPIO14 // GPIO14
+	SO_52  gpio.PinIO = bcm283x.GPIO34 // GPIO34
+	SO_53  gpio.PinIO = bcm283x.GPIO15 // GPIO15
+	SO_54  gpio.PinIO = bcm283x.GPIO35 // GPIO35
+	SO_55  pin.Pin    = pin.GROUND     // GND
+	SO_56  pin.Pin    = pin.GROUND     // GND
+	SO_57  gpio.PinIO = bcm283x.GPIO16 // GPIO16
+	SO_58  gpio.PinIO = bcm283x.GPIO36 // GPIO36
+	SO_59  gpio.PinIO = bcm283x.GPIO17 // GPIO17
+	SO_60  gpio.PinIO = bcm283x.GPIO37 // GPIO37
+	SO_61  pin.Pin    = pin.GROUND     // GND
+	SO_62  pin.Pin    = pin.GROUND     // GND
+	SO_63  gpio.PinIO = bcm283x.GPIO18 // GPIO18
+	SO_64  gpio.PinIO = bcm283x.GPIO38 // GPIO38
+	SO_65  gpio.PinIO = bcm283x.GPIO19 // GPIO19
+	SO_66  gpio.PinIO = bcm283x.GPIO39 // GPIO39
+	SO_67  pin.Pin    = pin.GROUND     // GND
+	SO_68  pin.Pin    = pin.GROUND     // GND
+	SO_69  gpio.PinIO = bcm283x.GPIO20 // GPIO20
+	SO_70  gpio.PinIO = bcm283x.GPIO40 // GPIO40
+	SO_71  gpio.PinIO = bcm283x.GPIO21 // GPIO21
+	SO_72  gpio.PinIO = bcm283x.GPIO41 // GPIO41
+	SO_73  pin.Pin    = pin.GROUND     // GND
+	SO_74  pin.Pin    = pin.GROUND     // GND
+	SO_75  gpio.PinIO = bcm283x.GPIO22 // GPIO22
+	SO_76  gpio.PinIO = bcm283x.GPIO42 // GPIO42
+	SO_77  gpio.PinIO = bcm283x.GPIO23 // GPIO23
+	SO_78  gpio.PinIO = bcm283x.GPIO43 // GPIO43
+	SO_79  pin.Pin    = pin.GROUND     // GND
+	SO_80  pin.Pin    = pin.GROUND     // GND
+	SO_81  gpio.PinIO = bcm283x.GPIO24 // GPIO24
+	SO_82  gpio.PinIO = bcm283x.GPIO44 // GPIO44
+	SO_83  gpio.PinIO = bcm283x.GPIO25 // GPIO25
+	SO_84  gpio.PinIO = bcm283x.GPIO45 // GPIO45
+	SO_85  pin.Pin    = pin.GROUND     // GND
+	SO_86  pin.Pin    = pin.GROUND     // GND
+	SO_87  gpio.PinIO = bcm283x.GPIO26 // GPIO26
+	SO_88  pin.Pin    = pin.INVALID    // HDMI_HPD_N_1V8, HDMI_HPD_N_1V8, GPIO46_1V8
+	SO_89  gpio.PinIO = bcm283x.GPIO27 // GPIO27
+	SO_90  pin.Pin    = pin.INVALID    // EMMC_EN_N_1V8, EMMC_EN_N_1V8, GPIO47_1V8
+	SO_91  pin.Pin    = pin.GROUND     // GND
+	SO_92  pin.Pin    = pin.GROUND     // GND
+	SO_93  pin.Pin    = pin.INVALID    // DSI0_DN1
+	SO_94  pin.Pin    = pin.INVALID    // DSI1_DP0
+	SO_95  pin.Pin    = pin.INVALID    // DSI0_DP1
+	SO_96  pin.Pin    = pin.INVALID    // DSI1_DN0
+	SO_97  pin.Pin    = pin.GROUND     // GND
+	SO_98  pin.Pin    = pin.GROUND     // GND
+	SO_99  pin.Pin    = pin.INVALID    // DSI0_DN0
+	SO_100 pin.Pin    = pin.INVALID    // DSI1_CP
+	SO_101 pin.Pin    = pin.INVALID    // DSI0_DP0
+	SO_102 pin.Pin    = pin.INVALID    // DSI1_CN
+	SO_103 pin.Pin    = pin.GROUND     // GND
+	SO_104 pin.Pin    = pin.GROUND     // GND
+	SO_105 pin.Pin    = pin.INVALID    // DSI0_CN
+	SO_106 pin.Pin    = pin.INVALID    // DSI1_DP3
+	SO_107 pin.Pin    = pin.INVALID    // DSI0_CP
+	SO_108 pin.Pin    = pin.INVALID    // DSI1_DN3
+	SO_109 pin.Pin    = pin.GROUND     // GND
+	SO_110 pin.Pin    = pin.GROUND     // GND
+	SO_111 pin.Pin    = pin.INVALID    // HDMI_CLK_N
+	SO_112 pin.Pin    = pin.INVALID    // DSI1_DP2
+	SO_113 pin.Pin    = pin.INVALID    // HDMI_CLK_P
+	SO_114 pin.Pin    = pin.INVALID    // DSI1_DN2
+	SO_115 pin.Pin    = pin.GROUND     // GND
+	SO_116 pin.Pin    = pin.GROUND     // GND
+	SO_117 pin.Pin    = pin.INVALID    // HDMI_D0_N
+	SO_118 pin.Pin    = pin.INVALID    // DSI1_DP1
+	SO_119 pin.Pin    = pin.INVALID    // HDMI_D0_P
+	SO_120 pin.Pin    = pin.INVALID    // DSI1_DN1
+	SO_121 pin.Pin    = pin.GROUND     // GND
+	SO_122 pin.Pin    = pin.GROUND     // GND
+	SO_123 pin.Pin    = pin.INVALID    // HDMI_D1_N
+	SO_124 pin.Pin    = pin.INVALID    // NC
+	SO_125 pin.Pin    = pin.INVALID    // HDMI_D1_P
+	SO_126 pin.Pin    = pin.INVALID    // NC
+	SO_127 pin.Pin    = pin.GROUND     // GND
+	SO_128 pin.Pin    = pin.INVALID    // NC
+	SO_129 pin.Pin    = pin.INVALID    // HDMI_D2_N
+	SO_130 pin.Pin    = pin.INVALID    // NC
+	SO_131 pin.Pin    = pin.INVALID    // HDMI_D2_P
+	SO_132 pin.Pin    = pin.INVALID    // NC
+	SO_133 pin.Pin    = pin.GROUND     // GND
+	SO_134 pin.Pin    = pin.GROUND     // GND
+	SO_135 pin.Pin    = pin.INVALID    // CAM1_DP3
+	SO_136 pin.Pin    = pin.INVALID    // CAM0_DP0
+	SO_137 pin.Pin    = pin.INVALID    // CAM1_DN3
+	SO_138 pin.Pin    = pin.INVALID    // CAM0_DN0
+	SO_139 pin.Pin    = pin.GROUND     // GND
+	SO_140 pin.Pin    = pin.GROUND     // GND
+	SO_141 pin.Pin    = pin.INVALID    // CAM1_DP2
+	SO_142 pin.Pin    = pin.INVALID    // CAM0_CP
+	SO_143 pin.Pin    = pin.INVALID    // CAM1_DN2
+	SO_144 pin.Pin    = pin.INVALID    // CAM0_CN
+	SO_145 pin.Pin    = pin.GROUND     // GND
+	SO_146 pin.Pin    = pin.GROUND     // GND
+	SO_147 pin.Pin    = pin.INVALID    // CAM1_CP
+	SO_148 pin.Pin    = pin.INVALID    // CAM0_DP1
+	SO_149 pin.Pin    = pin.INVALID    // CAM1_CN
+	SO_150 pin.Pin    = pin.INVALID    // CAM0_DN1
+	SO_151 pin.Pin    = pin.GROUND     // GND
+	SO_152 pin.Pin    = pin.GROUND     // GND
+	SO_153 pin.Pin    = pin.INVALID    // CAM1_DP1
+	SO_154 pin.Pin    = pin.INVALID    // NC
+	SO_155 pin.Pin    = pin.INVALID    // CAM1_DN1
+	SO_156 pin.Pin    = pin.INVALID    // NC
+	SO_157 pin.Pin    = pin.GROUND     // GND
+	SO_158 pin.Pin    = pin.INVALID    // NC
+	SO_159 pin.Pin    = pin.INVALID    // CAM1_DP0
+	SO_160 pin.Pin    = pin.INVALID    // NC
+	SO_161 pin.Pin    = pin.INVALID    // CAM1_DN0
+	SO_162 pin.Pin    = pin.INVALID    // NC
+	SO_163 pin.Pin    = pin.GROUND     // GND
+	SO_164 pin.Pin    = pin.GROUND     // GND
+	SO_165 pin.Pin    = pin.INVALID    // USB_DP
+	SO_166 pin.Pin    = pin.INVALID    // TVDAC
+	SO_167 pin.Pin    = pin.INVALID    // USB_DM
+	SO_168 pin.Pin    = pin.INVALID    // USB_OTGID
+	SO_169 pin.Pin    = pin.GROUND     // GND
+	SO_170 pin.Pin    = pin.GROUND     // GND
+	SO_171 pin.Pin    = pin.INVALID    // HDMI_CEC
+	SO_172 pin.Pin    = pin.INVALID    // VC_TRST_N
+	SO_173 pin.Pin    = pin.INVALID    // HDMI_SDA
+	SO_174 pin.Pin    = pin.INVALID    // VC_TDI
+	SO_175 pin.Pin    = pin.INVALID    // HDMI_SCL
+	SO_176 pin.Pin    = pin.INVALID    // VC_TMS
+	SO_177 pin.Pin    = pin.INVALID    // RUN
+	SO_178 pin.Pin    = pin.INVALID    // VC_TDO
+	SO_179 pin.Pin    = pin.INVALID    // VDD_CORE (DO NOT CONNECT)
+	SO_180 pin.Pin    = pin.INVALID    // VC_TCK
+	SO_181 pin.Pin    = pin.GROUND     // GND
+	SO_182 pin.Pin    = pin.GROUND     // GND
+	SO_183 pin.Pin    = pin.V1_8       // 1V8
+	SO_184 pin.Pin    = pin.V1_8       // 1V8
+	SO_185 pin.Pin    = pin.V1_8       // 1V8
+	SO_186 pin.Pin    = pin.V1_8       // 1V8
+	SO_187 pin.Pin    = pin.GROUND     // GND
+	SO_188 pin.Pin    = pin.GROUND     // GND
+	SO_189 pin.Pin    = pin.DC_IN      // VDAC
+	SO_190 pin.Pin    = pin.DC_IN      // VDAC
+	SO_191 pin.Pin    = pin.V3_3       // 3V3
+	SO_192 pin.Pin    = pin.V3_3       // 3V3
+	SO_193 pin.Pin    = pin.V3_3       // 3V3
+	SO_194 pin.Pin    = pin.V3_3       // 3V3
+	SO_195 pin.Pin    = pin.GROUND     // GND
+	SO_196 pin.Pin    = pin.GROUND     // GND
+	SO_197 pin.Pin    = pin.DC_IN      // VBAT
+	SO_198 pin.Pin    = pin.DC_IN      // VBAT
+	SO_199 pin.Pin    = pin.DC_IN      // VBAT
+	SO_200 pin.Pin    = pin.DC_IN      // VBAT
+)
+
 // driver implements periph.Driver.
 type driver struct {
 }
@@ -135,6 +343,7 @@ func (d *driver) Init() (bool, error) {
 	hasAudio := false
 	hasNewAudio := false
 	hasHDMI := false
+	hasSODimm := false
 	rev := distro.CPUInfo()["Revision"]
 	if i, err := strconv.ParseInt(rev, 16, 32); err == nil {
 		// Ignore the overclock bit.
@@ -170,9 +379,11 @@ func (d *driver) Init() (bool, error) {
 			has40PinP1Header = true
 			hasHDMI = true
 		case 0x0011, // Compute Module 1
-			0x0014,   // Compute Module 1
-			0xa020a0: // Compute Module 3 v1.0
-			// NOTE: Could define the use of a SODIMM header here.
+			0x0014: // Compute Module 1
+			// SODIMM not defined
+		case 0xa020a0: // Compute Module 3 v1.0
+			hasSODimm = true
+			// tell CM3 and CM3-Lite apart, if possible
 		case 0xa02082, 0xa22082, 0xa32082, 0xa020d3: // 3 Model B v1.2, B+
 			has40PinP1Header = true
 			hasAudio = true
@@ -308,6 +519,113 @@ func (d *driver) Init() (bool, error) {
 		P5_6 = gpio.INVALID
 		P5_7 = pin.INVALID
 		P5_8 = pin.INVALID
+	}
+
+	if hasSODimm {
+		if err := pinreg.Register("SO", [][]pin.Pin{
+			{SO_1, SO_2},
+			{SO_3, SO_4},
+			{SO_5, SO_6},
+			{SO_7, SO_8},
+			{SO_9, SO_10},
+			{SO_11, SO_12},
+			{SO_13, SO_14},
+			{SO_15, SO_16},
+			{SO_17, SO_18},
+			{SO_19, SO_20},
+			{SO_21, SO_22},
+			{SO_23, SO_24},
+			{SO_25, SO_26},
+			{SO_27, SO_28},
+			{SO_29, SO_30},
+			{SO_31, SO_32},
+			{SO_33, SO_34},
+			{SO_35, SO_36},
+			{SO_37, SO_38},
+			{SO_39, SO_40},
+			{SO_41, SO_42},
+			{SO_43, SO_44},
+			{SO_45, SO_46},
+			{SO_47, SO_48},
+			{SO_49, SO_50},
+			{SO_51, SO_52},
+			{SO_53, SO_54},
+			{SO_55, SO_56},
+			{SO_57, SO_58},
+			{SO_59, SO_60},
+			{SO_61, SO_62},
+			{SO_63, SO_64},
+			{SO_65, SO_66},
+			{SO_67, SO_68},
+			{SO_69, SO_70},
+			{SO_71, SO_72},
+			{SO_73, SO_74},
+			{SO_75, SO_76},
+			{SO_77, SO_78},
+			{SO_79, SO_80},
+			{SO_81, SO_82},
+			{SO_83, SO_84},
+			{SO_85, SO_86},
+			{SO_87, SO_88},
+			{SO_89, SO_90},
+			{SO_91, SO_92},
+			{SO_93, SO_94},
+			{SO_95, SO_96},
+			{SO_97, SO_98},
+			{SO_99, SO_100},
+			{SO_101, SO_102},
+			{SO_103, SO_104},
+			{SO_105, SO_106},
+			{SO_107, SO_108},
+			{SO_109, SO_110},
+			{SO_111, SO_112},
+			{SO_113, SO_114},
+			{SO_115, SO_116},
+			{SO_117, SO_118},
+			{SO_119, SO_120},
+			{SO_121, SO_122},
+			{SO_123, SO_124},
+			{SO_125, SO_126},
+			{SO_127, SO_128},
+			{SO_129, SO_130},
+			{SO_131, SO_132},
+			{SO_133, SO_134},
+			{SO_135, SO_136},
+			{SO_137, SO_138},
+			{SO_139, SO_140},
+			{SO_141, SO_142},
+			{SO_143, SO_144},
+			{SO_145, SO_146},
+			{SO_147, SO_148},
+			{SO_149, SO_150},
+			{SO_151, SO_152},
+			{SO_153, SO_154},
+			{SO_155, SO_156},
+			{SO_157, SO_158},
+			{SO_159, SO_160},
+			{SO_161, SO_162},
+			{SO_163, SO_164},
+			{SO_165, SO_166},
+			{SO_167, SO_168},
+			{SO_169, SO_170},
+			{SO_171, SO_172},
+			{SO_173, SO_174},
+			{SO_175, SO_176},
+			{SO_177, SO_178},
+			{SO_179, SO_180},
+			{SO_181, SO_182},
+			{SO_183, SO_184},
+			{SO_185, SO_186},
+			{SO_187, SO_188},
+			{SO_189, SO_190},
+			{SO_191, SO_192},
+			{SO_193, SO_194},
+			{SO_195, SO_196},
+			{SO_197, SO_198},
+			{SO_199, SO_200},
+		}); err != nil {
+			return true, err
+		}
 	}
 
 	if hasAudio {
