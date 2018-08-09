@@ -16,6 +16,7 @@ var (
 	INVALID  *BasicPin // Either floating or invalid pin
 	GROUND   *BasicPin // Ground
 	V1_8     *BasicPin // 1.8V (filtered)
+	V2_8     *BasicPin // 2.8V (filtered)
 	V3_3     *BasicPin // 3.3V (filtered)
 	V5       *BasicPin // 5V (filtered)
 	DC_IN    *BasicPin // DC IN; this is normally the 5V input
@@ -77,6 +78,7 @@ func init() {
 	INVALID = &BasicPin{N: "INVALID"}
 	GROUND = &BasicPin{N: "GROUND"}
 	V1_8 = &BasicPin{N: "V1_8"}
+	V2_8 = &BasicPin{N: "V2_8"}
 	V3_3 = &BasicPin{N: "V3_3"}
 	V5 = &BasicPin{N: "V5"}
 	DC_IN = &BasicPin{N: "DC_IN"}
