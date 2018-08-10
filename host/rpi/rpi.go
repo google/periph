@@ -52,9 +52,9 @@ var (
 	P1_5  gpio.PinIO = bcm283x.GPIO3  // High, I2C1_SCL
 	P1_6  pin.Pin    = pin.GROUND     //
 	P1_7  gpio.PinIO = bcm283x.GPIO4  // High, GPCLK0
-	P1_8  gpio.PinIO = bcm283x.GPIO14 // Low,  UART0_TXD, UART1_TXD
+	P1_8  gpio.PinIO = bcm283x.GPIO14 // Low,  UART0_TX, UART1_TX
 	P1_9  pin.Pin    = pin.GROUND     //
-	P1_10 gpio.PinIO = bcm283x.GPIO15 // Low,  UART0_RXD, UART1_RXD
+	P1_10 gpio.PinIO = bcm283x.GPIO15 // Low,  UART0_RX, UART1_RX
 	P1_11 gpio.PinIO = bcm283x.GPIO17 // Low,  UART0_RTS, SPI1_CE1, UART1_RTS
 	P1_12 gpio.PinIO = bcm283x.GPIO18 // Low,  PCM_CLK, SPI1_CE0, PWM0_OUT
 	P1_13 gpio.PinIO = bcm283x.GPIO27 // Low,
@@ -98,8 +98,8 @@ var (
 	P5_7 pin.Pin    = pin.GROUND
 	P5_8 pin.Pin    = pin.GROUND
 
-	AUDIO_RIGHT         = bcm283x.GPIO40 // Low,   PWM0_OUT, SPI2_MISO, UART1_TXD
-	AUDIO_LEFT          = bcm283x.GPIO41 // Low,   PWM1_OUT, SPI2_MOSI, UART1_RXD
+	AUDIO_RIGHT         = bcm283x.GPIO40 // Low,   PWM0_OUT, SPI2_MISO, UART1_TX
+	AUDIO_LEFT          = bcm283x.GPIO41 // Low,   PWM1_OUT, SPI2_MOSI, UART1_RX
 	HDMI_HOTPLUG_DETECT = bcm283x.GPIO46 // High,
 )
 

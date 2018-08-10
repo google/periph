@@ -28,9 +28,9 @@ var (
 	J2_5  gpio.PinIO = gpio.INVALID // I2C1_SCL
 	J2_6             = pin.GROUND   //
 	J2_7  gpio.PinIO = gpio.INVALID // GPCLK0
-	J2_8  gpio.PinIO = gpio.INVALID // UART0_TXD, UART1_TXD
+	J2_8  gpio.PinIO = gpio.INVALID // UART0_TX, UART1_TX
 	J2_9             = pin.GROUND   //
-	J2_10 gpio.PinIO = gpio.INVALID // UART0_RXD, UART1_RXD
+	J2_10 gpio.PinIO = gpio.INVALID // UART0_RX, UART1_RX
 	J2_11 gpio.PinIO = gpio.INVALID // UART0_RTS, SPI1_CS1, UART1_RTS
 	J2_12 gpio.PinIO = gpio.INVALID // PCM_CLK, SPI1_CS0, PWM0_OUT
 	J2_13 gpio.PinIO = gpio.INVALID // GPIO116
@@ -43,7 +43,7 @@ var (
 	J2_20            = pin.GROUND   //
 	J2_21 gpio.PinIO = gpio.INVALID // SPI0_MISO
 	J2_22 gpio.PinIO = gpio.INVALID // GPIO103
-	J2_23 gpio.PinIO = gpio.INVALID // SPI0_SCLK
+	J2_23 gpio.PinIO = gpio.INVALID // SPI0_CLK
 	J2_24 gpio.PinIO = gpio.INVALID // SPI0_CS0
 	J2_25            = pin.GROUND   //
 	J2_26 gpio.PinIO = gpio.INVALID // SPI0_CE1
@@ -94,7 +94,7 @@ var aliases = map[string]int{
 	"I2CB_SCL":  77,
 	"SPI0_MOSI": 107,
 	"SPI0_MISO": 106,
-	"SPI0_SCLK": 105,
+	"SPI0_CLK":  105,
 	"SPI0_CS0":  117,
 }
 

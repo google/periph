@@ -96,7 +96,7 @@ func testOdroidC1Headers() error {
 // testOdroidC1GpioNumbers tests that the gpio pins get the right numbers.
 func testOdroidC1GpioNumbers() error {
 	must := map[int]string{74: "I2CA_SDA", 75: "I2CA_SCL", 76: "I2CB_SDA", 77: "I2C_SCL",
-		107: "SPI0_MOSI", 106: "SPI0_MISO", 105: "SPI0_SCLK", 117: "SPI0_CS0"}
+		107: "SPI0_MOSI", 106: "SPI0_MISO", 105: "SPI0_CLK", 117: "SPI0_CS0"}
 	for number, name := range must {
 		pin := gpioreg.ByName(strconv.Itoa(number))
 		if pin == nil {
@@ -137,7 +137,7 @@ func testOdroidC1Aliases() error {
 		"I2CB_SCL":  "GPIO77",
 		"SPI0_MOSI": "GPIO107", // Amlogic S805: "GPIO107": "X10",
 		"SPI0_MISO": "GPIO106", // Amlogic S805: "GPIO106": "X9",
-		"SPI0_SCLK": "GPIO105", // Amlogic S805: "GPIO105": "X8",
+		"SPI0_CLK":  "GPIO105", // Amlogic S805: "GPIO105": "X8",
 		"SPI0_CS0":  "GPIO117", // Amlogic S805: "GPIO117": "X20",
 	}
 	for a, r := range tests {

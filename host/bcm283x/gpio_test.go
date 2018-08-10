@@ -127,11 +127,11 @@ func TestPin(t *testing.T) {
 
 	p.number = 33
 	p.setFunction(alt3)
-	if s := p.Function(); s != "UART0_RXD" {
+	if s := p.Function(); s != "UART0_RX" {
 		t.Fatal(s)
 	}
 	p.setFunction(alt5)
-	if s := p.Function(); s != "UART1_RXD" {
+	if s := p.Function(); s != "UART1_RX" {
 		t.Fatal(s)
 	}
 }

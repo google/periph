@@ -75,7 +75,7 @@ type Opts struct {
 //
 // Wiring
 //
-// Connect SDA to MOSI, SCK to SCLK, CS to CS.
+// Connect SDA to SPI_MOSI, SCK to SPI_CLK, CS to SPI_CS.
 //
 // In 3-wire SPI mode, pass nil for 'dc'. In 4-wire SPI mode, pass a GPIO pin
 // to use.

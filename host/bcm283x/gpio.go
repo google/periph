@@ -39,8 +39,8 @@ var (
 	GPIO11 *Pin // SPI0_CLK
 	GPIO12 *Pin // PWM0_OUT
 	GPIO13 *Pin // PWM1_OUT
-	GPIO14 *Pin // UART0_TXD, UART1_TXD
-	GPIO15 *Pin // UART0_RXD, UART1_RXD
+	GPIO14 *Pin // UART0_TX, UART1_TX
+	GPIO15 *Pin // UART0_RX, UART1_RX
 	GPIO16 *Pin // UART0_CTS, SPI1_CS2, UART1_CTS
 	GPIO17 *Pin // UART0_RTS, SPI1_CS1, UART1_RTS
 	GPIO18 *Pin // PCM_CLK, SPI1_CS0, PWM0_OUT
@@ -58,15 +58,15 @@ var (
 	GPIO30 *Pin // PCM_DIN, UART0_CTS, UART1_CTS
 	GPIO31 *Pin // PCM_DOUT, UART0_RTS, UART1_RTS
 	GPIO32 *Pin // GPCLK0, UART0_TXD, UART1_TXD
-	GPIO33 *Pin // UART0_RXD, UART1_RXD
+	GPIO33 *Pin // UART0_RX, UART1_RX
 	GPIO34 *Pin // GPCLK0
 	GPIO35 *Pin // SPI0_CS1
-	GPIO36 *Pin // SPI0_CS0, UART0_TXD
-	GPIO37 *Pin // SPI0_MISO, UART0_RXD
+	GPIO36 *Pin // SPI0_CS0, UART0_TX
+	GPIO37 *Pin // SPI0_MISO, UART0_RX
 	GPIO38 *Pin // SPI0_MOSI, UART0_RTS
 	GPIO39 *Pin // SPI0_CLK, UART0_CTS
-	GPIO40 *Pin // PWM0_OUT, SPI2_MISO, UART1_TXD
-	GPIO41 *Pin // PWM1_OUT, SPI2_MOSI, UART1_RXD
+	GPIO40 *Pin // PWM0_OUT, SPI2_MISO, UART1_TX
+	GPIO41 *Pin // PWM1_OUT, SPI2_MOSI, UART1_RX
 	GPIO42 *Pin // GPCLK1, SPI2_CLK, UART1_RTS
 	GPIO43 *Pin // GPCLK2, SPI2_CS0, UART1_CTS
 	GPIO44 *Pin // GPCLK1, I2C0_SDA, I2C1_SDA, SPI2_CS1
@@ -852,8 +852,8 @@ var mapping = [][6]string{
 	{"SPI0_CLK"},
 	{"PWM0_OUT"},
 	{"PWM1_OUT"},
-	{"UART0_TXD", "", "", "", "", "UART1_TXD"},
-	{"UART0_RXD", "", "", "", "", "UART1_RXD"}, // 15
+	{"UART0_TX", "", "", "", "", "UART1_TX"},
+	{"UART0_RX", "", "", "", "", "UART1_RX"}, // 15
 	{"", "", "", "UART0_CTS", "SPI1_CS2", "UART1_CTS"},
 	{"", "", "", "UART0_RTS", "SPI1_CS1", "UART1_RTS"},
 	// TODO(maruel): Alias the PCM_xxx to I2S0_xxx.
@@ -872,15 +872,15 @@ var mapping = [][6]string{
 	{"", "", "PCM_DIN", "UART0_CTS", "", "UART1_CTS"}, // 30
 	{"", "", "PCM_DOUT", "UART0_RTS", "", "UART1_RTS"},
 	{"GPCLK0", "", "", "UART0_TXD", "", "UART1_TXD"},
-	{"", "", "", "UART0_RXD", "", "UART1_RXD"},
+	{"", "", "", "UART0_RX", "", "UART1_RX"},
 	{"GPCLK0"},
 	{"SPI0_CS1"}, // 35
-	{"SPI0_CS0", "", "UART0_TXD", "", "", ""},
-	{"SPI0_MISO", "", "UART0_RXD", "", "", ""},
+	{"SPI0_CS0", "", "UART0_TX", "", "", ""},
+	{"SPI0_MISO", "", "UART0_RX", "", "", ""},
 	{"SPI0_MOSI", "", "UART0_RTS", "", "", ""},
 	{"SPI0_CLK", "", "UART0_CTS", "", "", ""},
-	{"PWM0_OUT", "", "", "", "SPI2_MISO", "UART1_TXD"}, // 40
-	{"PWM1_OUT", "", "", "", "SPI2_MOSI", "UART1_RXD"},
+	{"PWM0_OUT", "", "", "", "SPI2_MISO", "UART1_TX"}, // 40
+	{"PWM1_OUT", "", "", "", "SPI2_MOSI", "UART1_RX"},
 	{"GPCLK1", "", "", "", "SPI2_CLK", "UART1_RTS"},
 	{"GPCLK2", "", "", "", "SPI2_CS0", "UART1_CTS"},
 	{"GPCLK1", "I2C0_SDA", "I2C1_SDA", "", "SPI2_CS1", ""},

@@ -28,8 +28,8 @@ SPI host and lirc enabled:
                    V3_3    1  2    V5
        I2C1_SDA   GPIO2    3  4    V5
        I2C1_SCL   GPIO3    5  6    GROUND
-        In/High   GPIO4    7  8    GPIO14 UART0_TXD
-                 GROUND    9  10   GPIO15 UART0_RXD
+        In/High   GPIO4    7  8    GPIO14 UART0_TX
+                 GROUND    9  10   GPIO15 UART0_RX
          In/Low  GPIO17   11  12   GPIO18 Out/High
          In/Low  GPIO27   13  14   GROUND
          In/Low  GPIO22   15  16   GPIO23 In/Low
