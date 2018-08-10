@@ -10,7 +10,6 @@ package allwinner
 import (
 	"strings"
 
-	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/pin"
 	"periph.io/x/periph/host/sysfs"
 )
@@ -49,7 +48,7 @@ func init() {
 // - SDC means SDCard?
 // - NAND connects to a NAND flash controller.
 // - CSI and CCI are for video capture.
-var mappingA64 = map[string][5]string{
+var mappingA64 = map[string][5]pin.Func{
 	"PB0":  {"UART2_TX", "", "JTAG0_TMS", "", "PB_EINT0"},
 	"PB1":  {"UART2_RX", "", "JTAG0_TCK", "SIM_PWREN", "PB_EINT1"},
 	"PB2":  {"UART2_RTS", "", "JTAG0_TDO", "SIM_VPPEN", "PB_EINT2"},
@@ -164,22 +163,12 @@ func mapA64Pins() error {
 		pin := cpupins[name]
 		pin.altFunc = altFuncs
 		pin.available = true
-		if strings.Contains(altFuncs[4], "EINT") {
+		if strings.Contains(string(altFuncs[4]), "_EINT") {
 			pin.supportEdge = true
 		}
 
 		// Initializes the sysfs corresponding pin right away.
 		pin.sysfsPin = sysfs.Pins[pin.Number()]
-
-		// Manually map the CS line as an alias because otherwise it never gets
-		// registered.
-		for _, s := range altFuncs {
-			if strings.HasPrefix(s, "SPI") && strings.HasSuffix(s, "_CS0") {
-				if err := gpioreg.RegisterAlias(s, pin.Name()); err != nil {
-					return err
-				}
-			}
-		}
 	}
 	return nil
 }

@@ -20,6 +20,7 @@ import (
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/physic"
+	"periph.io/x/periph/conn/pin"
 	"periph.io/x/periph/host/pmem"
 	"periph.io/x/periph/host/sysfs"
 )
@@ -53,10 +54,10 @@ type Pin struct {
 	defaultPull gpio.Pull // default pull at startup
 
 	// Immutable after driver initialization.
-	altFunc     [5]string  // alternate functions
-	sysfsPin    *sysfs.Pin // Set to the corresponding sysfs.Pin, if any.
-	available   bool       // Set when the pin is available on this CPU architecture.
-	supportEdge bool       // Set when the pin supports interrupt based edge detection.
+	altFunc     [5]pin.Func // alternate functions
+	sysfsPin    *sysfs.Pin  // Set to the corresponding sysfs.Pin, if any.
+	available   bool        // Set when the pin is available on this CPU architecture.
+	supportEdge bool        // Set when the pin supports interrupt based edge detection.
 
 	// Mutable.
 	usingEdge bool // Set when edge detection is enabled.
@@ -98,49 +99,120 @@ func (p *Pin) Number() int {
 
 // Function implements pin.Pin.
 func (p *Pin) Function() string {
+	return string(p.Func())
+}
+
+// Func implements pin.PinFunc.
+func (p *Pin) Func() pin.Func {
 	if !p.available {
-		return "N/A"
+		return pin.FuncNone
 	}
 	if drvGPIO.gpioMemory == nil {
 		if p.sysfsPin == nil {
-			return "ERR"
+			return pin.Func("ERR")
 		}
-		return p.sysfsPin.Function()
+		return p.sysfsPin.Func()
 	}
 	switch f := p.function(); f {
 	case in:
-		return "In/" + p.FastRead().String() + "/" + p.Pull().String()
+		if p.FastRead() {
+			return gpio.IN_HIGH
+		}
+		return gpio.IN_LOW
 	case out:
-		return "Out/" + p.FastRead().String()
+		if p.FastRead() {
+			return gpio.OUT_HIGH
+		}
+		return gpio.OUT_LOW
 	case alt1:
 		if p.altFunc[0] != "" {
-			return p.altFunc[0]
+			return pin.Func(p.altFunc[0])
 		}
-		return "<Alt1>"
+		return pin.Func("ALT1")
 	case alt2:
 		if p.altFunc[1] != "" {
-			return p.altFunc[1]
+			return pin.Func(p.altFunc[1])
 		}
-		return "<Alt2>"
+		return pin.Func("ALT2")
 	case alt3:
 		if p.altFunc[2] != "" {
-			return p.altFunc[2]
+			return pin.Func(p.altFunc[2])
 		}
-		return "<Alt3>"
+		return pin.Func("ALT3")
 	case alt4:
 		if p.altFunc[3] != "" {
-			return p.altFunc[3]
+			return pin.Func(p.altFunc[3])
 		}
-		return "<Alt4>"
+		return pin.Func("ALT4")
 	case alt5:
 		if p.altFunc[4] != "" {
-			return p.altFunc[4]
+			if strings.Contains(string(p.altFunc[4]), "EINT") {
+				// It's an input supporting interrupts.
+				if p.FastRead() {
+					return gpio.IN_HIGH
+				}
+				return gpio.IN_LOW
+			}
+			return pin.Func(p.altFunc[4])
 		}
-		return "<Alt5>"
+		return pin.Func("ALT5")
 	case disabled:
-		return "<Disabled>"
+		return pin.FuncNone
 	default:
-		return "<Internal error>"
+		return pin.FuncNone
+	}
+}
+
+// SupportedFuncs implements pin.PinFunc.
+func (p *Pin) SupportedFuncs() []pin.Func {
+	f := make([]pin.Func, 0, 2+4)
+	f = append(f, gpio.IN, gpio.OUT)
+	for _, m := range p.altFunc {
+		if m != pin.FuncNone && !strings.Contains(string(m), "EINT") {
+			f = append(f, m)
+		}
+	}
+	return f
+}
+
+// SetFunc implements pin.PinFunc.
+func (p *Pin) SetFunc(f pin.Func) error {
+	switch f {
+	case gpio.FLOAT:
+		return p.In(gpio.Float, gpio.NoEdge)
+	case gpio.IN:
+		return p.In(gpio.PullNoChange, gpio.NoEdge)
+	case gpio.IN_LOW:
+		return p.In(gpio.PullDown, gpio.NoEdge)
+	case gpio.IN_HIGH:
+		return p.In(gpio.PullUp, gpio.NoEdge)
+	case gpio.OUT_HIGH:
+		return p.Out(gpio.High)
+	case gpio.OUT_LOW:
+		return p.Out(gpio.Low)
+	default:
+		isGeneral := f == f.Generalize()
+		for i, m := range p.altFunc {
+			if m == f || (isGeneral && m.Generalize() == f) {
+				if err := p.Halt(); err != nil {
+					return err
+				}
+				switch i {
+				case 0:
+					p.setFunction(alt1)
+				case 1:
+					p.setFunction(alt2)
+				case 2:
+					p.setFunction(alt3)
+				case 3:
+					p.setFunction(alt4)
+				case 4:
+					p.setFunction(alt5)
+				}
+				return nil
+			}
+		}
+		return p.wrap(errors.New("unsupported function"))
 	}
 }
 
@@ -659,9 +731,9 @@ func init() {
 // initPins initializes the mapping of pins by function, sets the alternate
 // functions of each pin, and registers all the pins with gpio.
 func initPins() error {
-	for i := range cpupins {
-		name := cpupins[i].Name()
-		num := strconv.Itoa(cpupins[i].Number())
+	functions := map[pin.Func]struct{}{}
+	for name, p := range cpupins {
+		num := strconv.Itoa(p.Number())
 		gpion := "GPIO" + num
 
 		// Unregister the pin if already registered. This happens with sysfs-gpio.
@@ -670,7 +742,7 @@ func initPins() error {
 		_ = gpioreg.Unregister(num)
 
 		// Register the pin with gpio.
-		if err := gpioreg.Register(cpupins[i]); err != nil {
+		if err := gpioreg.Register(p); err != nil {
 			return err
 		}
 		if err := gpioreg.RegisterAlias(gpion, name); err != nil {
@@ -679,13 +751,32 @@ func initPins() error {
 		if err := gpioreg.RegisterAlias(num, name); err != nil {
 			return err
 		}
-		// Iterate through alternate functions and register function->pin mapping.
-		// TODO(maruel): There's a problem where multiple pins may be set to the
-		// same function. Need investigation. For now just ignore errors.
-		for _, f := range cpupins[i].altFunc {
-			if f != "" && f[0] != '<' && f[:2] != "In" && f[:3] != "Out" {
-				// Multiple pins may have the same function. The first wins.
-				_ = gpioreg.RegisterAlias(f, name)
+		switch f := p.Func(); f {
+		case gpio.IN, gpio.OUT, pin.FuncNone:
+		default:
+			// Registering the same alias twice fails. This can happen if two pins
+			// are configured with the same function.
+			if _, ok := functions[f]; !ok {
+				functions[f] = struct{}{}
+				if err := gpioreg.RegisterAlias(string(f), name); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	// Now do a second loop but do the alternate functions.
+	for name, p := range cpupins {
+		for _, f := range p.SupportedFuncs() {
+			switch f {
+			case gpio.IN, gpio.OUT:
+			default:
+				if _, ok := functions[f]; !ok {
+					functions[f] = struct{}{}
+					if err := gpioreg.RegisterAlias(string(f), name); err != nil {
+						return err
+					}
+				}
 			}
 		}
 	}
@@ -808,3 +899,4 @@ var drvGPIO driverGPIO
 var _ gpio.PinIO = &Pin{}
 var _ gpio.PinIn = &Pin{}
 var _ gpio.PinOut = &Pin{}
+var _ pin.PinFunc = &Pin{}
