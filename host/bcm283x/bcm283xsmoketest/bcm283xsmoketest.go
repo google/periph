@@ -9,7 +9,6 @@
 package bcm283xsmoketest
 
 import (
-	"encoding/hex"
 	"errors"
 	"flag"
 	"fmt"
@@ -180,7 +179,7 @@ func (s *SmokeTest) testStreamIn(p1, p2 *loggingPin) (err error) {
 		LSBF: true,
 	}
 	if err = p1.StreamIn(gpio.PullDown, b); err != nil {
-		fmt.Printf("%s\n", hex.EncodeToString(b.Bits))
+		fmt.Printf("%x\n", b.Bits)
 		return err
 	}
 

@@ -13,7 +13,7 @@ import (
 func ExampleBasicPin() {
 	// Declare a basic pin, that is not a GPIO, for registration on an header.
 	b := &pin.BasicPin{N: "Exotic"}
-	fmt.Printf("%s\n", b)
+	fmt.Println(b)
 
 	// Output:
 	// Exotic

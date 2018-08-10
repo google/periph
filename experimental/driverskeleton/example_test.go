@@ -30,5 +30,5 @@ func Example() {
 	if err != nil {
 		log.Fatalf("failed to initialize: %v", err)
 	}
-	fmt.Printf("%s\n", dev.Read())
+	fmt.Println(dev.Read())
 }

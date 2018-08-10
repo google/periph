@@ -12,9 +12,9 @@ import (
 )
 
 func ExampleAngle() {
-	fmt.Printf("%s\n", physic.Degree)
-	fmt.Printf("%s\n", physic.Pi)
-	fmt.Printf("%s\n", physic.Theta)
+	fmt.Println(physic.Degree)
+	fmt.Println(physic.Pi)
+	fmt.Println(physic.Theta)
 	// Output:
 	// 1.000°
 	// 180.0°
@@ -22,9 +22,9 @@ func ExampleAngle() {
 }
 
 func ExampleDistance() {
-	fmt.Printf("%s\n", physic.Inch)
-	fmt.Printf("%s\n", physic.Foot)
-	fmt.Printf("%s\n", physic.Mile)
+	fmt.Println(physic.Inch)
+	fmt.Println(physic.Foot)
+	fmt.Println(physic.Mile)
 	// Output:
 	// 25.400mm
 	// 304.800mm
@@ -32,9 +32,9 @@ func ExampleDistance() {
 }
 
 func ExampleElectricCurrent() {
-	fmt.Printf("%s\n", 10010*physic.MilliAmpere)
-	fmt.Printf("%s\n", 10*physic.Ampere)
-	fmt.Printf("%s\n", -10*physic.MilliAmpere)
+	fmt.Println(10010 * physic.MilliAmpere)
+	fmt.Println(10 * physic.Ampere)
+	fmt.Println(-10 * physic.MilliAmpere)
 	// Output:
 	// 10.010A
 	// 10A
@@ -42,9 +42,9 @@ func ExampleElectricCurrent() {
 }
 
 func ExampleElectricPotential() {
-	fmt.Printf("%s\n", 10010*physic.MilliVolt)
-	fmt.Printf("%s\n", 10*physic.Volt)
-	fmt.Printf("%s\n", -10*physic.MilliVolt)
+	fmt.Println(10010 * physic.MilliVolt)
+	fmt.Println(10 * physic.Volt)
+	fmt.Println(-10 * physic.MilliVolt)
 	// Output:
 	// 10.010V
 	// 10V
@@ -52,9 +52,9 @@ func ExampleElectricPotential() {
 }
 
 func ExampleElectricResistance() {
-	fmt.Printf("%s\n", 10010*physic.MilliOhm)
-	fmt.Printf("%s\n", 10*physic.Ohm)
-	fmt.Printf("%s\n", 24*physic.MegaOhm)
+	fmt.Println(10010 * physic.MilliOhm)
+	fmt.Println(10 * physic.Ohm)
+	fmt.Println(24 * physic.MegaOhm)
 	// Output:
 	// 10.010Ω
 	// 10Ω
@@ -62,9 +62,9 @@ func ExampleElectricResistance() {
 }
 
 func ExampleForce() {
-	fmt.Printf("%s\n", 10*physic.MilliNewton)
-	fmt.Printf("%s\n", 101010*physic.EarthGravity)
-	fmt.Printf("%s\n", physic.PoundForce)
+	fmt.Println(10 * physic.MilliNewton)
+	fmt.Println(101010 * physic.EarthGravity)
+	fmt.Println(physic.PoundForce)
 	// Output:
 	// 10mN
 	// 990.569kN
@@ -72,9 +72,9 @@ func ExampleForce() {
 }
 
 func ExampleFrequency() {
-	fmt.Printf("%s\n", 10*physic.MilliHertz)
-	fmt.Printf("%s\n", 101010*physic.MilliHertz)
-	fmt.Printf("%s\n", 10*physic.MegaHertz)
+	fmt.Println(10 * physic.MilliHertz)
+	fmt.Println(101010 * physic.MilliHertz)
+	fmt.Println(10 * physic.MegaHertz)
 	// Output:
 	// 10mHz
 	// 101.010Hz
@@ -82,26 +82,26 @@ func ExampleFrequency() {
 }
 
 func ExampleFrequency_Duration() {
-	fmt.Printf("%s\n", physic.MilliHertz.Duration())
-	fmt.Printf("%s\n", physic.MegaHertz.Duration())
+	fmt.Println(physic.MilliHertz.Duration())
+	fmt.Println(physic.MegaHertz.Duration())
 	// Output:
 	// 16m40s
 	// 1µs
 }
 
 func ExamplePeriodToFrequency() {
-	fmt.Printf("%s\n", physic.PeriodToFrequency(time.Microsecond))
-	fmt.Printf("%s\n", physic.PeriodToFrequency(time.Minute))
+	fmt.Println(physic.PeriodToFrequency(time.Microsecond))
+	fmt.Println(physic.PeriodToFrequency(time.Minute))
 	// Output:
 	// 1MHz
 	// 16.666mHz
 }
 
 func ExampleMass() {
-	fmt.Printf("%s\n", 10*physic.MilliGram)
-	fmt.Printf("%s\n", physic.OunceMass)
-	fmt.Printf("%s\n", physic.PoundMass)
-	fmt.Printf("%s\n", physic.Slug)
+	fmt.Println(10 * physic.MilliGram)
+	fmt.Println(physic.OunceMass)
+	fmt.Println(physic.PoundMass)
+	fmt.Println(physic.Slug)
 	// Output:
 	// 10mg
 	// 28.349g
@@ -110,27 +110,27 @@ func ExampleMass() {
 }
 
 func ExamplePressure() {
-	fmt.Printf("%s\n", 101010*physic.Pascal)
-	fmt.Printf("%s\n", 101*physic.KiloPascal)
+	fmt.Println(101010 * physic.Pascal)
+	fmt.Println(101 * physic.KiloPascal)
 	// Output:
 	// 101.010kPa
 	// 101kPa
 }
 
 func ExampleRelativeHumidity() {
-	fmt.Printf("%s\n", 506*physic.MilliRH)
-	fmt.Printf("%s\n", 20*physic.PercentRH)
+	fmt.Println(506 * physic.MilliRH)
+	fmt.Println(20 * physic.PercentRH)
 	// Output:
 	// 50.6%rH
 	// 20%rH
 }
 
 func ExampleSpeed() {
-	fmt.Printf("%s\n", 10*physic.MilliMetrePerSecond)
-	fmt.Printf("%s\n", physic.LightSpeed)
-	fmt.Printf("%s\n", physic.KilometrePerHour)
-	fmt.Printf("%s\n", physic.MilePerHour)
-	fmt.Printf("%s\n", physic.FootPerSecond)
+	fmt.Println(10 * physic.MilliMetrePerSecond)
+	fmt.Println(physic.LightSpeed)
+	fmt.Println(physic.KilometrePerHour)
+	fmt.Println(physic.MilePerHour)
+	fmt.Println(physic.FootPerSecond)
 	// Output:
 	// 10mm/s
 	// 299.792Mm/s
@@ -140,9 +140,9 @@ func ExampleSpeed() {
 }
 
 func ExampleTemperature() {
-	fmt.Printf("%s\n", 0*physic.Kelvin)
-	fmt.Printf("%s\n", 23010*physic.MilliCelsius+physic.ZeroCelsius)
-	fmt.Printf("%s\n", 80*physic.Fahrenheit+physic.ZeroFahrenheit)
+	fmt.Println(0 * physic.Kelvin)
+	fmt.Println(23010*physic.MilliCelsius + physic.ZeroCelsius)
+	fmt.Println(80*physic.Fahrenheit + physic.ZeroFahrenheit)
 	// Output:
 	// -273.150°C
 	// 23.010°C

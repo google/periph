@@ -187,7 +187,7 @@ func TestNextFrame(t *testing.T) {
 			offset++
 		}
 		t.Fatalf("different pixels at offset %d", offset)
-		//t.Fatalf("different pixels at offset %d:\n%s\n%s", offset, hex.EncodeToString(ref.Pix[offset:]), hex.EncodeToString(f.Pix[offset:]))
+		//t.Fatalf("different pixels at offset %d:\n%x\n%x", offset, ref.Pix[offset:], f.Pix[offset:])
 	}
 	if err := i.Close(); err != nil {
 		t.Fatal(err)

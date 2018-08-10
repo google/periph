@@ -6,7 +6,6 @@ package pmem
 
 import (
 	"bytes"
-	"encoding/hex"
 	"math/rand"
 )
 
@@ -56,10 +55,10 @@ func TestCopy(size, holeSize int, alloc func(size int) (Mem, error), copyMem fun
 	// Verifications.
 	for i := 0; i < holeSize; i++ {
 		if dst[i] != 0x11 {
-			return wrapf("DMA corrupted the buffer header: %s", hex.EncodeToString(dst[:holeSize]))
+			return wrapf("DMA corrupted the buffer header: %x", dst[:holeSize])
 		}
 		if dst[size-1-i] != 0x11 {
-			return wrapf("DMA corrupted the buffer footer: %s", hex.EncodeToString(dst[size-1-holeSize:]))
+			return wrapf("DMA corrupted the buffer footer: %x", dst[size-1-holeSize:])
 		}
 	}
 
@@ -84,7 +83,7 @@ func TestCopy(size, holeSize int, alloc func(size int) (Mem, error), copyMem fun
 		if len(y) > 32 {
 			y = y[:32]
 		}
-		return wrapf("DMA corrupted the buffer at offset %d:\n%s\n%s", offset, hex.EncodeToString(x), hex.EncodeToString(y))
+		return wrapf("DMA corrupted the buffer at offset %d:\n%x\n%x", offset, x, y)
 	}
 	return nil
 }
