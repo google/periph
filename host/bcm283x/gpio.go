@@ -43,20 +43,20 @@ var (
 	GPIO15 *Pin // UART0_RX, UART1_RX
 	GPIO16 *Pin // UART0_CTS, SPI1_CS2, UART1_CTS
 	GPIO17 *Pin // UART0_RTS, SPI1_CS1, UART1_RTS
-	GPIO18 *Pin // PCM_CLK, SPI1_CS0, PWM0_OUT
-	GPIO19 *Pin // PCM_FS, SPI1_MISO, PWM1_OUT
-	GPIO20 *Pin // PCM_DIN, SPI1_MOSI, GPCLK0
-	GPIO21 *Pin // PCM_DOUT, SPI1_CLK, GPCLK1
+	GPIO18 *Pin // I2S_SCK, SPI1_CS0, PWM0_OUT
+	GPIO19 *Pin // I2S_WS, SPI1_MISO, PWM1_OUT
+	GPIO20 *Pin // I2S_DIN, SPI1_MOSI, GPCLK0
+	GPIO21 *Pin // I2S_DOUT, SPI1_CLK, GPCLK1
 	GPIO22 *Pin //
 	GPIO23 *Pin //
 	GPIO24 *Pin //
 	GPIO25 *Pin //
 	GPIO26 *Pin //
 	GPIO27 *Pin //
-	GPIO28 *Pin // I2C0_SDA, PCM_CLK
-	GPIO29 *Pin // I2C0_SCL, PCM_FS
-	GPIO30 *Pin // PCM_DIN, UART0_CTS, UART1_CTS
-	GPIO31 *Pin // PCM_DOUT, UART0_RTS, UART1_RTS
+	GPIO28 *Pin // I2C0_SDA, I2S_SCK
+	GPIO29 *Pin // I2C0_SCL, I2S_WS
+	GPIO30 *Pin // I2S_DIN, UART0_CTS, UART1_CTS
+	GPIO31 *Pin // I2S_DOUT, UART0_RTS, UART1_RTS
 	GPIO32 *Pin // GPCLK0, UART0_TXD, UART1_TXD
 	GPIO33 *Pin // UART0_RX, UART1_RX
 	GPIO34 *Pin // GPCLK0
@@ -604,7 +604,7 @@ func (p *Pin) StreamOut(s gpiostream.Stream) error {
 	if err := p.Out(gpio.Low); err != nil {
 		return err
 	}
-	// If the pin is PCM_DOUT, use PCM for much nicer stream and lower memory
+	// If the pin is I2S_DOUT, use PCM for much nicer stream and lower memory
 	// usage.
 	if p.number == 21 || p.number == 31 {
 		alt := alt0
@@ -856,21 +856,20 @@ var mapping = [][6]string{
 	{"UART0_RX", "", "", "", "", "UART1_RX"}, // 15
 	{"", "", "", "UART0_CTS", "SPI1_CS2", "UART1_CTS"},
 	{"", "", "", "UART0_RTS", "SPI1_CS1", "UART1_RTS"},
-	// TODO(maruel): Alias the PCM_xxx to I2S0_xxx.
-	{"PCM_CLK", "", "", "", "SPI1_CS0", "PWM0_OUT"},
-	{"PCM_FS", "", "", "", "SPI1_MISO", "PWM1_OUT"},
-	{"PCM_DIN", "", "", "", "SPI1_MOSI", "GPCLK0"}, // 20
-	{"PCM_DOUT", "", "", "", "SPI1_CLK", "GPCLK1"},
+	{"I2S_SCK", "", "", "", "SPI1_CS0", "PWM0_OUT"},
+	{"I2S_WS", "", "", "", "SPI1_MISO", "PWM1_OUT"},
+	{"I2S_DIN", "", "", "", "SPI1_MOSI", "GPCLK0"}, // 20
+	{"I2S_DOUT", "", "", "", "SPI1_CLK", "GPCLK1"},
 	{""},
 	{""},
 	{""},
 	{""}, // 25
 	{""},
 	{""},
-	{"I2C0_SDA", "", "PCM_CLK", "", "", ""},
-	{"I2C0_SCL", "", "PCM_FS", "", "", ""},
-	{"", "", "PCM_DIN", "UART0_CTS", "", "UART1_CTS"}, // 30
-	{"", "", "PCM_DOUT", "UART0_RTS", "", "UART1_RTS"},
+	{"I2C0_SDA", "", "I2S_SCK", "", "", ""},
+	{"I2C0_SCL", "", "I2S_WS", "", "", ""},
+	{"", "", "I2S_DIN", "UART0_CTS", "", "UART1_CTS"}, // 30
+	{"", "", "I2S_DOUT", "UART0_RTS", "", "UART1_RTS"},
 	{"GPCLK0", "", "", "UART0_TXD", "", "UART1_TXD"},
 	{"", "", "", "UART0_RX", "", "UART1_RX"},
 	{"GPCLK0"},

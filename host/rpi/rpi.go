@@ -55,8 +55,8 @@ var (
 	P1_8  gpio.PinIO = bcm283x.GPIO14 // Low,  UART0_TX, UART1_TX
 	P1_9  pin.Pin    = pin.GROUND     //
 	P1_10 gpio.PinIO = bcm283x.GPIO15 // Low,  UART0_RX, UART1_RX
-	P1_11 gpio.PinIO = bcm283x.GPIO17 // Low,  UART0_RTS, SPI1_CE1, UART1_RTS
-	P1_12 gpio.PinIO = bcm283x.GPIO18 // Low,  PCM_CLK, SPI1_CE0, PWM0_OUT
+	P1_11 gpio.PinIO = bcm283x.GPIO17 // Low,  UART0_RTS, SPI1_CS1, UART1_RTS
+	P1_12 gpio.PinIO = bcm283x.GPIO18 // Low,  I2S_SCK, SPI1_CS0, PWM0_OUT
 	P1_13 gpio.PinIO = bcm283x.GPIO27 // Low,
 	P1_14 pin.Pin    = pin.GROUND     //
 	P1_15 gpio.PinIO = bcm283x.GPIO22 // Low,
@@ -68,9 +68,9 @@ var (
 	P1_21 gpio.PinIO = bcm283x.GPIO9  // Low, SPI0_MISO
 	P1_22 gpio.PinIO = bcm283x.GPIO25 // Low,
 	P1_23 gpio.PinIO = bcm283x.GPIO11 // Low, SPI0_CLK
-	P1_24 gpio.PinIO = bcm283x.GPIO8  // High, SPI0_CE0
+	P1_24 gpio.PinIO = bcm283x.GPIO8  // High, SPI0_CS0
 	P1_25 pin.Pin    = pin.GROUND     //
-	P1_26 gpio.PinIO = bcm283x.GPIO7  // High, SPI0_CE1
+	P1_26 gpio.PinIO = bcm283x.GPIO7  // High, SPI0_CS1
 
 	// Raspberry Pi A+, B+, 2 and later, 40 pin header (also named J8):
 	P1_27 gpio.PinIO = bcm283x.GPIO0  // High, I2C0_SDA used to probe for HAT EEPROM, see https://github.com/raspberrypi/hats
@@ -81,20 +81,20 @@ var (
 	P1_32 gpio.PinIO = bcm283x.GPIO12 // Low,  PWM0_OUT
 	P1_33 gpio.PinIO = bcm283x.GPIO13 // Low,  PWM1_OUT
 	P1_34 pin.Pin    = pin.GROUND     //
-	P1_35 gpio.PinIO = bcm283x.GPIO19 // Low,  PCM_FS, SPI1_MISO, PWM1_OUT
-	P1_36 gpio.PinIO = bcm283x.GPIO16 // Low,  UART0_CTS, SPI1_CE2, UART1_CTS
+	P1_35 gpio.PinIO = bcm283x.GPIO19 // Low,  I2S_WS, SPI1_MISO, PWM1_OUT
+	P1_36 gpio.PinIO = bcm283x.GPIO16 // Low,  UART0_CTS, SPI1_CS2, UART1_CTS
 	P1_37 gpio.PinIO = bcm283x.GPIO26 //
-	P1_38 gpio.PinIO = bcm283x.GPIO20 // Low,  PCM_DIN, SPI1_MOSI, GPCLK0
+	P1_38 gpio.PinIO = bcm283x.GPIO20 // Low,  I2S_DIN, SPI1_MOSI, GPCLK0
 	P1_39 pin.Pin    = pin.GROUND     //
-	P1_40 gpio.PinIO = bcm283x.GPIO21 // Low,  PCM_DOUT, SPI1_CLK, GPCLK1
+	P1_40 gpio.PinIO = bcm283x.GPIO21 // Low,  I2S_DOUT, SPI1_CLK, GPCLK1
 
 	// P5 header on Raspberry Pi A and B, PCB v2:
 	P5_1 pin.Pin    = pin.V5
 	P5_2 pin.Pin    = pin.V3_3
-	P5_3 gpio.PinIO = bcm283x.GPIO28 // Float, I2C0_SDA, PCM_CLK
-	P5_4 gpio.PinIO = bcm283x.GPIO29 // Float, I2C0_SCL, PCM_FS
-	P5_5 gpio.PinIO = bcm283x.GPIO30 // Low,   PCM_DIN, UART0_CTS, UART1_CTS
-	P5_6 gpio.PinIO = bcm283x.GPIO31 // Low,   PCM_DOUT, UART0_RTS, UART1_RTS
+	P5_3 gpio.PinIO = bcm283x.GPIO28 // Float, I2C0_SDA, I2S_SCK
+	P5_4 gpio.PinIO = bcm283x.GPIO29 // Float, I2C0_SCL, I2S_WS
+	P5_5 gpio.PinIO = bcm283x.GPIO30 // Low,   I2S_DIN, UART0_CTS, UART1_CTS
+	P5_6 gpio.PinIO = bcm283x.GPIO31 // Low,   I2S_DOUT, UART0_RTS, UART1_RTS
 	P5_7 pin.Pin    = pin.GROUND
 	P5_8 pin.Pin    = pin.GROUND
 
