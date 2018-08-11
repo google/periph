@@ -11,9 +11,11 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"sync"
 
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/experimental/conn/uart"
 )
 
@@ -41,77 +43,115 @@ func EnumerateUART() ([]int, error) {
 // TODO(maruel): It's not yet implemented. Should probably defer to an already
 // working library like https://github.com/tarm/serial
 type UART struct {
-	f         *os.File
-	busNumber int
+	conn uartConn
 }
 
 func newUART(busNumber int) (*UART, error) {
 	// Use the devfs path for now.
-	f, err := os.OpenFile(fmt.Sprintf("/dev/ttyS%d", busNumber), os.O_RDWR, os.ModeExclusive)
+	name := fmt.Sprintf("/dev/ttyS%d", busNumber)
+	f, err := os.OpenFile(name, os.O_RDWR, os.ModeExclusive)
 	if err != nil {
 		return nil, err
 	}
-	u := &UART{f: f, busNumber: busNumber}
+	u := &UART{uartConn{name: name, f: f, busNumber: busNumber}}
 	return u, nil
 }
 
-// Close implements uart.ConnCloser.
+// Close implements uart.PortCloser.
 func (u *UART) Close() error {
-	err := u.f.Close()
-	u.f = nil
+	err := u.conn.f.Close()
+	u.conn.f = nil
 	return err
 }
 
 func (u *UART) String() string {
-	return "uart"
+	return u.conn.String()
 }
 
-// Configure implements uart.Conn.
-func (u *UART) Configure(stopBit uart.Stop, parity uart.Parity, bits int) error {
-	return errors.New("sysfs-uart: not implemented")
+func (u *UART) Connect(f physic.Frequency, stopBit uart.Stop, parity uart.Parity, flow uart.Flow, bits int) (conn.Conn, error) {
+	u.conn.mu.Lock()
+	defer u.conn.mu.Unlock()
+	if u.conn.f == nil {
+		return nil, errors.New("already closed")
+	}
+	if u.conn.opened {
+		return nil, errors.New("already connected")
+	}
+	return &u.conn, nil
 }
 
-// Duplex implements uart.Conn.
-func (u *UART) Duplex() conn.Duplex {
-	return conn.DuplexUnknown
-}
-
-// Write implements uart.Conn.
-func (u *UART) Write(b []byte) (int, error) {
-	return 0, errors.New("sysfs-uart: not implemented")
-}
-
-// Tx implements uart.Conn.
-func (u *UART) Tx(w, r []byte) error {
-	return errors.New("sysfs-uart: not implemented")
-}
-
-// Speed implements uart.Conn.
-func (u *UART) Speed(baud int) error {
+// LimitSpeed implements uart.PortCloser.
+func (u *UART) LimitSpeed(f physic.Frequency) error {
 	return errors.New("sysfs-uart: not implemented")
 }
 
 // RX implements uart.Pins.
 func (u *UART) RX() gpio.PinIn {
-	return gpio.INVALID
+	return u.conn.RX()
 }
 
 // TX implements uart.Pins.
 func (u *UART) TX() gpio.PinOut {
+	return u.conn.TX()
+}
+
+// RTS implements uart.Pins.
+func (u *UART) RTS() gpio.PinOut {
+	return u.conn.RTS()
+}
+
+// CTS implements uart.Pins.
+func (u *UART) CTS() gpio.PinIn {
+	return u.conn.CTS()
+}
+
+type uartConn struct {
+	name      string
+	f         *os.File
+	busNumber int
+
+	mu     sync.Mutex
+	opened bool
+}
+
+func (u *uartConn) String() string {
+	return u.name
+}
+
+// Duplex implements conn.Conn.
+func (u *uartConn) Duplex() conn.Duplex {
+	return conn.Full
+}
+
+// Write implements io.Writer.
+func (u *uartConn) Write(b []byte) (int, error) {
+	return 0, errors.New("sysfs-uart: not implemented")
+}
+
+// Tx implements conn.Conn.
+func (u *uartConn) Tx(w, r []byte) error {
+	return errors.New("sysfs-uart: not implemented")
+}
+
+// RX implements uart.Pins.
+func (u *uartConn) RX() gpio.PinIn {
+	return gpio.INVALID
+}
+
+// TX implements uart.Pins.
+func (u *uartConn) TX() gpio.PinOut {
 	return gpio.INVALID
 }
 
 // RTS implements uart.Pins.
-func (u *UART) RTS() gpio.PinIO {
+func (u *uartConn) RTS() gpio.PinOut {
 	return gpio.INVALID
 }
 
 // CTS implements uart.Pins.
-func (u *UART) CTS() gpio.PinIO {
+func (u *uartConn) CTS() gpio.PinIn {
 	return gpio.INVALID
 }
-
-var _ uart.Conn = &UART{}
 
 // driverUART implements periph.Driver.
 type driverUART struct {
@@ -124,3 +164,8 @@ func (d *driverUART) String() string {
 func (d *driverUART) Init() (bool, error) {
 	return true, nil
 }
+
+var _ uart.PortCloser = &UART{}
+var _ uart.Pins = &UART{}
+var _ conn.Conn = &uartConn{}
+var _ uart.Pins = &uartConn{}
