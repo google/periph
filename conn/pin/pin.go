@@ -9,7 +9,11 @@
 // While not a protocol strictly speaking, these are "well known constants".
 package pin
 
-import "periph.io/x/periph/conn"
+import (
+	"errors"
+
+	"periph.io/x/periph/conn"
+)
 
 // These are well known pins.
 var (
@@ -35,12 +39,39 @@ type Pin interface {
 	// Function returns a user readable string representation of what the pin is
 	// configured to do. Common case is In and Out but it can be bus specific pin
 	// name.
+	//
+	// Deprecated: Use PinFunc.Func. Will be removed in v4.
 	Function() string
+}
+
+// PinFunc is a supplementary interface that enables specifically querying for
+// the pin function.
+//
+// TODO(maruel): It will be merged into interface Pin for v4.
+type PinFunc interface {
+	// Func returns the pin's current function.
+	//
+	// The returned value may be specialized or generalized, depending on the
+	// actual port. For example it will likely be generalized for ports served
+	// over USB (like a FT232H with D0 set as SPI_MOSI) but specialized for
+	// ports on the base board (like a RPi3 with GPIO10 set as SPI0_MOSI).
+	Func() Func
+	// SupportedFuncs returns the possible functions this pin support.
+	//
+	// Do not mutate the returned slice.
+	SupportedFuncs() []Func
+	// SetFunc sets the pin function.
+	//
+	// Example use is to reallocate a RPi3's GPIO14 active function between
+	// UART0_TX and UART1_TX.
+	SetFunc(f Func) error
 }
 
 //
 
 // BasicPin implements Pin as a static pin.
+//
+// It doesn't have a usable functionality.
 type BasicPin struct {
 	N string
 }
@@ -62,25 +93,47 @@ func (b *BasicPin) Name() string {
 
 // Number implements Pin.
 //
-// It returns -1 as pin number.
+// Returns -1 as pin number.
 func (b *BasicPin) Number() int {
 	return -1
 }
 
 // Function implements Pin.
 //
-// It returns "" as pin function.
+// Returns "" as pin function.
 func (b *BasicPin) Function() string {
 	return ""
+}
+
+// Func implements PinFunc.
+//
+// Returns FuncNone as pin function.
+func (b *BasicPin) Func() Func {
+	return FuncNone
+}
+
+// SupportedFuncs implements PinFunc.
+//
+// Returns nil.
+func (b *BasicPin) SupportedFuncs() []Func {
+	return nil
+}
+
+// SetFunc implements PinFunc.
+func (b *BasicPin) SetFunc(f Func) error {
+	return errors.New("pin: can't change static pin function")
 }
 
 func init() {
 	INVALID = &BasicPin{N: "INVALID"}
 	GROUND = &BasicPin{N: "GROUND"}
-	V1_8 = &BasicPin{N: "V1_8"}
-	V2_8 = &BasicPin{N: "V2_8"}
-	V3_3 = &BasicPin{N: "V3_3"}
-	V5 = &BasicPin{N: "V5"}
+	V1_8 = &BasicPin{N: "1.8V"}
+	V2_8 = &BasicPin{N: "2.8V"}
+	V3_3 = &BasicPin{N: "3.3V"}
+	V5 = &BasicPin{N: "5V"}
 	DC_IN = &BasicPin{N: "DC_IN"}
-	BAT_PLUS = &BasicPin{N: "BAT_PLUS"}
+	BAT_PLUS = &BasicPin{N: "BAT+"}
 }
+
+var _ Pin = INVALID
+var _ PinFunc = INVALID
