@@ -109,7 +109,7 @@ func TestPin(t *testing.T) {
 
 	p.number = 45
 	p.setFunction(alt0)
-	if s := p.Function(); s != "PWM1_OUT" {
+	if s := p.Function(); s != "PWM1" {
 		t.Fatal(s)
 	}
 	p.setFunction(alt1)

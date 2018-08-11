@@ -5,7 +5,7 @@
 // Package bcm283xsmoketest verifies that bcm283x specific functionality work.
 //
 // This test assumes GPIO6 and GPIO13 are connected together. GPIO6 implements
-// GPCLK2 and GPIO13 imlements PWM1_OUT.
+// CLK2 and GPIO13 imlements PWM1.
 package bcm283xsmoketest
 
 import (

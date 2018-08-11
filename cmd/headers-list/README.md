@@ -16,8 +16,8 @@ SPI host and lirc enabled:
     $ headers-list
     AUDIO: 2 pins
       Pos  Name    Func
-      1    GPIO41  PWM1_OUT
-      2    GPIO40  PWM0_OUT
+      1    GPIO41  PWM1
+      2    GPIO40  PWM0
 
     HDMI: 1 pins
       Pos  Name    Func

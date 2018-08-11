@@ -38,12 +38,12 @@ When possible, aliases are created per functionality. Print the GPIO aliases
 with:
 
     $ gpio-list -l
-    GPCLK1   : GPIO42
-    GPCLK2   : GPIO43
+    CLK1     : GPIO42
+    CLK2     : GPIO43
     I2C1_SCL : GPIO3
     I2C1_SDA : GPIO2
-    PWM0_OUT : GPIO40
-    PWM1_OUT : GPIO41
+    PWM0     : GPIO40
+    PWM1     : GPIO41
     SPI0_CLK : GPIO11
     SPI0_MISO: GPIO9
     SPI0_MOSI: GPIO10
@@ -87,6 +87,6 @@ Print the GPIO pins per number:
     GPIO25: In/Low
     GPIO26: In/Low
     GPIO27: In/Low
-    GPIO40: PWM0_OUT
-    GPIO41: PWM1_OUT
+    GPIO40: PWM0
+    GPIO41: PWM1
     GPIO46: In/High

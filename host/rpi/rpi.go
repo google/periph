@@ -51,12 +51,12 @@ var (
 	P1_4  pin.Pin    = pin.V5         //
 	P1_5  gpio.PinIO = bcm283x.GPIO3  // High, I2C1_SCL
 	P1_6  pin.Pin    = pin.GROUND     //
-	P1_7  gpio.PinIO = bcm283x.GPIO4  // High, GPCLK0
+	P1_7  gpio.PinIO = bcm283x.GPIO4  // High, CLK0
 	P1_8  gpio.PinIO = bcm283x.GPIO14 // Low,  UART0_TX, UART1_TX
 	P1_9  pin.Pin    = pin.GROUND     //
 	P1_10 gpio.PinIO = bcm283x.GPIO15 // Low,  UART0_RX, UART1_RX
 	P1_11 gpio.PinIO = bcm283x.GPIO17 // Low,  UART0_RTS, SPI1_CS1, UART1_RTS
-	P1_12 gpio.PinIO = bcm283x.GPIO18 // Low,  I2S_SCK, SPI1_CS0, PWM0_OUT
+	P1_12 gpio.PinIO = bcm283x.GPIO18 // Low,  I2S_SCK, SPI1_CS0, PWM0
 	P1_13 gpio.PinIO = bcm283x.GPIO27 // Low,
 	P1_14 pin.Pin    = pin.GROUND     //
 	P1_15 gpio.PinIO = bcm283x.GPIO22 // Low,
@@ -75,18 +75,18 @@ var (
 	// Raspberry Pi A+, B+, 2 and later, 40 pin header (also named J8):
 	P1_27 gpio.PinIO = bcm283x.GPIO0  // High, I2C0_SDA used to probe for HAT EEPROM, see https://github.com/raspberrypi/hats
 	P1_28 gpio.PinIO = bcm283x.GPIO1  // High, I2C0_SCL
-	P1_29 gpio.PinIO = bcm283x.GPIO5  // High, GPCLK1
+	P1_29 gpio.PinIO = bcm283x.GPIO5  // High, CLK1
 	P1_30 pin.Pin    = pin.GROUND     //
-	P1_31 gpio.PinIO = bcm283x.GPIO6  // High, GPCLK2
-	P1_32 gpio.PinIO = bcm283x.GPIO12 // Low,  PWM0_OUT
-	P1_33 gpio.PinIO = bcm283x.GPIO13 // Low,  PWM1_OUT
+	P1_31 gpio.PinIO = bcm283x.GPIO6  // High, CLK2
+	P1_32 gpio.PinIO = bcm283x.GPIO12 // Low,  PWM0
+	P1_33 gpio.PinIO = bcm283x.GPIO13 // Low,  PWM1
 	P1_34 pin.Pin    = pin.GROUND     //
-	P1_35 gpio.PinIO = bcm283x.GPIO19 // Low,  I2S_WS, SPI1_MISO, PWM1_OUT
+	P1_35 gpio.PinIO = bcm283x.GPIO19 // Low,  I2S_WS, SPI1_MISO, PWM1
 	P1_36 gpio.PinIO = bcm283x.GPIO16 // Low,  UART0_CTS, SPI1_CS2, UART1_CTS
 	P1_37 gpio.PinIO = bcm283x.GPIO26 //
-	P1_38 gpio.PinIO = bcm283x.GPIO20 // Low,  I2S_DIN, SPI1_MOSI, GPCLK0
+	P1_38 gpio.PinIO = bcm283x.GPIO20 // Low,  I2S_DIN, SPI1_MOSI, CLK0
 	P1_39 pin.Pin    = pin.GROUND     //
-	P1_40 gpio.PinIO = bcm283x.GPIO21 // Low,  I2S_DOUT, SPI1_CLK, GPCLK1
+	P1_40 gpio.PinIO = bcm283x.GPIO21 // Low,  I2S_DOUT, SPI1_CLK, CLK1
 
 	// P5 header on Raspberry Pi A and B, PCB v2:
 	P5_1 pin.Pin    = pin.V5
@@ -98,8 +98,8 @@ var (
 	P5_7 pin.Pin    = pin.GROUND
 	P5_8 pin.Pin    = pin.GROUND
 
-	AUDIO_RIGHT         = bcm283x.GPIO40 // Low,   PWM0_OUT, SPI2_MISO, UART1_TX
-	AUDIO_LEFT          = bcm283x.GPIO41 // Low,   PWM1_OUT, SPI2_MOSI, UART1_RX
+	AUDIO_RIGHT         = bcm283x.GPIO40 // Low,   PWM0, SPI2_MISO, UART1_TX
+	AUDIO_LEFT          = bcm283x.GPIO41 // Low,   PWM1, SPI2_MOSI, UART1_RX
 	HDMI_HOTPLUG_DETECT = bcm283x.GPIO46 // High,
 )
 
@@ -630,7 +630,7 @@ func (d *driver) Init() (bool, error) {
 
 	if hasAudio {
 		if !hasNewAudio {
-			AUDIO_LEFT = bcm283x.GPIO45 // PWM1_OUT
+			AUDIO_LEFT = bcm283x.GPIO45 // PWM1
 		}
 		if err := pinreg.Register("AUDIO", [][]pin.Pin{
 			{AUDIO_LEFT},

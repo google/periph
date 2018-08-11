@@ -29,24 +29,24 @@ var (
 	GPIO1  *Pin // I2C0_SCL
 	GPIO2  *Pin // I2C1_SDA
 	GPIO3  *Pin // I2C1_SCL
-	GPIO4  *Pin // GPCLK0
-	GPIO5  *Pin // GPCLK1
-	GPIO6  *Pin // GPCLK2
+	GPIO4  *Pin // CLK0
+	GPIO5  *Pin // CLK1
+	GPIO6  *Pin // CLK2
 	GPIO7  *Pin // SPI0_CS1
 	GPIO8  *Pin // SPI0_CS0
 	GPIO9  *Pin // SPI0_MISO
 	GPIO10 *Pin // SPI0_MOSI
 	GPIO11 *Pin // SPI0_CLK
-	GPIO12 *Pin // PWM0_OUT
-	GPIO13 *Pin // PWM1_OUT
+	GPIO12 *Pin // PWM0
+	GPIO13 *Pin // PWM1
 	GPIO14 *Pin // UART0_TX, UART1_TX
 	GPIO15 *Pin // UART0_RX, UART1_RX
 	GPIO16 *Pin // UART0_CTS, SPI1_CS2, UART1_CTS
 	GPIO17 *Pin // UART0_RTS, SPI1_CS1, UART1_RTS
-	GPIO18 *Pin // I2S_SCK, SPI1_CS0, PWM0_OUT
-	GPIO19 *Pin // I2S_WS, SPI1_MISO, PWM1_OUT
-	GPIO20 *Pin // I2S_DIN, SPI1_MOSI, GPCLK0
-	GPIO21 *Pin // I2S_DOUT, SPI1_CLK, GPCLK1
+	GPIO18 *Pin // I2S_SCK, SPI1_CS0, PWM0
+	GPIO19 *Pin // I2S_WS, SPI1_MISO, PWM1
+	GPIO20 *Pin // I2S_DIN, SPI1_MOSI, CLK0
+	GPIO21 *Pin // I2S_DOUT, SPI1_CLK, CLK1
 	GPIO22 *Pin //
 	GPIO23 *Pin //
 	GPIO24 *Pin //
@@ -57,20 +57,20 @@ var (
 	GPIO29 *Pin // I2C0_SCL, I2S_WS
 	GPIO30 *Pin // I2S_DIN, UART0_CTS, UART1_CTS
 	GPIO31 *Pin // I2S_DOUT, UART0_RTS, UART1_RTS
-	GPIO32 *Pin // GPCLK0, UART0_TX, UART1_TX
+	GPIO32 *Pin // CLK0, UART0_TX, UART1_TX
 	GPIO33 *Pin // UART0_RX, UART1_RX
-	GPIO34 *Pin // GPCLK0
+	GPIO34 *Pin // CLK0
 	GPIO35 *Pin // SPI0_CS1
 	GPIO36 *Pin // SPI0_CS0, UART0_TX
 	GPIO37 *Pin // SPI0_MISO, UART0_RX
 	GPIO38 *Pin // SPI0_MOSI, UART0_RTS
 	GPIO39 *Pin // SPI0_CLK, UART0_CTS
-	GPIO40 *Pin // PWM0_OUT, SPI2_MISO, UART1_TX
-	GPIO41 *Pin // PWM1_OUT, SPI2_MOSI, UART1_RX
-	GPIO42 *Pin // GPCLK1, SPI2_CLK, UART1_RTS
-	GPIO43 *Pin // GPCLK2, SPI2_CS0, UART1_CTS
-	GPIO44 *Pin // GPCLK1, I2C0_SDA, I2C1_SDA, SPI2_CS1
-	GPIO45 *Pin // PWM1_OUT, I2C0_SCL, I2C1_SCL, SPI2_CS2
+	GPIO40 *Pin // PWM0, SPI2_MISO, UART1_TX
+	GPIO41 *Pin // PWM1, SPI2_MOSI, UART1_RX
+	GPIO42 *Pin // CLK1, SPI2_CLK, UART1_RTS
+	GPIO43 *Pin // CLK2, SPI2_CS0, UART1_CTS
+	GPIO44 *Pin // CLK1, I2C0_SDA, I2C1_SDA, SPI2_CS1
+	GPIO45 *Pin // PWM1, I2C0_SCL, I2C1_SCL, SPI2_CS2
 	GPIO46 *Pin //
 	// Pins 47~53 are not exposed because using them would lead to immediate SD
 	// Card corruption.
@@ -195,7 +195,7 @@ type Pin struct {
 
 	// Mutable.
 	usingEdge  bool           // Set when edge detection is enabled.
-	usingClock bool           // Set when a GPCLK, PWM or PCM clock is used.
+	usingClock bool           // Set when a CLK, PWM or PCM clock is used.
 	dmaCh      *dmaChannel    // Set when DMA is used for PWM or PCM.
 	dmaBuf     *videocore.Mem // Set when DMA is used for PWM or PCM.
 }
@@ -460,7 +460,7 @@ func (p *Pin) FastOut(l gpio.Level) {
 
 // BUG(maruel): PWM(): There is no conflict verification when multiple pins are
 // used simultaneously. The last call to PWM() will affect all pins of the same
-// type (GPCLK0, GPCLK2, PWM0 or PWM1).
+// type (CLK0, CLK2, PWM0 or PWM1).
 
 // PWM implements gpio.PinOut.
 //
@@ -716,7 +716,7 @@ func (p *Pin) haltDMA() error {
 	return nil
 }
 
-// haltClock disables the GPCLK/PWM clock if used.
+// haltClock disables the CLK/PWM clock if used.
 func (p *Pin) haltClock() error {
 	if err := p.haltDMA(); err != nil {
 		return err
@@ -842,24 +842,24 @@ var mapping = [][6]string{
 	{"I2C0_SCL"},
 	{"I2C1_SDA"},
 	{"I2C1_SCL"},
-	{"GPCLK0"},
-	{"GPCLK1"}, // 5
-	{"GPCLK2"},
+	{"CLK0"},
+	{"CLK1"}, // 5
+	{"CLK2"},
 	{"SPI0_CS1"},
 	{"SPI0_CS0"},
 	{"SPI0_MISO"},
 	{"SPI0_MOSI"}, // 10
 	{"SPI0_CLK"},
-	{"PWM0_OUT"},
-	{"PWM1_OUT"},
+	{"PWM0"},
+	{"PWM1"},
 	{"UART0_TX", "", "", "", "", "UART1_TX"},
 	{"UART0_RX", "", "", "", "", "UART1_RX"}, // 15
 	{"", "", "", "UART0_CTS", "SPI1_CS2", "UART1_CTS"},
 	{"", "", "", "UART0_RTS", "SPI1_CS1", "UART1_RTS"},
-	{"I2S_SCK", "", "", "", "SPI1_CS0", "PWM0_OUT"},
-	{"I2S_WS", "", "", "", "SPI1_MISO", "PWM1_OUT"},
-	{"I2S_DIN", "", "", "", "SPI1_MOSI", "GPCLK0"}, // 20
-	{"I2S_DOUT", "", "", "", "SPI1_CLK", "GPCLK1"},
+	{"I2S_SCK", "", "", "", "SPI1_CS0", "PWM0"},
+	{"I2S_WS", "", "", "", "SPI1_MISO", "PWM1"},
+	{"I2S_DIN", "", "", "", "SPI1_MOSI", "CLK0"}, // 20
+	{"I2S_DOUT", "", "", "", "SPI1_CLK", "CLK1"},
 	{""},
 	{""},
 	{""},
@@ -870,20 +870,20 @@ var mapping = [][6]string{
 	{"I2C0_SCL", "", "I2S_WS", "", "", ""},
 	{"", "", "I2S_DIN", "UART0_CTS", "", "UART1_CTS"}, // 30
 	{"", "", "I2S_DOUT", "UART0_RTS", "", "UART1_RTS"},
-	{"GPCLK0", "", "", "UART0_TX", "", "UART1_TX"},
+	{"CLK0", "", "", "UART0_TX", "", "UART1_TX"},
 	{"", "", "", "UART0_RX", "", "UART1_RX"},
-	{"GPCLK0"},
+	{"CLK0"},
 	{"SPI0_CS1"}, // 35
 	{"SPI0_CS0", "", "UART0_TX", "", "", ""},
 	{"SPI0_MISO", "", "UART0_RX", "", "", ""},
 	{"SPI0_MOSI", "", "UART0_RTS", "", "", ""},
 	{"SPI0_CLK", "", "UART0_CTS", "", "", ""},
-	{"PWM0_OUT", "", "", "", "SPI2_MISO", "UART1_TX"}, // 40
-	{"PWM1_OUT", "", "", "", "SPI2_MOSI", "UART1_RX"},
-	{"GPCLK1", "", "", "", "SPI2_CLK", "UART1_RTS"},
-	{"GPCLK2", "", "", "", "SPI2_CS0", "UART1_CTS"},
-	{"GPCLK1", "I2C0_SDA", "I2C1_SDA", "", "SPI2_CS1", ""},
-	{"PWM1_OUT", "I2C0_SCL", "I2C1_SCL", "", "SPI2_CS2", ""}, // 45
+	{"PWM0", "", "", "", "SPI2_MISO", "UART1_TX"}, // 40
+	{"PWM1", "", "", "", "SPI2_MOSI", "UART1_RX"},
+	{"CLK1", "", "", "", "SPI2_CLK", "UART1_RTS"},
+	{"CLK2", "", "", "", "SPI2_CS0", "UART1_CTS"},
+	{"CLK1", "I2C0_SDA", "I2C1_SDA", "", "SPI2_CS1", ""},
+	{"PWM1", "I2C0_SCL", "I2C1_SCL", "", "SPI2_CS2", ""}, // 45
 	{""},
 }
 
@@ -1178,7 +1178,7 @@ func (d *driverGPIO) Init() (bool, error) {
 		if f := cpuPins[i].Function(); len(f) < 3 || (f[:2] != "In" && f[:3] != "Out" && f[0] != '<') {
 			// Registering the same alias twice fails. This can happen if two pins
 			// are configured with the same function. For example both pin #12, #18
-			// and #40 could be configured to work as PWM0_OUT.
+			// and #40 could be configured to work as PWM0.
 			// TODO(maruel): Dynamically register and unregister the pins as their
 			// functionality is changed.
 			if _, ok := functions[f]; !ok {
@@ -1208,6 +1208,21 @@ func (d *driverGPIO) Init() (bool, error) {
 	}
 	for a, n := range csMap {
 		if err := gpioreg.RegisterAlias(a, fmt.Sprintf("GPIO%d", n)); err != nil {
+			return true, err
+		}
+	}
+
+	// Register some BCM-documentation specific names.
+	// Do not do UARTx_TXD/RXD nor the PCM_xxx ones.
+	aliases := [][2]string{
+		{"GPCLK0", "CLK0"},
+		{"GPCLK1", "CLK1"},
+		{"GPCLK2", "CLK2"},
+		{"PWM0_OUT", "PWM0"},
+		{"PWM1_OUT", "PWM1"},
+	}
+	for _, a := range aliases {
+		if err := gpioreg.RegisterAlias(a[0], a[1]); err != nil {
 			return true, err
 		}
 	}
