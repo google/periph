@@ -2,7 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package onewire defines a Dallas Semiconductor / Maxim Integrated 1-wire bus.
+// Package onewire defines the API to communicate with devices over the Dallas
+// Semiconductor / Maxim Integrated 1-wire protocol.
 //
 // As described in https://periph.io/x/periph/conn#hdr-Concepts, periph.io uses
 // the concepts of Bus, Port and Conn.
@@ -13,6 +14,8 @@
 // Instead, the package includes the adapter 'Dev' to directly convert an 1-wire
 // bus 'onewire.Bus' into a connection 'conn.Conn' by only specifying the device
 // 1-wire address.
+//
+// See https://en.wikipedia.org/wiki/1-Wire for more information.
 //
 // References
 //

@@ -195,9 +195,9 @@ type Pin struct {
 
 	// Mutable.
 	usingEdge  bool           // Set when edge detection is enabled.
-	usingClock bool           // Set when a CLK, PWM or PCM clock is used.
-	dmaCh      *dmaChannel    // Set when DMA is used for PWM or PCM.
-	dmaBuf     *videocore.Mem // Set when DMA is used for PWM or PCM.
+	usingClock bool           // Set when a CLK, PWM or I2S/PCM clock is used.
+	dmaCh      *dmaChannel    // Set when DMA is used for PWM or I2S/PCM.
+	dmaBuf     *videocore.Mem // Set when DMA is used for PWM or I2S/PCM.
 }
 
 // String implements conn.Resource.
@@ -592,7 +592,7 @@ func (p *Pin) StreamIn(pull gpio.Pull, s gpiostream.Stream) error {
 
 // StreamOut implements gpiostream.PinOut.
 //
-// PCM/I2S driven StreamOut is available for GPIO21 pin. The resolution is up to
+// I2S/PCM driven StreamOut is available for GPIO21 pin. The resolution is up to
 // 250MHz.
 //
 // For GPIO0 to GPIO31 except GPIO21 pin, DMA driven StreamOut is available and

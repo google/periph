@@ -2,7 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package i2c defines interface to an I²C bus and an I²C device.
+// Package i2c defines the API to communicate with devices over the I²C
+// protocol.
 //
 // As described in https://periph.io/x/periph/conn#hdr-Concepts, periph.io uses
 // the concepts of Bus, Port and Conn.
@@ -13,6 +14,8 @@
 // Instead, the package includes the adapter 'Dev' to directly convert an I²C
 // bus 'i2c.Bus' into a connection 'conn.Conn' by only specifying the device
 // I²C address.
+//
+// See https://en.wikipedia.org/wiki/I%C2%B2C for more information.
 package i2c
 
 import (

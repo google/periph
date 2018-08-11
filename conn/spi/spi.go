@@ -2,7 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package spi defines the SPI protocol.
+// Package spi defines the API to communicate with devices over the SPI
+// protocol.
 //
 // As described in https://periph.io/x/periph/conn#hdr-Concepts, periph.io uses
 // the concepts of Bus, Port and Conn.
@@ -15,6 +16,9 @@
 // API layer, so 'Port' is exposed directly instead.
 //
 // Use Port.Connect() converts the uninitialized Port into a Conn.
+//
+// See https://en.wikipedia.org/wiki/Serial_Peripheral_Interface for more
+// information.
 package spi
 
 import (
