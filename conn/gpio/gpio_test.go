@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"periph.io/x/periph/conn"
+	"periph.io/x/periph/conn/physic"
 )
 
 func TestStrings(t *testing.T) {
@@ -103,16 +103,23 @@ func TestParseDuty(t *testing.T) {
 }
 
 func TestInvalid(t *testing.T) {
-	if INVALID.String() != "INVALID" || INVALID.Name() != "INVALID" || INVALID.Number() != -1 || INVALID.Function() != "" {
+	// conn.Resource
+	if INVALID.String() != "INVALID" {
 		t.Fail()
 	}
-	if INVALID.In(Float, NoEdge) != errInvalidPin || INVALID.Read() != Low || INVALID.WaitForEdge(time.Minute) || INVALID.Pull() != PullNoChange {
-		t.Fail()
-	}
-	if INVALID.Out(Low) != errInvalidPin {
-		t.Fail()
-	}
-	if err := INVALID.(conn.Resource).Halt(); err != nil {
+	if err := INVALID.Halt(); err != nil {
 		t.Fatal(err)
+	}
+	// pin.Pin
+	if INVALID.Name() != "INVALID" || INVALID.Number() != -1 || INVALID.Function() != "" {
+		t.Fail()
+	}
+	// gpio.PinIn
+	if INVALID.In(Float, NoEdge) != errInvalidPin || INVALID.Read() != Low || INVALID.WaitForEdge(time.Minute) || INVALID.Pull() != PullNoChange || INVALID.DefaultPull() != PullNoChange {
+		t.Fail()
+	}
+	// gpio.PinOut
+	if INVALID.Out(Low) != errInvalidPin || INVALID.PWM(DutyMax, physic.Hertz) != errInvalidPin {
+		t.Fail()
 	}
 }

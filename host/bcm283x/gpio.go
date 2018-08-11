@@ -1157,14 +1157,13 @@ func (d *driverGPIO) Init() (bool, error) {
 	for i := range cpuPins {
 		name := cpuPins[i].name
 		num := strconv.Itoa(cpuPins[i].number)
-		gpion := "GPIO" + num
 
 		// Initializes the sysfs corresponding pin right away.
 		cpuPins[i].sysfsPin = sysfs.Pins[cpuPins[i].number]
 
 		// Unregister the pin if already registered. This happens with sysfs-gpio.
 		// Do not error on it, since sysfs-gpio may have failed to load.
-		_ = gpioreg.Unregister(gpion)
+		_ = gpioreg.Unregister(name)
 		_ = gpioreg.Unregister(num)
 
 		if err := gpioreg.Register(&cpuPins[i]); err != nil {
@@ -1183,7 +1182,7 @@ func (d *driverGPIO) Init() (bool, error) {
 			// functionality is changed.
 			if _, ok := functions[f]; !ok {
 				functions[f] = struct{}{}
-				if err := gpioreg.RegisterAlias(f, gpion); err != nil {
+				if err := gpioreg.RegisterAlias(f, name); err != nil {
 					return true, err
 				}
 			}

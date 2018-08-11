@@ -32,7 +32,7 @@ func printFailures(state *periph.State) {
 	}
 }
 
-func printHardware(invalid bool, all map[string][][]pin.Pin) {
+func printHardware(all map[string][][]pin.Pin) {
 	names := make([]string, 0, len(all))
 	for name := range all {
 		names = append(names, name)
@@ -88,7 +88,6 @@ func printHardware(invalid bool, all map[string][][]pin.Pin) {
 }
 
 func mainImpl() error {
-	invalid := flag.Bool("n", false, "show not connected/INVALID pins")
 	verbose := flag.Bool("v", false, "verbose mode")
 	flag.Parse()
 	if !*verbose {
@@ -110,14 +109,14 @@ func mainImpl() error {
 		return errors.New("no header found")
 	}
 	if flag.NArg() == 0 {
-		printHardware(*invalid, all)
+		printHardware(all)
 	} else {
 		for _, name := range flag.Args() {
 			hdr, ok := all[name]
 			if !ok {
 				return fmt.Errorf("header %q is not registered", name)
 			}
-			printHardware(*invalid, map[string][][]pin.Pin{name: hdr})
+			printHardware(map[string][][]pin.Pin{name: hdr})
 		}
 	}
 	return nil

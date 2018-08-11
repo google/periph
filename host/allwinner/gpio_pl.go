@@ -337,10 +337,10 @@ var mapping = [13][5]string{
 	{"RSB_SDA", "I2C_SDA", "", "", "PL_EINT1"}, // PL1
 	{"UART_TX", "", "", "", "PL_EINT2"},        // PL2
 	{"UART_RX", "", "", "", "PL_EINT3"},        // PL3
-	{"JTAG_MS", "", "", "", "PL_EINT4"},        // PL4
-	{"JTAG_CK", "", "", "", "PL_EINT5"},        // PL5
-	{"JTAG_DO", "", "", "", "PL_EINT6"},        // PL6
-	{"JTAG_DI", "", "", "", "PL_EINT7"},        // PL7
+	{"JTAG_TMS", "", "", "", "PL_EINT4"},       // PL4
+	{"JTAG_TCK", "", "", "", "PL_EINT5"},       // PL5
+	{"JTAG_TDO", "", "", "", "PL_EINT6"},       // PL6
+	{"JTAG_TDI", "", "", "", "PL_EINT7"},       // PL7
 	{"I2C_CSK", "", "", "", "PL_EINT8"},        // PL8
 	{"I2C_SDA", "", "", "", "PL_EINT9"},        // PL9
 	{"PWM0", "", "", "", "PL_EINT10"},          // PL10
