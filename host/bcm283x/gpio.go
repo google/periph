@@ -57,7 +57,7 @@ var (
 	GPIO29 *Pin // I2C0_SCL, I2S_WS
 	GPIO30 *Pin // I2S_DIN, UART0_CTS, UART1_CTS
 	GPIO31 *Pin // I2S_DOUT, UART0_RTS, UART1_RTS
-	GPIO32 *Pin // GPCLK0, UART0_TXD, UART1_TXD
+	GPIO32 *Pin // GPCLK0, UART0_TX, UART1_TX
 	GPIO33 *Pin // UART0_RX, UART1_RX
 	GPIO34 *Pin // GPCLK0
 	GPIO35 *Pin // SPI0_CS1
@@ -870,7 +870,7 @@ var mapping = [][6]string{
 	{"I2C0_SCL", "", "I2S_WS", "", "", ""},
 	{"", "", "I2S_DIN", "UART0_CTS", "", "UART1_CTS"}, // 30
 	{"", "", "I2S_DOUT", "UART0_RTS", "", "UART1_RTS"},
-	{"GPCLK0", "", "", "UART0_TXD", "", "UART1_TXD"},
+	{"GPCLK0", "", "", "UART0_TX", "", "UART1_TX"},
 	{"", "", "", "UART0_RX", "", "UART1_RX"},
 	{"GPCLK0"},
 	{"SPI0_CS1"}, // 35

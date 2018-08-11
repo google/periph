@@ -109,9 +109,9 @@ var (
 	P9_8  pin.Pin    = pin.V5
 	P9_9  pin.Pin    = PWR_BUT      // PWR_BUT
 	P9_10 pin.Pin    = RESET_OUT    // SYS_RESETn
-	P9_11 gpio.PinIO = gpio.INVALID // GPIO30, UART4_RXT
+	P9_11 gpio.PinIO = gpio.INVALID // GPIO30, UART4_RX
 	P9_12 gpio.PinIO = gpio.INVALID // GPIO60
-	P9_13 gpio.PinIO = gpio.INVALID // GPIO31, UART4_TXD
+	P9_13 gpio.PinIO = gpio.INVALID // GPIO31, UART4_TX
 	P9_14 gpio.PinIO = gpio.INVALID // GPIO50, EHRPWM1A
 	P9_15 gpio.PinIO = gpio.INVALID // GPIO48
 	P9_16 gpio.PinIO = gpio.INVALID // GPIO51, EHRPWM1B
@@ -140,7 +140,7 @@ var (
 	P9_39 pin.Pin    = AIN0         // AIN0
 	P9_40 pin.Pin    = AIN1         // AIN1
 	P9_41 gpio.PinIO = gpio.INVALID // GPIO20
-	P9_42 gpio.PinIO = gpio.INVALID // GPIO7, ECAPPWM0, UART3_TXD, SPI1_CS1
+	P9_42 gpio.PinIO = gpio.INVALID // GPIO7, ECAPPWM0, UART3_TX, SPI1_CS1
 	P9_43 pin.Pin    = pin.GROUND
 	P9_44 pin.Pin    = pin.GROUND
 	P9_45 pin.Pin    = pin.GROUND

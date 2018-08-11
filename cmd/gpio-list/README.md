@@ -73,8 +73,8 @@ Print the GPIO pins per number:
     GPIO11: SPI0_CLK
     GPIO12: In/Low
     GPIO13: In/High
-    GPIO14: UART0_TXD
-    GPIO15: UART0_RXD
+    GPIO14: UART0_TX
+    GPIO15: UART0_RX
     GPIO16: In/Low
     GPIO17: In/Low
     GPIO18: Out/High
