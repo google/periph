@@ -32,7 +32,7 @@ type Ref struct {
 	Name string
 	// Aliases are the alternative names that can be used to reference this port.
 	Aliases []string
-	// Number of the port or -1 if the port doesn't have any "native" number.
+	// Number of the bus or -1 if the bus doesn't have any "native" number.
 	//
 	// Buses provided by the CPU normally have a 0 based number. Buses provided
 	// via an addon (like over USB) generally are not numbered.

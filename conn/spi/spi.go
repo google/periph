@@ -165,7 +165,7 @@ type PortCloser interface {
 	// wires are long or the connection is of poor quality.
 	//
 	// This function can be called multiple times and resets the previous value.
-	// 0 is not a value value for f. The lowest speed between the port speed and
+	// 0 is not a valid value for f. The lowest speed between the port speed and
 	// the device speed is selected.
 	LimitSpeed(f physic.Frequency) error
 }
