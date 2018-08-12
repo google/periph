@@ -59,8 +59,8 @@ func printHardware(showFunctions bool, all map[string][][]pin.Pin) {
 	}
 	sort.Strings(names)
 	maxName := 0
-	maxFn := 0
-	maxAltFn := 0
+	maxFn := len("Func")
+	maxAltFn := len("Alt")
 	for _, header := range all {
 		if len(header) == 0 || len(header[0]) != 2 {
 			continue

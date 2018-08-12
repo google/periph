@@ -66,8 +66,8 @@ func altFuncs(p pin.Pin) string {
 
 func printGPIO(invalid, showFunctions bool) {
 	maxName := 0
-	maxFn := 0
-	maxAltFn := 0
+	maxFn := len("Func")
+	maxAltFn := len("Alt")
 	all := gpioreg.All()
 	for _, p := range all {
 		if invalid || pinreg.IsConnected(p) {

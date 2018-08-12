@@ -15,6 +15,7 @@ workers:
     - periph-info
   - cmd:
     - headers-list
+    - -f
   - cmd:
     - i2c-list
   - cmd:
@@ -35,8 +36,10 @@ workers:
     - periph-info
   - cmd:
     - gpio-list
+    - -f
   - cmd:
     - headers-list
+    - -f
   - cmd:
     - i2c-list
   - cmd:
@@ -95,8 +98,10 @@ workers:
     - periph-info
   - cmd:
     - gpio-list
+    - -f
   - cmd:
     - headers-list
+    - -f
   - cmd:
     - i2c-list
   - cmd:
@@ -126,8 +131,10 @@ workers:
     - periph-info
   - cmd:
     - gpio-list
+    - -f
   - cmd:
     - headers-list
+    - -f
   - cmd:
     - i2c-list
   - cmd:
@@ -166,8 +173,10 @@ workers:
     - periph-info
   - cmd:
     - gpio-list
+    - -f
   - cmd:
     - headers-list
+    - -f
   - cmd:
     - i2c-list
   - cmd:
