@@ -53,11 +53,11 @@ func TestPin_Function(t *testing.T) {
 		t.Fatal(s)
 	}
 	p.fDirection = &fakeGPIOFile{data: []byte("in")}
-	if s := p.Function(); s != "In/Low" {
+	if s := p.Function(); s != string(gpio.IN_LOW) {
 		t.Fatal(s)
 	}
 	p.fDirection = &fakeGPIOFile{data: []byte("out")}
-	if s := p.Function(); s != "Out/Low" {
+	if s := p.Function(); s != string(gpio.OUT_LOW) {
 		t.Fatal(s)
 	}
 }

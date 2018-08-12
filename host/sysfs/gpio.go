@@ -19,6 +19,7 @@ import (
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/physic"
+	"periph.io/x/periph/conn/pin"
 	"periph.io/x/periph/host/fs"
 )
 
@@ -75,15 +76,20 @@ func (p *Pin) Number() int {
 
 // Function implements pin.Pin.
 func (p *Pin) Function() string {
+	return string(p.Func())
+}
+
+// Func implements pin.PinFunc.
+func (p *Pin) Func() pin.Func {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	// TODO(maruel): There's an internal bug which causes p.direction to be
 	// invalid (!?) Need to figure it out ASAP.
 	if err := p.open(); err != nil {
-		return "ERR"
+		return pin.Func("ERR")
 	}
 	if _, err := seekRead(p.fDirection, p.buf[:]); err != nil {
-		return "ERR"
+		return pin.Func("ERR")
 	}
 	if p.buf[0] == 'i' && p.buf[1] == 'n' {
 		p.direction = dIn
@@ -91,11 +97,36 @@ func (p *Pin) Function() string {
 		p.direction = dOut
 	}
 	if p.direction == dIn {
-		return "In/" + p.Read().String()
+		if p.Read() {
+			return gpio.IN_HIGH
+		}
+		return gpio.IN_LOW
 	} else if p.direction == dOut {
-		return "Out/" + p.Read().String()
+		if p.Read() {
+			return gpio.OUT_HIGH
+		}
+		return gpio.OUT_LOW
 	}
-	return "ERR"
+	return pin.Func("ERR")
+}
+
+// SupportedFuncs implements pin.PinFunc.
+func (p *Pin) SupportedFuncs() []pin.Func {
+	return []pin.Func{gpio.IN, gpio.OUT}
+}
+
+// SetFunc implements pin.PinFunc.
+func (p *Pin) SetFunc(f pin.Func) error {
+	switch f {
+	case gpio.IN:
+		return p.In(gpio.PullNoChange, gpio.NoEdge)
+	case gpio.OUT_HIGH:
+		return p.Out(gpio.High)
+	case gpio.OUT, gpio.OUT_LOW:
+		return p.Out(gpio.Low)
+	default:
+		return p.wrap(errors.New("unsupported function"))
+	}
 }
 
 // In implements gpio.PinIn.
@@ -477,3 +508,4 @@ var _ conn.Resource = &Pin{}
 var _ gpio.PinIn = &Pin{}
 var _ gpio.PinOut = &Pin{}
 var _ gpio.PinIO = &Pin{}
+var _ pin.PinFunc = &Pin{}

@@ -18,6 +18,7 @@ import (
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/physic"
+	"periph.io/x/periph/conn/pin"
 	"periph.io/x/periph/host/fs"
 )
 
@@ -81,6 +82,31 @@ func (l *LED) Function() string {
 		return "LED/On"
 	}
 	return "LED/Off"
+}
+
+// Func implements pin.PinFunc.
+func (l *LED) Func() pin.Func {
+	if l.Read() {
+		return gpio.OUT_HIGH
+	}
+	return gpio.OUT_LOW
+}
+
+// SupportedFuncs implements pin.PinFunc.
+func (l *LED) SupportedFuncs() []pin.Func {
+	return []pin.Func{gpio.OUT}
+}
+
+// SetFunc implements pin.PinFunc.
+func (l *LED) SetFunc(f pin.Func) error {
+	switch f {
+	case gpio.OUT_HIGH:
+		return l.Out(gpio.High)
+	case gpio.OUT, gpio.OUT_LOW:
+		return l.Out(gpio.Low)
+	default:
+		return errors.New("sysfs-led: unsupported function")
+	}
 }
 
 // In implements gpio.PinIn.
@@ -238,3 +264,4 @@ var _ conn.Resource = &LED{}
 var _ gpio.PinIn = &LED{}
 var _ gpio.PinOut = &LED{}
 var _ gpio.PinIO = &LED{}
+var _ pin.PinFunc = &LED{}
