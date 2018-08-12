@@ -106,10 +106,6 @@ func newWebServer(hostport string, state *periph.State, verbose bool) (*webServe
 	return s, nil
 }
 
-func (s *webServer) Close() error {
-	return s.server.Close()
-}
-
 // Inspired by https://github.com/golang/net/blob/master/xsrftoken/xsrf.go
 
 func (s *webServer) generateToken(userID string, now time.Time) string {
