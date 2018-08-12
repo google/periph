@@ -31,14 +31,17 @@ func fileIOOpenPanic(path string, flag int) (fileIO, error) {
 	panic("don't forget to override fileIOOpen")
 }
 
-type ioctlClose struct{}
+type ioctlClose struct {
+	ioctlErr error
+	closeErr error
+}
 
 func (i *ioctlClose) Ioctl(op uint, data uintptr) error {
-	return nil
+	return i.ioctlErr
 }
 
 func (i *ioctlClose) Close() error {
-	return nil
+	return i.closeErr
 }
 
 type file struct {
