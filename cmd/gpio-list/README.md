@@ -12,6 +12,7 @@ I²C or SPI pin).
 
 - Use `gpio-list -help` for help
 - Use `-n` to print pins that are not connected or in INVALID state
+- Use `-f` to print the alternative functions each pin can take
 - Use `-a` to print everything at once
 
 The followings were captured on a Raspberry Pi 3 with I2C1, SPI0 and SPI1

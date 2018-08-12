@@ -9,6 +9,9 @@ Prints physical headers pins and the associated functionality of each pin.
 
 ## Example
 
+- Use `headers-list -help` for help
+- Use `-f` to print the alternative functions each pin can take
+
 Print the pins per their hardware location on the headers. This uses an
 internal lookup table then query each pin. Here's an example on a host with two
 SPI host and lirc enabled:
