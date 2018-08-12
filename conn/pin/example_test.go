@@ -10,6 +10,8 @@ import (
 
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/pin"
+	"periph.io/x/periph/conn/spi"
+	"periph.io/x/periph/conn/uart"
 )
 
 func ExampleBasicPin() {
@@ -23,9 +25,9 @@ func ExampleBasicPin() {
 
 func ExampleFunc_Specialize() {
 	// Specializes both bus and line.
-	fmt.Println(pin.Func("SPI_CS").Specialize(1, 2))
+	fmt.Println(spi.CS.Specialize(1, 2))
 	// Specializes only bus.
-	fmt.Println(pin.Func("SPI_MOSI").Specialize(1, -1))
+	fmt.Println(spi.MOSI.Specialize(1, -1))
 	// Specializes only line.
 	fmt.Println(pin.Func("CSI_D").Specialize(-1, 3))
 	// Specializes neither.
@@ -58,7 +60,9 @@ func ExamplePinFunc() {
 	if !ok {
 		log.Fatal("pin.PinFunc is not implemented")
 	}
-	if err := pf.SetFunc(pin.Func("UART1_TX")); err != nil {
+	// Select UART1_TX.
+	f := uart.TX.Specialize(1, -1)
+	if err := pf.SetFunc(f); err != nil {
 		log.Fatal(err)
 	}
 }

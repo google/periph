@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"periph.io/x/periph/conn/physic"
+	"periph.io/x/periph/conn/pin"
 )
 
 func TestStrings(t *testing.T) {
@@ -121,5 +122,15 @@ func TestInvalid(t *testing.T) {
 	// gpio.PinOut
 	if INVALID.Out(Low) != errInvalidPin || INVALID.PWM(DutyMax, physic.Hertz) != errInvalidPin {
 		t.Fail()
+	}
+	// pin.PinFunc
+	if f := INVALID.(pin.PinFunc).Func(); f != pin.FuncNone {
+		t.Fatal(f)
+	}
+	if f := INVALID.(pin.PinFunc).SupportedFuncs(); len(f) != 0 {
+		t.Fatal(f)
+	}
+	if err := INVALID.(pin.PinFunc).SetFunc(IN_LOW); err == nil {
+		t.Fatal("can't set func")
 	}
 }

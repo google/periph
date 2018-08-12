@@ -8,12 +8,15 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"reflect"
 	"testing"
 	"time"
 
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
+	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/physic"
+	"periph.io/x/periph/conn/pin"
 )
 
 func TestPin(t *testing.T) {
@@ -34,6 +37,16 @@ func TestPin(t *testing.T) {
 	}
 	if f := p.Function(); f != "I2C1_SDA" {
 		t.Fatal(f)
+	}
+	// pin.PinFunc
+	if f := p.Func(); f != i2c.SDA.Specialize(1, -1) {
+		t.Fatal(f)
+	}
+	if f := p.SupportedFuncs(); !reflect.DeepEqual(f, []pin.Func{gpio.IN, gpio.OUT}) {
+		t.Fatal(f)
+	}
+	if err := p.SetFunc(i2c.SCL); err == nil {
+		t.Fatal("expected failure")
 	}
 	// gpio.PinIn
 	if err := p.In(gpio.PullDown, gpio.NoEdge); err != nil {

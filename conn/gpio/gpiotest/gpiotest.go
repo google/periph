@@ -14,6 +14,7 @@ import (
 
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/physic"
+	"periph.io/x/periph/conn/pin"
 )
 
 // Pin implements gpio.PinIO.
@@ -23,7 +24,7 @@ type Pin struct {
 	// These should be immutable.
 	N   string
 	Num int
-	Fn  string
+	Fn  string // TODO(maruel): pin.Func in v4.
 
 	// Grab the Mutex before accessing the following members.
 	sync.Mutex
@@ -59,6 +60,21 @@ func (p *Pin) Number() int {
 // Function implements pin.Pin.
 func (p *Pin) Function() string {
 	return p.Fn
+}
+
+// Func implements pin.PinFunc.
+func (p *Pin) Func() pin.Func {
+	return pin.Func(p.Fn)
+}
+
+// SupportedFuncs implements pin.PinFunc.
+func (p *Pin) SupportedFuncs() []pin.Func {
+	return []pin.Func{gpio.IN, gpio.OUT}
+}
+
+// SetFunc implements pin.PinFunc.
+func (p *Pin) SetFunc(f pin.Func) error {
+	return errors.New("gpiotest: not supported")
 }
 
 // In implements gpio.PinIn.
@@ -177,3 +193,4 @@ func (p *LogPinIO) PWM(duty gpio.Duty, f physic.Frequency) error {
 }
 
 var _ gpio.PinIO = &Pin{}
+var _ pin.PinFunc = &Pin{}
