@@ -578,6 +578,9 @@ func (p *Pin) StreamIn(pull gpio.Pull, s gpiostream.Stream) error {
 	if !b.LSBF {
 		return errors.New("bcm283x: MSBF BitStream is not implemented yet")
 	}
+	if b.Duration() == 0 {
+		return errors.New("bcm283x: can't read to empty BitStream")
+	}
 	if drvGPIO.gpioMemory == nil {
 		return p.wrap(errors.New("subsystem gpiomem not initialized"))
 	}
