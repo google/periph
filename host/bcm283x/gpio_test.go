@@ -5,11 +5,16 @@
 package bcm283x
 
 import (
+	"reflect"
 	"testing"
 
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpiostream"
+	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/physic"
+	"periph.io/x/periph/conn/pin"
+	"periph.io/x/periph/conn/spi"
+	"periph.io/x/periph/conn/uart"
 	"periph.io/x/periph/host/pmem"
 	"periph.io/x/periph/host/videocore"
 )
@@ -59,6 +64,17 @@ func TestPin_NoMem(t *testing.T) {
 	}
 	if s := p.Function(); s != "ERR" {
 		t.Fatal(s)
+	}
+
+	// pin.PinFunc
+	if s := p.Func(); s != pin.Func("ERR") {
+		t.Fatal(s)
+	}
+	if f := p.SupportedFuncs(); !reflect.DeepEqual(f, []pin.Func{gpio.IN, gpio.OUT, gpio.CLK.Specialize(-1, 1), spi.CLK.Specialize(2, -1), uart.RTS.Specialize(1, -1)}) {
+		t.Fatal(f)
+	}
+	if err := p.SetFunc(gpio.CLK); err == nil {
+		t.Fatal("expected failure")
 	}
 
 	// gpio.PinIn
@@ -148,27 +164,27 @@ func TestPin(t *testing.T) {
 func TestPin_SetFunc_25(t *testing.T) {
 	p := Pin{name: "Foo", number: 25, defaultPull: gpio.PullDown}
 	p.setFunction(alt0)
-	if s := p.Function(); s != "<Alt0>" {
+	if s := p.Function(); s != "ALT0" {
 		t.Fatal(s)
 	}
 	p.setFunction(alt1)
-	if s := p.Function(); s != "<Alt1>" {
+	if s := p.Function(); s != "ALT1" {
 		t.Fatal(s)
 	}
 	p.setFunction(alt2)
-	if s := p.Function(); s != "<Alt2>" {
+	if s := p.Function(); s != "ALT2" {
 		t.Fatal(s)
 	}
 	p.setFunction(alt3)
-	if s := p.Function(); s != "<Alt3>" {
+	if s := p.Function(); s != "ALT3" {
 		t.Fatal(s)
 	}
 	p.setFunction(alt4)
-	if s := p.Function(); s != "<Alt4>" {
+	if s := p.Function(); s != "ALT4" {
 		t.Fatal(s)
 	}
 	p.setFunction(alt5)
-	if s := p.Function(); s != "<Alt5>" {
+	if s := p.Function(); s != "ALT5" {
 		t.Fatal(s)
 	}
 
@@ -186,11 +202,17 @@ func TestPin_SetFunc_25(t *testing.T) {
 
 func TestPin_SetFunc_33(t *testing.T) {
 	p := Pin{name: "Foo", number: 33, defaultPull: gpio.PullDown}
-	p.setFunction(alt3)
+	if err := p.SetFunc(uart.RX); err != nil {
+		t.Fatal(err)
+	}
+	//p.setFunction(alt3)
 	if s := p.Function(); s != "UART0_RX" {
 		t.Fatal(s)
 	}
-	p.setFunction(alt5)
+	if err := p.SetFunc(uart.RX.Specialize(1, -1)); err != nil {
+		t.Fatal(err)
+	}
+	//p.setFunction(alt5)
 	if s := p.Function(); s != "UART1_RX" {
 		t.Fatal(s)
 	}
@@ -198,19 +220,31 @@ func TestPin_SetFunc_33(t *testing.T) {
 
 func TestPin_SetFunc_45(t *testing.T) {
 	p := Pin{name: "Foo", number: 45, defaultPull: gpio.PullDown}
-	p.setFunction(alt0)
+	if err := p.SetFunc(gpio.PWM); err != nil {
+		t.Fatal(err)
+	}
+	//p.setFunction(alt0)
 	if s := p.Function(); s != "PWM1" {
 		t.Fatal(s)
 	}
-	p.setFunction(alt1)
+	if err := p.SetFunc(i2c.SCL); err != nil {
+		t.Fatal(err)
+	}
+	//p.setFunction(alt1)
 	if s := p.Function(); s != "I2C0_SCL" {
 		t.Fatal(s)
 	}
-	p.setFunction(alt2)
+	if err := p.SetFunc(i2c.SCL.Specialize(1, -1)); err != nil {
+		t.Fatal(err)
+	}
+	//p.setFunction(alt2)
 	if s := p.Function(); s != "I2C1_SCL" {
 		t.Fatal(s)
 	}
-	p.setFunction(alt4)
+	if err := p.SetFunc(spi.CS); err != nil {
+		t.Fatal(err)
+	}
+	//p.setFunction(alt4)
 	if s := p.Function(); s != "SPI2_CS2" {
 		t.Fatal(s)
 	}

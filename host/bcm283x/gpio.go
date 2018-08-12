@@ -17,6 +17,7 @@ import (
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/gpio/gpiostream"
 	"periph.io/x/periph/conn/physic"
+	"periph.io/x/periph/conn/pin"
 	"periph.io/x/periph/host/distro"
 	"periph.io/x/periph/host/pmem"
 	"periph.io/x/periph/host/sysfs"
@@ -235,49 +236,121 @@ func (p *Pin) Number() int {
 
 // Function implements pin.Pin.
 func (p *Pin) Function() string {
+	return string(p.Func())
+}
+
+// Func implements pin.PinFunc.
+func (p *Pin) Func() pin.Func {
 	if drvGPIO.gpioMemory == nil {
 		if p.sysfsPin == nil {
-			return "ERR"
+			return pin.Func("ERR")
 		}
-		return p.sysfsPin.Function()
+		return p.sysfsPin.Func()
 	}
 	switch f := p.function(); f {
 	case in:
-		return "In/" + p.FastRead().String()
+		if p.FastRead() {
+			return gpio.IN_HIGH
+		}
+		return gpio.IN_LOW
 	case out:
-		return "Out/" + p.FastRead().String()
+		if p.FastRead() {
+			return gpio.OUT_HIGH
+		}
+		return gpio.OUT_LOW
 	case alt0:
 		if s := mapping[p.number][0]; len(s) != 0 {
 			return s
 		}
-		return "<Alt0>"
+		return pin.Func("ALT0")
 	case alt1:
 		if s := mapping[p.number][1]; len(s) != 0 {
 			return s
 		}
-		return "<Alt1>"
+		return pin.Func("ALT1")
 	case alt2:
 		if s := mapping[p.number][2]; len(s) != 0 {
 			return s
 		}
-		return "<Alt2>"
+		return pin.Func("ALT2")
 	case alt3:
 		if s := mapping[p.number][3]; len(s) != 0 {
 			return s
 		}
-		return "<Alt3>"
+		return pin.Func("ALT3")
 	case alt4:
 		if s := mapping[p.number][4]; len(s) != 0 {
 			return s
 		}
-		return "<Alt4>"
+		return pin.Func("ALT4")
 	case alt5:
 		if s := mapping[p.number][5]; len(s) != 0 {
 			return s
 		}
-		return "<Alt5>"
+		return pin.Func("ALT5")
 	default:
-		return "<Unknown>"
+		return pin.Func("ERR")
+	}
+}
+
+// SupportedFuncs implements pin.PinFunc.
+func (p *Pin) SupportedFuncs() []pin.Func {
+	f := make([]pin.Func, 0, 4+5)
+	f = append(f, gpio.IN, gpio.OUT)
+	for _, m := range mapping[p.number] {
+		if m != "" {
+			f = append(f, m)
+		}
+	}
+	return f
+}
+
+// SetFunc implements pin.PinFunc.
+func (p *Pin) SetFunc(f pin.Func) error {
+	if drvGPIO.gpioMemory == nil {
+		if p.sysfsPin == nil {
+			return p.wrap(errors.New("subsystem gpiomem not initialized and sysfs not accessible"))
+		}
+		return p.sysfsPin.SetFunc(f)
+	}
+	switch f {
+	case gpio.FLOAT:
+		return p.In(gpio.Float, gpio.NoEdge)
+	case gpio.IN:
+		return p.In(gpio.PullNoChange, gpio.NoEdge)
+	case gpio.IN_LOW:
+		return p.In(gpio.PullDown, gpio.NoEdge)
+	case gpio.IN_HIGH:
+		return p.In(gpio.PullUp, gpio.NoEdge)
+	case gpio.OUT_HIGH:
+		return p.Out(gpio.High)
+	case gpio.OUT_LOW:
+		return p.Out(gpio.Low)
+	default:
+		isGeneral := f == f.Generalize()
+		for i, m := range mapping[p.number] {
+			if m == f || (isGeneral && m.Generalize() == f) {
+				if err := p.Halt(); err != nil {
+					return err
+				}
+				switch i {
+				case 0:
+					p.setFunction(alt0)
+				case 1:
+					p.setFunction(alt1)
+				case 2:
+					p.setFunction(alt2)
+				case 3:
+					p.setFunction(alt3)
+				case 4:
+					p.setFunction(alt4)
+				case 5:
+					p.setFunction(alt5)
+				}
+				return nil
+			}
+		}
+		return p.wrap(errors.New("unsupported function"))
 	}
 }
 
@@ -767,6 +840,12 @@ func (p *Pin) setFunction(f function) {
 	off := p.number / 10
 	shift := uint(p.number%10) * 3
 	drvGPIO.gpioMemory.functionSelect[off] = (drvGPIO.gpioMemory.functionSelect[off] &^ (7 << shift)) | (uint32(f) << shift)
+	// If a pin switches from a specific functionality back to GPIO, the alias
+	// should be updated. For example both GPIO13 and GPIO19 support PWM1. By
+	// default, PWM1 will be associated to GPIO13, even if
+	// GPIO19.SetFunc(gpio.PWM) is called.
+	// TODO(maruel): pinreg.Unregister()
+	// TODO(maruel): pinreg.Register()
 }
 
 func (p *Pin) wrap(err error) error {
@@ -840,7 +919,7 @@ var cpuPins = []Pin{
 }
 
 // This excludes the functions in and out.
-var mapping = [][6]string{
+var mapping = [][6]pin.Func{
 	{"I2C0_SDA"}, // 0
 	{"I2C0_SCL"},
 	{"I2C1_SDA"},
@@ -1156,7 +1235,7 @@ func (d *driverGPIO) Init() (bool, error) {
 
 	// Mark the right pins as available even if the memory map fails so they can
 	// callback to sysfs.Pins.
-	functions := map[string]struct{}{}
+	functions := map[pin.Func]struct{}{}
 	for i := range cpuPins {
 		name := cpuPins[i].name
 		num := strconv.Itoa(cpuPins[i].number)
@@ -1175,42 +1254,34 @@ func (d *driverGPIO) Init() (bool, error) {
 		if err := gpioreg.RegisterAlias(num, name); err != nil {
 			return true, err
 		}
-		// A pin set in alternate function but not described in `mapping` will
-		// show up as "<AltX>". We don't want them to be registered as aliases.
-		if f := cpuPins[i].Function(); len(f) < 3 || (f[:2] != "In" && f[:3] != "Out" && f[0] != '<') {
+		switch f := cpuPins[i].Func(); f {
+		case gpio.IN, gpio.OUT:
+		default:
 			// Registering the same alias twice fails. This can happen if two pins
 			// are configured with the same function. For example both pin #12, #18
 			// and #40 could be configured to work as PWM0.
-			// TODO(maruel): Dynamically register and unregister the pins as their
-			// functionality is changed.
 			if _, ok := functions[f]; !ok {
 				functions[f] = struct{}{}
-				if err := gpioreg.RegisterAlias(f, name); err != nil {
+				if err := gpioreg.RegisterAlias(string(f), name); err != nil {
 					return true, err
 				}
 			}
 		}
 	}
-	// The CS pins are never switched to their alternate mode, so manually map
-	// them. They are dependent on their parent pins.
-	csMap := map[string]int{
-		"SPI1_CS0": 18,
-		"SPI1_CS1": 17,
-		"SPI1_CS2": 16,
-		"SPI2_CS0": 43,
-		"SPI2_CS1": 44,
-		"SPI2_CS2": 45,
-	}
-	if GPIO11.Function() == "SPI0_CLK" {
-		csMap["SPI0_CS1"] = 7
-		csMap["SPI0_CS0"] = 8
-	} else if GPIO39.Function() == "SPI0_CLK" {
-		csMap["SPI0_CS1"] = 35
-		csMap["SPI0_CS0"] = 36
-	}
-	for a, n := range csMap {
-		if err := gpioreg.RegisterAlias(a, fmt.Sprintf("GPIO%d", n)); err != nil {
-			return true, err
+
+	// Now do a second loop but do the alternate functions.
+	for i := range cpuPins {
+		for _, f := range cpuPins[i].SupportedFuncs() {
+			switch f {
+			case gpio.IN, gpio.OUT:
+			default:
+				if _, ok := functions[f]; !ok {
+					functions[f] = struct{}{}
+					if err := gpioreg.RegisterAlias(string(f), cpuPins[i].name); err != nil {
+						return true, err
+					}
+				}
+			}
 		}
 	}
 
@@ -1287,3 +1358,4 @@ var _ gpio.PinIn = &Pin{}
 var _ gpio.PinOut = &Pin{}
 var _ gpiostream.PinIn = &Pin{}
 var _ gpiostream.PinOut = &Pin{}
+var _ pin.PinFunc = &Pin{}

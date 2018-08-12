@@ -12,11 +12,13 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"reflect"
 	"time"
 
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpiostream"
 	"periph.io/x/periph/conn/physic"
+	"periph.io/x/periph/conn/pin"
 	"periph.io/x/periph/host/bcm283x"
 )
 
@@ -62,6 +64,9 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) error {
 		return err
 	}
 	if err := s.testPWM(pPWM, pClk); err != nil {
+		return err
+	}
+	if err := s.testFunc(pClk); err != nil {
 		return err
 	}
 	return s.testStreamIn(pPWM, pClk)
@@ -156,7 +161,31 @@ func (s *SmokeTest) testPWM(p1, p2 *loggingPin) error {
 		return err
 	}
 
-	return p1.Halt()
+	if err := p1.Halt(); err != nil {
+		return err
+	}
+	return p1.Out(gpio.Low)
+}
+
+// testFunc tests .Func(), .SetFunc().
+func (s *SmokeTest) testFunc(p *loggingPin) error {
+	if string(p.Func()) != p.Function() {
+		return fmt.Errorf("Func %q != Function %q", p.Func(), p.Function())
+	}
+	// This is dependent on testPWM() succeeding.
+	if p.Func() != gpio.IN_LOW {
+		return fmt.Errorf("Expected %q, got %q", gpio.IN_LOW, p.Func())
+	}
+	if f := p.SupportedFuncs(); !reflect.DeepEqual(f, []pin.Func{gpio.IN, gpio.OUT, gpio.CLK.Specialize(-1, 2)}) {
+		return fmt.Errorf("Unexpected functions %q", f)
+	}
+	if err := p.SetFunc(gpio.CLK); err != nil {
+		return fmt.Errorf("Failed to set %q", gpio.CLK)
+	}
+	if err := p.SetFunc(gpio.CLK.Specialize(-1, 2)); err != nil {
+		return fmt.Errorf("Failed to set %q", gpio.CLK.Specialize(-1, 2))
+	}
+	return p.Halt()
 }
 
 // testStreamIn tests gpiostream.StreamIn and gpio.PWM.
