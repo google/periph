@@ -18,12 +18,24 @@ import (
 
 func TestPin(t *testing.T) {
 	p := &Pin{N: "GPIO1", Num: 10, Fn: "I2C1_SDA"}
+	// conn.Resource
 	if s := p.String(); s != "GPIO1(10)" {
 		t.Fatal(s)
 	}
+	if err := p.Halt(); err != nil {
+		t.Fatal(err)
+	}
+	// pin.Pin
 	if n := p.Number(); n != 10 {
 		t.Fatal(n)
 	}
+	if n := p.Name(); n != "GPIO1" {
+		t.Fatal(n)
+	}
+	if f := p.Function(); f != "I2C1_SDA" {
+		t.Fatal(f)
+	}
+	// gpio.PinIn
 	if err := p.In(gpio.PullDown, gpio.NoEdge); err != nil {
 		t.Fatal(err)
 	}
@@ -39,11 +51,15 @@ func TestPin(t *testing.T) {
 	if pull := p.Pull(); pull != gpio.PullUp {
 		t.Fatal(pull)
 	}
+	if pull := p.DefaultPull(); pull != gpio.PullUp {
+		t.Fatal(pull)
+	}
+	// gpio.PinOut
 	if err := p.Out(gpio.Low); err != nil {
 		t.Fatal(err)
 	}
-	if err := p.Halt(); err != nil {
-		t.Fatal(err)
+	if err := p.PWM(gpio.DutyHalf, physic.KiloHertz); err != nil {
+		t.Fatalf("unexpected failure: %v", err)
 	}
 }
 
@@ -85,20 +101,28 @@ func TestLogPinIO(t *testing.T) {
 	if l.Real() != p {
 		t.Fatal("unexpected real pin")
 	}
-	if err := l.Out(gpio.High); err != nil {
-		t.Fatal(err)
-	}
+	// gpio.PinIn
 	if err := l.In(gpio.PullNoChange, gpio.NoEdge); err != nil {
 		t.Fatal(err)
 	}
-	if l.Read() != gpio.High {
-		t.Fatal("unexpected level")
+	if v := l.Read(); v != gpio.Low {
+		t.Fatalf("unexpected level %v", v)
 	}
 	if l.Pull() != gpio.PullNoChange {
 		t.Fatal("unexpected pull")
 	}
 	if l.WaitForEdge(0) {
 		t.Fatal("unexpected edge")
+	}
+	// gpio.PinOut
+	if err := l.Out(gpio.High); err != nil {
+		t.Fatal(err)
+	}
+	if v := l.Read(); v != gpio.High {
+		t.Fatalf("unexpected level %v", v)
+	}
+	if err := l.PWM(gpio.DutyHalf, physic.KiloHertz); err != nil {
+		t.Fatalf("unexpected failure: %v", err)
 	}
 }
 

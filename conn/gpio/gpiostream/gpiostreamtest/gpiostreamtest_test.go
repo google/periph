@@ -28,6 +28,9 @@ func TestPinIn(t *testing.T) {
 	if s := p.String(); s != "Yo" {
 		t.Fatal(s)
 	}
+	if err := p.Halt(); err != nil {
+		t.Fatal(err)
+	}
 	if err := p.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -136,6 +139,9 @@ func TestPinOutPlayback(t *testing.T) {
 	if s := p.String(); s != "Yo" {
 		t.Fatal(s)
 	}
+	if err := p.Halt(); err != nil {
+		t.Fatal(err)
+	}
 	if err := p.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -178,6 +184,9 @@ func TestPinOutRecord(t *testing.T) {
 	}
 	if s := p.String(); s != "Yo" {
 		t.Fatal(s)
+	}
+	if err := p.Halt(); err != nil {
+		t.Fatal(err)
 	}
 }
 
