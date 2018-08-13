@@ -30,6 +30,11 @@ import (
 //
 // cs can be nil.
 func NewSPI(clk, mosi gpio.PinOut, miso gpio.PinIn, cs gpio.PinOut) (*SPI, error) {
+	if cs != nil {
+		if err := cs.Out(gpio.High); err != nil {
+			return nil, err
+		}
+	}
 	if err := clk.Out(gpio.High); err != nil {
 		return nil, err
 	}
@@ -38,12 +43,6 @@ func NewSPI(clk, mosi gpio.PinOut, miso gpio.PinIn, cs gpio.PinOut) (*SPI, error
 	}
 	if miso != nil {
 		if err := miso.In(gpio.PullUp, gpio.NoEdge); err != nil {
-			return nil, err
-		}
-	}
-	if cs != nil {
-		// Low means active.
-		if err := cs.Out(gpio.High); err != nil {
 			return nil, err
 		}
 	}
