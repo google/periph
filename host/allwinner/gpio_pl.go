@@ -341,7 +341,7 @@ var mapping = [13][5]string{
 	{"JTAG_TCK", "", "", "", "PL_EINT5"},       // PL5
 	{"JTAG_TDO", "", "", "", "PL_EINT6"},       // PL6
 	{"JTAG_TDI", "", "", "", "PL_EINT7"},       // PL7
-	{"I2C_CSK", "", "", "", "PL_EINT8"},        // PL8
+	{"I2C_SCL", "", "", "", "PL_EINT8"},        // PL8
 	{"I2C_SDA", "", "", "", "PL_EINT9"},        // PL9
 	{"PWM0", "", "", "", "PL_EINT10"},          // PL10
 	{"CIR_RX", "", "", "", "PL_EINT11"},        // PL11

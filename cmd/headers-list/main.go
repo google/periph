@@ -34,6 +34,10 @@ func printFailures(state *periph.State) {
 }
 
 func altFuncs(p pin.Pin) string {
+	r, ok := p.(gpio.RealPin)
+	if ok {
+		p = r.Real()
+	}
 	alt, ok := p.(pin.PinFunc)
 	if !ok {
 		return ""
