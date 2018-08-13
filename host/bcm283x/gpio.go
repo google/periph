@@ -295,7 +295,7 @@ func (p *Pin) Func() pin.Func {
 
 // SupportedFuncs implements pin.PinFunc.
 func (p *Pin) SupportedFuncs() []pin.Func {
-	f := make([]pin.Func, 0, 4+5)
+	f := make([]pin.Func, 0, 2+4)
 	f = append(f, gpio.IN, gpio.OUT)
 	for _, m := range mapping[p.number] {
 		if m != "" {
