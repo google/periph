@@ -30,23 +30,14 @@ import (
 //
 // cs can be nil.
 func NewSPI(clk, mosi gpio.PinOut, miso gpio.PinIn, cs gpio.PinOut) (*SPI, error) {
-	if cs != nil {
-		if err := cs.Out(gpio.High); err != nil {
-			return nil, err
-		}
-	}
-	if err := clk.Out(gpio.High); err != nil {
-		return nil, err
-	}
-	if err := mosi.Out(gpio.High); err != nil {
-		return nil, err
-	}
-	if miso != nil {
-		if err := miso.In(gpio.PullUp, gpio.NoEdge); err != nil {
-			return nil, err
-		}
-	}
-	return &SPI{spiConn: spiConn{sck: clk, sdi: miso, sdo: mosi, csn: cs}}, nil
+	return &SPI{
+		spiConn: spiConn{
+			sck: clk,
+			sdi: miso,
+			sdo: mosi,
+			csn: cs,
+		},
+	}, nil
 }
 
 // SPI represents a SPI master port implemented as bit-banging on 3 or 4 GPIO
@@ -92,6 +83,10 @@ func (s *SPI) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, er
 	s.spiConn.clockIdle = gpio.Level(mode&spi.Mode2 == spi.Mode2)
 	if err := s.spiConn.sck.Out(s.spiConn.clockIdle); err != nil {
 		return nil, fmt.Errorf("bitbang-spi: failed to idle clock: %v", err)
+	}
+
+	if err := s.spiConn.initializePins(); err != nil {
+		return nil, fmt.Errorf("bitbang-spi: failed to initialize pins: %v", err)
 	}
 
 	return &s.spiConn, nil
@@ -275,6 +270,28 @@ func (s *spiConn) unassertCS() error {
 		return err
 	}
 	s.sleepHalfCycle()
+	return nil
+}
+
+func (s *spiConn) initializePins() error {
+	if err := s.unassertCS(); err != nil {
+		return fmt.Errorf("failed to unassert CS: %v", err)
+	}
+	if s.sck != nil {
+		if err := s.sck.Out(s.clockIdle); err != nil {
+			return fmt.Errorf("failed to idle clock: %v", err)
+		}
+	}
+	if s.sdo != nil {
+		if err := s.sdo.Out(gpio.Low); err != nil {
+			return fmt.Errorf("failed to zero MOSI: %v", err)
+		}
+	}
+	if s.sdi != nil {
+		if err := s.sdi.In(gpio.PullUp, gpio.NoEdge); err != nil {
+			return fmt.Errorf("failed to initialize MISO: %v", err)
+		}
+	}
 	return nil
 }
 
