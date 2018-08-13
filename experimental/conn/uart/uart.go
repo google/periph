@@ -11,6 +11,18 @@
 // point-to-point.
 //
 // Use Port.Connect() converts the uninitialized Port into a Conn.
+//
+// TODO(maruel): The Port -> Conn dance is unusual for UART users and feels
+// unnatural.
+//
+// TODO(maruel): UART users talks in term of bauds, not hertz.
+//
+// TODO(maruel): The LimitSpeed() function feels weird, as generally it's not
+// the device driver that gets to decide the speed (?) Well it 'depends'.
+//
+// There's a great implementation at https://github.com/albenik/go-serial but
+// it uses cgo a lot. Maybe making an adaptor and moving this into extra is the
+// best choice here?
 package uart
 
 import (
@@ -101,9 +113,11 @@ type Port interface {
 	//
 	// The device driver must call this function exactly once.
 	//
-	// f must specify the maximum rated speed by the device's spec. The lowest
-	// speed between the port speed and the device speed is selected. Use 0 for f
-	// if there is no known maximum value for this device.
+	// f must specify the maximum rated speed by the device's spec. For example
+	// if a device is known to not work at over 115200 bauds, it should specify
+	// 115200Hz.
+	//
+	// The lowest speed between the port speed and the device speed is selected.
 	//
 	// There's rarely a reason to use anything else than One stop bit and 8 bits
 	// per character.
@@ -120,7 +134,8 @@ type PortCloser interface {
 	//
 	// It lets an application use a device at a lower speed than the maximum
 	// speed as rated by the device driver. This is useful for example when the
-	// wires are long or the connection is of poor quality.
+	// wires are long or the connection is of poor quality, and you want to try
+	// to run at lower speed like 19200 bauds.
 	//
 	// This function can be called multiple times and resets the previous value.
 	// 0 is not a valid value for f. The lowest speed between the port speed and

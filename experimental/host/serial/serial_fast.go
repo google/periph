@@ -4,7 +4,7 @@
 
 // +build freebsd linux netbsd solaris
 
-package sysfs
+package serial
 
 import "syscall"
 

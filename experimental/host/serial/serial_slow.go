@@ -4,7 +4,7 @@
 
 // +build darwin dragonfly openbsd
 
-package sysfs
+package serial
 
 import "syscall"
 

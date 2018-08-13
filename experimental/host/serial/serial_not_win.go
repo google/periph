@@ -2,8 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// +build !freebsd,!linux,!netbsd,!solaris,!darwin,!dragonfly,!openbsd
+// +build !windows
 
-package sysfs
+package serial
 
-var acceptedBauds [][2]uint32
+const isWindows = false
