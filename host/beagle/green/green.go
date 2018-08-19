@@ -31,12 +31,12 @@ import (
 // Headers found on BeagleBone Green.
 var (
 	// I2C Groove port.
-	I2C_SCL gpio.PinIO = gpio.INVALID // GPIO13, I2C2_SCL, UART1_RTSn, SPI1_CS1
-	I2C_SDA gpio.PinIO = gpio.INVALID // GPIO12, I2C2_SDA, UART1_CTSn, SPI1_CS0
+	I2C_SCL gpio.PinIO = gpio.INVALID // GPIO13, I2C2_SCL, UART1_RTS, SPI1_CS1
+	I2C_SDA gpio.PinIO = gpio.INVALID // GPIO12, I2C2_SDA, UART1_CTS, SPI1_CS0
 
 	// UART Groove port connected to UART2.
-	UART_TXD gpio.PinIO = gpio.INVALID // GPIO3, EHRPWM0B, I2C2_SCL, UART2_TXD, SPI0_DO
-	UART_RXD gpio.PinIO = gpio.INVALID // GPIO2, EHRPWM0A, I2C2_SDA, UART2_RXD, SPI0_SCLK
+	UART_TX gpio.PinIO = gpio.INVALID // GPIO3, EHRPWM0B, I2C2_SCL, UART2_TX, SPI0_MISO
+	UART_RX gpio.PinIO = gpio.INVALID // GPIO2, EHRPWM0A, I2C2_SDA, UART2_RX, SPI0_CLK
 )
 
 // Present returns true if the host is a BeagleBone Green or BeagleBone Green
@@ -76,9 +76,9 @@ func (d *driver) Init() (bool, error) {
 		return true, err
 	}
 
-	UART_TXD = sysfs.Pins[3]
-	UART_RXD = sysfs.Pins[2]
-	hdr = [][]pin.Pin{{pin.GROUND}, {pin.V3_3}, {UART_TXD}, {UART_RXD}}
+	UART_TX = sysfs.Pins[3]
+	UART_RX = sysfs.Pins[2]
+	hdr = [][]pin.Pin{{pin.GROUND}, {pin.V3_3}, {UART_TX}, {UART_RX}}
 	if err := pinreg.Register("UART", hdr); err != nil {
 		return true, err
 	}

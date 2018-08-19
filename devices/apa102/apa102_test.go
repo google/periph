@@ -1049,12 +1049,11 @@ func BenchmarkDrawRGBAColorfulPassThru(b *testing.B) {
 
 func BenchmarkDrawSlowpath(b *testing.B) {
 	// Should be an image type that doesn't have a fast path
-	img := image.NewCMYK(image.Rect(0, 0, 150, 1))
+	img := image.NewGray(image.Rect(0, 0, 150, 1))
 	for x := 0; x < img.Bounds().Dx(); x++ {
 		for y := 0; y < img.Bounds().Dy(); y++ {
 			pix := genColorfulPixel(x)
-			c := color.CMYK{C: pix[0], M: pix[1], Y: pix[2], K: 0xFF}
-			img.Set(x, y, c)
+			img.Set(x, y, color.Gray{pix[0]})
 		}
 	}
 	o := DefaultOpts

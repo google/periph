@@ -15,9 +15,11 @@ import (
 	"time"
 
 	"periph.io/x/periph"
+	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/physic"
+	"periph.io/x/periph/conn/pin"
 	"periph.io/x/periph/host/fs"
 )
 
@@ -48,43 +50,9 @@ type Pin struct {
 	buf        [4]byte   // scratch buffer for Function(), Read() and Out()
 }
 
+// String implements conn.Resource.
 func (p *Pin) String() string {
 	return p.name
-}
-
-// Name implements pins.Pin.
-func (p *Pin) Name() string {
-	return p.name
-}
-
-// Number implements pins.Pin.
-func (p *Pin) Number() int {
-	return p.number
-}
-
-// Function implements pins.Pin.
-func (p *Pin) Function() string {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	// TODO(maruel): There's an internal bug which causes p.direction to be
-	// invalid (!?) Need to figure it out ASAP.
-	if err := p.open(); err != nil {
-		return "ERR"
-	}
-	if _, err := seekRead(p.fDirection, p.buf[:]); err != nil {
-		return "ERR"
-	}
-	if p.buf[0] == 'i' && p.buf[1] == 'n' {
-		p.direction = dIn
-	} else if p.buf[0] == 'o' && p.buf[1] == 'u' && p.buf[2] == 't' {
-		p.direction = dOut
-	}
-	if p.direction == dIn {
-		return "In/" + p.Read().String()
-	} else if p.direction == dOut {
-		return "Out/" + p.Read().String()
-	}
-	return "ERR"
 }
 
 // Halt implements conn.Resource.
@@ -96,7 +64,72 @@ func (p *Pin) Halt() error {
 	return p.haltEdge()
 }
 
-// In setups a pin as an input.
+// Name implements pin.Pin.
+func (p *Pin) Name() string {
+	return p.name
+}
+
+// Number implements pin.Pin.
+func (p *Pin) Number() int {
+	return p.number
+}
+
+// Function implements pin.Pin.
+func (p *Pin) Function() string {
+	return string(p.Func())
+}
+
+// Func implements pin.PinFunc.
+func (p *Pin) Func() pin.Func {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	// TODO(maruel): There's an internal bug which causes p.direction to be
+	// invalid (!?) Need to figure it out ASAP.
+	if err := p.open(); err != nil {
+		return pin.Func("ERR")
+	}
+	if _, err := seekRead(p.fDirection, p.buf[:]); err != nil {
+		return pin.Func("ERR")
+	}
+	if p.buf[0] == 'i' && p.buf[1] == 'n' {
+		p.direction = dIn
+	} else if p.buf[0] == 'o' && p.buf[1] == 'u' && p.buf[2] == 't' {
+		p.direction = dOut
+	}
+	if p.direction == dIn {
+		if p.Read() {
+			return gpio.IN_HIGH
+		}
+		return gpio.IN_LOW
+	} else if p.direction == dOut {
+		if p.Read() {
+			return gpio.OUT_HIGH
+		}
+		return gpio.OUT_LOW
+	}
+	return pin.Func("ERR")
+}
+
+// SupportedFuncs implements pin.PinFunc.
+func (p *Pin) SupportedFuncs() []pin.Func {
+	return []pin.Func{gpio.IN, gpio.OUT}
+}
+
+// SetFunc implements pin.PinFunc.
+func (p *Pin) SetFunc(f pin.Func) error {
+	switch f {
+	case gpio.IN:
+		return p.In(gpio.PullNoChange, gpio.NoEdge)
+	case gpio.OUT_HIGH:
+		return p.Out(gpio.High)
+	case gpio.OUT, gpio.OUT_LOW:
+		return p.Out(gpio.Low)
+	default:
+		return p.wrap(errors.New("unsupported function"))
+	}
+}
+
+// In implements gpio.PinIn.
 func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	if pull != gpio.PullNoChange && pull != gpio.Float {
 		return p.wrap(errors.New("doesn't support pull-up/pull-down"))
@@ -163,6 +196,7 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	return nil
 }
 
+// Read implements gpio.PinIn.
 func (p *Pin) Read() gpio.Level {
 	// There's no lock here.
 	if p.fValue == nil {
@@ -182,8 +216,7 @@ func (p *Pin) Read() gpio.Level {
 	return gpio.Low
 }
 
-// WaitForEdge does edge detection, returns once one is detected and implements
-// gpio.PinIn.
+// WaitForEdge implements gpio.PinIn.
 func (p *Pin) WaitForEdge(timeout time.Duration) bool {
 	// Run lockless, as the normal use is to call in a busy loop.
 	var ms int
@@ -211,19 +244,23 @@ func (p *Pin) WaitForEdge(timeout time.Duration) bool {
 	}
 }
 
-// Pull returns gpio.PullNoChange since gpio sysfs has no support for input
-// pull resistor.
+// Pull implements gpio.PinIn.
+//
+// It returns gpio.PullNoChange since gpio sysfs has no support for input pull
+// resistor.
 func (p *Pin) Pull() gpio.Pull {
 	return gpio.PullNoChange
 }
 
-// DefaultPull returns gpio.PullNoChange since gpio sysfs has no support for
-// input pull resistor.
+// DefaultPull implements gpio.PinIn.
+//
+// It returns gpio.PullNoChange since gpio sysfs has no support for input pull
+// resistor.
 func (p *Pin) DefaultPull() gpio.Pull {
 	return gpio.PullNoChange
 }
 
-// Out sets a pin as output; implements gpio.PinOut.
+// Out implements gpio.PinOut.
 func (p *Pin) Out(l gpio.Level) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -259,7 +296,9 @@ func (p *Pin) Out(l gpio.Level) error {
 	return nil
 }
 
-// PWM implements gpio.PinOut but cannot work on sysfs.
+// PWM implements gpio.PinOut.
+//
+// This is not supported on sysfs.
 func (p *Pin) PWM(gpio.Duty, physic.Frequency) error {
 	return p.wrap(errors.New("pwm is not supported via sysfs"))
 }
@@ -465,7 +504,8 @@ func init() {
 
 var drvGPIO driverGPIO
 
+var _ conn.Resource = &Pin{}
 var _ gpio.PinIn = &Pin{}
 var _ gpio.PinOut = &Pin{}
 var _ gpio.PinIO = &Pin{}
-var _ fmt.Stringer = &Pin{}
+var _ pin.PinFunc = &Pin{}

@@ -28,6 +28,14 @@ func TestBitStream(t *testing.T) {
 	}
 }
 
+func TestBitStream_Empty(t *testing.T) {
+	var b [16]byte
+	s := BitStream{Bits: b[:]}
+	if d := s.Duration(); d != 0 {
+		t.Fatal(d)
+	}
+}
+
 func TestEdgeStream(t *testing.T) {
 	s := EdgeStream{Freq: physic.KiloHertz, Edges: []uint16{1000, 1}}
 	if f := s.Frequency(); f != physic.KiloHertz {

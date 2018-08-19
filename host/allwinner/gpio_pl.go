@@ -17,6 +17,7 @@ import (
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/physic"
+	"periph.io/x/periph/conn/pin"
 	"periph.io/x/periph/host/pmem"
 	"periph.io/x/periph/host/sysfs"
 )
@@ -41,70 +42,11 @@ type PinPL struct {
 	usingEdge bool // Set when edge detection is enabled.
 }
 
-// PinIO implementation.
-
-// String returns the pin name and number, ex: "PL5(352)".
+// String implements conn.Resource.
+//
+// It returns the pin name and number, ex: "PL5(352)".
 func (p *PinPL) String() string {
 	return fmt.Sprintf("%s(%d)", p.name, p.Number())
-}
-
-// Name returns the pin name, ex: "PL5".
-func (p *PinPL) Name() string {
-	return p.name
-}
-
-// Number returns the GPIO pin number as represented by gpio sysfs.
-func (p *PinPL) Number() int {
-	return 11*32 + int(p.offset)
-}
-
-// Function returns the current pin function, ex: "In/PullUp".
-func (p *PinPL) Function() string {
-	if !p.available {
-		// We do not want the error message about uninitialized system.
-		return "N/A"
-	}
-	if drvGPIOPL.gpioMemoryPL == nil {
-		if p.sysfsPin == nil {
-			return "ERR"
-		}
-		return p.sysfsPin.Function()
-	}
-	switch f := p.function(); f {
-	case in:
-		return "In/" + p.FastRead().String() + "/" + p.Pull().String()
-	case out:
-		return "Out/" + p.FastRead().String()
-	case alt1:
-		if s := mapping[p.offset][0]; len(s) != 0 {
-			return s
-		}
-		return "<Alt1>"
-	case alt2:
-		if s := mapping[p.offset][1]; len(s) != 0 {
-			return s
-		}
-		return "<Alt2>"
-	case alt3:
-		if s := mapping[p.offset][2]; len(s) != 0 {
-			return s
-		}
-		return "<Alt3>"
-	case alt4:
-		if s := mapping[p.offset][3]; len(s) != 0 {
-			return s
-		}
-		return "<Alt4>"
-	case alt5:
-		if s := mapping[p.offset][4]; len(s) != 0 {
-			return s
-		}
-		return "<Alt5>"
-	case disabled:
-		return "<Disabled>"
-	default:
-		return "<Internal error>"
-	}
 }
 
 // Halt implements conn.Resource.
@@ -120,7 +62,141 @@ func (p *PinPL) Halt() error {
 	return nil
 }
 
-// In implements gpio.PinIn. See Pin.In for more information.
+// Name implements pin.Pin.
+//
+// It returns the pin name, ex: "PL5".
+func (p *PinPL) Name() string {
+	return p.name
+}
+
+// Number implements pin.Pin.
+//
+// It returns the GPIO pin number as represented by gpio sysfs.
+func (p *PinPL) Number() int {
+	return 11*32 + int(p.offset)
+}
+
+// Function implements pin.Pin.
+func (p *PinPL) Function() string {
+	return string(p.Func())
+}
+
+// Func implements pin.PinFunc.
+func (p *PinPL) Func() pin.Func {
+	if !p.available {
+		// We do not want the error message about uninitialized system.
+		return pin.FuncNone
+	}
+	if drvGPIOPL.gpioMemoryPL == nil {
+		if p.sysfsPin == nil {
+			return pin.Func("ERR")
+		}
+		return p.sysfsPin.Func()
+	}
+	switch f := p.function(); f {
+	case in:
+		if p.FastRead() {
+			return gpio.IN_HIGH
+		}
+		return gpio.IN_LOW
+	case out:
+		if p.FastRead() {
+			return gpio.OUT_HIGH
+		}
+		return gpio.OUT_LOW
+	case alt1:
+		if s := mappingPL[p.offset][0]; len(s) != 0 {
+			return pin.Func(s)
+		}
+		return pin.Func("ALT1")
+	case alt2:
+		if s := mappingPL[p.offset][1]; len(s) != 0 {
+			return pin.Func(s)
+		}
+		return pin.Func("ALT2")
+	case alt3:
+		if s := mappingPL[p.offset][2]; len(s) != 0 {
+			return pin.Func(s)
+		}
+		return pin.Func("ALT3")
+	case alt4:
+		if s := mappingPL[p.offset][3]; len(s) != 0 {
+			return pin.Func(s)
+		}
+		return pin.Func("ALT4")
+	case alt5:
+		if s := mappingPL[p.offset][4]; len(s) != 0 {
+			if strings.Contains(string(s), "_EINT") {
+				// It's an input supporting interrupts.
+				if p.FastRead() {
+					return gpio.IN_HIGH
+				}
+				return gpio.IN_LOW
+			}
+			return pin.Func(s)
+		}
+		return pin.Func("ALT5")
+	case disabled:
+		return pin.FuncNone
+	default:
+		return pin.FuncNone
+	}
+}
+
+// SupportedFuncs implements pin.PinFunc.
+func (p *PinPL) SupportedFuncs() []pin.Func {
+	f := make([]pin.Func, 0, 2+2)
+	f = append(f, gpio.IN, gpio.OUT)
+	for _, m := range mappingPL[p.offset] {
+		if m != pin.FuncNone && !strings.Contains(string(m), "_EINT") {
+			f = append(f, m)
+		}
+	}
+	return f
+}
+
+// SetFunc implements pin.PinFunc.
+func (p *PinPL) SetFunc(f pin.Func) error {
+	switch f {
+	case gpio.FLOAT:
+		return p.In(gpio.Float, gpio.NoEdge)
+	case gpio.IN:
+		return p.In(gpio.PullNoChange, gpio.NoEdge)
+	case gpio.IN_LOW:
+		return p.In(gpio.PullDown, gpio.NoEdge)
+	case gpio.IN_HIGH:
+		return p.In(gpio.PullUp, gpio.NoEdge)
+	case gpio.OUT_HIGH:
+		return p.Out(gpio.High)
+	case gpio.OUT_LOW:
+		return p.Out(gpio.Low)
+	default:
+		isGeneral := f == f.Generalize()
+		for i, m := range mappingPL[p.offset] {
+			if m == f || (isGeneral && m.Generalize() == f) {
+				if err := p.Halt(); err != nil {
+					return err
+				}
+				switch i {
+				case 0:
+					p.setFunction(alt1)
+				case 1:
+					p.setFunction(alt2)
+				case 2:
+					p.setFunction(alt3)
+				case 3:
+					p.setFunction(alt4)
+				case 4:
+					p.setFunction(alt5)
+				}
+				return nil
+			}
+		}
+		return p.wrap(errors.New("unsupported function"))
+	}
+}
+
+// In implements gpio.PinIn.
 func (p *PinPL) In(pull gpio.Pull, edge gpio.Edge) error {
 	if !p.available {
 		// We do not want the error message about uninitialized system.
@@ -174,7 +250,7 @@ func (p *PinPL) In(pull gpio.Pull, edge gpio.Edge) error {
 	return nil
 }
 
-// Read implements gpio.PinIn. See Pin.Read for more information.
+// Read implements gpio.PinIn.
 func (p *PinPL) Read() gpio.Level {
 	if drvGPIOPL.gpioMemoryPL == nil {
 		if p.sysfsPin == nil {
@@ -185,12 +261,12 @@ func (p *PinPL) Read() gpio.Level {
 	return gpio.Level(drvGPIOPL.gpioMemoryPL.data&(1<<p.offset) != 0)
 }
 
-// FastRead reads without verification. See Pin.FastRead for more information.
+// FastRead reads without verification.
 func (p *PinPL) FastRead() gpio.Level {
 	return gpio.Level(drvGPIOPL.gpioMemoryPL.data&(1<<p.offset) != 0)
 }
 
-// WaitForEdge implements gpio.PinIn. See Pin.WaitForEdge for more information.
+// WaitForEdge implements gpio.PinIn.
 func (p *PinPL) WaitForEdge(timeout time.Duration) bool {
 	if p.sysfsPin != nil {
 		return p.sysfsPin.WaitForEdge(timeout)
@@ -198,7 +274,7 @@ func (p *PinPL) WaitForEdge(timeout time.Duration) bool {
 	return false
 }
 
-// Pull implements gpio.PinIn. See Pin.Pull for more information.
+// Pull implements gpio.PinIn.
 func (p *PinPL) Pull() gpio.Pull {
 	if drvGPIOPL.gpioMemoryPL == nil {
 		// If gpioMemoryPL is set, p.available is true.
@@ -217,12 +293,12 @@ func (p *PinPL) Pull() gpio.Pull {
 	}
 }
 
-// DefaultPull returns the default pull for the pin.
+// DefaultPull implements gpio.PinIn.
 func (p *PinPL) DefaultPull() gpio.Pull {
 	return p.defaultPull
 }
 
-// Out implements gpio.PinOut. See Pin.Out for more information.
+// Out implements gpio.PinOut.
 func (p *PinPL) Out(l gpio.Level) error {
 	if !p.available {
 		// We do not want the error message about uninitialized system.
@@ -326,18 +402,17 @@ var cpuPinsPL = []PinPL{
 	{offset: 12, name: "PL12", defaultPull: gpio.Float},
 }
 
-// See ../allwinner/allwinner.go for details.
-// TODO(maruel): Figure out what the S_ prefix means.
-var mapping = [13][5]string{
+// See gpio.go for details.
+var mappingPL = [13][5]pin.Func{
 	{"RSB_SCK", "I2C_SCL", "", "", "PL_EINT0"}, // PL0
 	{"RSB_SDA", "I2C_SDA", "", "", "PL_EINT1"}, // PL1
 	{"UART_TX", "", "", "", "PL_EINT2"},        // PL2
 	{"UART_RX", "", "", "", "PL_EINT3"},        // PL3
-	{"JTAG_MS", "", "", "", "PL_EINT4"},        // PL4
-	{"JTAG_CK", "", "", "", "PL_EINT5"},        // PL5
-	{"JTAG_DO", "", "", "", "PL_EINT6"},        // PL6
-	{"JTAG_DI", "", "", "", "PL_EINT7"},        // PL7
-	{"I2C_CSK", "", "", "", "PL_EINT8"},        // PL8
+	{"JTAG_TMS", "", "", "", "PL_EINT4"},       // PL4
+	{"JTAG_TCK", "", "", "", "PL_EINT5"},       // PL5
+	{"JTAG_TDO", "", "", "", "PL_EINT6"},       // PL6
+	{"JTAG_TDI", "", "", "", "PL_EINT7"},       // PL7
+	{"I2C_SCL", "", "", "", "PL_EINT8"},        // PL8
 	{"I2C_SDA", "", "", "", "PL_EINT9"},        // PL9
 	{"PWM0", "", "", "", "PL_EINT10"},          // PL10
 	{"CIR_RX", "", "", "", "PL_EINT11"},        // PL11
@@ -408,6 +483,7 @@ func (d *driverGPIOPL) Init() (bool, error) {
 
 	// Mark the right pins as available even if the memory map fails so they can
 	// callback to sysfs.Pins.
+	functions := map[pin.Func]struct{}{}
 	for i := range cpuPinsPL {
 		name := cpuPinsPL[i].Name()
 		num := strconv.Itoa(cpuPinsPL[i].Number())
@@ -429,9 +505,33 @@ func (d *driverGPIOPL) Init() (bool, error) {
 		if err := gpioreg.RegisterAlias(num, name); err != nil {
 			return true, err
 		}
-		if f := cpuPinsPL[i].Function(); f[0] != '<' && f[:2] != "In" && f[:3] != "Out" {
-			// Multiple pins may have the same function. The first wins.
-			_ = gpioreg.RegisterAlias(f, name)
+		switch f := cpuPinsPL[i].Func(); f {
+		case gpio.IN, gpio.OUT, pin.FuncNone:
+		default:
+			// Registering the same alias twice fails. This can happen if two pins
+			// are configured with the same function.
+			if _, ok := functions[f]; !ok {
+				// TODO(maruel): We'd have to clear out the ones from allwinner-gpio
+				// too.
+				functions[f] = struct{}{}
+				_ = gpioreg.RegisterAlias(string(f), name)
+			}
+		}
+	}
+
+	// Now do a second loop but do the alternate functions.
+	for i := range cpuPinsPL {
+		for _, f := range cpuPinsPL[i].SupportedFuncs() {
+			switch f {
+			case gpio.IN, gpio.OUT:
+			default:
+				if _, ok := functions[f]; !ok {
+					// TODO(maruel): We'd have to clear out the ones from allwinner-gpio
+					// too.
+					functions[f] = struct{}{}
+					_ = gpioreg.RegisterAlias(string(f), cpuPinsPL[i].name)
+				}
+			}
 		}
 	}
 
@@ -460,3 +560,4 @@ var drvGPIOPL driverGPIOPL
 var _ gpio.PinIO = &PinPL{}
 var _ gpio.PinIn = &PinPL{}
 var _ gpio.PinOut = &PinPL{}
+var _ pin.PinFunc = &PinPL{}

@@ -256,4 +256,3 @@ func (i *I2C) sleepHalfCycle() {
 }
 
 var _ i2c.Bus = &I2C{}
-var _ fmt.Stringer = &I2C{}

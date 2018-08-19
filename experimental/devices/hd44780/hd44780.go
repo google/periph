@@ -239,4 +239,3 @@ func delayMs(ms int) {
 }
 
 var _ conn.Resource = &Dev{}
-var _ fmt.Stringer = &Dev{}

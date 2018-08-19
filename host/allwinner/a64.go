@@ -10,7 +10,6 @@ package allwinner
 import (
 	"strings"
 
-	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/pin"
 	"periph.io/x/periph/host/sysfs"
 )
@@ -49,15 +48,15 @@ func init() {
 // - SDC means SDCard?
 // - NAND connects to a NAND flash controller.
 // - CSI and CCI are for video capture.
-var mappingA64 = map[string][5]string{
-	"PB0":  {"UART2_TX", "", "JTAG_MS0", "", "PB_EINT0"},
-	"PB1":  {"UART2_RX", "", "JTAG_CK0", "SIM_PWREN", "PB_EINT1"},
-	"PB2":  {"UART2_RTS", "", "JTAG_DO0", "SIM_VPPEN", "PB_EINT2"},
-	"PB3":  {"UART2_CTS", "I2S0_MCLK", "JTAG_DI0", "SIM_VPPPP", "PB_EINT3"},
-	"PB4":  {"AIF2_SYNC", "PCM0_SYNC", "", "SIM_CLK", "PB_EINT4"},
-	"PB5":  {"AIF2_BCLK", "PCM0_BCLK", "", "SIM_DATA", "PB_EINT5"},
-	"PB6":  {"AIF2_DOUT", "PCM0_DOUT", "", "SIM_RST", "PB_EINT6"},
-	"PB7":  {"AIF2_DIN", "PCM0_DIN", "", "SIM_DET", "PB_EINT7"},
+var mappingA64 = map[string][5]pin.Func{
+	"PB0":  {"UART2_TX", "", "JTAG0_TMS", "", "PB_EINT0"},
+	"PB1":  {"UART2_RX", "", "JTAG0_TCK", "SIM_PWREN", "PB_EINT1"},
+	"PB2":  {"UART2_RTS", "", "JTAG0_TDO", "SIM_VPPEN", "PB_EINT2"},
+	"PB3":  {"UART2_CTS", "I2S0_MCLK", "JTAG0_TDI", "SIM_VPPPP", "PB_EINT3"},
+	"PB4":  {"AIF2_SYNC", "I2S0_WS", "", "SIM_CLK", "PB_EINT4"},
+	"PB5":  {"AIF2_BCLK", "I2S0_SCK", "", "SIM_DATA", "PB_EINT5"},
+	"PB6":  {"AIF2_DOUT", "I2S0_DOUT", "", "SIM_RST", "PB_EINT6"},
+	"PB7":  {"AIF2_DIN", "I2S0_DIN", "", "SIM_DET", "PB_EINT7"},
 	"PB8":  {"", "", "UART0_TX", "", "PB_EINT8"},
 	"PB9":  {"", "", "UART0_RX", "", "PB_EINT9"},
 	"PC0":  {"NAND_WE", "", "SPI0_MOSI"},
@@ -120,12 +119,12 @@ var mappingA64 = map[string][5]string{
 	"PE15": {"", "I2C2_SDA"},
 	"PE16": {""},
 	"PE17": {""},
-	"PF0":  {"SDC0_D1", "JTAG_MS1"},
-	"PF1":  {"SDC0_D0", "JTAG_DI1"},
+	"PF0":  {"SDC0_D1", "JTAG1_TMS"},
+	"PF1":  {"SDC0_D0", "JTAG1_TDI"},
 	"PF2":  {"SDC0_CLK", "UART0_TX"},
-	"PF3":  {"SDC0_CMD", "JTAG_DO1"},
+	"PF3":  {"SDC0_CMD", "JTAG1_TDO"},
 	"PF4":  {"SDC0_D3", "UART0_RX"},
-	"PF5":  {"SDC0_D2", "JTAG_CK1"},
+	"PF5":  {"SDC0_D2", "JTAG1_TCK"},
 	"PF6":  {""},
 	"PG0":  {"SDC1_CLK", "", "", "", "PG_EINT0"},
 	"PG1":  {"SDC1_CMD", "", "", "", "PG_EINT1"},
@@ -137,10 +136,10 @@ var mappingA64 = map[string][5]string{
 	"PG7":  {"UART1_RX", "", "", "", "PG_EINT7"},
 	"PG8":  {"UART1_RTS", "", "", "", "PG_EINT8"},
 	"PG9":  {"UART1_CTS", "", "", "", "PG_EINT9"},
-	"PG10": {"AIF3_SYNC", "PCM1_SYNC", "", "", "PG_EINT10"},
-	"PG11": {"AIF3_BCLK", "PCM1_BCLK", "", "", "PG_EINT11"},
-	"PG12": {"AIF3_DOUT", "PCM1_DOUT", "", "", "PG_EINT12"},
-	"PG13": {"AIF3_DIN", "PCM1_DIN", "", "", "PG_EINT13"},
+	"PG10": {"AIF3_SYNC", "I2S1_WS", "", "", "PG_EINT10"},
+	"PG11": {"AIF3_BCLK", "I2S1_SCK", "", "", "PG_EINT11"},
+	"PG12": {"AIF3_DOUT", "I2S1_DOUT", "", "", "PG_EINT12"},
+	"PG13": {"AIF3_DIN", "I2S1_DIN", "", "", "PG_EINT13"},
 	"PH0":  {"I2C0_SCL", "", "", "", "PH_EINT0"},
 	"PH1":  {"I2C0_SDA", "", "", "", "PH_EINT1"},
 	"PH2":  {"I2C1_SCL", "", "", "", "PH_EINT2"},
@@ -164,22 +163,12 @@ func mapA64Pins() error {
 		pin := cpupins[name]
 		pin.altFunc = altFuncs
 		pin.available = true
-		if strings.Contains(altFuncs[4], "EINT") {
+		if strings.Contains(string(altFuncs[4]), "_EINT") {
 			pin.supportEdge = true
 		}
 
 		// Initializes the sysfs corresponding pin right away.
 		pin.sysfsPin = sysfs.Pins[pin.Number()]
-
-		// Manually map the CS line as an alias because otherwise it never gets
-		// registered.
-		for _, s := range altFuncs {
-			if strings.HasPrefix(s, "SPI") && strings.HasSuffix(s, "_CS0") {
-				if err := gpioreg.RegisterAlias(s, pin.Name()); err != nil {
-					return err
-				}
-			}
-		}
 	}
 	return nil
 }

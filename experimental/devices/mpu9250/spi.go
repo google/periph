@@ -10,7 +10,7 @@ import (
 )
 
 // DebugF the debug function type.
-type DebugF = func(string, ...interface{})
+type DebugF func(string, ...interface{})
 
 // SpiTransport Encapsulates the SPI transport parameters.
 type SpiTransport struct {

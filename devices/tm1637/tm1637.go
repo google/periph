@@ -208,4 +208,3 @@ func (d *Dev) sleepHalfCycle() {
 var spin = cpu.Nanospin
 
 var _ conn.Resource = &Dev{}
-var _ fmt.Stringer = &Dev{}

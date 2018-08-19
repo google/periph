@@ -36,7 +36,7 @@ func ExampleParseDuty() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("%s\n", d)
+	fmt.Println(d)
 	// Output:
 	// 33%
 }

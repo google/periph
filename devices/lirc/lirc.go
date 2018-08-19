@@ -14,6 +14,7 @@ import (
 	"strings"
 	"sync"
 
+	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/ir"
 )
@@ -44,8 +45,16 @@ type Conn struct {
 	pendingList map[string][]string // list of remotes and associated keys being created.
 }
 
+// String implements conn.Resource.
 func (c *Conn) String() string {
 	return "lirc"
+}
+
+// Halt implements conn.Resource.
+//
+// It has no effect.
+func (c *Conn) Halt() error {
+	return nil
 }
 
 // Close closes the socket to lirc. It is not a requirement to close before
@@ -264,4 +273,4 @@ func getPins() (int, int) {
 }
 
 var _ ir.Conn = &Conn{}
-var _ fmt.Stringer = &Conn{}
+var _ conn.Resource = &Conn{}

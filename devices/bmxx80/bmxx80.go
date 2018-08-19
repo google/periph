@@ -504,4 +504,3 @@ var doSleep = time.Sleep
 
 var _ conn.Resource = &Dev{}
 var _ physic.SenseEnv = &Dev{}
-var _ fmt.Stringer = &Dev{}

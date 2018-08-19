@@ -447,4 +447,3 @@ func equalUint16(a, b []uint16) bool {
 }
 
 var _ conn.Resource = &Dev{}
-var _ fmt.Stringer = &Dev{}

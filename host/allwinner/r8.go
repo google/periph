@@ -10,7 +10,6 @@ package allwinner
 import (
 	"strings"
 
-	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/pin"
 	"periph.io/x/periph/host/sysfs"
 )
@@ -51,7 +50,7 @@ func init() {
 // https://github.com/NextThingCo/CHIP-Hardware/raw/master/CHIP%5Bv1_0%5D/CHIPv1_0-BOM-Datasheets/Allwinner%20R8%20Datasheet%20V1.2.pdf
 //
 // - The datasheet uses TWI instead of I2C but this is renamed here for consistency.
-var mappingR8 = map[string][5]string{
+var mappingR8 = map[string][5]pin.Func{
 	"PB0":  {"I2C0_SCL"},
 	"PB1":  {"I2C0_SDA"},
 	"PB2":  {"PWM0", "", "", "", "EINT16"},
@@ -113,12 +112,12 @@ var mappingR8 = map[string][5]string{
 	"PE9":  {"TS_D5", "CSI_D5", "SDC2_CLK"},
 	"PE10": {"TS_D6", "CSI_D6", "UART1_TX"},
 	"PE11": {"TS_D7", "CSI_D7", "UART1_RX"},
-	"PF0":  {"SDC0_D1", "", "JTAG_MS1"},
-	"PF1":  {"SDC0_D0", "", "JTAG_DI1"},
+	"PF0":  {"SDC0_D1", "", "JTAG1_TMS"},
+	"PF1":  {"SDC0_D0", "", "JTAG1_TDI"},
 	"PF2":  {"SDC0_CLK", "", "UART0_TX"},
-	"PF3":  {"SDC0_CMD", "", "JTAG_DO1"},
+	"PF3":  {"SDC0_CMD", "", "JTAG1_TDO"},
 	"PF4":  {"SDC0_D3", "", "UART0_RX"},
-	"PF5":  {"SDC0_D2", "", "JTAG_CK1"},
+	"PF5":  {"SDC0_D2", "", "JTAG1_TCK"},
 	"PG0":  {"GPS_CLK", "", "", "", "EINT0"},
 	"PG1":  {"GPS_SIGN", "", "", "", "EINT1"},
 	"PG2":  {"GPS_MAG", "", "", "", "EINT2"},
@@ -139,22 +138,12 @@ func mapR8Pins() error {
 		pin := cpupins[name]
 		pin.altFunc = altFuncs
 		pin.available = true
-		if strings.Contains(altFuncs[4], "EINT") {
+		if strings.Contains(string(altFuncs[4]), "EINT") {
 			pin.supportEdge = true
 		}
 
 		// Initializes the sysfs corresponding pin right away.
 		pin.sysfsPin = sysfs.Pins[pin.Number()]
-
-		// Manually map the CS line as an alias because otherwise it never gets
-		// registered.
-		for _, s := range altFuncs {
-			if strings.HasPrefix(s, "SPI") && strings.HasSuffix(s[:len(s)-1], "_CS") {
-				if err := gpioreg.RegisterAlias(s, pin.Name()); err != nil {
-					return err
-				}
-			}
-		}
 	}
 	return nil
 }

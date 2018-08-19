@@ -31,11 +31,19 @@ type Dev8 struct {
 	Order binary.ByteOrder
 }
 
+// String implements conn.Conn.
 func (d *Dev8) String() string {
-	if d.Conn == nil {
-		return "<nil>"
-	}
 	return d.Conn.String()
+}
+
+// Duplex implements conn.Conn.
+func (d *Dev8) Duplex() conn.Duplex {
+	return d.Conn.Duplex()
+}
+
+// Tx implements conn.Conn.
+func (d *Dev8) Tx(w, r []byte) error {
+	return d.Conn.Tx(w, r)
 }
 
 // ReadUint8 reads a 8 bit register.
@@ -144,14 +152,8 @@ func (d *Dev8) WriteStruct(reg uint8, b interface{}) error {
 }
 
 func (d *Dev8) check() error {
-	if d.Conn == nil {
-		return errors.New("reg: missing connection")
-	}
 	if d.Conn.Duplex() != conn.Half {
 		return errors.New("reg: connection must be half-duplex")
-	}
-	if d.Order == nil {
-		return errors.New("reg: don't know if big or little endian")
 	}
 	return nil
 }
@@ -169,11 +171,19 @@ type Dev16 struct {
 	Order binary.ByteOrder
 }
 
+// String implements conn.Conn.
 func (d *Dev16) String() string {
-	if d.Conn == nil {
-		return "<nil>"
-	}
 	return d.Conn.String()
+}
+
+// Duplex implements conn.Conn.
+func (d *Dev16) Duplex() conn.Duplex {
+	return d.Conn.Duplex()
+}
+
+// Tx implements conn.Conn.
+func (d *Dev16) Tx(w, r []byte) error {
+	return d.Conn.Tx(w, r)
 }
 
 // ReadUint8 reads a 8 bit register.
@@ -297,14 +307,8 @@ func (d *Dev16) WriteStruct(reg uint16, b interface{}) error {
 }
 
 func (d *Dev16) check() error {
-	if d.Conn == nil {
-		return errors.New("mmr: missing connection")
-	}
 	if d.Conn.Duplex() != conn.Half {
 		return errors.New("mmr: connection must be half-duplex")
-	}
-	if d.Order == nil {
-		return errors.New("mmr: don't know if big or little endian")
 	}
 	return nil
 }
@@ -407,5 +411,5 @@ func isAcceptableInner(t reflect.Type) bool {
 	}
 }
 
-var _ fmt.Stringer = &Dev8{}
-var _ fmt.Stringer = &Dev16{}
+var _ conn.Conn = &Dev8{}
+var _ conn.Conn = &Dev16{}

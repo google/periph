@@ -6,15 +6,63 @@ package pin_test
 
 import (
 	"fmt"
+	"log"
 
+	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/pin"
+	"periph.io/x/periph/conn/spi"
+	"periph.io/x/periph/conn/uart"
 )
 
 func ExampleBasicPin() {
 	// Declare a basic pin, that is not a GPIO, for registration on an header.
 	b := &pin.BasicPin{N: "Exotic"}
-	fmt.Printf("%s\n", b)
+	fmt.Println(b)
 
 	// Output:
 	// Exotic
+}
+
+func ExampleFunc_Specialize() {
+	// Specializes both bus and line.
+	fmt.Println(spi.CS.Specialize(1, 2))
+	// Specializes only bus.
+	fmt.Println(spi.MOSI.Specialize(1, -1))
+	// Specializes only line.
+	fmt.Println(pin.Func("CSI_D").Specialize(-1, 3))
+	// Specializes neither.
+	fmt.Println(pin.Func("INVALID").Specialize(-1, -1))
+	// Output:
+	// SPI1_CS2
+	// SPI1_MOSI
+	// CSI_D3
+	// INVALID
+}
+
+func ExampleFunc_Generalize() {
+	fmt.Println(pin.Func("SPI1_CS2").Generalize())
+	fmt.Println(pin.Func("SPI1_MOSI").Generalize())
+	fmt.Println(pin.Func("CSI_D3").Generalize())
+	fmt.Println(pin.Func("INVALID").Generalize())
+	// Output:
+	// SPI_CS
+	// SPI_MOSI
+	// CSI_D
+	// INVALID
+}
+
+func ExamplePinFunc() {
+	p := gpioreg.ByName("GPIO14")
+	if p == nil {
+		log.Fatal("not running on a raspberry pi")
+	}
+	pf, ok := p.(pin.PinFunc)
+	if !ok {
+		log.Fatal("pin.PinFunc is not implemented")
+	}
+	// Select UART1_TX.
+	f := uart.TX.Specialize(1, -1)
+	if err := pf.SetFunc(f); err != nil {
+		log.Fatal(err)
+	}
 }

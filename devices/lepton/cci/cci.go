@@ -160,8 +160,17 @@ type Dev struct {
 	serial uint64
 }
 
+// String implements conn.Resource.
 func (d *Dev) String() string {
 	return d.c.String()
+}
+
+// Halt implements conn.Resource.
+//
+// Halt stops the camera.
+func (d *Dev) Halt() error {
+	// TODO(maruel): Doc says it won't restart. Yo.
+	return d.c.run(oemPowerDown)
 }
 
 // Init initializes the FLIR Lepton in raw 14 bits mode, enables telemetry as
@@ -207,12 +216,6 @@ func (d *Dev) Init() error {
 // It loops forever and returns the StatusBit.
 func (d *Dev) WaitIdle() (StatusBit, error) {
 	return d.c.waitIdle()
-}
-
-// Halt stops the camera.
-func (d *Dev) Halt() error {
-	// TODO(maruel): Doc says it won't restart. Yo.
-	return d.c.run(oemPowerDown)
 }
 
 // GetStatus return the status of the camera as known by the camera itself.
@@ -568,4 +571,3 @@ var sleep = time.Sleep
 
 var _ conn.Resource = &Dev{}
 var _ physic.SenseEnv = &Dev{}
-var _ fmt.Stringer = &cciConn{}

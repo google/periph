@@ -12,6 +12,7 @@ I²C or SPI pin).
 
 - Use `gpio-list -help` for help
 - Use `-n` to print pins that are not connected or in INVALID state
+- Use `-f` to print the alternative functions each pin can take
 - Use `-a` to print everything at once
 
 The followings were captured on a Raspberry Pi 3 with I2C1, SPI0 and SPI1
@@ -38,20 +39,20 @@ When possible, aliases are created per functionality. Print the GPIO aliases
 with:
 
     $ gpio-list -l
-    GPCLK1   : GPIO42
-    GPCLK2   : GPIO43
+    CLK1     : GPIO42
+    CLK2     : GPIO43
     I2C1_SCL : GPIO3
     I2C1_SDA : GPIO2
-    PWM0_OUT : GPIO40
-    PWM1_OUT : GPIO41
+    PWM0     : GPIO40
+    PWM1     : GPIO41
     SPI0_CLK : GPIO11
     SPI0_MISO: GPIO9
     SPI0_MOSI: GPIO10
     SPI1_CLK : GPIO21
     SPI1_MISO: GPIO19
     SPI1_MOSI: GPIO20
-    UART0_RXD: GPIO15
-    UART0_TXD: GPIO14
+    UART0_RX : GPIO15
+    UART0_TX : GPIO14
 
 
 ### GPIO
@@ -73,8 +74,8 @@ Print the GPIO pins per number:
     GPIO11: SPI0_CLK
     GPIO12: In/Low
     GPIO13: In/High
-    GPIO14: UART0_TXD
-    GPIO15: UART0_RXD
+    GPIO14: UART0_TX
+    GPIO15: UART0_RX
     GPIO16: In/Low
     GPIO17: In/Low
     GPIO18: Out/High
@@ -87,6 +88,6 @@ Print the GPIO pins per number:
     GPIO25: In/Low
     GPIO26: In/Low
     GPIO27: In/Low
-    GPIO40: PWM0_OUT
-    GPIO41: PWM1_OUT
+    GPIO40: PWM0
+    GPIO41: PWM1
     GPIO46: In/High

@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"sync"
 
+	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/conntest"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpiostream"
@@ -27,11 +28,14 @@ type InOp struct {
 //
 // Embed in a struct with gpiotest.Pin for more functionality.
 type PinIn struct {
-	sync.Mutex
+	// These should be immutable.
 	N         string
 	DontPanic bool
-	Ops       []InOp
-	Count     int
+
+	// Grab the Mutex before accessing the following members.
+	sync.Mutex
+	Ops   []InOp
+	Count int
 }
 
 // Close verifies that all the expected Ops have been consumed.
@@ -44,10 +48,14 @@ func (p *PinIn) Close() error {
 	return nil
 }
 
+// String implements conn.Resource.
 func (p *PinIn) String() string {
-	p.Lock()
-	defer p.Unlock()
 	return p.N
+}
+
+// Halt implements conn.Resource.
+func (p *PinIn) Halt() error {
+	return nil
 }
 
 // StreamIn implements gpiostream.PinIn.
@@ -82,11 +90,14 @@ func (p *PinIn) StreamIn(pull gpio.Pull, b gpiostream.Stream) error {
 //
 // Embed in a struct with gpiotest.Pin for more functionality.
 type PinOutPlayback struct {
-	sync.Mutex
+	// These should be immutable.
 	N         string
 	DontPanic bool
-	Ops       []gpiostream.Stream
-	Count     int
+
+	// Grab the Mutex before accessing the following members.
+	sync.Mutex
+	Ops   []gpiostream.Stream
+	Count int
 }
 
 // Close verifies that all the expected Ops have been consumed.
@@ -99,8 +110,14 @@ func (p *PinOutPlayback) Close() error {
 	return nil
 }
 
+// String implements conn.Resource.
 func (p *PinOutPlayback) String() string {
 	return p.N
+}
+
+// Halt implements conn.Resource.
+func (p *PinOutPlayback) Halt() error {
+	return nil
 }
 
 // StreamOut implements gpiostream.PinOut.
@@ -121,14 +138,23 @@ func (p *PinOutPlayback) StreamOut(s gpiostream.Stream) error {
 //
 // Embed in a struct with gpiotest.Pin for more functionality.
 type PinOutRecord struct {
-	sync.Mutex
+	// These should be immutable.
 	N         string
 	DontPanic bool
-	Ops       []gpiostream.Stream
+
+	// Grab the Mutex before accessing the following members.
+	sync.Mutex
+	Ops []gpiostream.Stream
 }
 
+// String implements conn.Resource.
 func (p *PinOutRecord) String() string {
 	return p.N
+}
+
+// Halt implements conn.Resource.
+func (p *PinOutRecord) Halt() error {
+	return nil
 }
 
 // StreamOut implements gpiostream.PinOut.
@@ -183,9 +209,9 @@ func deepCopy(s gpiostream.Stream) (gpiostream.Stream, error) {
 
 var _ io.Closer = &PinIn{}
 var _ io.Closer = &PinOutPlayback{}
-var _ fmt.Stringer = &PinIn{}
-var _ fmt.Stringer = &PinOutPlayback{}
-var _ fmt.Stringer = &PinOutRecord{}
+var _ conn.Resource = &PinIn{}
+var _ conn.Resource = &PinOutPlayback{}
+var _ conn.Resource = &PinOutRecord{}
 var _ gpiostream.PinIn = &PinIn{}
 var _ gpiostream.PinOut = &PinOutPlayback{}
 var _ gpiostream.PinOut = &PinOutRecord{}

@@ -256,6 +256,8 @@ func (p *Playback) LimitSpeed(f physic.Frequency) error {
 
 // Connect implements spi.PortCloser.
 func (p *Playback) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, error) {
+	p.Lock()
+	defer p.Unlock()
 	if p.Initialized {
 		return nil, conntest.Errorf("spitest: Connect cannot be called twice")
 	}

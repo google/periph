@@ -2,7 +2,8 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package spi defines the SPI protocol.
+// Package spi defines the API to communicate with devices over the SPI
+// protocol.
 //
 // As described in https://periph.io/x/periph/conn#hdr-Concepts, periph.io uses
 // the concepts of Bus, Port and Conn.
@@ -15,6 +16,9 @@
 // API layer, so 'Port' is exposed directly instead.
 //
 // Use Port.Connect() converts the uninitialized Port into a Conn.
+//
+// See https://en.wikipedia.org/wiki/Serial_Peripheral_Interface for more
+// information.
 package spi
 
 import (
@@ -112,8 +116,8 @@ type Packet struct {
 
 // Conn defines the interface a concrete SPI driver must implement.
 //
-// It is expected to implement fmt.Stringer and optionally io.Writer and
-// io.Reader.
+// Implementers can optionally implement io.Writer and io.Reader for
+// unidirectional operation.
 type Conn interface {
 	conn.Conn
 	// TxPackets does multiple operations over the SPI connection.
@@ -161,7 +165,7 @@ type PortCloser interface {
 	// wires are long or the connection is of poor quality.
 	//
 	// This function can be called multiple times and resets the previous value.
-	// 0 is not a value value for f. The lowest speed between the port speed and
+	// 0 is not a valid value for f. The lowest speed between the port speed and
 	// the device speed is selected.
 	LimitSpeed(f physic.Frequency) error
 }

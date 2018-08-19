@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"periph.io/x/periph"
+	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/physic"
 )
 
@@ -194,5 +195,5 @@ func init() {
 
 var drvThermalSensor driverThermalSensor
 
+var _ conn.Resource = &ThermalSensor{}
 var _ physic.SenseEnv = &ThermalSensor{}
-var _ fmt.Stringer = &ThermalSensor{}

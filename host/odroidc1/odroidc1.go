@@ -27,12 +27,12 @@ var (
 	J2_4             = pin.V5       // 5V (after filtering)
 	J2_5  gpio.PinIO = gpio.INVALID // I2C1_SCL
 	J2_6             = pin.GROUND   //
-	J2_7  gpio.PinIO = gpio.INVALID // GPCLK0
-	J2_8  gpio.PinIO = gpio.INVALID // UART0_TXD, UART1_TXD
+	J2_7  gpio.PinIO = gpio.INVALID // CLK0
+	J2_8  gpio.PinIO = gpio.INVALID // UART0_TX, UART1_TX
 	J2_9             = pin.GROUND   //
-	J2_10 gpio.PinIO = gpio.INVALID // UART0_RXD, UART1_RXD
+	J2_10 gpio.PinIO = gpio.INVALID // UART0_RX, UART1_RX
 	J2_11 gpio.PinIO = gpio.INVALID // UART0_RTS, SPI1_CS1, UART1_RTS
-	J2_12 gpio.PinIO = gpio.INVALID // PCM_CLK, SPI1_CS0, PWM0_OUT
+	J2_12 gpio.PinIO = gpio.INVALID // I2S_SCK, SPI1_CS0, PWM0
 	J2_13 gpio.PinIO = gpio.INVALID // GPIO116
 	J2_14            = pin.GROUND   //
 	J2_15 gpio.PinIO = gpio.INVALID // GPIO115
@@ -43,20 +43,20 @@ var (
 	J2_20            = pin.GROUND   //
 	J2_21 gpio.PinIO = gpio.INVALID // SPI0_MISO
 	J2_22 gpio.PinIO = gpio.INVALID // GPIO103
-	J2_23 gpio.PinIO = gpio.INVALID // SPI0_SCLK
+	J2_23 gpio.PinIO = gpio.INVALID // SPI0_CLK
 	J2_24 gpio.PinIO = gpio.INVALID // SPI0_CS0
 	J2_25            = pin.GROUND   //
-	J2_26 gpio.PinIO = gpio.INVALID // SPI0_CE1
+	J2_26 gpio.PinIO = gpio.INVALID // SPI0_CS1
 	J2_27 gpio.PinIO = gpio.INVALID // I2C0_SDA
 	J2_28 gpio.PinIO = gpio.INVALID // I2C0_SCL
-	J2_29 gpio.PinIO = gpio.INVALID // GPCLK1
+	J2_29 gpio.PinIO = gpio.INVALID // CLK1
 	J2_30            = pin.GROUND   //
-	J2_31 gpio.PinIO = gpio.INVALID // GPCLK2
-	J2_32 gpio.PinIO = gpio.INVALID // PWM0_OUT
-	J2_33 gpio.PinIO = gpio.INVALID // PWM1_OUT
+	J2_31 gpio.PinIO = gpio.INVALID // CLK2
+	J2_32 gpio.PinIO = gpio.INVALID // PWM0
+	J2_33 gpio.PinIO = gpio.INVALID // PWM1
 	J2_34            = pin.GROUND   //
-	J2_35 gpio.PinIO = gpio.INVALID // PCM_FS, SPI1_MISO, PWM1_OUT
-	J2_36 gpio.PinIO = gpio.INVALID // UART0_CTS, SPI1_CE2, UART1_CTS
+	J2_35 gpio.PinIO = gpio.INVALID // I2S_WS, SPI1_MISO, PWM1
+	J2_36 gpio.PinIO = gpio.INVALID // UART0_CTS, SPI1_CS2, UART1_CTS
 	J2_37            = pin.INVALID  // BUG(tve): make pins J2_37 and J2_40 functional once analog support is implemented
 	J2_38            = pin.V1_8     //
 	J2_39            = pin.GROUND   //
@@ -94,7 +94,7 @@ var aliases = map[string]int{
 	"I2CB_SCL":  77,
 	"SPI0_MOSI": 107,
 	"SPI0_MISO": 106,
-	"SPI0_SCLK": 105,
+	"SPI0_CLK":  105,
 	"SPI0_CS0":  117,
 }
 

@@ -6,6 +6,7 @@ package spitest
 
 import (
 	"bytes"
+	"errors"
 	"io/ioutil"
 	"log"
 	"testing"
@@ -14,6 +15,7 @@ import (
 	"periph.io/x/periph/conn/conntest"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpiotest"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/spi"
 )
 
@@ -27,8 +29,23 @@ func TestRecordRaw(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if _, err := r.Connect(0, spi.Mode0, 0); err == nil {
+		t.Fatal("Can't call Connect twice")
+	}
 	if err := c.TxPackets(nil); err == nil {
 		t.Fatal("not yet implemented")
+	}
+	if v := c.String(); v != "recordraw" {
+		t.Fatal(v)
+	}
+	if v := c.Duplex(); v != conn.Half {
+		t.Fatal(v)
+	}
+	if err := c.Tx([]byte{1}, nil); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(b.Bytes(), []byte{1}) {
+		t.Fatal(b.Bytes())
 	}
 	if err := r.Close(); err != nil {
 		t.Fatal(err)
@@ -46,6 +63,15 @@ func TestRecord_empty(t *testing.T) {
 	c, err := r.Connect(0, spi.Mode0, 0)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if _, err := r.Connect(0, spi.Mode0, 0); err == nil {
+		t.Fatal("Can't call Connect twice")
+	}
+	if v := c.String(); v != "record" {
+		t.Fatal(v)
+	}
+	if v := c.Duplex(); v != conn.DuplexUnknown {
+		t.Fatal(v)
 	}
 	if c.Tx(nil, []byte{'a'}) == nil {
 		t.Fatal("Port is nil")
@@ -101,7 +127,12 @@ func TestRecord_Tx_empty(t *testing.T) {
 }
 
 func TestPlayback(t *testing.T) {
-	p := Playback{}
+	p := Playback{
+		CLKPin:  &gpiotest.Pin{N: "CLK"},
+		MOSIPin: &gpiotest.Pin{N: "MOSI"},
+		MISOPin: &gpiotest.Pin{N: "MISO"},
+		CSPin:   &gpiotest.Pin{N: "CS"},
+	}
 	if s := p.String(); s != "playback" {
 		t.Fatal(s)
 	}
@@ -112,8 +143,23 @@ func TestPlayback(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if _, err := p.Connect(0, spi.Mode0, 0); err == nil {
+		t.Fatal("Can't call Connect twice")
+	}
 	if err := c.TxPackets(nil); err == nil {
 		t.Fatal("not yet implemented")
+	}
+	if n := c.(spi.Pins).CLK().Name(); n != "CLK" {
+		t.Fatal(n)
+	}
+	if n := c.(spi.Pins).MOSI().Name(); n != "MOSI" {
+		t.Fatal(n)
+	}
+	if n := c.(spi.Pins).MISO().Name(); n != "MISO" {
+		t.Fatal(n)
+	}
+	if n := c.(spi.Pins).CS().Name(); n != "CS" {
+		t.Fatal(n)
 	}
 	if err := p.Close(); err != nil {
 		t.Fatal(err)
@@ -225,6 +271,21 @@ func TestRecord_Playback(t *testing.T) {
 	}
 	if err := r.Close(); err != nil {
 		t.Fatal(err)
+	}
+}
+
+type connectFail struct {
+	Playback
+}
+
+func (c *connectFail) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, error) {
+	return nil, errors.New("foo")
+}
+
+func TestRecord_Fail(t *testing.T) {
+	r := Record{Port: &connectFail{}}
+	if _, err := r.Connect(0, spi.Mode0, 0); err == nil || err.Error() != "foo" {
+		t.Fatal("should have failed")
 	}
 }
 

@@ -9,6 +9,9 @@ Prints physical headers pins and the associated functionality of each pin.
 
 ## Example
 
+- Use `headers-list -help` for help
+- Use `-f` to print the alternative functions each pin can take
+
 Print the pins per their hardware location on the headers. This uses an
 internal lookup table then query each pin. Here's an example on a host with two
 SPI host and lirc enabled:
@@ -16,8 +19,8 @@ SPI host and lirc enabled:
     $ headers-list
     AUDIO: 2 pins
       Pos  Name    Func
-      1    GPIO41  PWM1_OUT
-      2    GPIO40  PWM0_OUT
+      1    GPIO41  PWM1
+      2    GPIO40  PWM0
 
     HDMI: 1 pins
       Pos  Name    Func
@@ -28,8 +31,8 @@ SPI host and lirc enabled:
                    V3_3    1  2    V5
        I2C1_SDA   GPIO2    3  4    V5
        I2C1_SCL   GPIO3    5  6    GROUND
-        In/High   GPIO4    7  8    GPIO14 UART0_TXD
-                 GROUND    9  10   GPIO15 UART0_RXD
+        In/High   GPIO4    7  8    GPIO14 UART0_TX
+                 GROUND    9  10   GPIO15 UART0_RX
          In/Low  GPIO17   11  12   GPIO18 Out/High
          In/Low  GPIO27   13  14   GROUND
          In/Low  GPIO22   15  16   GPIO23 In/Low

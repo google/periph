@@ -19,7 +19,7 @@ import (
 // Opener opens an handle to a port.
 //
 // It is provided by the actual port driver.
-type Opener func() (uart.ConnCloser, error)
+type Opener func() (uart.PortCloser, error)
 
 // Ref references an UART port.
 //
@@ -33,7 +33,7 @@ type Ref struct {
 	Aliases []string
 	// Number of the port or -1 if the port doesn't have any "native" number.
 	//
-	// Buses provided by the CPU normally have a 0 based number. Buses provided
+	// Ports provided by the CPU normally have a 0 based number. Ports provided
 	// via an addon (like over USB) generally are not numbered.
 	Number int
 	// Open is the factory to open an handle to this UART port.
@@ -48,16 +48,7 @@ type Ref struct {
 //
 // Each port can register multiple aliases, each leading to the same port
 // handle.
-//
-// "Bus number" is a generic concept that is highly dependent on the platform
-// and OS. On some platform, the first port may have the number 0, 1 or as high
-// as 32766. Bus numbers are not necessarily continuous and may not start at 0.
-// It was observed that the port number as reported by the OS may change across
-// OS revisions.
-//
-// When the UART port is provided by an off board plug and play bus like USB
-// via a FT232R USB device, there can be no associated number.
-func Open(name string) (uart.ConnCloser, error) {
+func Open(name string) (uart.PortCloser, error) {
 	var r *Ref
 	var err error
 	func() {

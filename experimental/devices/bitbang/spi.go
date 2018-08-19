@@ -30,24 +30,14 @@ import (
 //
 // cs can be nil.
 func NewSPI(clk, mosi gpio.PinOut, miso gpio.PinIn, cs gpio.PinOut) (*SPI, error) {
-	if err := clk.Out(gpio.High); err != nil {
-		return nil, err
-	}
-	if err := mosi.Out(gpio.High); err != nil {
-		return nil, err
-	}
-	if miso != nil {
-		if err := miso.In(gpio.PullUp, gpio.NoEdge); err != nil {
-			return nil, err
-		}
-	}
-	if cs != nil {
-		// Low means active.
-		if err := cs.Out(gpio.High); err != nil {
-			return nil, err
-		}
-	}
-	return &SPI{spiConn: spiConn{sck: clk, sdi: miso, sdo: mosi, csn: cs}}, nil
+	return &SPI{
+		spiConn: spiConn{
+			sck: clk,
+			sdi: miso,
+			sdo: mosi,
+			csn: cs,
+		},
+	}, nil
 }
 
 // SPI represents a SPI master port implemented as bit-banging on 3 or 4 GPIO
@@ -76,6 +66,9 @@ func (s *SPI) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, er
 	if mode&spi.LSBFirst == spi.LSBFirst {
 		return nil, errors.New("bitbang-spi: LSBFirst mode not supported")
 	}
+	if mode >= 0x20 {
+		return nil, fmt.Errorf("bitbang-spi: unhandled mode %d(%s)", mode, mode.String())
+	}
 	s.spiConn.mu.Lock()
 	defer s.spiConn.mu.Unlock()
 	s.spiConn.freqDev = f
@@ -84,6 +77,18 @@ func (s *SPI) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, er
 	}
 	s.spiConn.mode = mode
 	s.spiConn.bits = bits
+	s.spiConn.readAfterClockPulse = mode&spi.Mode1 == spi.Mode1
+
+	// Set clock idle polarity, ensuring an idle clock to start
+	s.spiConn.clockIdle = gpio.Level(mode&spi.Mode2 == spi.Mode2)
+	if err := s.spiConn.sck.Out(s.spiConn.clockIdle); err != nil {
+		return nil, fmt.Errorf("bitbang-spi: failed to idle clock: %v", err)
+	}
+
+	if err := s.spiConn.initializePins(); err != nil {
+		return nil, fmt.Errorf("bitbang-spi: failed to initialize pins: %v", err)
+	}
+
 	return &s.spiConn, nil
 }
 
@@ -132,12 +137,14 @@ type spiConn struct {
 	csn gpio.PinOut // CS
 
 	// Mutable.
-	mu        sync.Mutex
-	freqPort  physic.Frequency
-	freqDev   physic.Frequency
-	mode      spi.Mode
-	bits      int
-	halfCycle time.Duration
+	mu                  sync.Mutex
+	freqPort            physic.Frequency
+	freqDev             physic.Frequency
+	clockIdle           gpio.Level
+	readAfterClockPulse bool
+	mode                spi.Mode
+	bits                int
+	halfCycle           time.Duration
 }
 
 func (s *spiConn) String() string {
@@ -148,46 +155,6 @@ func (s *spiConn) String() string {
 func (s *spiConn) Duplex() conn.Duplex {
 	// Maybe implement bitbanging SPI only in half mode?
 	return conn.Full
-}
-
-func (s *spiConn) clockOn() error {
-	if s.mode&spi.Mode2 == spi.Mode2 {
-		return s.sck.Out(gpio.Low)
-	}
-	return s.sck.Out(gpio.High)
-}
-
-func (s *spiConn) clockOff() error {
-	if s.mode&spi.Mode2 == spi.Mode2 {
-		return s.sck.Out(gpio.High)
-	}
-	return s.sck.Out(gpio.Low)
-}
-
-func (s *spiConn) readAfterClockPulse() bool {
-	return s.mode&spi.Mode1 == spi.Mode1
-}
-
-func (s *spiConn) assertCS() error {
-	if s.csn == nil || s.mode&spi.NoCS == spi.NoCS {
-		return nil
-	}
-	if err := s.csn.Out(gpio.Low); err != nil {
-		return err
-	}
-	s.sleepHalfCycle()
-	return nil
-}
-
-func (s *spiConn) unassertCS() error {
-	if s.csn == nil || s.mode&spi.NoCS == spi.NoCS {
-		return nil
-	}
-	if err := s.csn.Out(gpio.High); err != nil {
-		return err
-	}
-	s.sleepHalfCycle()
-	return nil
 }
 
 // Tx implements spi.Conn.
@@ -213,14 +180,14 @@ func (s *spiConn) Tx(w, r []byte) (err error) {
 		}
 
 		s.sleepHalfCycle()
-		if err = s.clockOn(); err != nil {
+		if err = s.sck.Out(!s.clockIdle); err != nil {
 			return fmt.Errorf("bitbang-spi: failed to assert clock: %v", err)
 		}
 		s.sleepHalfCycle()
 
-		if s.readAfterClockPulse() {
-			if err = s.clockOff(); err != nil {
-				return fmt.Errorf("bitbang-spi: failed to unassert clock: %v", err)
+		if s.readAfterClockPulse {
+			if err = s.sck.Out(s.clockIdle); err != nil {
+				return fmt.Errorf("bitbang-spi: failed to idle clock: %v", err)
 			}
 			s.sleepHalfCycle()
 		}
@@ -231,9 +198,9 @@ func (s *spiConn) Tx(w, r []byte) (err error) {
 			}
 		}
 
-		if !s.readAfterClockPulse() {
-			if err = s.clockOff(); err != nil {
-				return fmt.Errorf("bitbang-spi: failed to unassert clock: %v", err)
+		if !s.readAfterClockPulse {
+			if err = s.sck.Out(s.clockIdle); err != nil {
+				return fmt.Errorf("bitbang-spi: failed to idle clock: %v", err)
 			}
 		}
 	}
@@ -284,5 +251,49 @@ func (s *spiConn) sleepHalfCycle() {
 	cpu.Nanospin(s.halfCycle)
 }
 
+func (s *spiConn) assertCS() error {
+	if s.csn == nil || s.mode&spi.NoCS == spi.NoCS {
+		return nil
+	}
+	if err := s.csn.Out(gpio.Low); err != nil {
+		return err
+	}
+	s.sleepHalfCycle()
+	return nil
+}
+
+func (s *spiConn) unassertCS() error {
+	if s.csn == nil || s.mode&spi.NoCS == spi.NoCS {
+		return nil
+	}
+	if err := s.csn.Out(gpio.High); err != nil {
+		return err
+	}
+	s.sleepHalfCycle()
+	return nil
+}
+
+func (s *spiConn) initializePins() error {
+	if err := s.unassertCS(); err != nil {
+		return fmt.Errorf("failed to unassert CS: %v", err)
+	}
+	if s.sck != nil {
+		if err := s.sck.Out(s.clockIdle); err != nil {
+			return fmt.Errorf("failed to idle clock: %v", err)
+		}
+	}
+	if s.sdo != nil {
+		if err := s.sdo.Out(gpio.Low); err != nil {
+			return fmt.Errorf("failed to zero MOSI: %v", err)
+		}
+	}
+	if s.sdi != nil {
+		if err := s.sdi.In(gpio.PullUp, gpio.NoEdge); err != nil {
+			return fmt.Errorf("failed to initialize MISO: %v", err)
+		}
+	}
+	return nil
+}
+
+var _ spi.Conn = &spiConn{}
 var _ spi.PortCloser = &SPI{}
-var _ fmt.Stringer = &SPI{}

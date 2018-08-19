@@ -313,7 +313,6 @@ func (e busError) BusError() bool { return true }
 var sleep = time.Sleep
 
 var _ conn.Resource = &Dev{}
-var _ fmt.Stringer = &Dev{}
 
 const (
 	cmdReset       = 0xf0 // reset ds248x

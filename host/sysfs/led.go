@@ -15,8 +15,10 @@ import (
 	"time"
 
 	"periph.io/x/periph"
+	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/physic"
+	"periph.io/x/periph/conn/pin"
 	"periph.io/x/periph/host/fs"
 )
 
@@ -52,27 +54,9 @@ type LED struct {
 	fBrightness *fs.File // handle to /sys/class/gpio/gpio*/direction; never closed
 }
 
-// Name returns the pin name.
-func (l *LED) Name() string {
-	return l.name
-}
-
-// String returns the name(number).
+// String implements conn.Resource.
 func (l *LED) String() string {
 	return fmt.Sprintf("%s(%d)", l.name, l.number)
-}
-
-// Number returns the sysfs pin number.
-func (l *LED) Number() int {
-	return l.number
-}
-
-// Function returns the current pin function and state, ex: "LED/On".
-func (l *LED) Function() string {
-	if l.Read() {
-		return "LED/On"
-	}
-	return "LED/Off"
 }
 
 // Halt implements conn.Resource.
@@ -80,6 +64,49 @@ func (l *LED) Function() string {
 // It turns the light off.
 func (l *LED) Halt() error {
 	return l.Out(gpio.Low)
+}
+
+// Name implements pin.Pin.
+func (l *LED) Name() string {
+	return l.name
+}
+
+// Number implements pin.Pin.
+func (l *LED) Number() int {
+	return l.number
+}
+
+// Function implements pin.Pin.
+func (l *LED) Function() string {
+	if l.Read() {
+		return "LED/On"
+	}
+	return "LED/Off"
+}
+
+// Func implements pin.PinFunc.
+func (l *LED) Func() pin.Func {
+	if l.Read() {
+		return gpio.OUT_HIGH
+	}
+	return gpio.OUT_LOW
+}
+
+// SupportedFuncs implements pin.PinFunc.
+func (l *LED) SupportedFuncs() []pin.Func {
+	return []pin.Func{gpio.OUT}
+}
+
+// SetFunc implements pin.PinFunc.
+func (l *LED) SetFunc(f pin.Func) error {
+	switch f {
+	case gpio.OUT_HIGH:
+		return l.Out(gpio.High)
+	case gpio.OUT, gpio.OUT_LOW:
+		return l.Out(gpio.Low)
+	default:
+		return errors.New("sysfs-led: unsupported function")
+	}
 }
 
 // In implements gpio.PinIn.
@@ -233,7 +260,8 @@ func init() {
 
 var drvLED driverLED
 
+var _ conn.Resource = &LED{}
 var _ gpio.PinIn = &LED{}
 var _ gpio.PinOut = &LED{}
 var _ gpio.PinIO = &LED{}
-var _ fmt.Stringer = &LED{}
+var _ pin.PinFunc = &LED{}

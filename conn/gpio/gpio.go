@@ -263,6 +263,14 @@ func init() {
 type invalidPin struct {
 }
 
+func (invalidPin) String() string {
+	return "INVALID"
+}
+
+func (invalidPin) Halt() error {
+	return nil
+}
+
 func (invalidPin) Number() int {
 	return -1
 }
@@ -271,16 +279,20 @@ func (invalidPin) Name() string {
 	return "INVALID"
 }
 
-func (invalidPin) String() string {
-	return "INVALID"
-}
-
 func (invalidPin) Function() string {
 	return ""
 }
 
-func (invalidPin) Halt() error {
+func (invalidPin) Func() pin.Func {
+	return pin.FuncNone
+}
+
+func (invalidPin) SupportedFuncs() []pin.Func {
 	return nil
+}
+
+func (invalidPin) SetFunc(f pin.Func) error {
+	return errInvalidPin
 }
 
 func (invalidPin) In(Pull, Edge) error {
@@ -314,3 +326,4 @@ func (invalidPin) PWM(Duty, physic.Frequency) error {
 var _ PinIn = INVALID
 var _ PinOut = INVALID
 var _ PinIO = INVALID
+var _ pin.PinFunc = &invalidPin{}

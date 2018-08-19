@@ -16,6 +16,7 @@ import (
 	"sort"
 
 	"periph.io/x/periph"
+	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/pin"
 	"periph.io/x/periph/conn/pin/pinreg"
 )
@@ -32,14 +33,38 @@ func printFailures(state *periph.State) {
 	}
 }
 
-func printHardware(invalid bool, all map[string][][]pin.Pin) {
+func altFuncs(p pin.Pin) string {
+	r, ok := p.(gpio.RealPin)
+	if ok {
+		p = r.Real()
+	}
+	alt, ok := p.(pin.PinFunc)
+	if !ok {
+		return ""
+	}
+	fn := alt.Func()
+	out := ""
+	for _, f := range alt.SupportedFuncs() {
+		if f == gpio.IN || f == gpio.OUT || f == fn {
+			continue
+		}
+		if out != "" {
+			out += ", "
+		}
+		out += string(f)
+	}
+	return out
+}
+
+func printHardware(showFunctions bool, all map[string][][]pin.Pin) {
 	names := make([]string, 0, len(all))
 	for name := range all {
 		names = append(names, name)
 	}
 	sort.Strings(names)
 	maxName := 0
-	maxFn := 0
+	maxFn := len("Func")
+	maxAltFn := len("Alt")
 	for _, header := range all {
 		if len(header) == 0 || len(header[0]) != 2 {
 			continue
@@ -51,6 +76,11 @@ func printHardware(invalid bool, all map[string][][]pin.Pin) {
 				}
 				if l := len(p.Function()); l > maxFn {
 					maxFn = l
+				}
+				if showFunctions {
+					if l := len(altFuncs(p)); l > maxAltFn {
+						maxAltFn = l
+					}
 				}
 			}
 		}
@@ -70,11 +100,37 @@ func printHardware(invalid bool, all map[string][][]pin.Pin) {
 		}
 		fmt.Printf("%s: %d pins\n", name, sum)
 		if len(header[0]) == 2 {
-			fmt.Printf("  %*s  %*s  Pos  Pos  %-*s Func\n", maxFn, "Func", maxName, "Name", maxName, "Name")
+			// Two lines.
+			if showFunctions {
+				// Super wide format.
+				fmt.Printf("  %*s  %*s  %*s  Pos  Pos  %-*s  %-*s  %-*s\n",
+					maxAltFn, "Alt", maxFn, "Func", maxName, "Name",
+					maxName, "Name", maxFn, "Func", maxAltFn, "Alt")
+				for i, line := range header {
+					fmt.Printf("  %*s  %*s  %*s  %3d  %-3d  %-*s  %-*s  %-*s\n",
+						maxAltFn, altFuncs(line[0]), maxFn, line[0].Function(), maxName, line[0], 2*i+1,
+						2*i+2, maxName, line[1], maxFn, line[1].Function(), maxAltFn, altFuncs(line[1]))
+				}
+				continue
+			}
+			fmt.Printf("  %*s  %*s  Pos  Pos  %-*s  %-*s\n", maxFn, "Func", maxName, "Name", maxName, "Name", maxFn, "Func")
 			for i, line := range header {
-				fmt.Printf("  %*s  %*s  %3d  %-3d  %-*s %s\n", maxFn, line[0].Function(), maxName, line[0], 2*i+1, 2*i+2, maxName, line[1], line[1].Function())
+				fmt.Printf("  %*s  %*s  %3d  %-3d  %-*s  %-*s\n",
+					maxFn, line[0].Function(), maxName, line[0], 2*i+1, 2*i+2, maxName, line[1], maxFn, line[1].Function())
 			}
 			continue
+		}
+		// One line.
+		if showFunctions {
+			// Super wide format.
+			fmt.Printf("  Pos  %-*s  %-*s  %-*s\n", maxName, "Name", maxFn, "Func", maxAltFn, "Alt")
+			pos := 1
+			for _, line := range header {
+				for _, item := range line {
+					fmt.Printf("  %-3d  %-*s  %-*s  %-*s\n", pos, maxName, item, maxFn, item.Function(), maxAltFn, altFuncs(item))
+					pos++
+				}
+			}
 		}
 		fmt.Printf("  Pos  %-*s  Func\n", maxName, "Name")
 		pos := 1
@@ -88,7 +144,7 @@ func printHardware(invalid bool, all map[string][][]pin.Pin) {
 }
 
 func mainImpl() error {
-	invalid := flag.Bool("n", false, "show not connected/INVALID pins")
+	showFunctions := flag.Bool("f", false, "show all alternate functions")
 	verbose := flag.Bool("v", false, "verbose mode")
 	flag.Parse()
 	if !*verbose {
@@ -110,14 +166,14 @@ func mainImpl() error {
 		return errors.New("no header found")
 	}
 	if flag.NArg() == 0 {
-		printHardware(*invalid, all)
+		printHardware(*showFunctions, all)
 	} else {
 		for _, name := range flag.Args() {
 			hdr, ok := all[name]
 			if !ok {
 				return fmt.Errorf("header %q is not registered", name)
 			}
-			printHardware(*invalid, map[string][][]pin.Pin{name: hdr})
+			printHardware(*showFunctions, map[string][][]pin.Pin{name: hdr})
 		}
 	}
 	return nil
