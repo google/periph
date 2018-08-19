@@ -613,7 +613,7 @@ func (p *Pin) PWM(duty gpio.Duty, freq physic.Frequency) error {
 			return p.wrap(fmt.Errorf("frequency must be at most %s", m))
 		}
 		// Total cycles in the period
-		rng := uint64(drvDMA.pwmDMAFreq / freq)
+		rng := uint64(drvDMA.pwmBaseFreq / freq)
 		// Pulse width cycles
 		dat := uint32((rng*uint64(duty) + uint64(gpio.DutyHalf)) / uint64(gpio.DutyMax))
 		if _, err := setPWMClockSource(); err != nil {
