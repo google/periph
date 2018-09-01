@@ -27,6 +27,14 @@ func IsR8() bool {
 	return detection.isR8
 }
 
+// IsA20 detects whether the host CPU is an Allwinner A20 CPU.
+//
+// It looks for Hardware : sun7i in /proc/cpuinfo
+func IsA20() bool {
+	detection.do()
+	return detection.isA20
+}
+
 // IsA64 detects whether the host CPU is an Allwinner A64 CPU.
 //
 // It looks for the string "sun50iw1p1" in /proc/device-tree/compatible.
@@ -42,6 +50,7 @@ type detectionS struct {
 	done        bool
 	isAllwinner bool
 	isR8        bool
+	isA20       bool
 	isA64       bool
 }
 
@@ -66,7 +75,12 @@ func (d *detectionS) do() {
 					d.isR8 = true
 				}
 			}
-			d.isAllwinner = d.isA64 || d.isR8
+			if hw, ok := distro.CPUInfo()["Hardware"]; ok {
+				if hw == "sun7i" {
+					d.isA20 = true
+				}
+			}
+			d.isAllwinner = d.isA64 || d.isR8 || d.isA20
 		}
 	}
 }
