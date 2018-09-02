@@ -167,19 +167,22 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 				return p.wrap(err)
 			}
 		}
-		if p.edge != edge {
-			var b []byte
-			switch edge {
-			case gpio.RisingEdge:
-				b = bRising
-			case gpio.FallingEdge:
-				b = bFalling
-			case gpio.BothEdges:
-				b = bBoth
-			}
-			if err := seekWrite(p.fEdge, b); err != nil {
-				return p.wrap(err)
-			}
+		// Always reset the edge detection mode to none after starting the epoll,
+		// otherwise edges are not always delivered.
+		if err := seekWrite(p.fEdge, bNone); err != nil {
+			return p.wrap(err)
+		}
+		var b []byte
+		switch edge {
+		case gpio.RisingEdge:
+			b = bRising
+		case gpio.FallingEdge:
+			b = bFalling
+		case gpio.BothEdges:
+			b = bBoth
+		}
+		if err := seekWrite(p.fEdge, b); err != nil {
+			return p.wrap(err)
 		}
 	}
 	p.edge = edge
