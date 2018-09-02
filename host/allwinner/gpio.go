@@ -143,6 +143,13 @@ func (p *Pin) Func() pin.Func {
 		return pin.Func("ALT3")
 	case alt4:
 		if p.altFunc[3] != "" {
+			if strings.Contains(string(p.altFunc[3]), "EINT") {
+				// It's an input supporting interrupts.
+				if p.FastRead() {
+					return gpio.IN_HIGH
+				}
+				return gpio.IN_LOW
+			}
 			return pin.Func(p.altFunc[3])
 		}
 		return pin.Func("ALT4")

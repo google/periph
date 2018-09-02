@@ -208,7 +208,8 @@ func mapA20Pins() error {
 		pin := cpupins[name]
 		pin.altFunc = altFuncs
 		pin.available = true
-		if strings.Contains(string(altFuncs[4]), "_EINT") {
+		if strings.Contains(string(altFuncs[4]), "_EINT") ||
+			strings.Contains(string(altFuncs[3]), "_EINT") {
 			pin.supportEdge = true
 		}
 
