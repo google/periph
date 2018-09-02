@@ -368,50 +368,11 @@ func (p *Pin) Out(l gpio.Level) error {
 // to reach Mhz scale bit banging.
 func (p *Pin) FastOut(l gpio.Level) {
 	bit := uint32(1 << p.offset)
-	// Pn_DAT  n*0x24+0x10  Port n Data Register (n from 1(B) to 7(H))
-	switch p.group {
-	case 1:
-		if l {
-			drvGPIO.gpioMemory.groups[1].data |= bit
-		} else {
-			drvGPIO.gpioMemory.groups[1].data &^= bit
-		}
-	case 2:
-		if l {
-			drvGPIO.gpioMemory.groups[2].data |= bit
-		} else {
-			drvGPIO.gpioMemory.groups[2].data &^= bit
-		}
-	case 3:
-		if l {
-			drvGPIO.gpioMemory.groups[3].data |= bit
-		} else {
-			drvGPIO.gpioMemory.groups[3].data &^= bit
-		}
-	case 4:
-		if l {
-			drvGPIO.gpioMemory.groups[4].data |= bit
-		} else {
-			drvGPIO.gpioMemory.groups[4].data &^= bit
-		}
-	case 5:
-		if l {
-			drvGPIO.gpioMemory.groups[5].data |= bit
-		} else {
-			drvGPIO.gpioMemory.groups[5].data &^= bit
-		}
-	case 6:
-		if l {
-			drvGPIO.gpioMemory.groups[6].data |= bit
-		} else {
-			drvGPIO.gpioMemory.groups[6].data &^= bit
-		}
-	case 7:
-		if l {
-			drvGPIO.gpioMemory.groups[7].data |= bit
-		} else {
-			drvGPIO.gpioMemory.groups[7].data &^= bit
-		}
+	// Pn_DAT  n*0x24+0x10  Port n Data Register (n from 0(A) to 8(I))
+	if l {
+		drvGPIO.gpioMemory.groups[p.group].data |= bit
+	} else {
+		drvGPIO.gpioMemory.groups[p.group].data &^= bit
 	}
 }
 
@@ -1013,7 +974,7 @@ func init() {
 }
 
 // getBaseAddress queries the virtual file system to retrieve the base address
-// of the GPIO registers for GPIO pins in groups PB to PH.
+// of the GPIO registers for GPIO pins in groups PA to PI.
 //
 // Defaults to 0x01C20800 as per datasheet if it could not query the file
 // system.
