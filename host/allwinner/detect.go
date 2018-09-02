@@ -74,7 +74,14 @@ func (d *detectionS) do() {
 				if strings.Contains(c, "sun5i-r8") {
 					d.isR8 = true
 				}
+				if strings.Contains(c, "sun7i-a20") {
+					d.isA20 = true
+				}
 			}
+
+			// The kernel in the image that comes pre-installed on the pcDuino3 Nano
+			// doesn't expose the device-tree in procfs, so do an extra check in
+			// cpuinfo.
 			if hw, ok := distro.CPUInfo()["Hardware"]; ok {
 				if hw == "sun7i" {
 					d.isA20 = true
