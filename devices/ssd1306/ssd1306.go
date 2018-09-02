@@ -72,7 +72,7 @@ type Opts struct {
 	// missing on your display.
 	Sequential bool
 	// SwapTopBottom corresponds to the Left/Right remap COM pin configuration in
-	// the OLD panel hardware. Try toggling this if the top and bottom halves of
+	// the OLED panel hardware. Try toggling this if the top and bottom halves of
 	// your display are swapped.
 	SwapTopBottom bool
 }
