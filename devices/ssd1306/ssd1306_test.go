@@ -5,6 +5,7 @@
 package ssd1306
 
 import (
+	"bytes"
 	"errors"
 	"image"
 	"image/color"
@@ -486,6 +487,25 @@ func TestSPI_4wire_gpio_fail(t *testing.T) {
 	}
 	if err := port.Close(); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestInitCmd(t *testing.T) {
+	tests := []struct {
+		opts         *Opts
+		wantSubslice []byte
+	}{
+		{opts: &Opts{W: 128, H: 64}, wantSubslice: []byte{0xDA, 0x12}},
+		{opts: &Opts{W: 128, H: 64, Sequential: true}, wantSubslice: []byte{0xDA, 0x02}},
+		{opts: &Opts{W: 128, H: 64, SwapTopBottom: true}, wantSubslice: []byte{0xDA, 0x32}},
+		{opts: &Opts{W: 128, H: 64, Sequential: true, SwapTopBottom: true}, wantSubslice: []byte{0xDA, 0x22}},
+	}
+
+	for _, test := range tests {
+		got := getInitCmd(test.opts)
+		if !bytes.Contains(got, test.wantSubslice) {
+			t.Errorf("getInitCmd(%v) -> %v, want %v", test.opts, got, test.wantSubslice)
+		}
 	}
 }
 
