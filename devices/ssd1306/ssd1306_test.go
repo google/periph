@@ -5,6 +5,7 @@
 package ssd1306
 
 import (
+	"bytes"
 	"errors"
 	"image"
 	"image/color"
@@ -384,7 +385,7 @@ func TestSPI_3wire(t *testing.T) {
 func TestSPI_4wire_String(t *testing.T) {
 	port := spitest.Playback{
 		Playback: conntest.Playback{
-			Ops: []conntest.IO{{W: getInitCmd(128, 64, false)}},
+			Ops: []conntest.IO{{W: getInitCmd(&Opts{W: 128, H: 64, Rotated: false})}},
 		},
 	}
 	dev, err := NewSPI(&port, &gpiotest.Pin{N: "pin1", Num: 42}, &DefaultOpts)
@@ -409,7 +410,7 @@ func TestSPI_4wire_Write_differential(t *testing.T) {
 	port := spitest.Playback{
 		Playback: conntest.Playback{
 			Ops: []conntest.IO{
-				{W: getInitCmd(128, 64, false)},
+				{W: getInitCmd(&Opts{W: 128, H: 64, Rotated: false})},
 				{W: buf1},
 				// Reset to write only to the first page.
 				{W: []byte{0x21, 0x0, 0x7f, 0x22, 0x1, 0x1}},
@@ -441,7 +442,7 @@ func TestSPI_4wire_Write_differential_fail(t *testing.T) {
 	port := spitest.Playback{
 		Playback: conntest.Playback{
 			Ops: []conntest.IO{
-				{W: getInitCmd(128, 64, false)},
+				{W: getInitCmd(&Opts{W: 128, H: 64, Rotated: false})},
 				{W: buf1},
 			},
 			DontPanic: true,
@@ -468,7 +469,7 @@ func TestSPI_4wire_Write_differential_fail(t *testing.T) {
 func TestSPI_4wire_gpio_fail(t *testing.T) {
 	port := spitest.Playback{
 		Playback: conntest.Playback{
-			Ops: []conntest.IO{{W: getInitCmd(128, 64, false)}},
+			Ops: []conntest.IO{{W: getInitCmd(&Opts{W: 128, H: 64, Rotated: false})}},
 		},
 	}
 	pin := &failPin{fail: false}
@@ -489,10 +490,29 @@ func TestSPI_4wire_gpio_fail(t *testing.T) {
 	}
 }
 
+func TestInitCmd(t *testing.T) {
+	tests := []struct {
+		opts         *Opts
+		wantSubslice []byte
+	}{
+		{opts: &Opts{W: 128, H: 64}, wantSubslice: []byte{0xDA, 0x12}},
+		{opts: &Opts{W: 128, H: 64, Sequential: true}, wantSubslice: []byte{0xDA, 0x02}},
+		{opts: &Opts{W: 128, H: 64, SwapTopBottom: true}, wantSubslice: []byte{0xDA, 0x32}},
+		{opts: &Opts{W: 128, H: 64, Sequential: true, SwapTopBottom: true}, wantSubslice: []byte{0xDA, 0x22}},
+	}
+
+	for _, test := range tests {
+		got := getInitCmd(test.opts)
+		if !bytes.Contains(got, test.wantSubslice) {
+			t.Errorf("getInitCmd(%v) -> %v, want %v", test.opts, got, test.wantSubslice)
+		}
+	}
+}
+
 //
 
 func initCmdI2C() []byte {
-	return append([]byte{0}, getInitCmd(128, 64, false)...)
+	return append([]byte{0}, getInitCmd(&Opts{W: 128, H: 64, Rotated: false})...)
 }
 
 var preludeI2C = []byte{

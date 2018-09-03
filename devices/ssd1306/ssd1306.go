@@ -54,9 +54,11 @@ const (
 
 // DefaultOpts is the recommended default options.
 var DefaultOpts = Opts{
-	W:       128,
-	H:       64,
-	Rotated: false,
+	W:             128,
+	H:             64,
+	Rotated:       false,
+	Sequential:    false,
+	SwapTopBottom: false,
 }
 
 // Opts defines the options for the device.
@@ -65,6 +67,14 @@ type Opts struct {
 	H int
 	// Rotated determines if the display is rotated by 180°.
 	Rotated bool
+	// Sequential corresponds to the Sequential/Alternative COM pin configuration
+	// in the OLED panel hardware. Try toggling this if half the rows appear to be
+	// missing on your display.
+	Sequential bool
+	// SwapTopBottom corresponds to the Left/Right remap COM pin configuration in
+	// the OLED panel hardware. Try toggling this if the top and bottom halves of
+	// your display are swapped.
+	SwapTopBottom bool
 }
 
 // NewSPI returns a Dev object that communicates over SPI to a SSD1306 display
@@ -287,21 +297,29 @@ func newDev(c conn.Conn, opts *Opts, usingSPI bool, dc gpio.PinOut) (*Dev, error
 		// Signal that the screen must be redrawn on first draw().
 		scrolled: true,
 	}
-	if err := d.sendCommand(getInitCmd(opts.W, opts.H, opts.Rotated)); err != nil {
+	if err := d.sendCommand(getInitCmd(opts)); err != nil {
 		return nil, err
 	}
 	return d, nil
 }
 
-func getInitCmd(w, h int, rotated bool) []byte {
+func getInitCmd(opts *Opts) []byte {
 	// Set COM output scan direction; C0 means normal; C8 means reversed
 	comScan := byte(0xC8)
 	// See page 40.
 	columnAddr := byte(0xA1)
-	if rotated {
+	if opts.Rotated {
 		// Change order both horizontally and vertically.
 		comScan = 0xC0
 		columnAddr = byte(0xA0)
+	}
+	// See page 40.
+	hwLayout := byte(0x02)
+	if !opts.Sequential {
+		hwLayout |= 0x10
+	}
+	if opts.SwapTopBottom {
+		hwLayout |= 0x20
 	}
 	// Set the max frequency. The problem with I²C is that it creates visible
 	// tear down. On SPI at high speed this is not visible. Page 23 pictures how
@@ -314,10 +332,10 @@ func getInitCmd(w, h int, rotated bool) []byte {
 	return []byte{
 		0xAE,       // Display off
 		0xD3, 0x00, // Set display offset; 0
-		0x40,       // Start display start line; 0
-		columnAddr, // Set segment remap; RESET is column 127.
-		comScan,    //
-		0xDA, 0x12, // Set COM pins hardware configuration; see page 40
+		0x40,           // Start display start line; 0
+		columnAddr,     // Set segment remap; RESET is column 127.
+		comScan,        //
+		0xDA, hwLayout, // Set COM pins hardware configuration; see page 40
 		0x81, 0xFF, // Set max contrast
 		0xA4,       // Set display to use GDDRAM content
 		0xA6,       // Set normal display (0xA7 for inverted 0=lit, 1=dark)
@@ -325,11 +343,11 @@ func getInitCmd(w, h int, rotated bool) []byte {
 		0x8D, 0x14, // Enable charge pump regulator; page 62
 		0xD9, 0xF1, // Set pre-charge period; from adafruit driver
 		0xDB, 0x40, // Set Vcomh deselect level; page 32
-		0x2E,              // Deactivate scroll
-		0xA8, byte(h - 1), // Set multiplex ratio (number of lines to display)
+		0x2E,                   // Deactivate scroll
+		0xA8, byte(opts.H - 1), // Set multiplex ratio (number of lines to display)
 		0x20, 0x00, // Set memory addressing mode to horizontal
-		0x21, 0, uint8(w - 1), // Set column address (Width)
-		0x22, 0, uint8(h/8 - 1), // Set page address (Pages)
+		0x21, 0, uint8(opts.W - 1), // Set column address (Width)
+		0x22, 0, uint8(opts.H/8 - 1), // Set page address (Pages)
 		0xAF, // Display on
 	}
 }

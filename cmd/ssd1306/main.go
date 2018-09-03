@@ -135,7 +135,9 @@ func mainImpl() error {
 
 	h := flag.Int("h", 64, "display height")
 	w := flag.Int("w", 128, "display width")
-	rotated := flag.Bool("r", false, "Rotate the display by 180°")
+	rotated := flag.Bool("r", false, "rotate the display by 180°")
+	sequential := flag.Bool("n", false, "sequential/interleaved hardware pin layout")
+	swapTopBottom := flag.Bool("s", false, "swap top/bottom hardware pin layout")
 
 	imgName := flag.String("i", "ballerine.gif", "image to load; try bunny.gif")
 	text := flag.String("t", "periph is awesome", "text to display")
@@ -156,7 +158,7 @@ func mainImpl() error {
 
 	// Open the device on the right bus.
 	var s *ssd1306.Dev
-	opts := ssd1306.Opts{W: *w, H: *h, Rotated: *rotated}
+	opts := ssd1306.Opts{W: *w, H: *h, Rotated: *rotated, Sequential: *sequential, SwapTopBottom: *swapTopBottom}
 	if *spiID != "" {
 		c, err := spireg.Open(*spiID)
 		if err != nil {
