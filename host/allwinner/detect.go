@@ -78,16 +78,20 @@ func (d *detectionS) do() {
 					d.isA20 = true
 				}
 			}
+			d.isAllwinner = d.isA64 || d.isR8 || d.isA20
 
-			// The kernel in the image that comes pre-installed on the pcDuino3 Nano
-			// doesn't expose the device-tree in procfs, so do an extra check in
-			// cpuinfo.
-			if hw, ok := distro.CPUInfo()["Hardware"]; ok {
-				if hw == "sun7i" {
-					d.isA20 = true
+			if !d.isAllwinner {
+				// The kernel in the image that comes pre-installed on the pcDuino3 Nano
+				// is an old 3.x kernel that doesn't expose the device-tree in procfs,
+				// so do an extra check in cpuinfo as well if we haven't detected
+				// anything yet.
+				// Distros based on 4.x kernels do expose it.
+				if hw, ok := distro.CPUInfo()["Hardware"]; ok {
+					if hw == "sun7i" {
+						d.isA20 = true
+					}
 				}
 			}
-			d.isAllwinner = d.isA64 || d.isR8 || d.isA20
 		}
 	}
 }
