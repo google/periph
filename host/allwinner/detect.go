@@ -29,7 +29,8 @@ func IsR8() bool {
 
 // IsA20 detects whether the host CPU is an Allwinner A20 CPU.
 //
-// It looks for Hardware : sun7i in /proc/cpuinfo
+// It first looks for the string "sun71-a20" in /proc/device-tree/compatible,
+// and if that fails it checks for "Hardware : sun7i" in /proc/cpuinfo.
 func IsA20() bool {
 	detection.do()
 	return detection.isA20
