@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"periph.io/x/periph/conn/display"
+	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/gpio/gpiostream"
 	"periph.io/x/periph/conn/physic"
@@ -144,6 +145,9 @@ func mainImpl() error {
 	p := gpioreg.ByName(*pin)
 	if p == nil {
 		return errors.New("specify a valid pin")
+	}
+	if rp, ok := p.(gpio.RealPin); ok {
+		p = rp.Real()
 	}
 	s, ok := p.(gpiostream.PinOut)
 	if !ok {
