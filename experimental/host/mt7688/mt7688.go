@@ -15,9 +15,8 @@ import (
 // Present returns true if a mt7688 processor is detected.
 func Present() bool {
 	if isMIPS {
-		hardware, ok := distro.CPUInfo()["system type"]
-		return ok && strings.HasPrefix(hardware, "MediaTek MT7688")
-		return true
+		sysType, ok := distro.CPUInfo()["system type"]
+		return ok && strings.HasPrefix(sysType, "MediaTek MT7688")
 	}
 	return false
 }
