@@ -5,7 +5,6 @@
 package mt7688
 
 import (
-	"errors"
 	"strings"
 
 	"periph.io/x/periph"
@@ -21,36 +20,10 @@ func Present() bool {
 	return false
 }
 
-// driver implements periph.Driver.
-type driver struct {
-}
-
-func (d *driver) String() string {
-	return "mt7688"
-}
-
-func (d *driver) Prerequisites() []string {
-	return nil
-}
-
-func (d *driver) After() []string {
-	return nil
-}
-
-func (d *driver) Init() (bool, error) {
-	if !Present() {
-		return false, errors.New("mt7688 board not detected")
-	}
-
-	return true, nil
-}
-
 func init() {
 	// Since isMIPS is a compile time constant, the compile can strip the
 	// unnecessary code and unused private symbols.
 	if isMIPS {
-		periph.MustRegister(&drv)
+		periph.MustRegister(&drvGPIO)
 	}
 }
-
-var drv driver
