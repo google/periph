@@ -90,7 +90,7 @@ var mappingMT7688 = map[string][3]pin.Func{
 	"MDI_RN_P2":                    {"PWM_CH1", "", "eMMC_D6"},
 	"MDI_TP_P2":                    {"UART_TXD2", "PWM_CH2", "eMMC_D5"}, // 20
 	"MDI_TN_P2":                    {"UART_RXD2", "PWM_CH3", "eMMC_D4"},
-	"MDI_TP_P3":                    {"SD_WP"}, // todo: add aliases mapping eMMC
+	"MDI_TP_P3":                    {"SD_WP"}, // TODO: add aliases mapping eMMC
 	"MDI_TN_P3":                    {"SD_CD"},
 	"MDI_RP_P3":                    {"SD_D1"},
 	"MDI_RN_P3":                    {"SD_D0"}, // 25
@@ -167,4 +167,4 @@ type gpioMap struct {
 	edgeStatus [3]uint32 // GINT_EDGE_0~GINT_EDGE_2
 }
 
-// todo: via docs: Unless specified explicitly, all the GPIO pins are in input mode after reset.
+// TODO: via docs: Unless specified explicitly, all the GPIO pins are in input mode after reset.

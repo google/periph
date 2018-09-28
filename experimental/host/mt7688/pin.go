@@ -28,7 +28,7 @@ const (
 // cpuPins are all the pins as supported by the CPU. There is no guarantee that
 // they are actually connected to anything on the board.
 var cpuPins = map[string]*Pin{
-	// todo: discover default pull
+	// TODO: discover default pull
 	"I2S_SDI":                      {number: 0, name: "GPIO0", defaultPull: gpio.Float},
 	"I2S_SDO":                      {number: 1, name: "GPIO1", defaultPull: gpio.Float},
 	"I2S_WS":                       {number: 2, name: "GPIO2", defaultPull: gpio.Float},
@@ -135,7 +135,7 @@ func (p *Pin) Func() pin.Func {
 	}
 	switch f := p.function(); f {
 	case in:
-		// todo: implement FastRead
+		// TODO: implement FastRead
 		//if p.FastRead() {
 		//	return gpio.IN_HIGH
 		//}
@@ -167,14 +167,14 @@ func (p *Pin) Func() pin.Func {
 
 // function returns the current GPIO pin function.
 func (p *Pin) function() function {
-	// todo: implement function
+	// TODO: implement function
 	return out
 }
 
 var _ conn.Resource = &Pin{}
 var _ pin.Pin = &Pin{}
 
-// todo: implement required interfaces
+// TODO: implement required interfaces
 //var _ gpio.PinIO = &Pin{}
 //var _ gpio.PinIn = &Pin{}
 //var _ gpio.PinOut = &Pin{}
