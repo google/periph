@@ -176,5 +176,3 @@ var _ pin.Pin = &Pin{}
 
 // TODO: implement required interfaces
 //var _ gpio.PinIO = &Pin{}
-//var _ gpio.PinIn = &Pin{}
-//var _ gpio.PinOut = &Pin{}
