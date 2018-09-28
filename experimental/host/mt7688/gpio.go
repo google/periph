@@ -67,54 +67,104 @@ var (
 // The mapping is a combination of the naming from datasheet pages 25-31 and
 // the GPIO Pin Function Mapping on page 108:
 // https://labs.mediatek.com/fileMedia/download/9ef51e98-49b1-489a-b27e-391bac9f7bf3
-var mappingMT7688 = map[string][3]pin.Func{
-	"I2S_SDI":                      {"I2SSDI", "PCMDRX"}, // 0
-	"I2S_SDO":                      {"I2SSDO", "PCMDTX"},
-	"I2S_WS":                       {"I2SW", "PCMCLK"},
-	"I2S_CLK":                      {"I2SCLK", "PCMFS"},
-	"I2C_SCLK":                     {"I2C_SCLK"},
-	"I2C_SD":                       {"I2C_SD"}, // 5
-	"SPI_CS1":                      {"SPI_CS1", "REF_CLKO"},
-	"SPI_CLK":                      {"SPI_CLK"},
-	"SPI_MOSI":                     {"SPI_MOSI"},
-	"SPI_MISO":                     {"SPI_MISO"},
-	"SPI_CS0":                      {"SPI_CS0"}, // 10
-	"GPIO0":                        {"GPIO#11", "REF_CLKO", "PERST_N"},
-	"UART_TXD0":                    {"UART_TXD0"},
-	"UART_RXD0":                    {"UART_RXD0"},
-	"MDI_TP_P1":                    {"SPIS_CS", "", "PWM_CH0"},
-	"MDI_TN_P1":                    {"SPIS_CLK", "", "PWM_CH1"}, // 15
-	"MDI_RP_P1":                    {"SPIS_MISO", "", "UART_TXD2"},
-	"MDI_RN_P1":                    {"SPIS_MOSI", "", "UART_RXD2"},
-	"MDI_RP_P2":                    {"PWM_CH0", "", "eMMC_D7"},
-	"MDI_RN_P2":                    {"PWM_CH1", "", "eMMC_D6"},
-	"MDI_TP_P2":                    {"UART_TXD2", "PWM_CH2", "eMMC_D5"}, // 20
-	"MDI_TN_P2":                    {"UART_RXD2", "PWM_CH3", "eMMC_D4"},
-	"MDI_TP_P3":                    {"SD_WP"}, // todo: add aliases mapping eMMC
-	"MDI_TN_P3":                    {"SD_CD"},
-	"MDI_RP_P3":                    {"SD_D1"},
-	"MDI_RN_P3":                    {"SD_D0"}, // 25
-	"MDI_RP_P4":                    {"SD_CLK"},
-	"MDI_RN_P4":                    {"SD_CMD"},
-	"MDI_TP_P4":                    {"SD_D3"},
-	"MDI_TN_P4":                    {"SD_D2"},
-	"EPHY_LED4_N_JTRST_N (7688KN)": {"EPHY_LED4_K", "", "JTAG_RST_N"}, // 30
-	"EPHY_LED3_N_JTCLK (7688KN)":   {"EPHY_LED3_K", "", "JTAG_CLK"},
-	"EPHY_LED2_N_JTMS (7688KN)":    {"EPHY_LED2_K", "", "JTAG_TMS"},
-	"EPHY_LED1_N_JTDI (7688KN)":    {"EPHY_LED1_K", "", "JTAG_TDI"},
-	"EPHY_LED0_N_JTDO (7688KN)":    {"EPHY_LED0_K", "", "JTAG_TDO"},
-	"WLED_N (7688KN)":              {"WLED_N"}, // 35
-	"PERST_N":                      {"PERST_N"},
-	"REF_CLKO":                     {"REF_CLKO"},
-	"WDT_RST_N":                    {"WDT_RST_N"},
-	"EPHY_LED4_N_JTRST_N (7688AN)": {"EPHY_LED4_N", "", "JTAG_RST_N"},
-	"EPHY_LED3_N_JTCLK (7688AN)":   {"EPHY_LED3_N", "", "JTAG_CLK"}, // 40
-	"EPHY_LED2_N_JTMS (7688AN)":    {"EPHY_LED2_N", "", "JTAG_TMS"},
-	"EPHY_LED1_N_JTDI (7688AN)":    {"EPHY_LED1_N", "", "JTAG_TDI"},
-	"EPHY_LED0_N_JTDO (7688AN)":    {"EPHY_LED0_N", "", "JTAG_TDO"},
-	"WLED_N (7688AN)":              {"WLED_N"},
-	"UART_TXD1":                    {"UART_TXD1", "PWM_CH0"}, // 45
-	"UART_RXD1":                    {"UART_RXD1", "PWM_CH1"},
+var mapping = [][3]pin.Func{
+	{"I2SSDI", "PCMDRX"}, // 0
+	{"I2SSDO", "PCMDTX"},
+	{"I2SW", "PCMCLK"},
+	{"I2SCLK", "PCMFS"},
+	{"I2C_SCLK"},
+	{"I2C_SD"}, // 5
+	{"SPI_CS1", "REF_CLKO"},
+	{"SPI_CLK"},
+	{"SPI_MOSI"},
+	{"SPI_MISO"},
+	{"SPI_CS0"}, // 10
+	{"GPIO#11", "REF_CLKO", "PERST_N"},
+	{"UART_TXD0"},
+	{"UART_RXD0"},
+	{"SPIS_CS", "", "PWM_CH0"},
+	{"SPIS_CLK", "", "PWM_CH1"}, // 15
+	{"SPIS_MISO", "", "UART_TXD2"},
+	{"SPIS_MOSI", "", "UART_RXD2"},
+	{"PWM_CH0", "", "eMMC_D7"},
+	{"PWM_CH1", "", "eMMC_D6"},
+	{"UART_TXD2", "PWM_CH2", "eMMC_D5"}, // 20
+	{"UART_RXD2", "PWM_CH3", "eMMC_D4"},
+	{"SD_WP"}, // TODO: add aliases mapping eMMC
+	{"SD_CD"},
+	{"SD_D1"},
+	{"SD_D0"}, // 25
+	{"SD_CLK"},
+	{"SD_CMD"},
+	{"SD_D3"},
+	{"SD_D2"},
+	{"EPHY_LED4_K", "", "JTAG_RST_N"}, // 30
+	{"EPHY_LED3_K", "", "JTAG_CLK"},
+	{"EPHY_LED2_K", "", "JTAG_TMS"},
+	{"EPHY_LED1_K", "", "JTAG_TDI"},
+	{"EPHY_LED0_K", "", "JTAG_TDO"},
+	{"WLED_N"}, // 35
+	{"PERST_N"},
+	{"REF_CLKO"},
+	{"WDT_RST_N"},
+	{"EPHY_LED4_N", "", "JTAG_RST_N"},
+	{"EPHY_LED3_N", "", "JTAG_CLK"}, // 40
+	{"EPHY_LED2_N", "", "JTAG_TMS"},
+	{"EPHY_LED1_N", "", "JTAG_TDI"},
+	{"EPHY_LED0_N", "", "JTAG_TDO"},
+	{"WLED_N"},
+	{"UART_TXD1", "PWM_CH0"}, // 45
+	{"UART_RXD1", "PWM_CH1"},
+}
+
+func init() {
+	GPIO0 = &cpuPins[0]
+	GPIO1 = &cpuPins[1]
+	GPIO2 = &cpuPins[2]
+	GPIO3 = &cpuPins[3]
+	GPIO4 = &cpuPins[4]
+	GPIO5 = &cpuPins[5]
+	GPIO6 = &cpuPins[6]
+	GPIO7 = &cpuPins[7]
+	GPIO8 = &cpuPins[8]
+	GPIO9 = &cpuPins[9]
+	GPIO10 = &cpuPins[10]
+	GPIO11 = &cpuPins[11]
+	GPIO12 = &cpuPins[12]
+	GPIO13 = &cpuPins[13]
+	GPIO14 = &cpuPins[14]
+	GPIO15 = &cpuPins[15]
+	GPIO16 = &cpuPins[16]
+	GPIO17 = &cpuPins[17]
+	GPIO18 = &cpuPins[18]
+	GPIO19 = &cpuPins[19]
+	GPIO20 = &cpuPins[20]
+	GPIO21 = &cpuPins[21]
+	GPIO22 = &cpuPins[22]
+	GPIO23 = &cpuPins[23]
+	GPIO24 = &cpuPins[24]
+	GPIO25 = &cpuPins[25]
+	GPIO26 = &cpuPins[26]
+	GPIO27 = &cpuPins[27]
+	GPIO28 = &cpuPins[28]
+	GPIO29 = &cpuPins[29]
+	GPIO30 = &cpuPins[30]
+	GPIO31 = &cpuPins[31]
+	GPIO32 = &cpuPins[32]
+	GPIO33 = &cpuPins[33]
+	GPIO34 = &cpuPins[34]
+	GPIO35 = &cpuPins[35]
+	GPIO36 = &cpuPins[36]
+	GPIO37 = &cpuPins[37]
+	GPIO38 = &cpuPins[38]
+	GPIO39 = &cpuPins[39]
+	GPIO40 = &cpuPins[40]
+	GPIO41 = &cpuPins[41]
+	GPIO42 = &cpuPins[42]
+	GPIO43 = &cpuPins[43]
+	GPIO44 = &cpuPins[44]
+	GPIO45 = &cpuPins[45]
+	GPIO46 = &cpuPins[46]
 }
 
 // Mapping as
@@ -167,4 +217,4 @@ type gpioMap struct {
 	edgeStatus [3]uint32 // GINT_EDGE_0~GINT_EDGE_2
 }
 
-// todo: via docs: Unless specified explicitly, all the GPIO pins are in input mode after reset.
+// TODO: via docs: Unless specified explicitly, all the GPIO pins are in input mode after reset.
