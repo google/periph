@@ -1,0 +1,506 @@
+// Copyright 2016 The Periph Authors. All rights reserved.
+// Use of this source code is governed under the Apache License, Version 2.0
+// that can be found in the LICENSE file.
+
+package ws2812b
+
+import (
+	"errors"
+	"fmt"
+	"image"
+	"image/color"
+	"image/draw"
+
+	"periph.io/x/periph/conn/display"
+	"periph.io/x/periph/conn/physic"
+	"periph.io/x/periph/conn/spi"
+)
+
+// ToRGB converts a slice of color.NRGBA to a byte stream of RGB pixels.
+//
+// Ignores alpha.
+func ToRGB(p []color.NRGBA) []byte {
+	b := make([]byte, 0, len(p)*3)
+	for _, c := range p {
+		b = append(b, c.R, c.G, c.B)
+	}
+	return b
+}
+
+// NeutralTemp is the temperature where the color temperature correction is
+// disabled.
+//
+// Use this value for Opts.Temperature so that the driver uses the exact color
+// you specified, without temperature correction.
+const NeutralTemp uint16 = 6500
+
+// DefaultOpts is the recommended default options.
+var DefaultOpts = Opts{
+	NumPixels:   150,  // 150 LEDs is a common strip length.
+	Temperature: 5000, // More pleasing whie balance than NeutralTemp.
+}
+
+// PassThruOpts makes the driver draw RGB pixels exactly as specified.
+//
+// Use this if you want the WS2812b LEDs to behave like normal 8 bits LEDs
+// without the extended range nor any color temperature correction.
+var PassThruOpts = Opts{
+	NumPixels:   150,
+	Temperature: NeutralTemp,
+}
+
+// Opts defines the options for the device.
+type Opts struct {
+	// NumPixels is the number of pixels to control.
+	// If too long, the pixels will be drawn
+	// unnecessarily but not visible issue will occur.
+	NumPixels int
+	// Temperature declares the white color to use, specified in Kelvin.  Has no
+	// effect when RawColors is true.
+	//
+	// This driver assumes the LEDs are emitting a 6500K white color. Use
+	// NeutralTemp to disable color correction.
+	Temperature uint16
+
+	Bounds image.Rectangle
+}
+
+// New returns a strip that communicates over SPI to WS2812b LEDs.
+//
+// Due to the tight timing demands of these LEDs,
+// the SPI port speed must be a reliable 2.5MHz
+//
+// Note that your SPI buffer should be at least 12*num_pixels+2 bytes long
+func New(p spi.Port, o *Opts) (*Dev, error) {
+	c, err := p.Connect(2500*physic.KiloHertz, spi.Mode3|spi.NoCS, 8)
+	if err != nil {
+		return nil, err
+	}
+	//24 symbols per LED, where each symbol is 3 actual SPI bits.
+	//End of transmission is signalled by a low signal of 50us,
+	//or 16 bytes of 0x00
+	rawBCt := 4 * (3 * o.NumPixels) //3 bytes per pixel, 4 symbol bytes per byte
+	buf := make([]byte, rawBCt+3)   //3 bytes for latch. 24*400ns = 9600ns.
+	tail := buf[rawBCt:]
+	for i := range tail {
+		tail[i] = 0x00
+	}
+
+	return &Dev{
+		s:         c,
+		numPixels: o.NumPixels,
+		rawBuf:    buf,
+		pixels:    buf[:rawBCt],
+		rect:      image.Rect(0, 0, o.NumPixels, 1),
+	}, nil
+
+}
+
+// Dev represents a strip of WS2812b LEDs as a strip connected over a SPI port.
+// It accepts a stream of raw RGB pixels and converts it to a bit pattern consistent
+// with the WS812b protocol.
+// Includes intensity and temperature correction.
+type Dev struct {
+	s         spi.Conn        //
+	numPixels int             //
+	rawBuf    []byte          // Raw buffer sent over SPI. Cached to reduce heap fragmentation.
+	pixels    []byte          // Double buffer of pixels, to enable partial painting via Draw(). Effectively points inside rawBuf.
+	rect      image.Rectangle // Device bounds
+	pixelMap  map[image.Point]int
+}
+
+func (d *Dev) String() string {
+	return fmt.Sprintf("WS2812b: {%dLEDs, %s}", d.numPixels, d.s)
+}
+
+// ColorModel implements display.Drawer. There's no surprise, it is
+// color.NRGBAModel.
+func (d *Dev) ColorModel() color.Model {
+	return color.NRGBAModel
+}
+
+// Bounds implements display.Drawer. Min is guaranteed to be {0, 0}.
+func (d *Dev) Bounds() image.Rectangle {
+	return d.rect
+}
+
+// Draw implements display.Drawer.
+//
+// Using something else than image.NRGBA is 10x slower. When using image.NRGBA,
+// the alpha channel is ignored.
+func (d *Dev) Draw(r image.Rectangle, src image.Image, sp image.Point) error {
+	if r = r.Intersect(d.rect); r.Empty() {
+		return nil
+	}
+	srcR := src.Bounds()
+	srcR.Min = srcR.Min.Add(sp)
+	if dX := r.Dx(); dX < srcR.Dx() {
+		srcR.Max.X = srcR.Min.X + dX
+	}
+	if dY := r.Dy(); dY < srcR.Dy() {
+		srcR.Max.Y = srcR.Min.Y + dY
+	}
+	if srcR.Empty() {
+		return nil
+	}
+	d.rasterImg(d.pixels, r, src, srcR)
+	return d.s.Tx(d.rawBuf, nil)
+}
+
+// Write accepts a stream of raw RGB pixels and sends it as WS2812b encoded
+// stream.
+func (d *Dev) Write(pixels []byte) (int, error) {
+	if len(pixels)%3 != 0 || len(pixels)/3 > d.numPixels {
+		return 0, errors.New("ws2812b: invalid RGB stream length")
+	}
+	// Do not touch footer.
+	d.raster(d.pixels, pixels, false)
+	err := d.s.Tx(d.rawBuf, nil)
+	return len(pixels), err
+}
+
+// Halt turns off all the lights.
+func (d *Dev) Halt() error {
+	// Zap out the buffer.
+	for i := range d.pixels {
+		d.pixels[i] = 0x88
+	}
+	return d.s.Tx(d.rawBuf, nil)
+}
+
+// raster serializes a buffer of RGB bytes to the WS2812b SPI format.
+//
+// It is expected to be given the part where pixels are, not the header nor
+// footer.
+//
+// dst is in WS2812b SPI 32 bits word format. src is in RGB 24 bits, or 32 bits
+// word format when srcHasAlpha is true. The src alpha channel is ignored in
+// this case.
+//
+// src cannot be longer in pixel count than dst.
+func (d *Dev) raster(dst []byte, src []byte, srcHasAlpha bool) {
+	pBytes := 3
+	if srcHasAlpha {
+		pBytes = 4
+	}
+	length := len(src) / pBytes
+	if l := len(dst) / 4; l < length {
+		length = l
+	}
+	if length == 0 {
+		// Save ourself some unneeded processing.
+		return
+	}
+	stride := 4 //number of spi-bytes in color-byte
+	for i := 0; i < length; i++ {
+		sOff := pBytes * i
+		dOff := 3 * stride * i //9 bytes per LED stride
+		r, g, b := src[sOff], src[sOff+1], src[sOff+2]
+		//grb color order, msb first
+		copy(dst[dOff+stride*0:dOff+stride*1], bitlut[r])
+		copy(dst[dOff+stride*1:dOff+stride*2], bitlut[g])
+		copy(dst[dOff+stride*2:dOff+stride*3], bitlut[b])
+	}
+}
+
+// rasterImg is the generic version of raster that converts an image instead of raw RGB values.
+//
+// It has 'fast paths' for image.RGBA and image.NRGBA that extract and convert the RGB values
+// directly.  For other image types, it converts to image.RGBA and then does the same.  In all
+// cases, alpha values are ignored.
+//
+// rect specifies where into the output buffer to draw.
+//
+// srcR specifies what portion of the source image to use.
+func (d *Dev) rasterImg(dst []byte, rect image.Rectangle, src image.Image, srcR image.Rectangle) {
+	// Render directly into the buffer for maximum performance and to keep
+	// untouched sections intact.
+	switch im := src.(type) {
+	case *image.RGBA:
+		start := im.PixOffset(srcR.Min.X, srcR.Min.Y)
+		// srcR.Min.Y since the output display has only a single column
+		end := im.PixOffset(srcR.Max.X, srcR.Min.Y)
+		// Offset into the output buffer using rect
+		d.raster(dst[4*rect.Min.X:], im.Pix[start:end], true)
+	case *image.NRGBA:
+		// Ignores alpha
+		start := im.PixOffset(srcR.Min.X, srcR.Min.Y)
+		// srcR.Min.Y since the output display has only a single column
+		end := im.PixOffset(srcR.Max.X, srcR.Min.Y)
+		// Offset into the output buffer using rect
+		d.raster(dst[4*rect.Min.X:], im.Pix[start:end], true)
+	default:
+		// Slow path.  Convert to RGBA
+		b := im.Bounds()
+		m := image.NewRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
+		draw.Draw(m, m.Bounds(), src, b.Min, draw.Src)
+		start := m.PixOffset(srcR.Min.X, srcR.Min.Y)
+		// srcR.Min.Y since the output display has only a single column
+		end := m.PixOffset(srcR.Max.X, srcR.Min.Y)
+		// Offset into the output buffer using rect
+		d.raster(dst[4*rect.Min.X:], m.Pix[start:end], true)
+	}
+}
+
+var _ display.Drawer = &Dev{}
+
+// The bit lookup table converts a single byte into its 3 byte SPI symbol
+// 0 => 1000 and 1 => 1110
+var bitlut = map[byte][]byte{
+	0x00: {0x88, 0x88, 0x88, 0x88}, //  0: 10001000100010001000100010001000
+	0x01: {0x88, 0x88, 0x88, 0x8E}, //  1: 10001000100010001000100010001110
+	0x02: {0x88, 0x88, 0x88, 0xE8}, //  2: 10001000100010001000100011101000
+	0x03: {0x88, 0x88, 0x88, 0xEE}, //  3: 10001000100010001000100011101110
+	0x04: {0x88, 0x88, 0x8E, 0x88}, //  4: 10001000100010001000111010001000
+	0x05: {0x88, 0x88, 0x8E, 0x8E}, //  5: 10001000100010001000111010001110
+	0x06: {0x88, 0x88, 0x8E, 0xE8}, //  6: 10001000100010001000111011101000
+	0x07: {0x88, 0x88, 0x8E, 0xEE}, //  7: 10001000100010001000111011101110
+	0x08: {0x88, 0x88, 0xE8, 0x88}, //  8: 10001000100010001110100010001000
+	0x09: {0x88, 0x88, 0xE8, 0x8E}, //  9: 10001000100010001110100010001110
+	0x0A: {0x88, 0x88, 0xE8, 0xE8}, // 10: 10001000100010001110100011101000
+	0x0B: {0x88, 0x88, 0xE8, 0xEE}, // 11: 10001000100010001110100011101110
+	0x0C: {0x88, 0x88, 0xEE, 0x88}, // 12: 10001000100010001110111010001000
+	0x0D: {0x88, 0x88, 0xEE, 0x8E}, // 13: 10001000100010001110111010001110
+	0x0E: {0x88, 0x88, 0xEE, 0xE8}, // 14: 10001000100010001110111011101000
+	0x0F: {0x88, 0x88, 0xEE, 0xEE}, // 15: 10001000100010001110111011101110
+	0x10: {0x88, 0x8E, 0x88, 0x88}, // 16: 10001000100011101000100010001000
+	0x11: {0x88, 0x8E, 0x88, 0x8E}, // 17: 10001000100011101000100010001110
+	0x12: {0x88, 0x8E, 0x88, 0xE8}, // 18: 10001000100011101000100011101000
+	0x13: {0x88, 0x8E, 0x88, 0xEE}, // 19: 10001000100011101000100011101110
+	0x14: {0x88, 0x8E, 0x8E, 0x88}, // 20: 10001000100011101000111010001000
+	0x15: {0x88, 0x8E, 0x8E, 0x8E}, // 21: 10001000100011101000111010001110
+	0x16: {0x88, 0x8E, 0x8E, 0xE8}, // 22: 10001000100011101000111011101000
+	0x17: {0x88, 0x8E, 0x8E, 0xEE}, // 23: 10001000100011101000111011101110
+	0x18: {0x88, 0x8E, 0xE8, 0x88}, // 24: 10001000100011101110100010001000
+	0x19: {0x88, 0x8E, 0xE8, 0x8E}, // 25: 10001000100011101110100010001110
+	0x1A: {0x88, 0x8E, 0xE8, 0xE8}, // 26: 10001000100011101110100011101000
+	0x1B: {0x88, 0x8E, 0xE8, 0xEE}, // 27: 10001000100011101110100011101110
+	0x1C: {0x88, 0x8E, 0xEE, 0x88}, // 28: 10001000100011101110111010001000
+	0x1D: {0x88, 0x8E, 0xEE, 0x8E}, // 29: 10001000100011101110111010001110
+	0x1E: {0x88, 0x8E, 0xEE, 0xE8}, // 30: 10001000100011101110111011101000
+	0x1F: {0x88, 0x8E, 0xEE, 0xEE}, // 31: 10001000100011101110111011101110
+	0x20: {0x88, 0xE8, 0x88, 0x88}, // 32: 10001000111010001000100010001000
+	0x21: {0x88, 0xE8, 0x88, 0x8E}, // 33: 10001000111010001000100010001110
+	0x22: {0x88, 0xE8, 0x88, 0xE8}, // 34: 10001000111010001000100011101000
+	0x23: {0x88, 0xE8, 0x88, 0xEE}, // 35: 10001000111010001000100011101110
+	0x24: {0x88, 0xE8, 0x8E, 0x88}, // 36: 10001000111010001000111010001000
+	0x25: {0x88, 0xE8, 0x8E, 0x8E}, // 37: 10001000111010001000111010001110
+	0x26: {0x88, 0xE8, 0x8E, 0xE8}, // 38: 10001000111010001000111011101000
+	0x27: {0x88, 0xE8, 0x8E, 0xEE}, // 39: 10001000111010001000111011101110
+	0x28: {0x88, 0xE8, 0xE8, 0x88}, // 40: 10001000111010001110100010001000
+	0x29: {0x88, 0xE8, 0xE8, 0x8E}, // 41: 10001000111010001110100010001110
+	0x2A: {0x88, 0xE8, 0xE8, 0xE8}, // 42: 10001000111010001110100011101000
+	0x2B: {0x88, 0xE8, 0xE8, 0xEE}, // 43: 10001000111010001110100011101110
+	0x2C: {0x88, 0xE8, 0xEE, 0x88}, // 44: 10001000111010001110111010001000
+	0x2D: {0x88, 0xE8, 0xEE, 0x8E}, // 45: 10001000111010001110111010001110
+	0x2E: {0x88, 0xE8, 0xEE, 0xE8}, // 46: 10001000111010001110111011101000
+	0x2F: {0x88, 0xE8, 0xEE, 0xEE}, // 47: 10001000111010001110111011101110
+	0x30: {0x88, 0xEE, 0x88, 0x88}, // 48: 10001000111011101000100010001000
+	0x31: {0x88, 0xEE, 0x88, 0x8E}, // 49: 10001000111011101000100010001110
+	0x32: {0x88, 0xEE, 0x88, 0xE8}, // 50: 10001000111011101000100011101000
+	0x33: {0x88, 0xEE, 0x88, 0xEE}, // 51: 10001000111011101000100011101110
+	0x34: {0x88, 0xEE, 0x8E, 0x88}, // 52: 10001000111011101000111010001000
+	0x35: {0x88, 0xEE, 0x8E, 0x8E}, // 53: 10001000111011101000111010001110
+	0x36: {0x88, 0xEE, 0x8E, 0xE8}, // 54: 10001000111011101000111011101000
+	0x37: {0x88, 0xEE, 0x8E, 0xEE}, // 55: 10001000111011101000111011101110
+	0x38: {0x88, 0xEE, 0xE8, 0x88}, // 56: 10001000111011101110100010001000
+	0x39: {0x88, 0xEE, 0xE8, 0x8E}, // 57: 10001000111011101110100010001110
+	0x3A: {0x88, 0xEE, 0xE8, 0xE8}, // 58: 10001000111011101110100011101000
+	0x3B: {0x88, 0xEE, 0xE8, 0xEE}, // 59: 10001000111011101110100011101110
+	0x3C: {0x88, 0xEE, 0xEE, 0x88}, // 60: 10001000111011101110111010001000
+	0x3D: {0x88, 0xEE, 0xEE, 0x8E}, // 61: 10001000111011101110111010001110
+	0x3E: {0x88, 0xEE, 0xEE, 0xE8}, // 62: 10001000111011101110111011101000
+	0x3F: {0x88, 0xEE, 0xEE, 0xEE}, // 63: 10001000111011101110111011101110
+	0x40: {0x8E, 0x88, 0x88, 0x88}, // 64: 10001110100010001000100010001000
+	0x41: {0x8E, 0x88, 0x88, 0x8E}, // 65: 10001110100010001000100010001110
+	0x42: {0x8E, 0x88, 0x88, 0xE8}, // 66: 10001110100010001000100011101000
+	0x43: {0x8E, 0x88, 0x88, 0xEE}, // 67: 10001110100010001000100011101110
+	0x44: {0x8E, 0x88, 0x8E, 0x88}, // 68: 10001110100010001000111010001000
+	0x45: {0x8E, 0x88, 0x8E, 0x8E}, // 69: 10001110100010001000111010001110
+	0x46: {0x8E, 0x88, 0x8E, 0xE8}, // 70: 10001110100010001000111011101000
+	0x47: {0x8E, 0x88, 0x8E, 0xEE}, // 71: 10001110100010001000111011101110
+	0x48: {0x8E, 0x88, 0xE8, 0x88}, // 72: 10001110100010001110100010001000
+	0x49: {0x8E, 0x88, 0xE8, 0x8E}, // 73: 10001110100010001110100010001110
+	0x4A: {0x8E, 0x88, 0xE8, 0xE8}, // 74: 10001110100010001110100011101000
+	0x4B: {0x8E, 0x88, 0xE8, 0xEE}, // 75: 10001110100010001110100011101110
+	0x4C: {0x8E, 0x88, 0xEE, 0x88}, // 76: 10001110100010001110111010001000
+	0x4D: {0x8E, 0x88, 0xEE, 0x8E}, // 77: 10001110100010001110111010001110
+	0x4E: {0x8E, 0x88, 0xEE, 0xE8}, // 78: 10001110100010001110111011101000
+	0x4F: {0x8E, 0x88, 0xEE, 0xEE}, // 79: 10001110100010001110111011101110
+	0x50: {0x8E, 0x8E, 0x88, 0x88}, // 80: 10001110100011101000100010001000
+	0x51: {0x8E, 0x8E, 0x88, 0x8E}, // 81: 10001110100011101000100010001110
+	0x52: {0x8E, 0x8E, 0x88, 0xE8}, // 82: 10001110100011101000100011101000
+	0x53: {0x8E, 0x8E, 0x88, 0xEE}, // 83: 10001110100011101000100011101110
+	0x54: {0x8E, 0x8E, 0x8E, 0x88}, // 84: 10001110100011101000111010001000
+	0x55: {0x8E, 0x8E, 0x8E, 0x8E}, // 85: 10001110100011101000111010001110
+	0x56: {0x8E, 0x8E, 0x8E, 0xE8}, // 86: 10001110100011101000111011101000
+	0x57: {0x8E, 0x8E, 0x8E, 0xEE}, // 87: 10001110100011101000111011101110
+	0x58: {0x8E, 0x8E, 0xE8, 0x88}, // 88: 10001110100011101110100010001000
+	0x59: {0x8E, 0x8E, 0xE8, 0x8E}, // 89: 10001110100011101110100010001110
+	0x5A: {0x8E, 0x8E, 0xE8, 0xE8}, // 90: 10001110100011101110100011101000
+	0x5B: {0x8E, 0x8E, 0xE8, 0xEE}, // 91: 10001110100011101110100011101110
+	0x5C: {0x8E, 0x8E, 0xEE, 0x88}, // 92: 10001110100011101110111010001000
+	0x5D: {0x8E, 0x8E, 0xEE, 0x8E}, // 93: 10001110100011101110111010001110
+	0x5E: {0x8E, 0x8E, 0xEE, 0xE8}, // 94: 10001110100011101110111011101000
+	0x5F: {0x8E, 0x8E, 0xEE, 0xEE}, // 95: 10001110100011101110111011101110
+	0x60: {0x8E, 0xE8, 0x88, 0x88}, // 96: 10001110111010001000100010001000
+	0x61: {0x8E, 0xE8, 0x88, 0x8E}, // 97: 10001110111010001000100010001110
+	0x62: {0x8E, 0xE8, 0x88, 0xE8}, // 98: 10001110111010001000100011101000
+	0x63: {0x8E, 0xE8, 0x88, 0xEE}, // 99: 10001110111010001000100011101110
+	0x64: {0x8E, 0xE8, 0x8E, 0x88}, //100: 10001110111010001000111010001000
+	0x65: {0x8E, 0xE8, 0x8E, 0x8E}, //101: 10001110111010001000111010001110
+	0x66: {0x8E, 0xE8, 0x8E, 0xE8}, //102: 10001110111010001000111011101000
+	0x67: {0x8E, 0xE8, 0x8E, 0xEE}, //103: 10001110111010001000111011101110
+	0x68: {0x8E, 0xE8, 0xE8, 0x88}, //104: 10001110111010001110100010001000
+	0x69: {0x8E, 0xE8, 0xE8, 0x8E}, //105: 10001110111010001110100010001110
+	0x6A: {0x8E, 0xE8, 0xE8, 0xE8}, //106: 10001110111010001110100011101000
+	0x6B: {0x8E, 0xE8, 0xE8, 0xEE}, //107: 10001110111010001110100011101110
+	0x6C: {0x8E, 0xE8, 0xEE, 0x88}, //108: 10001110111010001110111010001000
+	0x6D: {0x8E, 0xE8, 0xEE, 0x8E}, //109: 10001110111010001110111010001110
+	0x6E: {0x8E, 0xE8, 0xEE, 0xE8}, //110: 10001110111010001110111011101000
+	0x6F: {0x8E, 0xE8, 0xEE, 0xEE}, //111: 10001110111010001110111011101110
+	0x70: {0x8E, 0xEE, 0x88, 0x88}, //112: 10001110111011101000100010001000
+	0x71: {0x8E, 0xEE, 0x88, 0x8E}, //113: 10001110111011101000100010001110
+	0x72: {0x8E, 0xEE, 0x88, 0xE8}, //114: 10001110111011101000100011101000
+	0x73: {0x8E, 0xEE, 0x88, 0xEE}, //115: 10001110111011101000100011101110
+	0x74: {0x8E, 0xEE, 0x8E, 0x88}, //116: 10001110111011101000111010001000
+	0x75: {0x8E, 0xEE, 0x8E, 0x8E}, //117: 10001110111011101000111010001110
+	0x76: {0x8E, 0xEE, 0x8E, 0xE8}, //118: 10001110111011101000111011101000
+	0x77: {0x8E, 0xEE, 0x8E, 0xEE}, //119: 10001110111011101000111011101110
+	0x78: {0x8E, 0xEE, 0xE8, 0x88}, //120: 10001110111011101110100010001000
+	0x79: {0x8E, 0xEE, 0xE8, 0x8E}, //121: 10001110111011101110100010001110
+	0x7A: {0x8E, 0xEE, 0xE8, 0xE8}, //122: 10001110111011101110100011101000
+	0x7B: {0x8E, 0xEE, 0xE8, 0xEE}, //123: 10001110111011101110100011101110
+	0x7C: {0x8E, 0xEE, 0xEE, 0x88}, //124: 10001110111011101110111010001000
+	0x7D: {0x8E, 0xEE, 0xEE, 0x8E}, //125: 10001110111011101110111010001110
+	0x7E: {0x8E, 0xEE, 0xEE, 0xE8}, //126: 10001110111011101110111011101000
+	0x7F: {0x8E, 0xEE, 0xEE, 0xEE}, //127: 10001110111011101110111011101110
+	0x80: {0xE8, 0x88, 0x88, 0x88}, //128: 11101000100010001000100010001000
+	0x81: {0xE8, 0x88, 0x88, 0x8E}, //129: 11101000100010001000100010001110
+	0x82: {0xE8, 0x88, 0x88, 0xE8}, //130: 11101000100010001000100011101000
+	0x83: {0xE8, 0x88, 0x88, 0xEE}, //131: 11101000100010001000100011101110
+	0x84: {0xE8, 0x88, 0x8E, 0x88}, //132: 11101000100010001000111010001000
+	0x85: {0xE8, 0x88, 0x8E, 0x8E}, //133: 11101000100010001000111010001110
+	0x86: {0xE8, 0x88, 0x8E, 0xE8}, //134: 11101000100010001000111011101000
+	0x87: {0xE8, 0x88, 0x8E, 0xEE}, //135: 11101000100010001000111011101110
+	0x88: {0xE8, 0x88, 0xE8, 0x88}, //136: 11101000100010001110100010001000
+	0x89: {0xE8, 0x88, 0xE8, 0x8E}, //137: 11101000100010001110100010001110
+	0x8A: {0xE8, 0x88, 0xE8, 0xE8}, //138: 11101000100010001110100011101000
+	0x8B: {0xE8, 0x88, 0xE8, 0xEE}, //139: 11101000100010001110100011101110
+	0x8C: {0xE8, 0x88, 0xEE, 0x88}, //140: 11101000100010001110111010001000
+	0x8D: {0xE8, 0x88, 0xEE, 0x8E}, //141: 11101000100010001110111010001110
+	0x8E: {0xE8, 0x88, 0xEE, 0xE8}, //142: 11101000100010001110111011101000
+	0x8F: {0xE8, 0x88, 0xEE, 0xEE}, //143: 11101000100010001110111011101110
+	0x90: {0xE8, 0x8E, 0x88, 0x88}, //144: 11101000100011101000100010001000
+	0x91: {0xE8, 0x8E, 0x88, 0x8E}, //145: 11101000100011101000100010001110
+	0x92: {0xE8, 0x8E, 0x88, 0xE8}, //146: 11101000100011101000100011101000
+	0x93: {0xE8, 0x8E, 0x88, 0xEE}, //147: 11101000100011101000100011101110
+	0x94: {0xE8, 0x8E, 0x8E, 0x88}, //148: 11101000100011101000111010001000
+	0x95: {0xE8, 0x8E, 0x8E, 0x8E}, //149: 11101000100011101000111010001110
+	0x96: {0xE8, 0x8E, 0x8E, 0xE8}, //150: 11101000100011101000111011101000
+	0x97: {0xE8, 0x8E, 0x8E, 0xEE}, //151: 11101000100011101000111011101110
+	0x98: {0xE8, 0x8E, 0xE8, 0x88}, //152: 11101000100011101110100010001000
+	0x99: {0xE8, 0x8E, 0xE8, 0x8E}, //153: 11101000100011101110100010001110
+	0x9A: {0xE8, 0x8E, 0xE8, 0xE8}, //154: 11101000100011101110100011101000
+	0x9B: {0xE8, 0x8E, 0xE8, 0xEE}, //155: 11101000100011101110100011101110
+	0x9C: {0xE8, 0x8E, 0xEE, 0x88}, //156: 11101000100011101110111010001000
+	0x9D: {0xE8, 0x8E, 0xEE, 0x8E}, //157: 11101000100011101110111010001110
+	0x9E: {0xE8, 0x8E, 0xEE, 0xE8}, //158: 11101000100011101110111011101000
+	0x9F: {0xE8, 0x8E, 0xEE, 0xEE}, //159: 11101000100011101110111011101110
+	0xA0: {0xE8, 0xE8, 0x88, 0x88}, //160: 11101000111010001000100010001000
+	0xA1: {0xE8, 0xE8, 0x88, 0x8E}, //161: 11101000111010001000100010001110
+	0xA2: {0xE8, 0xE8, 0x88, 0xE8}, //162: 11101000111010001000100011101000
+	0xA3: {0xE8, 0xE8, 0x88, 0xEE}, //163: 11101000111010001000100011101110
+	0xA4: {0xE8, 0xE8, 0x8E, 0x88}, //164: 11101000111010001000111010001000
+	0xA5: {0xE8, 0xE8, 0x8E, 0x8E}, //165: 11101000111010001000111010001110
+	0xA6: {0xE8, 0xE8, 0x8E, 0xE8}, //166: 11101000111010001000111011101000
+	0xA7: {0xE8, 0xE8, 0x8E, 0xEE}, //167: 11101000111010001000111011101110
+	0xA8: {0xE8, 0xE8, 0xE8, 0x88}, //168: 11101000111010001110100010001000
+	0xA9: {0xE8, 0xE8, 0xE8, 0x8E}, //169: 11101000111010001110100010001110
+	0xAA: {0xE8, 0xE8, 0xE8, 0xE8}, //170: 11101000111010001110100011101000
+	0xAB: {0xE8, 0xE8, 0xE8, 0xEE}, //171: 11101000111010001110100011101110
+	0xAC: {0xE8, 0xE8, 0xEE, 0x88}, //172: 11101000111010001110111010001000
+	0xAD: {0xE8, 0xE8, 0xEE, 0x8E}, //173: 11101000111010001110111010001110
+	0xAE: {0xE8, 0xE8, 0xEE, 0xE8}, //174: 11101000111010001110111011101000
+	0xAF: {0xE8, 0xE8, 0xEE, 0xEE}, //175: 11101000111010001110111011101110
+	0xB0: {0xE8, 0xEE, 0x88, 0x88}, //176: 11101000111011101000100010001000
+	0xB1: {0xE8, 0xEE, 0x88, 0x8E}, //177: 11101000111011101000100010001110
+	0xB2: {0xE8, 0xEE, 0x88, 0xE8}, //178: 11101000111011101000100011101000
+	0xB3: {0xE8, 0xEE, 0x88, 0xEE}, //179: 11101000111011101000100011101110
+	0xB4: {0xE8, 0xEE, 0x8E, 0x88}, //180: 11101000111011101000111010001000
+	0xB5: {0xE8, 0xEE, 0x8E, 0x8E}, //181: 11101000111011101000111010001110
+	0xB6: {0xE8, 0xEE, 0x8E, 0xE8}, //182: 11101000111011101000111011101000
+	0xB7: {0xE8, 0xEE, 0x8E, 0xEE}, //183: 11101000111011101000111011101110
+	0xB8: {0xE8, 0xEE, 0xE8, 0x88}, //184: 11101000111011101110100010001000
+	0xB9: {0xE8, 0xEE, 0xE8, 0x8E}, //185: 11101000111011101110100010001110
+	0xBA: {0xE8, 0xEE, 0xE8, 0xE8}, //186: 11101000111011101110100011101000
+	0xBB: {0xE8, 0xEE, 0xE8, 0xEE}, //187: 11101000111011101110100011101110
+	0xBC: {0xE8, 0xEE, 0xEE, 0x88}, //188: 11101000111011101110111010001000
+	0xBD: {0xE8, 0xEE, 0xEE, 0x8E}, //189: 11101000111011101110111010001110
+	0xBE: {0xE8, 0xEE, 0xEE, 0xE8}, //190: 11101000111011101110111011101000
+	0xBF: {0xE8, 0xEE, 0xEE, 0xEE}, //191: 11101000111011101110111011101110
+	0xC0: {0xEE, 0x88, 0x88, 0x88}, //192: 11101110100010001000100010001000
+	0xC1: {0xEE, 0x88, 0x88, 0x8E}, //193: 11101110100010001000100010001110
+	0xC2: {0xEE, 0x88, 0x88, 0xE8}, //194: 11101110100010001000100011101000
+	0xC3: {0xEE, 0x88, 0x88, 0xEE}, //195: 11101110100010001000100011101110
+	0xC4: {0xEE, 0x88, 0x8E, 0x88}, //196: 11101110100010001000111010001000
+	0xC5: {0xEE, 0x88, 0x8E, 0x8E}, //197: 11101110100010001000111010001110
+	0xC6: {0xEE, 0x88, 0x8E, 0xE8}, //198: 11101110100010001000111011101000
+	0xC7: {0xEE, 0x88, 0x8E, 0xEE}, //199: 11101110100010001000111011101110
+	0xC8: {0xEE, 0x88, 0xE8, 0x88}, //200: 11101110100010001110100010001000
+	0xC9: {0xEE, 0x88, 0xE8, 0x8E}, //201: 11101110100010001110100010001110
+	0xCA: {0xEE, 0x88, 0xE8, 0xE8}, //202: 11101110100010001110100011101000
+	0xCB: {0xEE, 0x88, 0xE8, 0xEE}, //203: 11101110100010001110100011101110
+	0xCC: {0xEE, 0x88, 0xEE, 0x88}, //204: 11101110100010001110111010001000
+	0xCD: {0xEE, 0x88, 0xEE, 0x8E}, //205: 11101110100010001110111010001110
+	0xCE: {0xEE, 0x88, 0xEE, 0xE8}, //206: 11101110100010001110111011101000
+	0xCF: {0xEE, 0x88, 0xEE, 0xEE}, //207: 11101110100010001110111011101110
+	0xD0: {0xEE, 0x8E, 0x88, 0x88}, //208: 11101110100011101000100010001000
+	0xD1: {0xEE, 0x8E, 0x88, 0x8E}, //209: 11101110100011101000100010001110
+	0xD2: {0xEE, 0x8E, 0x88, 0xE8}, //210: 11101110100011101000100011101000
+	0xD3: {0xEE, 0x8E, 0x88, 0xEE}, //211: 11101110100011101000100011101110
+	0xD4: {0xEE, 0x8E, 0x8E, 0x88}, //212: 11101110100011101000111010001000
+	0xD5: {0xEE, 0x8E, 0x8E, 0x8E}, //213: 11101110100011101000111010001110
+	0xD6: {0xEE, 0x8E, 0x8E, 0xE8}, //214: 11101110100011101000111011101000
+	0xD7: {0xEE, 0x8E, 0x8E, 0xEE}, //215: 11101110100011101000111011101110
+	0xD8: {0xEE, 0x8E, 0xE8, 0x88}, //216: 11101110100011101110100010001000
+	0xD9: {0xEE, 0x8E, 0xE8, 0x8E}, //217: 11101110100011101110100010001110
+	0xDA: {0xEE, 0x8E, 0xE8, 0xE8}, //218: 11101110100011101110100011101000
+	0xDB: {0xEE, 0x8E, 0xE8, 0xEE}, //219: 11101110100011101110100011101110
+	0xDC: {0xEE, 0x8E, 0xEE, 0x88}, //220: 11101110100011101110111010001000
+	0xDD: {0xEE, 0x8E, 0xEE, 0x8E}, //221: 11101110100011101110111010001110
+	0xDE: {0xEE, 0x8E, 0xEE, 0xE8}, //222: 11101110100011101110111011101000
+	0xDF: {0xEE, 0x8E, 0xEE, 0xEE}, //223: 11101110100011101110111011101110
+	0xE0: {0xEE, 0xE8, 0x88, 0x88}, //224: 11101110111010001000100010001000
+	0xE1: {0xEE, 0xE8, 0x88, 0x8E}, //225: 11101110111010001000100010001110
+	0xE2: {0xEE, 0xE8, 0x88, 0xE8}, //226: 11101110111010001000100011101000
+	0xE3: {0xEE, 0xE8, 0x88, 0xEE}, //227: 11101110111010001000100011101110
+	0xE4: {0xEE, 0xE8, 0x8E, 0x88}, //228: 11101110111010001000111010001000
+	0xE5: {0xEE, 0xE8, 0x8E, 0x8E}, //229: 11101110111010001000111010001110
+	0xE6: {0xEE, 0xE8, 0x8E, 0xE8}, //230: 11101110111010001000111011101000
+	0xE7: {0xEE, 0xE8, 0x8E, 0xEE}, //231: 11101110111010001000111011101110
+	0xE8: {0xEE, 0xE8, 0xE8, 0x88}, //232: 11101110111010001110100010001000
+	0xE9: {0xEE, 0xE8, 0xE8, 0x8E}, //233: 11101110111010001110100010001110
+	0xEA: {0xEE, 0xE8, 0xE8, 0xE8}, //234: 11101110111010001110100011101000
+	0xEB: {0xEE, 0xE8, 0xE8, 0xEE}, //235: 11101110111010001110100011101110
+	0xEC: {0xEE, 0xE8, 0xEE, 0x88}, //236: 11101110111010001110111010001000
+	0xED: {0xEE, 0xE8, 0xEE, 0x8E}, //237: 11101110111010001110111010001110
+	0xEE: {0xEE, 0xE8, 0xEE, 0xE8}, //238: 11101110111010001110111011101000
+	0xEF: {0xEE, 0xE8, 0xEE, 0xEE}, //239: 11101110111010001110111011101110
+	0xF0: {0xEE, 0xEE, 0x88, 0x88}, //240: 11101110111011101000100010001000
+	0xF1: {0xEE, 0xEE, 0x88, 0x8E}, //241: 11101110111011101000100010001110
+	0xF2: {0xEE, 0xEE, 0x88, 0xE8}, //242: 11101110111011101000100011101000
+	0xF3: {0xEE, 0xEE, 0x88, 0xEE}, //243: 11101110111011101000100011101110
+	0xF4: {0xEE, 0xEE, 0x8E, 0x88}, //244: 11101110111011101000111010001000
+	0xF5: {0xEE, 0xEE, 0x8E, 0x8E}, //245: 11101110111011101000111010001110
+	0xF6: {0xEE, 0xEE, 0x8E, 0xE8}, //246: 11101110111011101000111011101000
+	0xF7: {0xEE, 0xEE, 0x8E, 0xEE}, //247: 11101110111011101000111011101110
+	0xF8: {0xEE, 0xEE, 0xE8, 0x88}, //248: 11101110111011101110100010001000
+	0xF9: {0xEE, 0xEE, 0xE8, 0x8E}, //249: 11101110111011101110100010001110
+	0xFA: {0xEE, 0xEE, 0xE8, 0xE8}, //250: 11101110111011101110100011101000
+	0xFB: {0xEE, 0xEE, 0xE8, 0xEE}, //251: 11101110111011101110100011101110
+	0xFC: {0xEE, 0xEE, 0xEE, 0x88}, //252: 11101110111011101110111010001000
+	0xFD: {0xEE, 0xEE, 0xEE, 0x8E}, //253: 11101110111011101110111010001110
+	0xFE: {0xEE, 0xEE, 0xEE, 0xE8}, //254: 11101110111011101110111011101000
+	0xFF: {0xEE, 0xEE, 0xEE, 0xEE}, //255: 11101110111011101110111011101110
+}
