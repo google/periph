@@ -4,7 +4,11 @@
 
 package mt7688
 
-import "errors"
+import (
+	"errors"
+
+	"periph.io/x/periph/host/sysfs"
+)
 
 // driverGPIO implements periph.Driver.
 type driverGPIO struct {
@@ -29,8 +33,10 @@ func (d *driverGPIO) Init() (bool, error) {
 		return false, errors.New("mt7688 board not detected")
 	}
 
-	// Initialize pins
-	initPins()
+	for _, p := range cpuPins {
+		// Initialize sysfs access right away.
+		p.sysfsPin = sysfs.Pins[p.number]
+	}
 
 	return true, nil
 }

@@ -78,16 +78,6 @@ var cpuPins = []Pin{
 	{number: 46, name: "GPIO46", defaultPull: gpio.Float},
 }
 
-// initPins initializes and configures pins as required.
-func initPins() {
-	for name := range mappingMT7688 {
-		cpuPin := cpuPins[name]
-
-		// Initialize sysfs access right away.
-		cpuPin.sysfsPin = sysfs.Pins[cpuPin.number]
-	}
-}
-
 type Pin struct {
 	// Immutable.
 	number      int
