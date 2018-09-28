@@ -5,7 +5,6 @@
 package mt7688
 
 import (
-	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/pin"
 	"periph.io/x/periph/host/sysfs"
@@ -78,6 +77,7 @@ var cpuPins = []Pin{
 	{number: 46, name: "GPIO46", defaultPull: gpio.Float},
 }
 
+// Pin is a GPIO number (GPIOnn) on MT7688(AN/KN).
 type Pin struct {
 	// Immutable.
 	number      int
@@ -161,7 +161,6 @@ func (p *Pin) function() function {
 	return out
 }
 
-var _ conn.Resource = &Pin{}
 var _ pin.Pin = &Pin{}
 
 // TODO: implement required interfaces
