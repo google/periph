@@ -143,7 +143,7 @@ func (d *Dev) Sense() (PowerMonitor, error) {
 // overflow int64 or loose resolution.
 const calibratescale int64 = ((int64(physic.Ampere) * int64(physic.Ohm)) / 100000) << 12
 
-// Calibrate sets the scaling factor of the current and power registers for the
+// calibrate sets the scaling factor of the current and power registers for the
 // maximum resolution. calibrate is run on init.
 func (d *Dev) calibrate(sense physic.ElectricResistance, maxCurrent physic.ElectricCurrent) error {
 	// TODO: Check calibration with float implementation in tests.

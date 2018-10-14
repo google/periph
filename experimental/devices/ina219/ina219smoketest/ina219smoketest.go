@@ -57,7 +57,7 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) (err error) {
 	}()
 
 	// Create a new power sensor a sense resistor of 100 mΩ.
-	config := ina219.Opts{
+	config := &ina219.Opts{
 		Address:       *i2cAddr,
 		SenseResistor: 100 * physic.MilliOhm,
 		MaxCurrent:    3200 * physic.MilliAmpere,
