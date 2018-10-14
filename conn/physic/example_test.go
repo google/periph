@@ -63,11 +63,11 @@ func ExampleElectricResistance() {
 
 func ExampleForce() {
 	fmt.Println(10 * physic.MilliNewton)
-	fmt.Println(101010 * physic.EarthGravity)
+	fmt.Println(physic.EarthGravity)
 	fmt.Println(physic.PoundForce)
 	// Output:
 	// 10mN
-	// 990.569kN
+	// 9.807N
 	// 4.448kN
 }
 
@@ -104,9 +104,9 @@ func ExampleMass() {
 	fmt.Println(physic.Slug)
 	// Output:
 	// 10mg
-	// 28.349g
+	// 28.350g
 	// 453.592g
-	// 14.593kg
+	// 14.594kg
 }
 
 func ExamplePressure() {
