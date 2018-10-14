@@ -415,8 +415,12 @@ const (
 	MegaFarad  ElectricalCapacitance = 1000 * KiloFarad
 )
 
-// LuminousIntensity is a measurement of wavelength power stored as a
-// nano candela.
+// LuminousIntensity is a measurement of the quantity of visible light energy
+// emitted per unit solid angle with wavelength power weighted by a luminosity
+// function which represents the human eye's response to different wavelengths.
+// The CIE 1931 luminosity function is the SI standard for candela.
+//
+// LuminousIntensity is stored as nano candela.
 //
 // This is one of the base unit in the International System of Units.
 //
@@ -439,7 +443,12 @@ const (
 	GigaCandela  LuminousIntensity = 1000 * MegaCandela
 )
 
-// LuminousFlux is a measurement of luminous flux stored as a nano lumens.
+// LuminousFlux is a measurement of total quantity of visible light energy
+// emitted with wavelength power weighted by a luminosity function which
+// represents a model of the human eye's response to different wavelengths.
+// The CIE 1931 luminosity function is the standard for lumens.
+//
+// LuminousFlux is stored as nano lumens.
 //
 // The highest representable value is 9.2Glm.
 type LuminousFlux int64
