@@ -354,6 +354,123 @@ const (
 	Fahrenheit      Temperature = 555555555 * NanoKelvin
 )
 
+// Power is a measurement of power stored as a nano watts.
+//
+// The highest representable value is 9.2GW.
+type Power int64
+
+// String returns the power formatted as a string in watts.
+func (p Power) String() string {
+	return nanoAsString(int64(p)) + "W"
+}
+
+const (
+	// Watt is unit of power J/s, kg⋅m²⋅s⁻³
+	NanoWatt  Power = 1
+	MicroWatt Power = 1000 * NanoWatt
+	MilliWatt Power = 1000 * MicroWatt
+	Watt      Power = 1000 * MilliWatt
+	KiloWatt  Power = 1000 * Watt
+	MegaWatt  Power = 1000 * KiloWatt
+	GigaWatt  Power = 1000 * MegaWatt
+)
+
+// Energy is a measurement of work stored as a nano joules.
+//
+// The highest representable value is 9.2GJ.
+type Energy int64
+
+// String returns the energy formatted as a string in Joules.
+func (e Energy) String() string {
+	return nanoAsString(int64(e)) + "J"
+}
+
+const (
+	// Joule is a unit of work. kg⋅m²⋅s⁻²
+	NanoJoule  Energy = 1
+	MicroJoule Energy = 1000 * NanoJoule
+	MilliJoule Energy = 1000 * MicroJoule
+	Joule      Energy = 1000 * MilliJoule
+	KiloJoule  Energy = 1000 * Joule
+	MegaJoule  Energy = 1000 * KiloJoule
+	GigaJoule  Energy = 1000 * MegaJoule
+)
+
+// ElectricalCapacitance is a measurement of capacitance stored as a pico farad.
+//
+// The highest representable value is 9.2MF.
+type ElectricalCapacitance int64
+
+// String returns the energy formatted as a string in Farad.
+func (c ElectricalCapacitance) String() string {
+	return picoAsString(int64(c)) + "F"
+}
+
+const (
+	// Farad is a unit of capacitance. kg⁻¹⋅m⁻²⋅s⁴A²
+	PicoFarad  ElectricalCapacitance = 1
+	NanoFarad  ElectricalCapacitance = 1000 * PicoFarad
+	MicroFarad ElectricalCapacitance = 1000 * NanoFarad
+	MilliFarad ElectricalCapacitance = 1000 * MicroFarad
+	Farad      ElectricalCapacitance = 1000 * MilliFarad
+	KiloFarad  ElectricalCapacitance = 1000 * Farad
+	MegaFarad  ElectricalCapacitance = 1000 * KiloFarad
+)
+
+// LuminousIntensity is a measurement of the quantity of visible light energy
+// emitted per unit solid angle with wavelength power weighted by a luminosity
+// function which represents the human eye's response to different wavelengths.
+// The CIE 1931 luminosity function is the SI standard for candela.
+//
+// LuminousIntensity is stored as nano candela.
+//
+// This is one of the base unit in the International System of Units.
+//
+// The highest representable value is 9.2Gcd.
+type LuminousIntensity int64
+
+// String returns the energy formatted as a string in Candela.
+func (l LuminousIntensity) String() string {
+	return nanoAsString(int64(l)) + "cd"
+}
+
+const (
+	// Candela is a unit of luminous intensity. cd
+	NanoCandela  LuminousIntensity = 1
+	MicroCandela LuminousIntensity = 1000 * NanoCandela
+	MilliCandela LuminousIntensity = 1000 * MicroCandela
+	Candela      LuminousIntensity = 1000 * MilliCandela
+	KiloCandela  LuminousIntensity = 1000 * Candela
+	MegaCandela  LuminousIntensity = 1000 * KiloCandela
+	GigaCandela  LuminousIntensity = 1000 * MegaCandela
+)
+
+// LuminousFlux is a measurement of total quantity of visible light energy
+// emitted with wavelength power weighted by a luminosity function which
+// represents a model of the human eye's response to different wavelengths.
+// The CIE 1931 luminosity function is the standard for lumens.
+//
+// LuminousFlux is stored as nano lumens.
+//
+// The highest representable value is 9.2Glm.
+type LuminousFlux int64
+
+// String returns the energy formatted as a string in Lumens.
+func (f LuminousFlux) String() string {
+	return nanoAsString(int64(f)) + "lm"
+}
+
+const (
+	// Lumen is a unit of luminous flux. cd⋅sr
+	NanoLumen  LuminousFlux = 1
+	MicroLumen LuminousFlux = 1000 * NanoLumen
+	MilliLumen LuminousFlux = 1000 * MicroLumen
+	Lumen      LuminousFlux = 1000 * MilliLumen
+	KiloLumen  LuminousFlux = 1000 * Lumen
+	MegaLumen  LuminousFlux = 1000 * KiloLumen
+	GigaLumen  LuminousFlux = 1000 * MegaLumen
+)
+
 //
 
 func prefixZeros(digits, v int) string {
@@ -516,6 +633,84 @@ func microAsString(v int64) string {
 		}
 		base = int(v)
 		unit = "µ"
+	}
+	if frac == 0 {
+		return sign + strconv.Itoa(base) + unit
+	}
+	return sign + strconv.Itoa(base) + "." + prefixZeros(3, frac) + unit
+}
+
+// picoAsString converts a value in S.I. unit in a string with the predefined
+// prefix.
+func picoAsString(v int64) string {
+	sign := ""
+	if v < 0 {
+		if v == -9223372036854775808 {
+			v++
+		}
+		sign = "-"
+		v = -v
+	}
+	var frac int
+	var base int
+	var precision int64
+	unit := ""
+	switch {
+	case v >= 999999500000000001:
+		precision = v % 1000000000000000
+		base = int(v / 1000000000000000)
+		if precision > 500000000000000 {
+			base++
+		}
+		frac = (base % 1000)
+		base = base / 1000
+		unit = "M"
+	case v >= 999999500000001:
+		precision = v % 1000000000000
+		base = int(v / 1000000000000)
+		if precision > 500000000000 {
+			base++
+		}
+		frac = (base % 1000)
+		base = base / 1000
+		unit = "k"
+	case v >= 999999500001:
+		precision = v % 1000000000
+		base = int(v / 1000000000)
+		if precision > 500000000 {
+			base++
+		}
+		frac = (base % 1000)
+		base = base / 1000
+		unit = ""
+	case v >= 999999501:
+		precision = v % 1000000
+		base = int(v / 1000000)
+		if precision > 500000 {
+			base += 1
+		}
+		frac = (base % 1000)
+		base = base / 1000
+		unit = "m"
+	case v >= 1000000:
+		precision = v % 1000
+		base = int(v / 1000)
+		if precision > 500 {
+			base++
+		}
+		frac = (base % 1000)
+		base = base / 1000
+		unit = "µ"
+	case v >= 1000:
+		frac = int(v) % 1000
+		base = int(v) / 1000
+		unit = "n"
+	default:
+		if v == 0 {
+			return "0"
+		}
+		base = int(v)
+		unit = "p"
 	}
 	if frac == 0 {
 		return sign + strconv.Itoa(base) + unit

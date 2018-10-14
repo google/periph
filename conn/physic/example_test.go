@@ -148,3 +148,39 @@ func ExampleTemperature() {
 	// 23.010°C
 	// 26.666°C
 }
+
+func ExamplePower() {
+	fmt.Println(1 * physic.Watt)
+	fmt.Println(16 * physic.MilliWatt)
+	fmt.Println(1210 * physic.MegaWatt)
+	// Output:
+	// 1W
+	// 16mW
+	// 1.210GW
+}
+
+func ExampleElectricalCapacitance() {
+	fmt.Println(1 * physic.Farad)
+	fmt.Println(22 * physic.PicoFarad)
+	// Output:
+	// 1F
+	// 22pF
+}
+
+func ExampleLuminousFlux() {
+	fmt.Println(18282 * physic.Lumen)
+	// Output:
+	// 18.282klm
+}
+
+func ExampleLuminousIntensity() {
+	fmt.Println(12 * physic.Candela)
+	// Output:
+	// 12cd
+}
+
+func ExampleEnergy() {
+	fmt.Println(1 * physic.Joule)
+	// Output:
+	// 1J
+}
