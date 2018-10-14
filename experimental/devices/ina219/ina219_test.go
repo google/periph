@@ -256,7 +256,6 @@ func TestSense(t *testing.T) {
 				t.Fatalf("device init failed")
 			}
 			got, err := ina.Sense()
-			// fmt.Println(got, err)
 			if test.err != nil {
 				if err != test.err {
 					if test.err == stringErr {
@@ -347,8 +346,6 @@ func TestCalibrate(t *testing.T) {
 			}
 
 			ina := &Dev{
-				// maxCurrent: test.args.maxCurrent,
-				// sense:      test.args.sense,
 				m: &mmr.Dev8{
 					Conn:  &i2c.Dev{Bus: &bus, Addr: 0x40},
 					Order: binary.BigEndian},
@@ -371,11 +368,8 @@ func TestCalibrate(t *testing.T) {
 					t.Errorf("%v wanted no err but got: %v", test.name, err)
 				}
 				got := fields{
-					// sense:      ina.sense,
-					// maxCurrent: ina.maxCurrent,
 					currentLSB: ina.currentLSB,
 					powerLSB:   ina.powerLSB,
-					// caibrated:  ina.caibrated,
 				}
 				if got != test.want {
 					t.Errorf("%v wanted: %v, but got: %v", test.name, test.want, got)

@@ -31,7 +31,7 @@ const (
 	DefaultMaxCurrent = 3200 * physic.MilliAmpere
 )
 
-// New opens a handle to an ina219
+// New opens a handle to an ina219 sensor
 func New(bus i2c.Bus, config Config) (*Dev, error) {
 
 	i2cAddress := DefaultI2CAddress
