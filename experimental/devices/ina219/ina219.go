@@ -1,4 +1,4 @@
-// Copyright 2016 The Periph Authors. All rights reserved.
+// Copyright 2018 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -9,62 +9,17 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"time"
 
-	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/i2c"
+	"periph.io/x/periph/conn/mmr"
 	"periph.io/x/periph/conn/physic"
 )
 
-// Option is a configuration function
-type Option func(*Ina219) error
-
-// Address is used to set the I²C address if not the default address of 0x40.
-func Address(address uint8) Option {
-	return func(i *Ina219) error {
-		if address < 0x40 || address > 0x4f {
-			return errAddressOutOfRange
-		}
-		i.mu.Lock()
-		i.addr = uint16(address)
-		if i.c != nil {
-			i.c = &i2c.Dev{
-				Bus:  i.bus,
-				Addr: i.addr,
-			}
-		}
-		i.mu.Unlock()
-		return nil
-	}
-}
-
-// MaxCurrent is a configuration function to set the maximum expected current.
-// Not required if the device has the default maximum current 3.2A
-func MaxCurrent(max physic.ElectricCurrent) Option {
-	return func(i *Ina219) error {
-		if max < physic.NanoAmpere {
-			return errMaxCurrentInvalid
-		}
-		i.mu.Lock()
-		i.maxCurrent = max
-		i.mu.Unlock()
-		return nil
-	}
-}
-
-// SenseResistor is a configuration function to set the actual measured value of
-// the sense resistor.
-// Not required if the device has the default value of 100mΩ
-func SenseResistor(sense physic.ElectricResistance) Option {
-	return func(i *Ina219) error {
-		if sense < physic.NanoOhm {
-			return errSenseResistorValueInvalid
-		}
-		i.mu.Lock()
-		i.sense = sense
-		i.mu.Unlock()
-		return nil
-	}
+// Config is a Configuration
+type Config struct {
+	Address       int
+	SenseResistor physic.ElectricResistance
+	MaxCurrent    physic.ElectricCurrent
 }
 
 const (
@@ -77,50 +32,61 @@ const (
 )
 
 // New opens a handle to an ina219
-func New(bus i2c.Bus, opts ...Option) (*Ina219, error) {
+func New(bus i2c.Bus, config Config) (*Dev, error) {
 
-	dev := &Ina219{
-		caibrated:  false,
-		sense:      DefaultSenseResistor,
-		maxCurrent: DefaultMaxCurrent,
-		addr:       DefaultI2CAddress,
-		bus:        bus,
-	}
-
-	for _, opt := range opts {
-		if err := opt(dev); err != nil {
-			return nil, err
+	i2cAddress := DefaultI2CAddress
+	if config.Address != 0 {
+		if config.Address < 0x40 || config.Address > 0x4f {
+			return nil, errAddressOutOfRange
 		}
-	}
-	dev.c = &i2c.Dev{
-		Bus:  bus,
-		Addr: dev.addr,
+		i2cAddress = config.Address
 	}
 
-	if err := dev.Calibrate(); err != nil {
+	senseResistor := DefaultSenseResistor
+	if config.SenseResistor != 0 {
+		if config.SenseResistor < 1 {
+			return nil, errSenseResistorValueInvalid
+		}
+		senseResistor = config.SenseResistor
+	}
+
+	maxCurrent := DefaultMaxCurrent
+	if config.MaxCurrent != 0 {
+		if config.MaxCurrent < 1 {
+			return nil, errMaxCurrentInvalid
+		}
+		maxCurrent = config.MaxCurrent
+	}
+
+	dev := &Dev{
+		m: &mmr.Dev8{
+			Conn:  &i2c.Dev{Bus: bus, Addr: uint16(i2cAddress)},
+			Order: binary.BigEndian,
+		},
+	}
+
+	if err := dev.Calibrate(senseResistor, maxCurrent); err != nil {
 		return nil, err
+	}
+
+	if err := dev.m.WriteUint16(configRegister, 0x1FFF); err != nil {
+		return nil, errWritingToConfigRegister
 	}
 
 	return dev, nil
 }
 
-// Ina219 is a handle to the ina219 sensor.
-type Ina219 struct {
-	bus  i2c.Bus
-	c    conn.Conn
-	addr uint16
+// Dev is a handle to the ina219 sensor.
+type Dev struct {
+	m *mmr.Dev8
 
 	mu         sync.Mutex
-	caibrated  bool
-	sense      physic.ElectricResistance
-	maxCurrent physic.ElectricCurrent
 	currentLSB physic.ElectricCurrent
 	powerLSB   physic.Power
-	stop       chan struct{}
-	wg         sync.WaitGroup
 }
 
 const (
+	configRegister       = 0x00
 	shuntVoltageRegister = 0x01
 	busVoltageRegister   = 0x02
 	powerRegister        = 0x03
@@ -129,45 +95,46 @@ const (
 )
 
 // Sense reads the power values from the ina219 sensor
-func (d *Ina219) Sense() (PowerMonitor, error) {
+func (d *Dev) Sense() (PowerMonitor, error) {
 	// One rx buffer for entire transaction
-	rx := make([]byte, 2)
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	if err := d.c.Tx([]byte{shuntVoltageRegister}, rx); err != nil {
+
+	var pm PowerMonitor
+
+	shunt, err := d.m.ReadUint16(shuntVoltageRegister)
+	if err != nil {
 		return PowerMonitor{}, errReadShunt
 	}
-	var pm PowerMonitor
-	pm.Shunt = physic.ElectricPotential(int16(binary.BigEndian.Uint16(rx)))
 	// Least significant bit is 10µV
-	pm.Shunt *= (10 * physic.MicroVolt)
+	pm.Shunt = physic.ElectricPotential(shunt) * 10 * physic.MicroVolt
 
-	if err := d.c.Tx([]byte{busVoltageRegister}, rx); err != nil {
+	bus, err := d.m.ReadUint16(busVoltageRegister)
+	if err != nil {
 		return PowerMonitor{}, errReadBus
 	}
-	// check bit 0 of bus voltage register, if set data is invalid
-	if hasBit(rx[1], 0) {
+	// check if bit zero is set, if set ADC has overflowed
+	if bus&1 > 0 {
 		return PowerMonitor{}, errRegisterOverflow
 	}
-	pm.Voltage = physic.ElectricPotential(int16(binary.BigEndian.Uint16(rx) >> 3))
+	pm.Voltage = physic.ElectricPotential(bus>>3) * 4 * physic.MilliVolt
 	// Least significant bit is 4mV
-	pm.Voltage *= (4 * physic.MilliVolt)
 
 	// if calibration register is not set then current and power readings are
 	// meaningless
-	if d.caibrated {
-		if err := d.c.Tx([]byte{currentRegister}, rx); err != nil {
-			return PowerMonitor{}, errReadCurrent
-		}
-		pm.Current = physic.ElectricCurrent(binary.BigEndian.Uint16(rx))
-		pm.Current *= d.currentLSB
-
-		if err := d.c.Tx([]byte{powerRegister}, rx); err != nil {
-			return PowerMonitor{}, errReadPower
-		}
-		pm.Power = physic.Power(binary.BigEndian.Uint16(rx))
-		pm.Power *= d.powerLSB
+	// if d.caibrated {
+	current, err := d.m.ReadUint16(currentRegister)
+	if err != nil {
+		return PowerMonitor{}, errReadCurrent
 	}
+	pm.Current = physic.ElectricCurrent(current) * d.currentLSB
+
+	power, err := d.m.ReadUint16(powerRegister)
+	if err != nil {
+		return PowerMonitor{}, errReadPower
+	}
+	pm.Power = physic.Power(power) * d.powerLSB
+	// }
 
 	return pm, nil
 }
@@ -179,63 +146,24 @@ const calibratescale int64 = ((int64(physic.Ampere) * int64(physic.Ohm)) / 10000
 // Calibrate sets the scaling factor of the current and power registers for the
 // maximum resolution. Calibrate is run on init. here it allows you to make
 // tune the measured value with actual value
-func (d *Ina219) Calibrate() error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	if d.sense < 1 {
+func (d *Dev) Calibrate(sense physic.ElectricResistance, maxCurrent physic.ElectricCurrent) error {
+	if sense <= 0 {
 		return errSenseResistorValueInvalid
 	}
-	if d.maxCurrent < 1 {
+	if maxCurrent <= 0 {
 		return errMaxCurrentInvalid
 	}
-	d.currentLSB = d.maxCurrent / (2 << 15)
-	d.powerLSB = physic.Power(d.currentLSB / 20)
+
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	d.currentLSB = maxCurrent / (2 << 15)
+	d.powerLSB = physic.Power(d.currentLSB * 20)
 	// cal = 0.04096 / (current LSB * Shunt Resistance) where lsb is in Amps and
 	// resistance is in ohms.
 	// calibration register is 16 bits wide.
-	cal := uint16(calibratescale / (int64(d.currentLSB) * int64(d.sense)))
-	if err := d.WriteRegister(calibrationRegister, cal); err != nil {
-		return err
-	}
-
-	d.caibrated = true
-	return nil
-}
-
-// Reset performs a power on reset.
-func (d *Ina219) reset() error {
-	// reset Ina219ice by writing 1 to the 15th bit in register 0x00
-	if err := d.c.Tx([]byte{0x00, 0x80, 0x00}, nil); err != nil {
-		return err
-	}
-	// give ina219 time to preform reset.
-	time.After(time.Millisecond * 20)
-	rx := make([]byte, 2)
-	if err := d.c.Tx([]byte{0x00}, rx); err != nil {
-		return err
-	}
-
-	const powerOnReset = 0x399F // register 0x00 on POR
-	if binary.BigEndian.Uint16(rx) != powerOnReset {
-		return errResetError
-	}
-	return nil
-}
-
-// WriteRegister is used to write to register address directly
-func (d *Ina219) WriteRegister(register uint8, data uint16) error {
-	databytes := make([]byte, 2)
-	binary.BigEndian.PutUint16(databytes, data)
-	tx := []byte{register, databytes[0], databytes[1]}
-	return d.c.Tx(tx, nil)
-}
-
-// ReadRegister is used to read to register address directly
-func (d *Ina219) ReadRegister(register uint8) (uint16, error) {
-	rx := make([]byte, 2)
-	err := d.c.Tx([]byte{register}, rx)
-	data := binary.BigEndian.Uint16(rx)
-	return data, err
+	cal := uint16(calibratescale / (int64(d.currentLSB) * int64(sense)))
+	return d.m.WriteUint16(calibrationRegister, cal)
 }
 
 // PowerMonitor represents measurements from ina219 sensor.
@@ -246,13 +174,12 @@ type PowerMonitor struct {
 	Power   physic.Power
 }
 
-// String inplment the stringer interface.
+// String returns a PowerMonitor as string
 func (p PowerMonitor) String() string {
 	return fmt.Sprintf("Bus: %s, Current: %s, Power: %s, Shunt: %s", p.Voltage, p.Current, p.Power, p.Shunt)
 }
 
 var (
-	errResetError                = errors.New("failed to reset Ina219")
 	errReadShunt                 = errors.New("failed to read shunt voltage")
 	errReadBus                   = errors.New("failed to read bus voltage")
 	errReadPower                 = errors.New("failed to read power")
@@ -261,20 +188,5 @@ var (
 	errSenseResistorValueInvalid = errors.New("sense resistor value cannot be negative or zero")
 	errMaxCurrentInvalid         = errors.New("max current cannot be negative or zero")
 	errRegisterOverflow          = errors.New("bus voltage register overflow")
+	errWritingToConfigRegister   = errors.New("failed to write to configuration register")
 )
-
-func clearBit(n byte, pos uint8) byte {
-	mask := ^(1 << pos)
-	n &= byte(mask)
-	return n
-}
-
-func setBit(n byte, pos uint8) byte {
-	n |= (1 << pos)
-	return n
-}
-
-func hasBit(n byte, pos uint8) bool {
-	val := n & (1 << pos)
-	return (val > 0)
-}

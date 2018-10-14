@@ -1,3 +1,8 @@
+// Copyright 2018 The Periph Authors. All rights reserved.
+// Use of this source code is governed under the Apache License, Version 2.0
+// that can be found in the LICENSE file.
+
+// simple util to test if a ina219 sensor
 package main
 
 import (
@@ -16,7 +21,7 @@ import (
 )
 
 func main() {
-	address := flag.Uint("address", 0x40, "I²C address")
+	address := flag.Int("address", 0x40, "I²C address")
 	i2cbus := flag.String("bus", "", "I²C bus (/dev/i2c-1)")
 
 	flag.Parse()
@@ -34,13 +39,13 @@ func main() {
 	defer bus.Close()
 
 	// create a new power sensor a sense resistor of 100 mΩ, 3.2A
-	options := []ina219.Option{
-		ina219.Address(uint8(*address)),
-		ina219.SenseResistor(100 * physic.MilliOhm),
-		ina219.MaxCurrent(3200 * physic.MilliAmpere),
+	config := ina219.Config{
+		Address:       *address,
+		SenseResistor: 100 * physic.MilliOhm,
+		MaxCurrent:    3200 * physic.MilliAmpere,
 	}
 
-	sensor, err := ina219.New(bus, options...)
+	sensor, err := ina219.New(bus, config)
 	if err != nil {
 		log.Fatalln(err)
 	}

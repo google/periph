@@ -1,9 +1,14 @@
+// Copyright 2018 The Periph Authors. All rights reserved.
+// Use of this source code is governed under the Apache License, Version 2.0
+// that can be found in the LICENSE file.
+
 package ina219smoketest
 
 import (
 	"errors"
 	"flag"
 	"fmt"
+	"log"
 
 	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/conn/physic"
@@ -27,7 +32,7 @@ func (s *SmokeTest) Description() string {
 
 func (s *SmokeTest) Run(f *flag.FlagSet, args []string) (err error) {
 	i2cID := f.String("i2c", "", "I²C bus to use")
-	i2cAddr := f.Uint("ia", 0x40, "I²C bus address use: 0x40 to 0x4f")
+	i2cAddr := f.Int("ia", 0x40, "I²C bus address use: 0x40 to 0x4f")
 	if err := f.Parse(args); err != nil {
 		return err
 	}
@@ -53,15 +58,15 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) (err error) {
 	}()
 
 	// create a new power sensor a sense resistor of 100 mΩ
-	options := []ina219.Option{
-		ina219.Address(uint8(*i2cAddr)),
-		ina219.SenseResistor(100 * physic.MilliOhm),
-		ina219.MaxCurrent(3200 * physic.MilliAmpere),
+	config := ina219.Config{
+		Address:       *i2cAddr,
+		SenseResistor: 100 * physic.MilliOhm,
+		MaxCurrent:    3200 * physic.MilliAmpere,
 	}
 
-	sensor, err := ina219.New(bus, options...)
+	sensor, err := ina219.New(bus, config)
 	if err != nil {
-		return err
+		log.Fatalln(err)
 	}
 	pm, err := sensor.Sense()
 	if err != nil {
