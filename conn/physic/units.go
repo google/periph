@@ -268,6 +268,8 @@ const (
 	MilliPascal Pressure = 1000 * MicroPascal
 	Pascal      Pressure = 1000 * MilliPascal
 	KiloPascal  Pressure = 1000 * Pascal
+	MegaPascal  Pressure = 1000 * KiloPascal
+	GigaPascal  Pressure = 1000 * MegaPascal
 )
 
 // RelativeHumidity is a humidity level measurement stored as an int32 fixed
@@ -376,30 +378,55 @@ func nanoAsString(v int64) string {
 		sign = "-"
 		v = -v
 	}
-	// TODO(maruel): Round a bit.
 	var frac int
 	var base int
+	var precision int64
 	unit := ""
 	switch {
-	case v >= 1000000000000000000:
-		frac = int(v % 1000000000000000000 / 1000000000000000)
-		base = int(v / 1000000000000000000)
-		unit = "G"
-	case v >= 1000000000000000:
-		frac = int(v % 1000000000000000 / 1000000000000)
+	case v >= 999999500000000001:
+		precision = v % 1000000000000000
 		base = int(v / 1000000000000000)
-		unit = "M"
-	case v >= 1000000000000:
-		frac = int(v % 1000000000000 / 1000000000)
+		if precision > 500000000000000 {
+			base++
+		}
+		frac = (base % 1000)
+		base = base / 1000
+		unit = "G"
+	case v >= 999999500000001:
+		precision = v % 1000000000000
 		base = int(v / 1000000000000)
-		unit = "k"
-	case v >= 1000000000:
-		frac = int(v % 1000000000 / 1000000)
+		if precision > 500000000000 {
+			base++
+		}
+		frac = (base % 1000)
+		base = base / 1000
+		unit = "M"
+	case v >= 999999500001:
+		precision = v % 1000000000
 		base = int(v / 1000000000)
+		if precision > 500000000 {
+			base++
+		}
+		frac = (base % 1000)
+		base = base / 1000
+		unit = "k"
+	case v >= 999999501:
+		precision = v % 1000000
+		base = int(v / 1000000)
+		if precision > 500000 {
+			base++
+		}
+		frac = (base % 1000)
+		base = base / 1000
 		unit = ""
 	case v >= 1000000:
-		frac = int(v % 1000000 / 1000)
-		base = int(v / 1000000)
+		precision = v % 1000
+		base = int(v / 1000)
+		if precision > 500 {
+			base++
+		}
+		frac = (base % 1000)
+		base = base / 1000
 		unit = "m"
 	case v >= 1000:
 		frac = int(v) % 1000
@@ -429,30 +456,55 @@ func microAsString(v int64) string {
 		sign = "-"
 		v = -v
 	}
-	// TODO(maruel): Round a bit.
 	var frac int
 	var base int
+	var precision int64
 	unit := ""
 	switch {
-	case v >= 1000000000000000000:
-		frac = int(v % 1000000000000000000 / 1000000000000000)
-		base = int(v / 1000000000000000000)
-		unit = "T"
-	case v >= 1000000000000000:
-		frac = int(v % 1000000000000000 / 1000000000000)
+	case v >= 999999500000000001:
+		precision = v % 1000000000000000
 		base = int(v / 1000000000000000)
-		unit = "G"
-	case v >= 1000000000000:
-		frac = int(v % 1000000000000 / 1000000000)
+		if precision > 500000000000000 {
+			base++
+		}
+		frac = (base % 1000)
+		base = base / 1000
+		unit = "T"
+	case v >= 999999500000001:
+		precision = v % 1000000000000
 		base = int(v / 1000000000000)
-		unit = "M"
-	case v >= 1000000000:
-		frac = int(v % 1000000000 / 1000000)
+		if precision > 500000000000 {
+			base++
+		}
+		frac = (base % 1000)
+		base = base / 1000
+		unit = "G"
+	case v >= 999999500001:
+		precision = v % 1000000000
 		base = int(v / 1000000000)
+		if precision > 500000000 {
+			base++
+		}
+		frac = (base % 1000)
+		base = base / 1000
+		unit = "M"
+	case v >= 999999501:
+		precision = v % 1000000
+		base = int(v / 1000000)
+		if precision > 500000 {
+			base++
+		}
+		frac = (base % 1000)
+		base = base / 1000
 		unit = "k"
 	case v >= 1000000:
-		frac = int(v % 1000000 / 1000)
-		base = int(v / 1000000)
+		precision = v % 1000
+		base = int(v / 1000)
+		if precision > 500 {
+			base++
+		}
+		frac = (base % 1000)
+		base = base / 1000
 		unit = ""
 	case v >= 1000:
 		frac = int(v) % 1000
