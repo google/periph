@@ -8,7 +8,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"log"
 
 	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/conn/physic"
@@ -46,7 +45,7 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) (err error) {
 		return err
 	}
 
-	// open default i2c bus
+	// Open default i2c bus.
 	bus, err := i2creg.Open(*i2cID)
 	if err != nil {
 		return err
@@ -57,8 +56,8 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) (err error) {
 		}
 	}()
 
-	// create a new power sensor a sense resistor of 100 mΩ
-	config := ina219.Config{
+	// Create a new power sensor a sense resistor of 100 mΩ.
+	config := ina219.Opts{
 		Address:       *i2cAddr,
 		SenseResistor: 100 * physic.MilliOhm,
 		MaxCurrent:    3200 * physic.MilliAmpere,
@@ -66,7 +65,7 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) (err error) {
 
 	sensor, err := ina219.New(bus, config)
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
 	pm, err := sensor.Sense()
 	if err != nil {

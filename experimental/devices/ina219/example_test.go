@@ -9,7 +9,6 @@ import (
 	"log"
 
 	"periph.io/x/periph/conn/i2c/i2creg"
-	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/experimental/devices/ina219"
 	"periph.io/x/periph/host"
 )
@@ -20,26 +19,20 @@ func Example() {
 		log.Fatal(err)
 	}
 
-	// open default I²C bus
+	// Open default I²C bus.
 	bus, err := i2creg.Open("")
 	if err != nil {
 		log.Fatalf("failed to open I²C: %v", err)
 	}
 	defer bus.Close()
 
-	config := ina219.Config{
-		Address:       0x40,
-		SenseResistor: 100 * physic.MilliOhm,
-		MaxCurrent:    3200 * physic.MilliAmpere,
-	}
-
-	// create a new power sensor
-	sensor, err := ina219.New(bus, config)
+	// Create a new power sensor.
+	sensor, err := ina219.New(bus, &ina219.DefaultOpts)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	// read values from sensor
+	// Read values from sensor.
 	measurement, err := sensor.Sense()
 
 	if err != nil {

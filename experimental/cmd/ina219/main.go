@@ -2,70 +2,74 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// simple util to test an ina219 sensor
+// ina219 communicates with an ina219 sensor reading voltage, current and power.
 package main
 
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"periph.io/x/periph/conn/i2c/i2creg"
-	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/experimental/devices/ina219"
 	"periph.io/x/periph/host"
 )
 
-func main() {
+func mainImpl() error {
+	if _, err := host.Init(); err != nil {
+		return err
+	}
 	address := flag.Int("address", 0x40, "I²C address")
 	i2cbus := flag.String("bus", "", "I²C bus (/dev/i2c-1)")
 
 	flag.Parse()
 
-	fmt.Println("Starting INA219 Current Sensor\nctrl+c to exit")
+	fmt.Println("Starting INA219 Current Sensor")
 	if _, err := host.Init(); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
-	// open default I²C bus
+	// Open default I²C bus.
 	bus, err := i2creg.Open(*i2cbus)
 	if err != nil {
-		log.Fatalf("failed to open I²C: %v", err)
+		return fmt.Errorf("failed to open I²C: %v", err)
 	}
 	defer bus.Close()
 
-	// create a new power sensor a sense resistor of 100 mΩ, 3.2A
-	config := ina219.Config{
-		Address:       *address,
-		SenseResistor: 100 * physic.MilliOhm,
-		MaxCurrent:    3200 * physic.MilliAmpere,
-	}
-
-	sensor, err := ina219.New(bus, config)
+	// Create a new power sensor a sense with default options of 100 mΩ, 3.2A at
+	// address of 0x40 if no other address supplied with command line option.
+	sensor, err := ina219.New(bus, &ina219.Opts{Address: *address})
 	if err != nil {
-		log.Fatalln(err)
+		return fmt.Errorf("failed to open new sensor: %v", err)
 	}
 
-	// read values from sensor every second
+	// Read values from sensor every second.
 	everySecond := time.NewTicker(time.Second).C
 	var halt = make(chan os.Signal)
 	signal.Notify(halt, syscall.SIGTERM)
 	signal.Notify(halt, syscall.SIGINT)
 
+	fmt.Println("ctrl+c to exit")
 	for {
 		select {
 		case <-everySecond:
 			p, err := sensor.Sense()
 			if err != nil {
-				log.Fatalln(err)
+				return fmt.Errorf("sensor reading error: %v", err)
 			}
 			fmt.Println(p)
 		case <-halt:
-			os.Exit(0)
+			return nil
 		}
+	}
+}
+
+func main() {
+	if err := mainImpl(); err != nil {
+		fmt.Fprintf(os.Stderr, "ina219: %s.\n", err)
+		return
 	}
 }

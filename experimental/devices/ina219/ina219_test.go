@@ -26,7 +26,7 @@ func TestNew(t *testing.T) {
 
 	var tests = []struct {
 		name      string
-		opts      Config
+		opts      Opts
 		want      fields
 		tx        []i2ctest.IO
 		err       error
@@ -43,19 +43,19 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{name: "badAddressOption",
-			opts: Config{Address: 0x60},
+			opts: Opts{Address: 0x60},
 			err:  errAddressOutOfRange,
 		},
 		{name: "badSenseResistorOption",
-			opts: Config{SenseResistor: -1},
+			opts: Opts{SenseResistor: -1},
 			err:  errSenseResistorValueInvalid,
 		},
 		{name: "badMaxCurrentOption",
-			opts: Config{MaxCurrent: -1},
+			opts: Opts{MaxCurrent: -1},
 			err:  errMaxCurrentInvalid,
 		},
 		{name: "setAddress",
-			opts: Config{Address: 0x41},
+			opts: Opts{Address: 0x41},
 			tx: []i2ctest.IO{
 				{Addr: 0x41, W: []byte{calibrationRegister, 0x20, 0xc4}, R: []byte{}},
 				{Addr: 0x41, W: []byte{configRegister, 0x1f, 0xff}, R: []byte{}},
@@ -67,7 +67,7 @@ func TestNew(t *testing.T) {
 			err: nil,
 		},
 		{name: "setMaxCurrent",
-			opts: Config{MaxCurrent: 1000 * physic.MilliAmpere},
+			opts: Opts{MaxCurrent: 1000 * physic.MilliAmpere},
 			tx: []i2ctest.IO{
 				{Addr: 0x40, W: []byte{calibrationRegister, 0x68, 0xdc}, R: []byte{}},
 				{Addr: 0x40, W: []byte{configRegister, 0x1f, 0xff}, R: []byte{}},
@@ -79,7 +79,7 @@ func TestNew(t *testing.T) {
 			err: nil,
 		},
 		{name: "setSenseResistor",
-			opts: Config{SenseResistor: 10 * physic.MilliOhm},
+			opts: Opts{SenseResistor: 10 * physic.MilliOhm},
 			tx: []i2ctest.IO{
 				{Addr: 0x40, W: []byte{calibrationRegister, 0x47, 0xae}, R: []byte{}},
 				{Addr: 0x40, W: []byte{configRegister, 0x1f, 0xff}, R: []byte{}},
@@ -120,7 +120,7 @@ func TestNew(t *testing.T) {
 				DontPanic: true,
 			}
 
-			ina, err := New(bus, test.opts)
+			ina, err := New(bus, &test.opts)
 
 			if test.err != nil {
 				if err != test.err {
@@ -164,7 +164,7 @@ func TestSense(t *testing.T) {
 
 	var tests = []struct {
 		name      string
-		args      Config
+		args      Opts
 		want      PowerMonitor
 		tx        []i2ctest.IO
 		err       error
@@ -173,7 +173,7 @@ func TestSense(t *testing.T) {
 		{
 			name: "errReadShunt",
 			err:  errReadShunt,
-			args: Config{},
+			args: Opts{},
 			tx: []i2ctest.IO{
 				{Addr: 0x40, W: []byte{calibrationRegister, 0x20, 0xc4}, R: []byte{}},
 				{Addr: 0x40, W: []byte{configRegister, 0x1f, 0xff}, R: []byte{}},
@@ -183,7 +183,7 @@ func TestSense(t *testing.T) {
 		{
 			name: "errReadBus",
 			err:  errReadBus,
-			args: Config{},
+			args: Opts{},
 			tx: []i2ctest.IO{
 				{Addr: 0x40, W: []byte{calibrationRegister, 0x20, 0xc4}, R: []byte{}},
 				{Addr: 0x40, W: []byte{configRegister, 0x1f, 0xff}, R: []byte{}},
@@ -194,7 +194,7 @@ func TestSense(t *testing.T) {
 		{
 			name: "errReadCurrent",
 			err:  errReadCurrent,
-			args: Config{},
+			args: Opts{},
 			tx: []i2ctest.IO{
 				{Addr: 0x40, W: []byte{calibrationRegister, 0x20, 0xc4}, R: []byte{}},
 				{Addr: 0x40, W: []byte{configRegister, 0x1f, 0xff}, R: []byte{}},
@@ -206,7 +206,7 @@ func TestSense(t *testing.T) {
 		{
 			name: "errReadPower",
 			err:  errReadPower,
-			args: Config{},
+			args: Opts{},
 			tx: []i2ctest.IO{
 				{Addr: 0x40, W: []byte{calibrationRegister, 0x20, 0xc4}, R: []byte{}},
 				{Addr: 0x40, W: []byte{configRegister, 0x1f, 0xff}, R: []byte{}},
@@ -219,7 +219,7 @@ func TestSense(t *testing.T) {
 		{
 			name: "readZero",
 			err:  nil,
-			args: Config{},
+			args: Opts{},
 			tx: []i2ctest.IO{
 				{Addr: 0x40, W: []byte{calibrationRegister, 0x20, 0xc4}, R: []byte{}},
 				{Addr: 0x40, W: []byte{configRegister, 0x1f, 0xff}, R: []byte{}},
@@ -233,7 +233,7 @@ func TestSense(t *testing.T) {
 		{
 			name: "busVoltageOverflow",
 			err:  errRegisterOverflow,
-			args: Config{},
+			args: Opts{},
 			tx: []i2ctest.IO{
 				{Addr: 0x40, W: []byte{calibrationRegister, 0x20, 0xc4}, R: []byte{}},
 				{Addr: 0x40, W: []byte{configRegister, 0x1f, 0xff}, R: []byte{}},
@@ -248,7 +248,7 @@ func TestSense(t *testing.T) {
 				Ops:       test.tx,
 				DontPanic: true,
 			}
-			ina, err := New(bus, Config{})
+			ina, err := New(bus, &Opts{})
 			if err != nil {
 				t.Fatalf("set setup failure %v", err)
 			}
@@ -346,12 +346,12 @@ func TestCalibrate(t *testing.T) {
 			}
 
 			ina := &Dev{
-				m: &mmr.Dev8{
+				m: mmr.Dev8{
 					Conn:  &i2c.Dev{Bus: &bus, Addr: 0x40},
 					Order: binary.BigEndian},
 			}
 
-			err := ina.Calibrate(test.args.sense, test.args.maxCurrent)
+			err := ina.calibrate(test.args.sense, test.args.maxCurrent)
 			if test.err != nil {
 				if err != test.err {
 					if test.err == stringErr {

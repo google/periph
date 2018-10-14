@@ -15,57 +15,61 @@ import (
 	"periph.io/x/periph/conn/physic"
 )
 
-// Config is a Configuration
-type Config struct {
+// Opts holds the configuration options.
+//
+// Slave Address
+//
+// Depending which pins the A1, A0 pins are connected to will change the slave
+// address. Default configuration is address 0x40 (both pins to GND). For a full
+// address table see datasheet.
+type Opts struct {
 	Address       int
 	SenseResistor physic.ElectricResistance
 	MaxCurrent    physic.ElectricCurrent
 }
 
-const (
-	// DefaultSenseResistor is 100 mΩ and can be changed using SenseResistor(value)
-	DefaultSenseResistor = 100 * physic.MilliOhm
-	// DefaultI2CAddress is 0x40 and can be changed using Address(address)
-	DefaultI2CAddress = 0x40
-	// DefaultMaxCurrent is 3.2 and can be changed using MaxCurrent(value)
-	DefaultMaxCurrent = 3200 * physic.MilliAmpere
-)
+// DefaultOpts is the recommended default options.
+var DefaultOpts = Opts{
+	Address:       0x40,
+	SenseResistor: 100 * physic.MilliOhm,
+	MaxCurrent:    3200 * physic.MilliAmpere,
+}
 
-// New opens a handle to an ina219 sensor
-func New(bus i2c.Bus, config Config) (*Dev, error) {
+// New opens a handle to an ina219 sensor.
+func New(bus i2c.Bus, opts *Opts) (*Dev, error) {
 
-	i2cAddress := DefaultI2CAddress
-	if config.Address != 0 {
-		if config.Address < 0x40 || config.Address > 0x4f {
+	i2cAddress := DefaultOpts.Address
+	if opts.Address != 0 {
+		if opts.Address < 0x40 || opts.Address > 0x4f {
 			return nil, errAddressOutOfRange
 		}
-		i2cAddress = config.Address
+		i2cAddress = opts.Address
 	}
 
-	senseResistor := DefaultSenseResistor
-	if config.SenseResistor != 0 {
-		if config.SenseResistor < 1 {
+	senseResistor := DefaultOpts.SenseResistor
+	if opts.SenseResistor != 0 {
+		if opts.SenseResistor < 1 {
 			return nil, errSenseResistorValueInvalid
 		}
-		senseResistor = config.SenseResistor
+		senseResistor = opts.SenseResistor
 	}
 
-	maxCurrent := DefaultMaxCurrent
-	if config.MaxCurrent != 0 {
-		if config.MaxCurrent < 1 {
+	maxCurrent := DefaultOpts.MaxCurrent
+	if opts.MaxCurrent != 0 {
+		if opts.MaxCurrent < 1 {
 			return nil, errMaxCurrentInvalid
 		}
-		maxCurrent = config.MaxCurrent
+		maxCurrent = opts.MaxCurrent
 	}
 
 	dev := &Dev{
-		m: &mmr.Dev8{
+		m: mmr.Dev8{
 			Conn:  &i2c.Dev{Bus: bus, Addr: uint16(i2cAddress)},
 			Order: binary.BigEndian,
 		},
 	}
 
-	if err := dev.Calibrate(senseResistor, maxCurrent); err != nil {
+	if err := dev.calibrate(senseResistor, maxCurrent); err != nil {
 		return nil, err
 	}
 
@@ -78,7 +82,7 @@ func New(bus i2c.Bus, config Config) (*Dev, error) {
 
 // Dev is a handle to the ina219 sensor.
 type Dev struct {
-	m *mmr.Dev8
+	m mmr.Dev8
 
 	mu         sync.Mutex
 	currentLSB physic.ElectricCurrent
@@ -94,9 +98,8 @@ const (
 	calibrationRegister  = 0x05
 )
 
-// Sense reads the power values from the ina219 sensor
+// Sense reads the power values from the ina219 sensor.
 func (d *Dev) Sense() (PowerMonitor, error) {
-	// One rx buffer for entire transaction
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -106,23 +109,21 @@ func (d *Dev) Sense() (PowerMonitor, error) {
 	if err != nil {
 		return PowerMonitor{}, errReadShunt
 	}
-	// Least significant bit is 10µV
+	// Least significant bit is 10µV.
 	pm.Shunt = physic.ElectricPotential(shunt) * 10 * physic.MicroVolt
 
 	bus, err := d.m.ReadUint16(busVoltageRegister)
 	if err != nil {
 		return PowerMonitor{}, errReadBus
 	}
-	// check if bit zero is set, if set ADC has overflowed
+	// Check if bit zero is set, if set the ADC has overflowed.
 	if bus&1 > 0 {
 		return PowerMonitor{}, errRegisterOverflow
 	}
-	pm.Voltage = physic.ElectricPotential(bus>>3) * 4 * physic.MilliVolt
-	// Least significant bit is 4mV
 
-	// if calibration register is not set then current and power readings are
-	// meaningless
-	// if d.caibrated {
+	// Least significant bit is 4mV.
+	pm.Voltage = physic.ElectricPotential(bus>>3) * 4 * physic.MilliVolt
+
 	current, err := d.m.ReadUint16(currentRegister)
 	if err != nil {
 		return PowerMonitor{}, errReadCurrent
@@ -134,19 +135,18 @@ func (d *Dev) Sense() (PowerMonitor, error) {
 		return PowerMonitor{}, errReadPower
 	}
 	pm.Power = physic.Power(power) * d.powerLSB
-	// }
 
 	return pm, nil
 }
 
-// Since physic electrical is in nano units we need
-// to scale taking care to not overflow int64 or loose resolution.
+// Since physic electrical is in nano units we need to scale taking care to not
+// overflow int64 or loose resolution.
 const calibratescale int64 = ((int64(physic.Ampere) * int64(physic.Ohm)) / 100000) << 12
 
 // Calibrate sets the scaling factor of the current and power registers for the
-// maximum resolution. Calibrate is run on init. here it allows you to make
-// tune the measured value with actual value
-func (d *Dev) Calibrate(sense physic.ElectricResistance, maxCurrent physic.ElectricCurrent) error {
+// maximum resolution. calibrate is run on init.
+func (d *Dev) calibrate(sense physic.ElectricResistance, maxCurrent physic.ElectricCurrent) error {
+	// TODO: Check calibration with float implementation in tests.
 	if sense <= 0 {
 		return errSenseResistorValueInvalid
 	}
@@ -159,9 +159,9 @@ func (d *Dev) Calibrate(sense physic.ElectricResistance, maxCurrent physic.Elect
 
 	d.currentLSB = maxCurrent / (2 << 15)
 	d.powerLSB = physic.Power(d.currentLSB * 20)
-	// cal = 0.04096 / (current LSB * Shunt Resistance) where lsb is in Amps and
-	// resistance is in ohms.
-	// calibration register is 16 bits wide.
+	// Calibration Register = 0.04096 / (current LSB * Shunt Resistance)
+	// Where lsb is in Amps and resistance is in ohms.
+	// Calibration register is 16 bits.
 	cal := uint16(calibratescale / (int64(d.currentLSB) * int64(sense)))
 	return d.m.WriteUint16(calibrationRegister, cal)
 }
