@@ -40,6 +40,12 @@ func NRZ(b byte) uint32 {
 	return out
 }
 
+//A Strip is the high level interface all hardware implementations conform to
+type Strip interface {
+	display.Drawer
+	Write(pixels []byte) (int, error)
+}
+
 // DefaultOpts is the recommended default options.
 var DefaultOpts = Opts{
 	NumPixels: 150,                    // 150 LEDs is a common strip length.

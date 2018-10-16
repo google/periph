@@ -2,7 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-package ws2812b
+package nrzled
 
 import (
 	"bytes"
@@ -19,38 +19,49 @@ import (
 	"periph.io/x/periph/conn/spi/spitest"
 )
 
+// ToRGB converts a slice of color.NRGBA to a byte stream of RGB pixels.
+//
+// Ignores alpha.
+func ToRGB(p []color.NRGBA) []byte {
+	b := make([]byte, 0, len(p)*3)
+	for _, c := range p {
+		b = append(b, c.R, c.G, c.B)
+	}
+	return b
+}
+
 func TestDevEmpty(t *testing.T) {
 	buf := bytes.Buffer{}
-	o := DefaultOpts
+	o := Opts{NumPixels: 150}
 	o.NumPixels = 0
-	d, _ := New(spitest.NewRecordRaw(&buf), &o)
+	d, _ := NewSPI(spitest.NewRecordRaw(&buf), &o)
 	if n, err := d.Write([]byte{}); n != 0 || err != nil {
 		t.Fatalf("%d %v", n, err)
 	}
 	if expected := []byte{0x0, 0x0, 0x0}; !bytes.Equal(expected, buf.Bytes()) {
-		t.Fatalf("\ngot:  %#02v\nwant: %#02v\n", buf.Bytes(), expected)
+		t.Fatalf("\nGot:  %#02v\nWant: %#02v\n", buf.Bytes(), expected)
 	}
-	if s := d.String(); s != "WS2812b: {0LEDs, recordraw}" {
-		t.Fatal(s)
+	if got, expected := d.String(), "nrzled: {0, recordraw}"; got != expected {
+		t.Fatalf("\nGot:  %s\nWant: %s\n", got, expected)
 	}
 }
 
 func TestConnectFail(t *testing.T) {
-	if d, err := New(&configFail{}, &DefaultOpts); d != nil || err == nil {
+	if d, err := NewSPI(&configFail{}, &Opts{NumPixels: 150}); d != nil || err == nil {
 		t.Fatal("Connect() call have failed")
 	}
 }
 
 func TestDevLen(t *testing.T) {
 	buf := bytes.Buffer{}
-	o := DefaultOpts
+	o := Opts{NumPixels: 150}
 	o.NumPixels = 1
-	d, _ := New(spitest.NewRecordRaw(&buf), &o)
+	d, _ := NewSPI(spitest.NewRecordRaw(&buf), &o)
 	if n, err := d.Write([]byte{0}); n != 0 || err == nil {
 		t.Fatalf("%d %v", n, err)
 	}
 	if expected := []byte{}; !bytes.Equal(expected, buf.Bytes()) {
-		t.Fatalf("\ngot:  %#02v\nwant: %#02v\n", buf.Bytes(), expected)
+		t.Fatalf("\nGot:  %#02v\nWant: %#02v\n", buf.Bytes(), expected)
 	}
 }
 
@@ -61,7 +72,111 @@ var writeTests = []struct {
 	opts   Opts
 }{
 	{
-		name: "PassThru",
+		name: "1 pixel to #FFFFFF",
+		pixels: ToRGB([]color.NRGBA{
+			{0xFF, 0xFF, 0xFF, 0x00},
+		}),
+		want: []byte{
+			/*FF*/ 0xEE, 0xEE, 0xEE, 0xEE /*FF*/, 0xEE, 0xEE, 0xEE, 0xEE /*FF*/, 0xEE, 0xEE, 0xEE, 0xEE,
+			/*EOF*/ 0x00, 0x00, 0x00,
+		},
+		opts: Opts{
+			NumPixels: 1,
+		},
+	},
+	{
+		name: "1 pixel to #FEFEFE",
+		pixels: ToRGB([]color.NRGBA{
+			{0xFE, 0xFE, 0xFE, 0x00},
+		}),
+		want: []byte{
+			/*FE*/ 0xEE, 0xEE, 0xEE, 0xE8 /*FE*/, 0xEE, 0xEE, 0xEE, 0xE8 /*FE*/, 0xEE, 0xEE, 0xEE, 0xE8,
+			/*EOF*/ 0x00, 0x00, 0x00,
+		},
+		opts: Opts{
+			NumPixels: 1,
+		},
+	},
+	{
+		name: "1 pixel to #F0F0F0",
+		pixels: ToRGB([]color.NRGBA{
+			{0xF0, 0xF0, 0xF0, 0x00},
+		}),
+		want: []byte{
+			/*F0*/ 0xEE, 0xEE, 0x88, 0x88 /*F0*/, 0xEE, 0xEE, 0x88, 0x88 /*F0*/, 0xEE, 0xEE, 0x88, 0x88,
+			/*EOF*/ 0x00, 0x00, 0x00,
+		},
+		opts: Opts{
+			NumPixels: 1,
+		},
+	},
+	{
+		name: "1 pixel to #808080",
+		pixels: ToRGB([]color.NRGBA{
+			{0x80, 0x80, 0x80, 0x00},
+		}),
+		want: []byte{
+			/*80*/ 0xE8, 0x88, 0x88, 0x88 /*80*/, 0xE8, 0x88, 0x88, 0x88 /*80*/, 0xE8, 0x88, 0x88, 0x88,
+			/*EOF*/ 0x00, 0x00, 0x00,
+		},
+		opts: Opts{
+			NumPixels: 1,
+		},
+	},
+	{
+		name: "1 pixel to #80FF00",
+		pixels: ToRGB([]color.NRGBA{
+			{0x80, 0xFF, 0x00, 0x00},
+		}),
+		want: []byte{
+			/*80*/ 0xE8, 0x88, 0x88, 0x88 /*FF*/, 0xEE, 0xEE, 0xEE, 0xEE /*00*/, 0x88, 0x88, 0x88, 0x88,
+			/*EOF*/ 0x00, 0x00, 0x00,
+		},
+		opts: Opts{
+			NumPixels: 1,
+		},
+	},
+	{
+		name: "1 pixel to #800000",
+		pixels: ToRGB([]color.NRGBA{
+			{0x80, 0x00, 0x00, 0x00},
+		}),
+		want: []byte{
+			/*80*/ 0xE8, 0x88, 0x88, 0x88 /*00*/, 0x88, 0x88, 0x88, 0x88 /*00*/, 0x88, 0x88, 0x88, 0x88,
+			/*EOF*/ 0x00, 0x00, 0x00,
+		},
+		opts: Opts{
+			NumPixels: 1,
+		},
+	},
+	{
+		name: "1 pixel to #008000",
+		pixels: ToRGB([]color.NRGBA{
+			{0x00, 0x80, 0x00, 0x00},
+		}),
+		want: []byte{
+			/*00*/ 0x88, 0x88, 0x88, 0x88 /*80*/, 0xE8, 0x88, 0x88, 0x88 /*00*/, 0x88, 0x88, 0x88, 0x88,
+			/*EOF*/ 0x00, 0x00, 0x00,
+		},
+		opts: Opts{
+			NumPixels: 1,
+		},
+	},
+	{
+		name: "1 pixel to #000080",
+		pixels: ToRGB([]color.NRGBA{
+			{0x00, 0x00, 0x80, 0x00},
+		}),
+		want: []byte{
+			/*00*/ 0x88, 0x88, 0x88, 0x88 /*00*/, 0x88, 0x88, 0x88, 0x88 /*80*/, 0xE8, 0x88, 0x88, 0x88,
+			/*EOF*/ 0x00, 0x00, 0x00,
+		},
+		opts: Opts{
+			NumPixels: 1,
+		},
+	},
+	{
+		name: "All at once",
 		pixels: ToRGB([]color.NRGBA{
 			{0xFF, 0xFF, 0xFF, 0x00},
 			{0xFE, 0xFE, 0xFE, 0x00},
@@ -81,9 +196,9 @@ var writeTests = []struct {
 			/*FE*/ 0xEE, 0xEE, 0xEE, 0xE8 /*FE*/, 0xEE, 0xEE, 0xEE, 0xE8 /*FE*/, 0xEE, 0xEE, 0xEE, 0xE8,
 			/*F0*/ 0xEE, 0xEE, 0x88, 0x88 /*F0*/, 0xEE, 0xEE, 0x88, 0x88 /*F0*/, 0xEE, 0xEE, 0x88, 0x88,
 			/*80*/ 0xE8, 0x88, 0x88, 0x88 /*80*/, 0xE8, 0x88, 0x88, 0x88 /*80*/, 0xE8, 0x88, 0x88, 0x88,
-			// Remember to swap RGBA -> GRB
-			/*00*/ 0x88, 0x88, 0x88, 0x88 /*80*/, 0xE8, 0x88, 0x88, 0x88 /*00*/, 0x88, 0x88, 0x88, 0x88,
+
 			/*80*/ 0xE8, 0x88, 0x88, 0x88 /*00*/, 0x88, 0x88, 0x88, 0x88 /*00*/, 0x88, 0x88, 0x88, 0x88,
+			/*00*/ 0x88, 0x88, 0x88, 0x88 /*80*/, 0xE8, 0x88, 0x88, 0x88 /*00*/, 0x88, 0x88, 0x88, 0x88,
 			/*00*/ 0x88, 0x88, 0x88, 0x88 /*00*/, 0x88, 0x88, 0x88, 0x88 /*80*/, 0xE8, 0x88, 0x88, 0x88,
 
 			/*00*/ 0x88, 0x88, 0x88, 0x88 /*00*/, 0x88, 0x88, 0x88, 0x88 /*10*/, 0x88, 0x8E, 0x88, 0x88,
@@ -92,8 +207,7 @@ var writeTests = []struct {
 			/*EOF*/ 0x00, 0x00, 0x00,
 		},
 		opts: Opts{
-			NumPixels:   10,
-			Temperature: PassThruOpts.Temperature,
+			NumPixels: 10,
 		},
 	},
 }
@@ -102,7 +216,7 @@ func TestWrites(t *testing.T) {
 	for _, tt := range writeTests {
 		buf := bytes.Buffer{}
 		tt.opts.NumPixels = len(tt.pixels) / 3
-		d, _ := New(spitest.NewRecordRaw(&buf), &tt.opts)
+		d, _ := NewSPI(spitest.NewRecordRaw(&buf), &tt.opts)
 		n, err := d.Write(tt.pixels)
 		if err != nil {
 			t.Fatal(err)
@@ -110,8 +224,14 @@ func TestWrites(t *testing.T) {
 		if n != len(tt.pixels) {
 			t.Fatalf("%s: Got %d bytes result, want %d", tt.name, n, len(tt.pixels)*3)
 		}
-		if !bytes.Equal(buf.Bytes(), tt.want) {
-			t.Fatalf("%s:\ngot:  %#02v\nwant: %#02v\n", tt.name, buf.Bytes(), tt.want)
+		if got := buf.Bytes(); !bytes.Equal(got, tt.want) {
+			t.Logf("%s:\nGot:  (%d)%#02v\nWant: (%d)%#02v\n", tt.name, len(got), got, len(tt.want), tt.want)
+			for i := range tt.want {
+				if got[i] != tt.want[i] {
+					t.Logf("(%d) Got:  %#02v\tWant: %#02v\n", i, got[i], tt.want[i])
+				}
+			}
+			t.Fail()
 		}
 	}
 }
@@ -125,9 +245,9 @@ func TestDevColor(t *testing.T) {
 func TestDevLong(t *testing.T) {
 	buf := bytes.Buffer{}
 	colors := make([]color.NRGBA, 256)
-	o := DefaultOpts
+	o := Opts{NumPixels: 150}
 	o.NumPixels = len(colors)
-	d, _ := New(spitest.NewRecordRaw(&buf), &o)
+	d, _ := NewSPI(spitest.NewRecordRaw(&buf), &o)
 	if n, err := d.Write(ToRGB(colors)); n != len(colors)*3 || err != nil {
 		t.Fatalf("%d %v", n, err)
 	}
@@ -143,15 +263,15 @@ func TestDevLong(t *testing.T) {
 		trailer[i] = 0x00
 	}
 	if !bytes.Equal(expected, buf.Bytes()) {
-		t.Fatalf("\ngot:  %#02v\nwant: %#02v\n", buf.Bytes(), expected)
+		t.Fatalf("\nGot:  %#02v\nWant: %#02v\n", buf.Bytes(), expected)
 	}
 }
 
 func TestDevWrite_Long(t *testing.T) {
 	buf := bytes.Buffer{}
-	o := DefaultOpts
+	o := Opts{NumPixels: 150}
 	o.NumPixels = 1
-	d, _ := New(spitest.NewRecordRaw(&buf), &o)
+	d, _ := NewSPI(spitest.NewRecordRaw(&buf), &o)
 	if n, err := d.Write([]byte{0, 0, 0, 1, 1, 1}); n != 0 || err == nil {
 		t.Fatal(n, err)
 	}
@@ -178,8 +298,8 @@ var drawTests = []struct {
 		want: func() []byte {
 			var b []byte
 			for i := 0; i < 4; i++ {
-				b = append(b, 0xE8, 0x88, 0x88, 0x88) //0x80
 				b = append(b, 0x88, 0x88, 0x88, 0x88) //0x00
+				b = append(b, 0xE8, 0x88, 0x88, 0x88) //0x80
 				b = append(b, 0xEE, 0xEE, 0xEE, 0xEE) //0xFF
 			}
 			for i := 0; i < 3; i++ {
@@ -188,8 +308,7 @@ var drawTests = []struct {
 			return b
 		}(),
 		opts: Opts{
-			NumPixels:   4,
-			Temperature: 5000,
+			NumPixels: 4,
 		},
 	},
 	{
@@ -203,8 +322,7 @@ var drawTests = []struct {
 			return b
 		}(),
 		opts: Opts{
-			NumPixels:   4,
-			Temperature: 5000,
+			NumPixels: 4,
 		},
 	},
 }
@@ -212,15 +330,17 @@ var drawTests = []struct {
 func TestDraws(t *testing.T) {
 	for _, tt := range drawTests {
 		buf := bytes.Buffer{}
-		d, _ := New(spitest.NewRecordRaw(&buf), &tt.opts)
+		d, _ := NewSPI(spitest.NewRecordRaw(&buf), &tt.opts)
 		if err := d.Draw(d.Bounds(), tt.img, image.Point{}); err != nil {
 			t.Fatalf("%s: %v", tt.name, err)
 		}
 		got := buf.Bytes()
 		if !bytes.Equal(got, tt.want) {
-			t.Logf("%s:\ngot:  (%d)%#02v\nwant: (%d)%#02v\n", tt.name, len(got), got, len(tt.want), tt.want)
+			t.Logf("%s:\nGot:  (%d)%#02v\nWant: (%d)%#02v\n", tt.name, len(got), got, len(tt.want), tt.want)
 			for i := range tt.want {
-				t.Logf("(%d) got:  %#02v\twant: %#02v\n", i, got[i], tt.want[i])
+				if got[i] != tt.want[i] {
+					t.Logf("(%d) Got:  %#02v\tWant: %#02v\n", i, got[i], tt.want[i])
+				}
 			}
 			t.Fail()
 		}
@@ -271,8 +391,7 @@ var offsetDrawTests = []struct {
 		offset: image.Rect(0, 0, 16, 1),
 		want:   offsetDrawWant,
 		opts: Opts{
-			NumPixels:   15,
-			Temperature: 5000,
+			NumPixels: 15,
 		},
 	},
 	{
@@ -311,8 +430,7 @@ var offsetDrawTests = []struct {
 			0xFF, 0xFF,
 		},
 		opts: Opts{
-			NumPixels:   17,
-			Temperature: 5000,
+			NumPixels: 17,
 		},
 	},
 }
@@ -335,10 +453,9 @@ func TestHalt(t *testing.T) {
 			},
 		},
 	}
-	o := DefaultOpts
+	o := Opts{NumPixels: 150}
 	o.NumPixels = 4
-	o.Temperature = 5000
-	d, _ := New(&s, &o)
+	d, _ := NewSPI(&s, &o)
 	if err := d.Halt(); err != nil {
 		t.Fatal(err)
 	}
@@ -357,7 +474,7 @@ func benchmarkWrite(b *testing.B, o Opts, length int, f genColor) {
 	}
 	o.NumPixels = length
 	b.ReportAllocs()
-	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), &o)
+	d, _ := NewSPI(spitest.NewRecordRaw(ioutil.Discard), &o)
 	_, _ = d.Write(pixels[:])
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -366,17 +483,17 @@ func benchmarkWrite(b *testing.B, o Opts, length int, f genColor) {
 }
 
 func BenchmarkWriteWhite(b *testing.B) {
-	o := DefaultOpts
+	o := Opts{NumPixels: 150}
 	benchmarkWrite(b, o, 150, func(i int) [3]byte { return [3]byte{0xFF, 0xFF, 0xFF} })
 }
 
 func BenchmarkWriteDim(b *testing.B) {
-	o := DefaultOpts
+	o := Opts{NumPixels: 150}
 	benchmarkWrite(b, o, 150, func(i int) [3]byte { return [3]byte{0x01, 0x01, 0x01} })
 }
 
 func BenchmarkWriteBlack(b *testing.B) {
-	o := DefaultOpts
+	o := Opts{NumPixels: 150}
 	benchmarkWrite(b, o, 150, func(i int) [3]byte { return [3]byte{0x0, 0x0, 0x0} })
 }
 
@@ -389,13 +506,14 @@ func genColorfulPixel(x int) [3]byte {
 }
 
 func BenchmarkWriteColorful(b *testing.B) {
-	o := DefaultOpts
-	o.Temperature = 5000
+	o := Opts{NumPixels: 150}
 	benchmarkWrite(b, o, 150, genColorfulPixel)
 }
 
 func BenchmarkWriteColorfulPassThru(b *testing.B) {
-	o := PassThruOpts
+	o := Opts{
+		NumPixels: 150,
+	}
 	benchmarkWrite(b, o, 150, genColorfulPixel)
 }
 
@@ -406,10 +524,9 @@ func BenchmarkWriteColorfulVariation(b *testing.B) {
 	for i := range pixels {
 		pixels[i] = uint8(i) + uint8(i>>8)
 	}
-	o := DefaultOpts
+	o := Opts{NumPixels: 150}
 	o.NumPixels = len(pixels) / 3
-	o.Temperature = 5000
-	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), &o)
+	d, _ := NewSPI(spitest.NewRecordRaw(ioutil.Discard), &o)
 	_, _ = d.Write(pixels[:])
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -427,7 +544,7 @@ func benchmarkDraw(b *testing.B, o Opts, img draw.Image, f genColor) {
 	}
 	o.NumPixels = img.Bounds().Max.X
 	b.ReportAllocs()
-	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), &o)
+	d, _ := NewSPI(spitest.NewRecordRaw(ioutil.Discard), &o)
 	r := d.Bounds()
 	p := image.Point{}
 	if err := d.Draw(r, img, p); err != nil {
@@ -442,30 +559,17 @@ func benchmarkDraw(b *testing.B, o Opts, img draw.Image, f genColor) {
 }
 
 func BenchmarkDrawNRGBAColorful(b *testing.B) {
-	o := DefaultOpts
-	o.Temperature = 5000
-	benchmarkDraw(b, o, image.NewNRGBA(image.Rect(0, 0, 150, 1)), genColorfulPixel)
-}
-
-func BenchmarkDrawNRGBAColorfulPassThru(b *testing.B) {
-	o := PassThruOpts
+	o := Opts{NumPixels: 150}
 	benchmarkDraw(b, o, image.NewNRGBA(image.Rect(0, 0, 150, 1)), genColorfulPixel)
 }
 
 func BenchmarkDrawNRGBAWhite(b *testing.B) {
-	o := DefaultOpts
-	o.Temperature = 5000
+	o := Opts{NumPixels: 150}
 	benchmarkDraw(b, o, image.NewNRGBA(image.Rect(0, 0, 150, 1)), func(i int) [3]byte { return [3]byte{0xFF, 0xFF, 0xFF} })
 }
 
 func BenchmarkDrawRGBAColorful(b *testing.B) {
-	o := DefaultOpts
-	o.Temperature = 5000
-	benchmarkDraw(b, o, image.NewRGBA(image.Rect(0, 0, 256, 1)), genColorfulPixel)
-}
-
-func BenchmarkDrawRGBAColorfulPassThru(b *testing.B) {
-	o := PassThruOpts
+	o := Opts{NumPixels: 150}
 	benchmarkDraw(b, o, image.NewRGBA(image.Rect(0, 0, 256, 1)), genColorfulPixel)
 }
 
@@ -478,10 +582,10 @@ func BenchmarkDrawSlowpath(b *testing.B) {
 			img.Set(x, y, color.Gray{pix[0]})
 		}
 	}
-	o := DefaultOpts
+	o := Opts{NumPixels: 150}
 	o.NumPixels = img.Bounds().Max.X
 	b.ReportAllocs()
-	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), &o)
+	d, _ := NewSPI(spitest.NewRecordRaw(ioutil.Discard), &o)
 	r := d.Bounds()
 	p := image.Point{}
 	if err := d.Draw(r, img, p); err != nil {
@@ -497,7 +601,7 @@ func BenchmarkDrawSlowpath(b *testing.B) {
 
 func BenchmarkHalt(b *testing.B) {
 	b.ReportAllocs()
-	d, _ := New(spitest.NewRecordRaw(ioutil.Discard), &DefaultOpts)
+	d, _ := NewSPI(spitest.NewRecordRaw(ioutil.Discard), &Opts{NumPixels: 150})
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		if err := d.Halt(); err != nil {
