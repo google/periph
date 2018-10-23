@@ -86,7 +86,7 @@ func TestDebounce_WaitForEdge_Got(t *testing.T) {
 		t.Fatal(err)
 	}
 	f.EdgesChan <- gpio.Low
-	if !p.WaitForEdge(0) {
+	if !p.WaitForEdge(-1) {
 		t.Fatal("expected edge")
 	}
 }
