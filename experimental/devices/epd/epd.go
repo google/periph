@@ -24,44 +24,44 @@ import (
 
 // EPD commands
 const (
-	DriverOutputControl            = 0x01
-	BoosterSoftStartControl        = 0x0C
-	GateScanStartPosition          = 0x0F
-	DeepSleepMode                  = 0x10
-	DataEntryModeSetting           = 0x11
-	SwReset                        = 0x12
-	TemperatureSensorControl       = 0x1A
-	MasterActivation               = 0x20
-	DisplayUpdateControl1          = 0x21
-	DisplayUpdateControl2          = 0x22
-	WriteRAM                       = 0x24
-	WriteVcomRegister              = 0x2C
-	WriteLutRegister               = 0x32
-	SetDummyLinePeriod             = 0x3A
-	SetGateTime                    = 0x3B
-	BorderWaveformControl          = 0x3C
-	SetRAMXAddressStartEndPosition = 0x44
-	SetRAMYAddressStartEndPosition = 0x45
-	SetRAMXAddressCounter          = 0x4E
-	SetRAMYAddressCounter          = 0x4F
-	TerminateFrameReadWrite        = 0xFF
+	driverOutputControl            byte = 0x01
+	boosterSoftStartControl        byte = 0x0C
+	gateScanStartPosition          byte = 0x0F
+	deepSleepMode                  byte = 0x10
+	dataEntryModeSetting           byte = 0x11
+	swReset                        byte = 0x12
+	temperatureSensorControl       byte = 0x1A
+	masterActivation               byte = 0x20
+	displayUpdateControl1          byte = 0x21
+	displayUpdateControl2          byte = 0x22
+	writeRAM                       byte = 0x24
+	writeVcomRegister              byte = 0x2C
+	writeLutRegister               byte = 0x32
+	setDummyLinePeriod             byte = 0x3A
+	setGateTime                    byte = 0x3B
+	borderWaveformControl          byte = 0x3C
+	setRAMXAddressStartEndPosition byte = 0x44
+	setRAMYAddressStartEndPosition byte = 0x45
+	setRAMXAddressCounter          byte = 0x4E
+	setRAMYAddressCounter          byte = 0x4F
+	terminateFrameReadWrite        byte = 0xFF
 )
 
 // LUT contains the display specific waveform for the pixel programming of the display.
 type LUT []byte
 
-// LUTType full or partial display update
-type LUTType int
+// PartialUpdate display update is full or partial
+type PartialUpdate bool
 
 const (
 	// Full LUT config to update all the display
-	Full LUTType = iota
+	Full PartialUpdate = false
 	// Partial LUT config only a part of the display
-	Partial
+	Partial PartialUpdate = true
 )
 
 // EPD2in13 is the config for the 2.13 inch display.
-var EPD2in13 = DisplayConfig{
+var EPD2in13 = Opts{
 	W: 128,
 	H: 250,
 	FullUpdate: LUT{
@@ -79,7 +79,7 @@ var EPD2in13 = DisplayConfig{
 }
 
 // EPD1in54 is the config for the 1.54 inch display.
-var EPD1in54 = DisplayConfig{
+var EPD1in54 = Opts{
 	W: 200,
 	H: 200,
 	FullUpdate: LUT{
@@ -96,8 +96,8 @@ var EPD1in54 = DisplayConfig{
 	},
 }
 
-// DisplayConfig defines the options for the ePaper Device.
-type DisplayConfig struct {
+// Opts defines the options for the ePaper Device.
+type Opts struct {
 	W             int
 	H             int
 	FullUpdate    LUT
@@ -105,7 +105,7 @@ type DisplayConfig struct {
 }
 
 // NewSPI returns a Dev object that communicates over SPI to a E-Paper display controller.
-func NewSPI(p spi.Port, dc, cs, rst gpio.PinOut, busy gpio.PinIO, config *DisplayConfig) (*Dev, error) {
+func NewSPI(p spi.Port, dc, cs, rst gpio.PinOut, busy gpio.PinIO, opts *Opts) (*Dev, error) {
 	if dc == gpio.INVALID {
 		return nil, errors.New("epd: use nil for dc to use 3-wire mode, do not use gpio.INVALID")
 	}
@@ -125,78 +125,14 @@ func NewSPI(p spi.Port, dc, cs, rst gpio.PinOut, busy gpio.PinIO, config *Displa
 		cs:     cs,
 		rst:    rst,
 		busy:   busy,
-		lt:     Full,
-		config: config,
-		rect:   image.Rect(0, 0, config.W, config.H),
+		update: Full,
+		opts:   opts,
+		rect:   image.Rect(0, 0, opts.W, opts.H),
 	}
 
-	d.reset()
+	d.Reset()
 
-	if err := d.sendCommand([]byte{byte(DriverOutputControl)}); err != nil {
-		return nil, err
-	}
-
-	if err := d.sendData([]byte{byte((config.H - 1) & 0xFF)}); err != nil {
-		return nil, err
-	}
-
-	if err := d.sendData([]byte{byte(((config.H - 1) >> 8) & 0xFF)}); err != nil {
-		return nil, err
-	}
-
-	if err := d.sendData([]byte{byte(0x00)}); err != nil {
-		return nil, err
-	}
-
-	if err := d.sendCommand([]byte{byte(BoosterSoftStartControl)}); err != nil {
-		return nil, err
-	}
-
-	if err := d.sendData([]byte{byte(0xD7)}); err != nil {
-		return nil, err
-	}
-
-	if err := d.sendData([]byte{byte(0xD6)}); err != nil {
-		return nil, err
-	}
-
-	if err := d.sendData([]byte{byte(0x9D)}); err != nil {
-		return nil, err
-	}
-
-	if err := d.sendCommand([]byte{byte(WriteVcomRegister)}); err != nil {
-		return nil, err
-	}
-
-	if err := d.sendData([]byte{byte(0xA8)}); err != nil {
-		return nil, err
-	}
-
-	if err := d.sendCommand([]byte{byte(SetDummyLinePeriod)}); err != nil {
-		return nil, err
-	}
-
-	if err := d.sendData([]byte{byte(0x1A)}); err != nil {
-		return nil, err
-	}
-
-	if err := d.sendCommand([]byte{byte(SetGateTime)}); err != nil {
-		return nil, err
-	}
-
-	if err := d.sendData([]byte{byte(0x08)}); err != nil {
-		return nil, err
-	}
-
-	if err := d.sendCommand([]byte{byte(DataEntryModeSetting)}); err != nil {
-		return nil, err
-	}
-
-	if err := d.sendData([]byte{byte(0x03)}); err != nil {
-		return nil, err
-	}
-
-	if err := d.setLut(Full); err != nil {
+	if err := d.Init(); err != nil {
 		return nil, err
 	}
 
@@ -205,12 +141,12 @@ func NewSPI(p spi.Port, dc, cs, rst gpio.PinOut, busy gpio.PinIO, config *Displa
 
 // NewSPIHat returns a Dev object that communicates over SPI
 // and have the default config for the e-paper hat for raspberry pi
-func NewSPIHat(p spi.Port, config *DisplayConfig) (*Dev, error) {
+func NewSPIHat(p spi.Port, opts *Opts) (*Dev, error) {
 	dc := rpi.P1_22
 	cs := rpi.P1_24
 	rst := rpi.P1_11
 	busy := rpi.P1_18
-	return NewSPI(p, dc, cs, rst, busy, config)
+	return NewSPI(p, dc, cs, rst, busy, opts)
 }
 
 // Dev is an open handle to the display controller.
@@ -225,8 +161,8 @@ type Dev struct {
 	// Display size controlled by the e-paper display.
 	rect image.Rectangle
 
-	lt     LUTType
-	config *DisplayConfig
+	update PartialUpdate
+	opts   *Opts
 }
 
 func (d *Dev) String() string {
@@ -270,7 +206,7 @@ func (d *Dev) Draw(r image.Rectangle, src image.Image, sp image.Point) error {
 	var byteToSend byte = 0x00
 	for y := yStart; y < yEnd+1; y++ {
 		d.setMemoryPointer(xStart, y)
-		if err := d.sendCommand([]byte{byte(WriteRAM)}); err != nil {
+		if err := d.sendCommand([]byte{writeRAM}); err != nil {
 			return err
 		}
 		for x := xStart; x < xEnd+1; x++ {
@@ -279,7 +215,7 @@ func (d *Dev) Draw(r image.Rectangle, src image.Image, sp image.Point) error {
 				byteToSend |= 0x80 >> (uint32(x) % 8)
 			}
 			if x%8 == 7 {
-				if err := d.sendData([]byte{byte(byteToSend)}); err != nil {
+				if err := d.sendData([]byte{byteToSend}); err != nil {
 					return err
 				}
 				byteToSend = 0x00
@@ -297,7 +233,7 @@ func (d *Dev) ClearFrameMemory(color byte) error {
 	h := d.rect.Dy()
 	d.setMemoryArea(0, 0, w-1, h-1)
 	d.setMemoryPointer(0, 0)
-	if err := d.sendCommand([]byte{byte(WriteRAM)}); err != nil {
+	if err := d.sendCommand([]byte{writeRAM}); err != nil {
 		return err
 	}
 	// send the color data
@@ -315,7 +251,7 @@ func (d *Dev) ClearFrameMemory(color byte) error {
 // the next action of SetFrameMemory or ClearFrame will
 // set the other memory area.
 func (d *Dev) DisplayFrame() error {
-	if err := d.sendCommand([]byte{byte(DisplayUpdateControl2)}); err != nil {
+	if err := d.sendCommand([]byte{displayUpdateControl2}); err != nil {
 		return err
 	}
 
@@ -323,11 +259,11 @@ func (d *Dev) DisplayFrame() error {
 		return err
 	}
 
-	if err := d.sendCommand([]byte{byte(MasterActivation)}); err != nil {
+	if err := d.sendCommand([]byte{masterActivation}); err != nil {
 		return err
 	}
 
-	if err := d.sendCommand([]byte{byte(TerminateFrameReadWrite)}); err != nil {
+	if err := d.sendCommand([]byte{terminateFrameReadWrite}); err != nil {
 		return err
 	}
 
@@ -337,15 +273,15 @@ func (d *Dev) DisplayFrame() error {
 
 // Halt turns off the display.
 func (d *Dev) Halt() error {
-	return d.Sleep()
+	return d.ClearFrameMemory(0xFF)
 }
 
 // Sleep After this command is transmitted, the chip would enter the
 // deep-sleep mode to save power.
 // The deep sleep mode would return to standby by hardware reset.
-// You can use reset() to awaken or init() to initialize
+// You can use Reset() to awaken or Init to initialize
 func (d *Dev) Sleep() error {
-	if err := d.sendCommand([]byte{DeepSleepMode}); err != nil {
+	if err := d.sendCommand([]byte{deepSleepMode}); err != nil {
 		return err
 	}
 
@@ -353,7 +289,81 @@ func (d *Dev) Sleep() error {
 	return nil
 }
 
-func (d *Dev) reset() {
+// Init initialize the display
+func (d *Dev) Init() error {
+	if err := d.sendCommand([]byte{driverOutputControl}); err != nil {
+		return err
+	}
+
+	if err := d.sendData([]byte{byte((d.opts.H - 1) & 0xFF)}); err != nil {
+		return err
+	}
+
+	if err := d.sendData([]byte{byte(((d.opts.H - 1) >> 8) & 0xFF)}); err != nil {
+		return err
+	}
+
+	if err := d.sendData([]byte{byte(0x00)}); err != nil {
+		return err
+	}
+
+	if err := d.sendCommand([]byte{boosterSoftStartControl}); err != nil {
+		return err
+	}
+
+	if err := d.sendData([]byte{byte(0xD7)}); err != nil {
+		return err
+	}
+
+	if err := d.sendData([]byte{byte(0xD6)}); err != nil {
+		return err
+	}
+
+	if err := d.sendData([]byte{byte(0x9D)}); err != nil {
+		return err
+	}
+
+	if err := d.sendCommand([]byte{writeVcomRegister}); err != nil {
+		return err
+	}
+
+	if err := d.sendData([]byte{byte(0xA8)}); err != nil {
+		return err
+	}
+
+	if err := d.sendCommand([]byte{setDummyLinePeriod}); err != nil {
+		return err
+	}
+
+	if err := d.sendData([]byte{byte(0x1A)}); err != nil {
+		return err
+	}
+
+	if err := d.sendCommand([]byte{setGateTime}); err != nil {
+		return err
+	}
+
+	if err := d.sendData([]byte{byte(0x08)}); err != nil {
+		return err
+	}
+
+	if err := d.sendCommand([]byte{dataEntryModeSetting}); err != nil {
+		return err
+	}
+
+	if err := d.sendData([]byte{byte(0x03)}); err != nil {
+		return err
+	}
+
+	if err := d.setLut(Full); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Reset can be also used to awaken the device
+func (d *Dev) Reset() {
 	d.rst.Out(gpio.Low)
 	time.Sleep(200 * time.Millisecond)
 	d.rst.Out(gpio.High)
@@ -361,7 +371,7 @@ func (d *Dev) reset() {
 }
 
 func (d *Dev) setMemoryPointer(x, y int) error {
-	if err := d.sendCommand([]byte{SetRAMXAddressCounter}); err != nil {
+	if err := d.sendCommand([]byte{setRAMXAddressCounter}); err != nil {
 		return err
 	}
 
@@ -370,7 +380,7 @@ func (d *Dev) setMemoryPointer(x, y int) error {
 		return err
 	}
 
-	if err := d.sendCommand([]byte{byte(SetRAMYAddressCounter)}); err != nil {
+	if err := d.sendCommand([]byte{setRAMYAddressCounter}); err != nil {
 		return err
 	}
 	if err := d.sendData([]byte{byte(y & 0xFF)}); err != nil {
@@ -392,7 +402,7 @@ func (d *Dev) waitUntilIdle() {
 }
 
 func (d *Dev) setMemoryArea(xStart, yStart, xEnd, yEnd int) error {
-	if err := d.sendCommand([]byte{SetRAMXAddressStartEndPosition}); err != nil {
+	if err := d.sendCommand([]byte{setRAMXAddressStartEndPosition}); err != nil {
 		return err
 	}
 
@@ -403,7 +413,7 @@ func (d *Dev) setMemoryArea(xStart, yStart, xEnd, yEnd int) error {
 		return err
 	}
 
-	if err := d.sendCommand([]byte{byte(SetRAMYAddressStartEndPosition)}); err != nil {
+	if err := d.sendCommand([]byte{setRAMYAddressStartEndPosition}); err != nil {
 		return err
 	}
 	if err := d.sendData([]byte{byte(yStart & 0xFF)}); err != nil {
@@ -422,14 +432,14 @@ func (d *Dev) setMemoryArea(xStart, yStart, xEnd, yEnd int) error {
 	return nil
 }
 
-func (d *Dev) setLut(lt LUTType) error {
-	d.lt = lt
-	lut := d.config.FullUpdate
-	if lt == Partial {
-		lut = d.config.PartialUpdate
+func (d *Dev) setLut(update PartialUpdate) error {
+	d.update = update
+	lut := d.opts.FullUpdate
+	if d.update == Partial {
+		lut = d.opts.PartialUpdate
 	}
 
-	if err := d.sendCommand([]byte{WriteLutRegister}); err != nil {
+	if err := d.sendCommand([]byte{writeLutRegister}); err != nil {
 		return err
 	}
 
