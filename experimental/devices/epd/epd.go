@@ -114,7 +114,7 @@ func NewSPI(p spi.Port, dc, cs, rst gpio.PinOut, busy gpio.PinIO, opts *Opts) (*
 		return nil, err
 	}
 
-	c, err := p.Connect(2*physic.MegaHertz, spi.Mode0, 8)
+	c, err := p.Connect(5*physic.MegaHertz, spi.Mode0, 8)
 	if err != nil {
 		return nil, err
 	}
