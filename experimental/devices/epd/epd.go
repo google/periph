@@ -12,21 +12,14 @@ import (
 	"image/draw"
 	"time"
 
+	"periph.io/x/periph/host/rpi"
+
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/display"
 	"periph.io/x/periph/conn/gpio"
-	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/spi"
 	"periph.io/x/periph/devices/ssd1306/image1bit"
-)
-
-// Raspberry pi hat pins
-const (
-	ResetPin       = "17"
-	DataCommandPin = "25"
-	ChipSelectPin  = "8"
-	BusyStatePin   = "24"
 )
 
 // EPD commands
@@ -213,10 +206,10 @@ func NewSPI(p spi.Port, dc, cs, rst gpio.PinOut, busy gpio.PinIO, config *Displa
 // NewSPIHat returns a Dev object that communicates over SPI
 // and have the default config for the e-paper hat for raspberry pi
 func NewSPIHat(p spi.Port, config *DisplayConfig) (*Dev, error) {
-	dc := gpioreg.ByName(DataCommandPin)
-	cs := gpioreg.ByName(ChipSelectPin)
-	rst := gpioreg.ByName(ResetPin)
-	busy := gpioreg.ByName(BusyStatePin)
+	dc := rpi.P1_22
+	cs := rpi.P1_24
+	rst := rpi.P1_11
+	busy := rpi.P1_18
 	return NewSPI(p, dc, cs, rst, busy, config)
 }
 
