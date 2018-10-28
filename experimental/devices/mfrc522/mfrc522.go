@@ -119,6 +119,9 @@ func NewSPI(spiPort spi.Port, resetPin gpio.PinOut, irqPin gpio.PinIn) (*Dev, er
 		operationTimeout: 30 * time.Second,
 		irqPin:           irqPin,
 		resetPin:         resetPin,
+		antennaGain:      4,
+		stop:             make(chan interface{}, 1),
+		isStopped:        false,
 	}
 	if err := dev.Init(); err != nil {
 		return nil, err
@@ -128,10 +131,13 @@ func NewSPI(spiPort spi.Port, resetPin gpio.PinOut, irqPin gpio.PinIn) (*Dev, er
 
 // Dev is an handle to an MFRC522 RFID reader.
 type Dev struct {
+	antennaGain      int
 	resetPin         gpio.PinOut
 	irqPin           gpio.PinIn
 	operationTimeout time.Duration
 	spiDev           spi.Conn
+	isStopped        bool
+	stop             chan interface{}
 }
 
 // String implements conn.Resource.
@@ -144,16 +150,19 @@ func (r *Dev) String() string {
 //
 // It soft-stops the chip - PowerDown bit set, command IDLE
 func (r *Dev) Halt() error {
+	r.isStopped = true
+	r.stop <- true
+	close(r.stop)
 	return r.devWrite(commands.CommandReg, 16)
 }
 
-// SetOperationtimeout updates the device timeout for card operations.
+// SetOperationTimeout updates the device timeout for card operations.
 //
 // Effectively that sets the maximum time the RFID device will wait for IRQ
 // from the proximity card detection.
 //
 //	timeout the duration to wait for IRQ strobe.
-func (r *Dev) SetOperationtimeout(timeout time.Duration) {
+func (r *Dev) SetOperationTimeout(timeout time.Duration) {
 	r.operationTimeout = timeout
 }
 
@@ -165,6 +174,11 @@ func (r *Dev) Init() error {
 	if err := r.writeCommandSequence(sequenceCommands.init); err != nil {
 		return err
 	}
+
+	if err := r.devWrite(int(commands.RFCfgReg), byte(r.antennaGain)<<4); err != nil {
+		return err
+	}
+
 	return r.SetAntenna(true)
 }
 
@@ -186,6 +200,15 @@ func (r *Dev) SetAntenna(state bool) error {
 		return r.setBitmask(commands.TxControlReg, 0x03)
 	}
 	return r.clearBitmask(commands.TxControlReg, 0x03)
+}
+
+// SetAntennaGain configures antenna signal strength.
+//
+//	gain - signal strength from 0 to 7.
+func (r *Dev) SetAntennaGain(gain int) {
+	if 0 <= gain && gain <= 7 {
+		r.antennaGain = gain
+	}
 }
 
 // CardWrite the low-level interface to write some raw commands to the card.
@@ -323,7 +346,12 @@ func (r *Dev) Request() (int, error) {
 func (r *Dev) Wait() error {
 	irqChannel := make(chan bool)
 	go func() {
-		irqChannel <- r.irqPin.WaitForEdge(r.operationTimeout)
+		result := r.irqPin.WaitForEdge(r.operationTimeout)
+		if r.isStopped {
+			return
+		}
+
+		irqChannel <- result
 	}()
 
 	defer func() {
@@ -342,6 +370,8 @@ func (r *Dev) Wait() error {
 			return err
 		}
 		select {
+		case <-r.stop:
+			return wrapf("halt")
 		case irqResult := <-irqChannel:
 			if !irqResult {
 				return wrapf("timeout waitinf for IRQ edge: %v", r.operationTimeout)
