@@ -139,47 +139,7 @@ func Init() (*State, error) {
 	if state != nil {
 		return state, nil
 	}
-	state = &State{}
-	// At this point, byName is guaranteed to be immutable.
-	cD := make(chan Driver)
-	cS := make(chan DriverFailure)
-	cE := make(chan DriverFailure)
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for d := range cD {
-			state.Loaded = insertDriver(state.Loaded, d)
-		}
-	}()
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for f := range cS {
-			state.Skipped = insertDriverFailure(state.Skipped, f)
-		}
-	}()
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for f := range cE {
-			state.Failed = insertDriverFailure(state.Failed, f)
-		}
-	}()
-
-	stages, err := explodeStages()
-	if err != nil {
-		return state, err
-	}
-	loaded := make(map[string]struct{}, len(byName))
-	for _, s := range stages {
-		s.load(loaded, cD, cS, cE)
-	}
-	close(cD)
-	close(cS)
-	close(cE)
-	wg.Wait()
-	return state, nil
+	return initImpl()
 }
 
 // Register registers a driver to be initialized automatically on Init().
@@ -229,47 +189,6 @@ var (
 type stage struct {
 	// Subset of byName drivers, for the ones in this stage.
 	drvs map[string]Driver
-}
-
-// load loads all the drivers for this stage in parallel.
-//
-// Updates loaded in a safe way.
-func (s *stage) load(loaded map[string]struct{}, cD chan<- Driver, cS, cE chan<- DriverFailure) {
-	success := make(chan string)
-	go func() {
-		defer close(success)
-		wg := sync.WaitGroup{}
-	loop:
-		for name, drv := range s.drvs {
-			// Intentionally do not look at After(), only Prerequisites().
-			for _, dep := range drv.Prerequisites() {
-				if _, ok := loaded[dep]; !ok {
-					cS <- DriverFailure{drv, errors.New("dependency not loaded: " + strconv.Quote(dep))}
-					continue loop
-				}
-			}
-
-			// Not skipped driver, attempt loading in a goroutine.
-			wg.Add(1)
-			go func(n string, d Driver) {
-				defer wg.Done()
-				if ok, err := d.Init(); ok {
-					if err == nil {
-						cD <- d
-						success <- n
-						return
-					}
-					cE <- DriverFailure{d, err}
-				} else {
-					cS <- DriverFailure{d, err}
-				}
-			}(name, drv)
-		}
-		wg.Wait()
-	}()
-	for s := range success {
-		loaded[s] = struct{}{}
-	}
 }
 
 // explodeStages creates one or multiple stages by processing byName.
