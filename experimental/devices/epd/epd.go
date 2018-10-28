@@ -50,7 +50,7 @@ const (
 // LUT contains the display specific waveform for the pixel programming of the display.
 type LUT []byte
 
-// PartialUpdate display update is full or partial
+// PartialUpdate represents if updates to the display should be full or partial.
 type PartialUpdate bool
 
 const (
@@ -245,11 +245,11 @@ func (d *Dev) ClearFrameMemory(color byte) error {
 	return nil
 }
 
-// DisplayFrame update the display
-// there are 2 memory areas embedded in the e-paper display
-// but once this function is called,
-// the next action of SetFrameMemory or ClearFrame will
-// set the other memory area.
+// DisplayFrame update the display.
+//
+// There are 2 memory areas embedded in the e-paper display but once
+// this function is called, the next action of SetFrameMemory or ClearFrame
+// will set the other memory area.
 func (d *Dev) DisplayFrame() error {
 	if err := d.sendCommand([]byte{displayUpdateControl2}); err != nil {
 		return err
@@ -276,10 +276,11 @@ func (d *Dev) Halt() error {
 	return d.ClearFrameMemory(0xFF)
 }
 
-// Sleep After this command is transmitted, the chip would enter the
+// Sleep after this command is transmitted, the chip would enter the
 // deep-sleep mode to save power.
+//
 // The deep sleep mode would return to standby by hardware reset.
-// You can use Reset() to awaken or Init to initialize
+// You can use Reset() to awaken and Init to re-initialize the device.
 func (d *Dev) Sleep() error {
 	if err := d.sendCommand([]byte{deepSleepMode}); err != nil {
 		return err
@@ -289,7 +290,10 @@ func (d *Dev) Sleep() error {
 	return nil
 }
 
-// Init initialize the display
+// Init initialize the display config. This method is already called when creating
+// a device using NewSPI and NewSPIHat methods.
+//
+// It should be only used when you put the device to sleep and need to re-init the device.
 func (d *Dev) Init() error {
 	if err := d.sendCommand([]byte{driverOutputControl}); err != nil {
 		return err

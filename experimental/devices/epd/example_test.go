@@ -36,7 +36,6 @@ func Example() {
 
 	// Draw on it.
 	img := image1bit.NewVerticalLSB(dev.Bounds())
-	// [start of example 1]
 	// Note: this code is commented out so periph does not depend on:
 	//    "golang.org/x/image/font"
 	//    "golang.org/x/image/font/basicfont"
@@ -50,9 +49,32 @@ func Example() {
 	// 	Dot:  fixed.P(0, img.Bounds().Dy()-1-f.Descent),
 	// }
 	// drawer.DrawString("Hello from periph!")
-	// [end of example 1]
 
-	// [start of example 2]
+	if err := dev.Draw(dev.Bounds(), img, image.Point{}); err != nil {
+		log.Fatal(err)
+	}
+	dev.DisplayFrame() // After drawing on the display, you have to show the frame
+}
+
+func Example_other() {
+	// Make sure periph is initialized.
+	if _, err := host.Init(); err != nil {
+		log.Fatal(err)
+	}
+
+	// Use spireg SPI bus registry to find the first available SPI bus.
+	b, err := spireg.Open("")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer b.Close()
+
+	dev, err := epd.NewSPIHat(b, &epd.EPD2in13) // Display config and size
+	if err != nil {
+		log.Fatalf("failed to initialize epd: %v", err)
+	}
+
+	var img image.Image
 	// Note: this code is commented out so periph does not depend on:
 	//    "github.com/fogleman/gg"
 	//    "github.com/golang/freetype/truetype"
@@ -93,7 +115,7 @@ func Example() {
 	// 	dc.DrawRectangle(float64(30+(10*i)), 80, 5, 5)
 	// }
 	// dc.Fill()
-	// [end of example 2]
+	// img = dc.Image()
 	if err := dev.Draw(dev.Bounds(), img, image.Point{}); err != nil {
 		log.Fatal(err)
 	}
