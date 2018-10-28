@@ -183,6 +183,7 @@ func newSPI(busNumber, chipSelect int) (*SPI, error) {
 			f:          f,
 			busNumber:  busNumber,
 			chipSelect: chipSelect,
+			p:          [2]spi.Packet{{KeepCS: true}, {KeepCS: true}},
 		},
 	}, nil
 }
@@ -500,6 +501,9 @@ func spiIOCTx(l int) uint {
 }
 
 // spiIOCTransfer is spi_ioc_transfer in linux/spi/spidev.h.
+//
+// Also documented as struct spi_transfer at
+// https://www.kernel.org/doc/html/latest/driver-api/spi.html
 type spiIOCTransfer struct {
 	tx          uint64 // Pointer to byte slice
 	rx          uint64 // Pointer to byte slice
