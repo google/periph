@@ -3,15 +3,14 @@
 // that can be found in the LICENSE file.
 
 // Package pca9685 includes utilities to controls pca9685 module and servo motors.
+//
 // More details
 //
-// See https://periph.io/device/pca9685/ for more details about the device.
+// Datasheet
 //
-// Based on https://github.com/wintersandroid/Android-Things-PCA9685
-//
-// Datasheets:
-// https://cdn-shop.adafruit.com/datasheets/PCA9685.pdf
+// https://www.nxp.com/docs/en/data-sheet/PCA9685.pdf
 //
 // Product page:
-// https://www.adafruit.com/product/815
+//
+// https://www.nxp.com/products/analog/interfaces/ic-bus/ic-led-controllers/16-channel-12-bit-pwm-fm-plus-ic-bus-led-controller:PCA9685
 package pca9685

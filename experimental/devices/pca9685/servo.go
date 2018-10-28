@@ -4,26 +4,30 @@
 
 package pca9685
 
+import (
+	"periph.io/x/periph/conn/physic"
+)
+
 // ServoGroup a group of servos connected to a pca9685 module
 type ServoGroup struct {
 	*Dev
 	minPwm   int
 	maxPwm   int
-	minAngle int
-	maxAngle int
+	minAngle physic.Angle
+	maxAngle physic.Angle
 }
 
 // Servo individual servo from a group of servos connected to a pca9685 module
 type Servo struct {
 	group    *ServoGroup
 	channel  int
-	minAngle int
-	maxAngle int
+	minAngle physic.Angle
+	maxAngle physic.Angle
 }
 
 // NewServoGroup returns a servo group connected throught the pca9685 module
 // some pwm and angle limits can be set
-func NewServoGroup(dev *Dev, minPwm, maxPwm, minAngle, maxAngle int) *ServoGroup {
+func NewServoGroup(dev *Dev, minPwm, maxPwm int, minAngle, maxAngle physic.Angle) *ServoGroup {
 	return &ServoGroup{
 		Dev:      dev,
 		minPwm:   minPwm,
@@ -34,7 +38,7 @@ func NewServoGroup(dev *Dev, minPwm, maxPwm, minAngle, maxAngle int) *ServoGroup
 }
 
 // SetMinMaxPwm change pwm and angle limits
-func (s *ServoGroup) SetMinMaxPwm(minAngle, maxAngle, minPwm, maxPwm int) {
+func (s *ServoGroup) SetMinMaxPwm(minAngle, maxAngle physic.Angle, minPwm, maxPwm int) {
 	s.maxPwm = maxPwm
 	s.minPwm = minPwm
 	s.minAngle = minAngle
@@ -42,9 +46,9 @@ func (s *ServoGroup) SetMinMaxPwm(minAngle, maxAngle, minPwm, maxPwm int) {
 }
 
 // SetAngle set an angle in a given channel of the servo group
-func (s *ServoGroup) SetAngle(channel, angle int) {
-	value := mapValue(angle, s.minAngle, s.maxAngle, s.minPwm, s.maxPwm)
-	s.Dev.SetPwm(channel, 0, uint16(value))
+func (s *ServoGroup) SetAngle(channel int, angle physic.Angle) error {
+	value := mapValue(int(angle), int(s.minAngle), int(s.maxAngle), s.minPwm, s.maxPwm)
+	return s.Dev.SetPwm(channel, 0, uint16(value))
 }
 
 // GetServo returns a individual Servo to be controlled
@@ -58,26 +62,26 @@ func (s *ServoGroup) GetServo(channel int) *Servo {
 }
 
 // SetMinMaxAngle change angle limits for the servo
-func (s *Servo) SetMinMaxAngle(min, max int) {
+func (s *Servo) SetMinMaxAngle(min, max physic.Angle) {
 	s.minAngle = min
 	s.maxAngle = max
 }
 
 // SetAngle set an angle on the servo
 // will consider the angle limits set
-func (s *Servo) SetAngle(angle int) {
+func (s *Servo) SetAngle(angle physic.Angle) error {
 	if angle < s.minAngle {
 		angle = s.minAngle
 	}
 	if angle > s.maxAngle {
 		angle = s.maxAngle
 	}
-	s.group.SetAngle(s.channel, angle)
+	return s.group.SetAngle(s.channel, angle)
 }
 
 // SetPwm set an pmw value to the servo
-func (s *Servo) SetPwm(pwm uint16) {
-	s.group.SetPwm(s.channel, 0, pwm)
+func (s *Servo) SetPwm(pwm uint16) error {
+	return s.group.SetPwm(s.channel, 0, pwm)
 }
 
 func mapValue(x, inMin, inMax, outMin, outMax int) int {
