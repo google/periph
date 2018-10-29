@@ -1,6 +1,7 @@
 // Copyright 2018 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
+
 package pca9685_test
 
 import (
@@ -8,7 +9,6 @@ import (
 
 	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/experimental/devices/pca9685"
-
 	"periph.io/x/periph/host"
 )
 
@@ -23,13 +23,17 @@ func Example() {
 		log.Fatal(err)
 	}
 
-	pca, err := pca9685.NewI2C(bus)
+	pca, err := pca9685.NewI2C(bus, pca9685.I2CAddr)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	pca.SetPwmFreq(50)
-	pca.SetAllPwm(0, 0)
+	if err := pca.SetPwmFreq(50); err != nil {
+		log.Fatal(err)
+	}
+	if err := pca.SetAllPwm(0, 0); err != nil {
+		log.Fatal(err)
+	}
 	servos := pca9685.NewServoGroup(pca, 50, 650, 0, 180)
 
 	// This is an example of using with an Me Arm robot arm
@@ -43,8 +47,16 @@ func Example() {
 	shoulderServo.SetMinMaxAngle(60, 140) // Set limit of the robot arm
 
 	// Set all in the middle in a MeArm robot arm
-	gripServo.SetAngle(90)
-	baseServo.SetAngle(90)
-	elbowServo.SetAngle(90)
-	shoulderServo.SetAngle(90)
+	if err := gripServo.SetAngle(90); err != nil {
+		log.Fatal(err)
+	}
+	if err := baseServo.SetAngle(90); err != nil {
+		log.Fatal(err)
+	}
+	if err := elbowServo.SetAngle(90); err != nil {
+		log.Fatal(err)
+	}
+	if err := shoulderServo.SetAngle(90); err != nil {
+		log.Fatal(err)
+	}
 }
