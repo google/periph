@@ -189,10 +189,10 @@ func (r *Dev) Init() error {
 	}
 
 	r.aMu.Lock()
-	err := r.devWrite(int(commands.RFCfgReg), byte(r.antennaGain)<<4)
+	gain := byte(r.antennaGain)<<4
 	r.aMu.Unlock()
 
-	if err != nil {
+	if err := r.devWrite(int(commands.RFCfgReg), gain); err != nil {
 		return err
 	}
 
