@@ -11,6 +11,7 @@ package mfrc522
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"periph.io/x/periph/conn"
@@ -121,7 +122,6 @@ func NewSPI(spiPort spi.Port, resetPin gpio.PinOut, irqPin gpio.PinIn) (*Dev, er
 		resetPin:         resetPin,
 		antennaGain:      4,
 		stop:             make(chan interface{}, 1),
-		isStopped:        false,
 	}
 	if err := dev.Init(); err != nil {
 		return nil, err
@@ -131,13 +131,15 @@ func NewSPI(spiPort spi.Port, resetPin gpio.PinOut, irqPin gpio.PinIn) (*Dev, er
 
 // Dev is an handle to an MFRC522 RFID reader.
 type Dev struct {
-	antennaGain      int
 	resetPin         gpio.PinOut
 	irqPin           gpio.PinIn
 	operationTimeout time.Duration
 	spiDev           spi.Conn
-	isStopped        bool
 	stop             chan interface{}
+	antennaGain      int
+
+	mu        sync.Mutex
+	isWaiting bool
 }
 
 // String implements conn.Resource.
@@ -150,9 +152,13 @@ func (r *Dev) String() string {
 //
 // It soft-stops the chip - PowerDown bit set, command IDLE
 func (r *Dev) Halt() error {
-	r.isStopped = true
-	r.stop <- true
-	close(r.stop)
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if r.isWaiting {
+		r.stop <- true
+	}
+
 	return r.devWrite(commands.CommandReg, 16)
 }
 
@@ -344,10 +350,17 @@ func (r *Dev) Request() (int, error) {
 
 // Wait wait for IRQ to strobe on the IRQ pin when the card is detected.
 func (r *Dev) Wait() error {
+	r.mu.Lock()
+	r.isWaiting = true
+	r.mu.Unlock()
+
 	irqChannel := make(chan bool)
+
 	go func() {
 		result := r.irqPin.WaitForEdge(r.operationTimeout)
-		if r.isStopped {
+		r.mu.Lock()
+		defer r.mu.Unlock()
+		if !r.isWaiting {
 			return
 		}
 
@@ -355,6 +368,10 @@ func (r *Dev) Wait() error {
 	}()
 
 	defer func() {
+		r.mu.Lock()
+		r.isWaiting = false
+		r.mu.Unlock()
+
 		close(irqChannel)
 	}()
 
