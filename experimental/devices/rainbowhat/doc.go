@@ -19,4 +19,10 @@
 // Piezo Buzzer (PWM)
 //
 // Servo header (PWM)
+//
+// More details
+//
+// Product Page
+//
+// https://shop.pimoroni.com/products/rainbow-hat-for-android-things
 package rainbowhat
