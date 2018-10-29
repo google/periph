@@ -17,7 +17,7 @@ import (
 	"periph.io/x/periph/host"
 )
 
-func Example() {
+func main() {
 	// Make sure periph is initialized.
 	if _, err := host.Init(); err != nil {
 		log.Fatal(err)
@@ -49,15 +49,20 @@ func Example() {
 		log.Fatalf("failed to draw: %v", err)
 	}
 
+	display := hat.GetDisplay()
 	sensor := hat.GetBmp280()
+	count := 0
 	go func() {
 		for {
 			var envi physic.Env
 			sensor.Sense(&envi)
 
+			temp := fmt.Sprintf("%5s", envi.Temperature)
 			fmt.Printf("Pressure %8s \n", envi.Pressure)
 			fmt.Printf("Temperature %8s \n", envi.Temperature)
 
+			display.DisplayString(temp, true)
+			count++
 			time.Sleep(3 * time.Second)
 		}
 	}()

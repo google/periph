@@ -8,6 +8,7 @@ import (
 	"periph.io/x/periph/conn/spi/spireg"
 	"periph.io/x/periph/devices/apa102"
 	"periph.io/x/periph/devices/bmxx80"
+	"periph.io/x/periph/experimental/devices/ht16k33"
 	"periph.io/x/periph/host/rpi"
 
 	"periph.io/x/periph/conn/gpio"
@@ -23,6 +24,7 @@ const (
 type Dev struct {
 	ledstrip *apa102.Dev
 	bmp280   *bmxx80.Dev
+	display  *ht16k33.Display
 	buttonA  gpio.PinIn
 	buttonB  gpio.PinIn
 	buttonC  gpio.PinIn
@@ -31,7 +33,6 @@ type Dev struct {
 	ledB     gpio.PinOut
 	buzzer   gpio.PinOut
 	servo    gpio.PinOut
-	// TODO: Add support for HT16K33 display
 }
 
 // NewRainbowHat returns a rainbowhat driver.
@@ -51,6 +52,11 @@ func NewRainbowHat() (*Dev, error) {
 		return nil, err
 	}
 
+	display, err := ht16k33.NewAlphaNumericDisplay(i2cPort, ht16k33.I2CAddr)
+	if err != nil {
+		return nil, err
+	}
+
 	opts := apa102.DefaultOpts
 	opts.NumPixels = numPixels
 	ledstrip, err := apa102.New(spiPort, &opts)
@@ -61,6 +67,7 @@ func NewRainbowHat() (*Dev, error) {
 	dev := &Dev{
 		ledstrip: ledstrip,
 		bmp280:   bmp280,
+		display:  display,
 		buttonA:  rpi.P1_40, // GPIO21
 		buttonB:  rpi.P1_38, // GPIO20
 		buttonC:  rpi.P1_36, // GPIO16
@@ -94,6 +101,11 @@ func (d *Dev) GetLedStrip() *apa102.Dev {
 // GetBmp280 returns bmxx80.Dev handler.
 func (d *Dev) GetBmp280() *bmxx80.Dev {
 	return d.bmp280
+}
+
+// GetDisplay returns ht16k33.Display with four alphanumeric digits.
+func (d *Dev) GetDisplay() *ht16k33.Display {
+	return d.display
 }
 
 // GetButtonA returns gpio.PinIn corresponding to the A capacitive button.
@@ -144,6 +156,26 @@ func (d *Dev) Close() error {
 	}
 
 	err = d.ledstrip.Halt()
+	if err != nil {
+		return err
+	}
+
+	err = d.display.Halt()
+	if err != nil {
+		return err
+	}
+
+	err = d.ledR.Out(gpio.Low)
+	if err != nil {
+		return err
+	}
+
+	err = d.ledG.Out(gpio.Low)
+	if err != nil {
+		return err
+	}
+
+	err = d.ledB.Out(gpio.Low)
 	if err != nil {
 		return err
 	}
