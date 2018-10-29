@@ -121,7 +121,7 @@ func NewSPI(spiPort spi.Port, resetPin gpio.PinOut, irqPin gpio.PinIn) (*Dev, er
 		irqPin:           irqPin,
 		resetPin:         resetPin,
 		antennaGain:      4,
-		stop:             make(chan interface{}, 1),
+		stop:             make(chan struct{}, 1),
 	}
 	if err := dev.Init(); err != nil {
 		return nil, err
@@ -135,8 +135,10 @@ type Dev struct {
 	irqPin           gpio.PinIn
 	operationTimeout time.Duration
 	spiDev           spi.Conn
-	stop             chan interface{}
-	antennaGain      int
+	stop             chan struct{}
+
+	aMu         sync.Mutex
+	antennaGain int
 
 	mu        sync.Mutex
 	isWaiting bool
@@ -156,7 +158,12 @@ func (r *Dev) Halt() error {
 	defer r.mu.Unlock()
 
 	if r.isWaiting {
-		r.stop <- true
+		select {
+		case <-r.stop:
+		default:
+		}
+
+		r.stop <- struct{}{}
 	}
 
 	return r.devWrite(commands.CommandReg, 16)
@@ -181,7 +188,11 @@ func (r *Dev) Init() error {
 		return err
 	}
 
-	if err := r.devWrite(int(commands.RFCfgReg), byte(r.antennaGain)<<4); err != nil {
+	r.aMu.Lock()
+	err := r.devWrite(int(commands.RFCfgReg), byte(r.antennaGain)<<4)
+	r.aMu.Unlock()
+
+	if err != nil {
 		return err
 	}
 
@@ -212,6 +223,9 @@ func (r *Dev) SetAntenna(state bool) error {
 //
 //	gain - signal strength from 0 to 7.
 func (r *Dev) SetAntennaGain(gain int) {
+	r.aMu.Lock()
+	defer r.aMu.Unlock()
+
 	if 0 <= gain && gain <= 7 {
 		r.antennaGain = gain
 	}
@@ -351,6 +365,12 @@ func (r *Dev) Request() (int, error) {
 // Wait wait for IRQ to strobe on the IRQ pin when the card is detected.
 func (r *Dev) Wait() error {
 	r.mu.Lock()
+	waitCancelled := false
+	if r.isWaiting {
+		r.mu.Unlock()
+		return wrapf("concurrent access is forbidden")
+	}
+
 	r.isWaiting = true
 	r.mu.Unlock()
 
@@ -360,7 +380,7 @@ func (r *Dev) Wait() error {
 		result := r.irqPin.WaitForEdge(r.operationTimeout)
 		r.mu.Lock()
 		defer r.mu.Unlock()
-		if !r.isWaiting {
+		if waitCancelled {
 			return
 		}
 
@@ -370,6 +390,7 @@ func (r *Dev) Wait() error {
 	defer func() {
 		r.mu.Lock()
 		r.isWaiting = false
+		waitCancelled = true
 		r.mu.Unlock()
 
 		close(irqChannel)
