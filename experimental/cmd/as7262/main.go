@@ -42,51 +42,32 @@ func mainImpl() error {
 
 	// Create a new power sensor a sense with default options of 100 mΩ, 3.2A at
 	// address of 0x40 if no other address supplied with command line option.
-	sensor, err := as7262.New(bus, &as7262.DefaultOpts)
+	sensor, err := as7262.New(bus, &as7262.Opts{Gain: as7262.G16x})
 	if err != nil {
 		return fmt.Errorf("failed to open new sensor: %v", err)
 	}
 
 	// Read values from sensor every second.
-	// everyTwoSeconds := time.NewTicker(time.Millisecond * 100).C
+	everySecond := time.NewTicker(time.Second).C
 	var halt = make(chan os.Signal)
 	signal.Notify(halt, syscall.SIGTERM)
 	signal.Notify(halt, syscall.SIGINT)
 
 	fmt.Println("ctrl+c to exit")
 
-	senseTime := time.Millisecond * 1
-	gain := 0
+	senseTime := time.Millisecond * 300
 
 	for {
 		select {
 		case <-halt:
 			sensor.Halt()
-			return nil
-		case <-time.After(time.Millisecond * 100):
+			return fmt.Errorf("got exit signal")
+		case <-everySecond:
 			spectrum, err := sensor.Sense(100*physic.MilliAmpere, senseTime)
 			if err != nil {
 				return fmt.Errorf("sensor reading error: %v", err)
 			}
-			var minCount uint16
-			for _, band := range spectrum.Bands {
-				if band.Counts > 10000 {
-					minCount = band.Counts
-				}
-			}
-			if minCount < 10000 {
-				senseTime *= 2
-				if senseTime > 714*time.Millisecond {
-					senseTime = 2800 * time.Microsecond
-					gain++
-					err := sensor.Gain(as7262.Gain(gain << 4))
-					if err != nil {
-						return fmt.Errorf("error setting gain %v", err)
-					}
-				}
-			}
 			fmt.Println(spectrum)
-
 		}
 	}
 }

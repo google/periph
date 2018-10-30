@@ -9,8 +9,4 @@
 // Datasheet
 //
 // https://ams.com/documents/20143/36005/AS7262_DS000486_2-00.pdf
-//
-// Where to buy
-//
-// https://www.sparkfun.com/products/14347 https://www.adafruit.com/product/3779
 package as7262

@@ -85,7 +85,7 @@ func TestDev_Sense(t *testing.T) {
 			},
 			waiter:   dontwait,
 			sendEdge: false,
-			wantErr:  errTimeoutPin,
+			wantErr:  errPinTimeout,
 			want:     Spectrum{},
 			tx:       sensorTestCaseInteruptValidRead,
 		},
@@ -96,7 +96,7 @@ func TestDev_Sense(t *testing.T) {
 			},
 			waiter:   dontwait,
 			sendEdge: false,
-			wantErr:  errTimeoutPin,
+			wantErr:  errPinTimeout,
 			want:     Spectrum{},
 			tx:       sensorTestCaseInteruptValidRead,
 		},
@@ -896,7 +896,7 @@ func TestIOError_Error(t *testing.T) {
 		want string
 	}{
 		{"nil", "doing nothing", nil, "ioerror while doing nothing"},
-		{"errTimeoutPin", "", errTimeoutPin, "ioerror while : timeout waiting for interrupt signal on pin"},
+		{"errTimeoutPin", "", errPinTimeout, "ioerror while : timeout waiting for interrupt signal on pin"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

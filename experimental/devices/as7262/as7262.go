@@ -49,15 +49,15 @@ func New(bus i2c.Bus, opts *Opts) (*Dev, error) {
 
 // Dev is a handle to the as7262 sensor.
 type Dev struct {
-	mu sync.Mutex
-
+	mu        sync.Mutex
 	c         conn.Conn
 	timeout   time.Duration
 	interrupt gpio.PinIn
-	cancel    context.CancelFunc
-	ctx       context.Context
-	gain      Gain
-	order     binary.ByteOrder
+	// A new context should be provided for long running operations.
+	cancel context.CancelFunc
+	ctx    context.Context
+	gain   Gain
+	order  binary.ByteOrder
 }
 
 // Spectrum is the reading from the senor including the actual sensor state for
@@ -68,6 +68,7 @@ type Spectrum struct {
 	Gain              Gain
 	LedDrive          physic.ElectricCurrent
 	Integration       time.Duration
+	//TODO:(NeuralSpaz) Pretty Printer.
 }
 
 // Band has two types of measurement of relative spectral flux density.
@@ -135,12 +136,13 @@ func (d *Dev) Sense(ledDrive physic.ElectricCurrent, senseTime time.Duration) (S
 	if d.interrupt != nil {
 		isEdge := make(chan bool)
 		go func() {
+			// TODO(NeuralSpaz): Test on hardware.
 			isEdge <- d.interrupt.WaitForEdge(integration*2 + d.timeout)
 		}()
 		select {
 		case edge := <-isEdge:
 			if !edge {
-				return Spectrum{}, errTimeoutPin
+				return Spectrum{}, errPinTimeout
 			}
 		case <-d.ctx.Done():
 			return Spectrum{}, errHalted
@@ -234,9 +236,11 @@ const (
 	G64x Gain = 0x30
 )
 
-// Gain sets the gain of the sensor.
+// Gain sets the gain of the sensor. There are four levels of gain 1x, 3.7x, 16x,
+// and 64x.
 func (d *Dev) Gain(gain Gain) error {
-
+	// TODO(NeuralSpaz): check that value is valid before writing. Currently
+	// a client could cast any int as Gain.
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -250,6 +254,10 @@ func (d *Dev) Gain(gain Gain) error {
 	return nil
 }
 
+// AS7262 i2c protocol uses virtual registers. To write to a given register the
+// MSB of the register must be set when writing the register to the write
+// register, also status register must be checked for pending writes or data may
+// be discarded.
 func (d *Dev) writeVirtualRegister(register, data byte) error {
 
 	// Check for pending writes.
@@ -276,6 +284,10 @@ func (d *Dev) writeVirtualRegister(register, data byte) error {
 
 }
 
+// AS7262 protocol uses virtual registers. To read a virtual register the
+// pointer to the virtual register must be written to the write register. Status
+// register must be checked for any pending reads or data may be invalid, then
+// data maybe read from the read register.
 func (d *Dev) readVirtualRegister(register byte, data []byte) error {
 	rx := make([]byte, 1)
 	for i := 0; i < len(data); i++ {
@@ -304,6 +316,7 @@ func (d *Dev) readVirtualRegister(register byte, data []byte) error {
 	return nil
 }
 
+// Polls the data ready bit in the control register(virtual)
 func (d *Dev) pollDataReady() error {
 	pollctx, cancel := context.WithTimeout(context.Background(), d.timeout)
 	defer cancel()
@@ -358,9 +371,8 @@ const (
 
 // The as7262 registers are implemented as virtual registers pollStatus
 // provides a way to repeatedly check if there are any pending reads or writes
-// in the relevent buffer before a transaction while with a timeout of 200
-// milliseconds. Direction is used to set which buffer is being polled to be
-// ready.
+// in the relevent buffer before a transaction while with a timeout.
+// Direction is used to set which buffer is being polled to be ready.
 func (d *Dev) pollStatus(dir direction) error {
 	pollctx, cancel := context.WithTimeout(context.Background(), d.timeout)
 	defer cancel()
@@ -397,13 +409,13 @@ func (d *Dev) pollStatus(dir direction) error {
 			}
 		case clearBuffer:
 			// If there is data left in the buffer read it.
-			if status[0]&0x01 == 1 {
+			if status[0]&byte(reading) == 1 {
 				discard := make([]byte, 1)
 				if err := d.c.Tx([]byte{readReg}, discard); err != nil {
 					return &IOError{"clearing buffer", err}
 				}
 			}
-			if status[0]&0x01 == 0 {
+			if status[0]&byte(reading) == 0 {
 				return nil
 			}
 		}
@@ -484,11 +496,9 @@ func (e *IOError) Error() string {
 }
 
 var (
-	errStatusDeadline  = errors.New("deadline exceeded reading status register")
-	errTimeoutPin      = errors.New("timeout waiting for interrupt signal on pin")
-	errHalted          = errors.New("recived halt command")
-	errHaltTimeExeeded = errors.New("halt timeout")
-	errNothingToHalt   = error(nil)
+	errStatusDeadline = errors.New("deadline exceeded reading status register")
+	errPinTimeout     = errors.New("timeout waiting for interrupt signal on pin")
+	errHalted         = errors.New("received halt command")
 )
 
 const (
@@ -501,18 +511,20 @@ const (
 	intergrationReg      = 0x05
 	deviceTemperatureReg = 0x06
 	ledControlReg        = 0x07
-	rawBase              = 0x08
-	rawVReg              = 0x08
-	rawBReg              = 0x0a
-	rawGReg              = 0x0c
-	rawYReg              = 0x0e
-	rawOReg              = 0x10
-	rawRReg              = 0x12
-	calBase              = 0x14
-	calibratedVReg       = 0x14
-	calibratedBReg       = 0x18
-	calibratedGReg       = 0x1c
-	calibratedYReg       = 0x20
-	calibratedOReg       = 0x24
-	calibratedRReg       = 0x28
+	// RawBase used as base for reading uint16 values, data must be sequentially.
+	rawBase = 0x08
+	rawVReg = 0x08
+	rawBReg = 0x0a
+	rawGReg = 0x0c
+	rawYReg = 0x0e
+	rawOReg = 0x10
+	rawRReg = 0x12
+	// CalBase used as base for reading float32 values, data must be sequentially.
+	calBase        = 0x14
+	calibratedVReg = 0x14
+	calibratedBReg = 0x18
+	calibratedGReg = 0x1c
+	calibratedYReg = 0x20
+	calibratedOReg = 0x24
+	calibratedRReg = 0x28
 )
