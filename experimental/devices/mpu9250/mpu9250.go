@@ -1922,24 +1922,24 @@ var (
 	}
 	calibrateSequence = [][]byte{
 		{reg.MPU9250_PWR_MGMT_1, 0x80}, // reset device
-		{100}, // sleep 100 ms
-		{reg.MPU9250_PWR_MGMT_1, 1}, // get stable time source; Auto select clock source to be PLL gyroscope reference if ready else use the internal oscillator, bits 2:0 = 001
+		{100},                          // sleep 100 ms
+		{reg.MPU9250_PWR_MGMT_1, 1},    // get stable time source; Auto select clock source to be PLL gyroscope reference if ready else use the internal oscillator, bits 2:0 = 001
 		{reg.MPU9250_PWR_MGMT_2, 0},
-		{200}, // wait 200 ms
+		{200},                         // wait 200 ms
 		{reg.MPU9250_INT_ENABLE, 0},   // Disable all interrupts
 		{reg.MPU9250_FIFO_EN, 0},      // Disable FIFO
 		{reg.MPU9250_PWR_MGMT_1, 0},   // Turn on internal clock source
 		{reg.MPU9250_I2C_MST_CTRL, 0}, // Disable I2C master
 		{reg.MPU9250_USER_CTRL, 0},    // Disable FIFO and I2C master modes
 		{reg.MPU9250_USER_CTRL, 0x0C}, // Reset FIFO and DMP
-		{15}, // wait 15 ms
+		{15},                          // wait 15 ms
 		{reg.MPU9250_CONFIG, 0x01},    // Set low-pass filter to 188 Hz
 		{reg.MPU9250_SMPLRT_DIV, 0},   // Set sample rate to 1 kHz
 		{reg.MPU9250_GYRO_CONFIG, 0},  // Set gyro full-scale to 250 degrees per second, maximum sensitivity
 		{reg.MPU9250_ACCEL_CONFIG, 0}, // Set accelerometer full-scale to 2 g, maximum sensitivity
 		{reg.MPU9250_USER_CTRL, 0x40}, // Enable FIFO
 		{reg.MPU9250_FIFO_EN, 0x78},   // Enable gyro and accelerometer sensors for FIFO  (max size 512 bytes in MPU-9150)
-		{40}, // wait 40 ms
-		{reg.MPU9250_FIFO_EN, 0x00}, // Disable gyro and accelerometer sensors for FIFO
+		{40},                          // wait 40 ms
+		{reg.MPU9250_FIFO_EN, 0x00},   // Disable gyro and accelerometer sensors for FIFO
 	}
 )
