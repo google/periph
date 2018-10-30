@@ -7,6 +7,7 @@ package pca9685
 import (
 	"time"
 
+	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/physic"
 )
@@ -115,7 +116,7 @@ func (d *Dev) SetPwmFreq(freqHz physic.Frequency) error {
 }
 
 // SetAllPwm set a pwm value for all outputs
-func (d *Dev) SetAllPwm(on uint16, off uint16) error {
+func (d *Dev) SetAllPwm(on, off gpio.Duty) error {
 	if _, err := d.dev.Write([]byte{allLedOnL, byte(on)}); err != nil {
 		return err
 	}
@@ -132,7 +133,7 @@ func (d *Dev) SetAllPwm(on uint16, off uint16) error {
 }
 
 // SetPwm set a pwm value for given pca9685 channel
-func (d *Dev) SetPwm(channel int, on uint16, off uint16) error {
+func (d *Dev) SetPwm(channel int, on, off gpio.Duty) error {
 	if _, err := d.dev.Write([]byte{led0OnL + byte(4*channel), byte(on)}); err != nil {
 		return err
 	}

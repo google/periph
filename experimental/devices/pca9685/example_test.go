@@ -8,6 +8,7 @@ import (
 	"log"
 
 	"periph.io/x/periph/conn/i2c/i2creg"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/experimental/devices/pca9685"
 	"periph.io/x/periph/host"
 )
@@ -28,7 +29,7 @@ func Example() {
 		log.Fatal(err)
 	}
 
-	if err := pca.SetPwmFreq(50); err != nil {
+	if err := pca.SetPwmFreq(50 * physic.Hertz); err != nil {
 		log.Fatal(err)
 	}
 	if err := pca.SetAllPwm(0, 0); err != nil {
