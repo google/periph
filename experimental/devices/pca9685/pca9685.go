@@ -5,12 +5,10 @@
 package pca9685
 
 import (
-	"math"
 	"time"
 
-	"periph.io/x/periph/conn/physic"
-
 	"periph.io/x/periph/conn/i2c"
+	"periph.io/x/periph/conn/physic"
 )
 
 // I2CAddr i2c default address.
@@ -75,17 +73,13 @@ func (d *Dev) init() error {
 
 	time.Sleep(100 * time.Millisecond)
 
-	var modeRead []byte
-	modeRead = make([]byte, 1)
-	err := d.dev.Tx([]byte{mode1}, modeRead)
-
-	if err != nil {
+	modeRead := [1]byte{}
+	if err := d.dev.Tx([]byte{mode1}, modeRead[:]); err != nil {
 		return err
 	}
 
-	mode := modeRead[0]
-	mode = mode & ^sleep
-	if _, err := d.dev.Write([]byte{mode1, mode & 0xFF}); err != nil {
+	mode := modeRead[0] & ^sleep
+	if _, err := d.dev.Write([]byte{mode1, mode}); err != nil {
 		return err
 	}
 
@@ -96,27 +90,18 @@ func (d *Dev) init() error {
 
 // SetPwmFreq set the pwm frequency
 func (d *Dev) SetPwmFreq(freqHz physic.Frequency) error {
-	prescaleVal := float32(25 * physic.MegaHertz)
-	prescaleVal /= 4096.0 //# 12-bit
-	prescaleVal /= float32(freqHz)
-	prescaleVal -= 1.0
+	p := (25*physic.MegaHertz/4096 + freqHz/2) / freqHz
 
-	prescaleToSend := int(math.Floor(float64(prescaleVal + 0.5)))
-
-	var modeRead []byte
-	modeRead = make([]byte, 1)
-	err := d.dev.Tx([]byte{mode1}, modeRead)
-
-	if err != nil {
+	modeRead := [1]byte{}
+	if err := d.dev.Tx([]byte{mode1}, modeRead[:]); err != nil {
 		return err
 	}
 
 	oldmode := modeRead[0]
-	newmode := (byte)((oldmode & 0x7F) | 0x10)                     // sleep
-	if _, err := d.dev.Write([]byte{mode1, newmode}); err != nil { // go to sleep;
+	if _, err := d.dev.Write([]byte{mode1, byte((oldmode & 0x7F) | 0x10)}); err != nil { // go to sleep;
 		return err
 	}
-	if _, err := d.dev.Write([]byte{prescale, byte(prescaleToSend)}); err != nil {
+	if _, err := d.dev.Write([]byte{prescale, byte(p)}); err != nil {
 		return err
 	}
 	if _, err := d.dev.Write([]byte{mode1, oldmode}); err != nil {
@@ -125,21 +110,19 @@ func (d *Dev) SetPwmFreq(freqHz physic.Frequency) error {
 
 	time.Sleep(100 * time.Millisecond)
 
-	if _, err := d.dev.Write([]byte{mode1, (byte)(oldmode | 0x80)}); err != nil {
-		return err
-	}
-	return nil
+	_, err := d.dev.Write([]byte{mode1, (byte)(oldmode | 0x80)})
+	return err
 }
 
 // SetAllPwm set a pwm value for all outputs
 func (d *Dev) SetAllPwm(on uint16, off uint16) error {
-	if _, err := d.dev.Write([]byte{allLedOnL, byte(on) & 0xFF}); err != nil {
+	if _, err := d.dev.Write([]byte{allLedOnL, byte(on)}); err != nil {
 		return err
 	}
 	if _, err := d.dev.Write([]byte{allLedOnH, byte(on >> 8)}); err != nil {
 		return err
 	}
-	if _, err := d.dev.Write([]byte{allLedOffL, byte(off) & 0xFF}); err != nil {
+	if _, err := d.dev.Write([]byte{allLedOffL, byte(off)}); err != nil {
 		return err
 	}
 	if _, err := d.dev.Write([]byte{allLedOffH, byte(off >> 8)}); err != nil {
@@ -150,13 +133,13 @@ func (d *Dev) SetAllPwm(on uint16, off uint16) error {
 
 // SetPwm set a pwm value for given pca9685 channel
 func (d *Dev) SetPwm(channel int, on uint16, off uint16) error {
-	if _, err := d.dev.Write([]byte{led0OnL + byte(4*channel), byte(on) & 0xFF}); err != nil {
+	if _, err := d.dev.Write([]byte{led0OnL + byte(4*channel), byte(on)}); err != nil {
 		return err
 	}
 	if _, err := d.dev.Write([]byte{led0OnH + byte(4*channel), byte(on >> 8)}); err != nil {
 		return err
 	}
-	if _, err := d.dev.Write([]byte{led0OffL + byte(4*channel), byte(off) & 0xFF}); err != nil {
+	if _, err := d.dev.Write([]byte{led0OffL + byte(4*channel), byte(off)}); err != nil {
 		return err
 	}
 	if _, err := d.dev.Write([]byte{led0OffH + byte(4*channel), byte(off >> 8)}); err != nil {
