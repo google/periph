@@ -2,18 +2,24 @@ language: go
 sudo: false
 go_import_path: periph.io/x/periph
 go:
+  - 1.5.4
+  - 1.7.6
   - 1.11.1
 
 before_script:
+  - echo $TRAVIS_GO_VERSION
   - go get -t -v periph.io/x/periph/...
 script:
-  - echo 'Check Code is well formatted'; ! gofmt -s -d . | read
-  - echo 'Looking for external dependencies:'; go list -f '{{join .Imports "\n"}}' periph.io/x/periph/... | sort | uniq | grep -v ^periph.io/x/periph | xargs go list -f '{{if not .Standard}}- {{.ImportPath}}{{end}}'
-  - echo 'Erroring on external dependencies:'; ! go list -f '{{join .Imports "\n"}}' periph.io/x/periph/... | sort | uniq | grep -v ^periph.io/x/periph | xargs go list -f '{{if not .Standard}}Remove {{.ImportPath}}{{end}}' | grep -q Remove
-  - echo 'Erroring on /host depending on /devices:'; ! go list -f '{{.ImportPath}} depends on {{join .Imports ", "}}' periph.io/x/periph/host/... | sort | uniq | grep periph.io/x/periph/devices
-  - echo 'Erroring on /conn depending on /devices:'; ! go list -f '{{.ImportPath}} depends on {{join .Imports ", "}}' periph.io/x/periph/conn/... | sort | uniq | grep periph.io/x/periph/devices
-  - echo 'Erroring on /conn depending on /host:'; ! go list -f '{{.ImportPath}} depends on {{join .Imports ", "}}' periph.io/x/periph/conn/... | sort | uniq | grep periph.io/x/periph/host
-  - bash -c 'set -e; echo "" > coverage.txt; for d in $(go list ./...); do go test -covermode=count -coverprofile=p.out $d; if [ -f p.out ]; then cat p.out >> coverage.txt; rm p.out; fi; done'
-  - go test -race ./...
+  # Things run only on the latest version.
+  - if [[ $TRAVIS_GO_VERSION == 1.11.1 ]]; then echo 'Check Code is well formatted'; ! gofmt -s -d . | read; fi
+  - if [[ $TRAVIS_GO_VERSION == 1.11.1 ]]; then echo 'Looking for external dependencies:'; go list -f '{{join .Imports "\n"}}' periph.io/x/periph/... | sort | uniq | grep -v ^periph.io/x/periph | xargs go list -f '{{if not .Standard}}- {{.ImportPath}}{{end}}'; fi
+  - if [[ $TRAVIS_GO_VERSION == 1.11.1 ]]; then echo 'Erroring on external dependencies:'; ! go list -f '{{join .Imports "\n"}}' periph.io/x/periph/... | sort | uniq | grep -v ^periph.io/x/periph | xargs go list -f '{{if not .Standard}}Remove {{.ImportPath}}{{end}}' | grep -q Remove; fi
+  - if [[ $TRAVIS_GO_VERSION == 1.11.1 ]]; then echo 'Erroring on /host depending on /devices:'; ! go list -f '{{.ImportPath}} depends on {{join .Imports ", "}}' periph.io/x/periph/host/... | sort | uniq | grep periph.io/x/periph/devices; fi
+  - if [[ $TRAVIS_GO_VERSION == 1.11.1 ]]; then echo 'Erroring on /conn depending on /devices:'; ! go list -f '{{.ImportPath}} depends on {{join .Imports ", "}}' periph.io/x/periph/conn/... | sort | uniq | grep periph.io/x/periph/devices; fi
+  - if [[ $TRAVIS_GO_VERSION == 1.11.1 ]]; then echo 'Erroring on /conn depending on /host:'; ! go list -f '{{.ImportPath}} depends on {{join .Imports ", "}}' periph.io/x/periph/conn/... | sort | uniq | grep periph.io/x/periph/host; fi
+  - if [[ $TRAVIS_GO_VERSION == 1.11.1 ]]; then bash -c 'set -e; echo "" > coverage.txt; for d in $(go list ./...); do go test -covermode=count -coverprofile=p.out $d; if [ -f p.out ]; then cat p.out >> coverage.txt; rm p.out; fi; done'; fi
+  - if [[ $TRAVIS_GO_VERSION == 1.11.1 ]]; then go test -race ./...; fi
+  # The only thing run on older versions.
+  - if [[ $TRAVIS_GO_VERSION != 1.11.1 ]]; then go test ./...; fi
 after_success:
-  - bash <(curl -s https://codecov.io/bash)
+  - if [[ $TRAVIS_GO_VERSION == 1.11.1 ]]; then bash <(curl -s https://codecov.io/bash); fi
