@@ -7,6 +7,8 @@ import (
 	"periph.io/x/periph/conn/physic"
 )
 
+// Expected response from sensorTestCaseValidRead or
+// sensorTestCaseInteruptValidRead.
 var validSpectrum = Spectrum{
 	Bands: []Band{
 		{450 * physic.NanoMetre, 0.15625, 43707, "V"},
@@ -21,6 +23,7 @@ var validSpectrum = Spectrum{
 	Integration:       2800 * time.Microsecond,
 }
 
+// Sequence of i2c traffic that yeilds validSpectrum.
 var sensorTestCaseValidRead = []i2ctest.IO{
 	{Addr: 0x49, W: []byte{statusReg}, R: []byte{0x00}},
 	{Addr: 0x49, W: []byte{writeReg, 0x85}, R: []byte{}},
@@ -193,6 +196,7 @@ var sensorTestCaseValidRead = []i2ctest.IO{
 	{Addr: 0x49, W: []byte{statusReg}, R: []byte{0x00}},
 }
 
+// Same as sensorTestCaseValidRead but omiting polling for data ready.
 var sensorTestCaseInteruptValidRead = []i2ctest.IO{
 	{Addr: 0x49, W: []byte{statusReg}, R: []byte{0x00}},
 	{Addr: 0x49, W: []byte{writeReg, 0x85}, R: []byte{}},
