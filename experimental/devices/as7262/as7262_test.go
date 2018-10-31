@@ -2,12 +2,9 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// +build go1.7
-
 package as7262
 
 import (
-	"context"
 	"reflect"
 	"testing"
 	"time"
@@ -378,22 +375,21 @@ func TestDev_pollStatus(t *testing.T) {
 				Ops:       tt.tx,
 				DontPanic: true,
 			}
-			ctx, cancel := context.WithCancel(context.Background())
 
-			defer cancel()
 			d := &Dev{
 				c:       &i2c.Dev{Bus: bus, Addr: 0x49},
-				cancel:  cancel,
-				ctx:     ctx,
+				done:    make(chan struct{}, 1),
 				timeout: tt.timeout,
 			}
+			defer d.Halt()
 			if tt.halt > time.Nanosecond {
 				go func() {
 					time.Sleep(tt.halt)
-					cancel()
+					d.Halt()
 				}()
 			} else if tt.halt != 0 {
-				cancel()
+				d.Halt()
+				d.Halt()
 			}
 
 			got := d.pollStatus(tt.dir)
@@ -478,22 +474,20 @@ func TestDev_writeVirtualRegister(t *testing.T) {
 				Ops:       tt.tx,
 				DontPanic: true,
 			}
-			ctx, cancel := context.WithCancel(context.Background())
 
-			defer cancel()
 			d := &Dev{
 				c:       &i2c.Dev{Bus: bus, Addr: 0x49},
-				cancel:  cancel,
-				ctx:     ctx,
+				done:    make(chan struct{}, 1),
 				timeout: tt.timeout,
 			}
+			defer d.Halt()
 			if tt.halt > time.Nanosecond {
 				go func() {
 					time.Sleep(tt.halt)
-					cancel()
+					d.Halt()
 				}()
 			} else if tt.halt != 0 {
-				cancel()
+				d.Halt()
 			}
 
 			got := d.writeVirtualRegister(0x04, 0xFF)
@@ -611,22 +605,19 @@ func TestDev_readVirtualRegister(t *testing.T) {
 				Ops:       tt.tx,
 				DontPanic: true,
 			}
-			ctx, cancel := context.WithCancel(context.Background())
-
-			defer cancel()
 			d := &Dev{
 				c:       &i2c.Dev{Bus: bus, Addr: 0x49},
-				cancel:  cancel,
-				ctx:     ctx,
+				done:    make(chan struct{}, 1),
 				timeout: tt.timeout,
 			}
+			// defer d.Halt()
 			if tt.halt > time.Nanosecond {
 				go func() {
 					time.Sleep(tt.halt)
-					cancel()
+					d.Halt()
 				}()
 			} else if tt.halt != 0 {
-				cancel()
+				d.Halt()
 			}
 
 			got := d.readVirtualRegister(0x04, tt.data)
@@ -758,15 +749,13 @@ func TestDev_pollDataReady(t *testing.T) {
 				Ops:       tt.tx,
 				DontPanic: true,
 			}
-			ctx, cancel := context.WithCancel(context.Background())
 
-			defer cancel()
 			d := &Dev{
 				c:       &i2c.Dev{Bus: bus, Addr: 0x49},
-				cancel:  cancel,
-				ctx:     ctx,
+				done:    make(chan struct{}, 1),
 				timeout: tt.timeout,
 			}
+			defer d.Halt()
 			if tt.halt > time.Nanosecond {
 				go func() {
 					time.Sleep(tt.halt)
@@ -792,7 +781,6 @@ func TestDev_pollDataReady(t *testing.T) {
 }
 
 func TestNew(t *testing.T) {
-	// _, cancel := context.WithCancel(context.Background())
 
 	tests := []struct {
 		name    string
