@@ -66,7 +66,14 @@ type Spectrum struct {
 	Gain              Gain
 	LedDrive          physic.ElectricCurrent
 	Integration       time.Duration
-	//TODO:(NeuralSpaz) Pretty Printer.
+}
+
+func (s Spectrum) String() string {
+	str := fmt.Sprintf("Spectrum: Gain:%s, Led Drive %s, Sense Time: %s", s.Gain, s.LedDrive, s.Integration)
+	for _, band := range s.Bands {
+		str += "\n" + band.String()
+	}
+	return str
 }
 
 // Band has two types of measurement of relative spectral flux density.
@@ -91,6 +98,10 @@ type Band struct {
 	Value      float64
 	Counts     uint16
 	Name       string
+}
+
+func (b Band) String() string {
+	return fmt.Sprintf("%s Band(%s) %7.1f counts", b.Name, b.Wavelength, b.Value)
 }
 
 // Sense preforms a reading of relative spectral radiance of all the sensor
@@ -220,13 +231,11 @@ func (d *Dev) Halt() error {
 	defer d.canceledMu.Unlock()
 	if !d.canceled {
 		d.done <- struct{}{}
-		// Could be racy but only place this is done
 		d.canceled = true
 	}
 	return nil
 }
 
-// String implaments the stringer interface
 func (d *Dev) String() string {
 	return fmt.Sprintf("AMS AS7262 6 channel visible spectrum sensor")
 }
@@ -245,11 +254,34 @@ const (
 	G64x Gain = 0x30
 )
 
+const (
+	_GainG1x  = "1x"
+	_GainG4x  = "3.7x"
+	_GainG16x = "16x"
+	_GainG64x = "64x"
+)
+
+func (g Gain) String() string {
+	switch {
+	case g == 0:
+		return _GainG1x
+	case g == 16:
+		return _GainG4x
+	case g == 32:
+		return _GainG16x
+	case g == 48:
+		return _GainG64x
+	default:
+		return "bad gain value"
+	}
+}
+
 // Gain sets the gain of the sensor. There are four levels of gain 1x, 3.7x, 16x,
 // and 64x.
 func (d *Dev) Gain(gain Gain) error {
-	// TODO(NeuralSpaz): check that value is valid before writing. Currently
-	// a client could cast any int as Gain.
+	if gain != G1x && gain != G4x && gain != G16x && gain != G64x {
+		return errGainValue
+	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -501,7 +533,6 @@ type IOError struct {
 	Err error
 }
 
-// Error implements the Error interface.
 func (e *IOError) Error() string {
 	if e.Err != nil {
 		return "ioerror while " + e.Op + ": " + e.Err.Error()
@@ -513,6 +544,7 @@ var (
 	errStatusDeadline = errors.New("deadline exceeded reading status register")
 	errPinTimeout     = errors.New("timeout waiting for interrupt signal on pin")
 	errHalted         = errors.New("received halt command")
+	errGainValue      = errors.New("invalid gain value")
 )
 
 const (
