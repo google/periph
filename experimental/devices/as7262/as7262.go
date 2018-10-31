@@ -228,13 +228,13 @@ func (d *Dev) String() string {
 type Gain int
 
 const (
-	// Gain1x is gain of 1
+	// G1x is gain of 1
 	G1x Gain = 0x00
-	// Gain4x is gain of 3.7
+	// G4x is gain of 3.7
 	G4x Gain = 0x10
-	// Gain16x is a gain of 16
+	// G16x is a gain of 16
 	G16x Gain = 0x20
-	// Gain64x us a gain of 64
+	// G64x us a gain of 64
 	G64x Gain = 0x30
 )
 
