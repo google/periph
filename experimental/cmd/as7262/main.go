@@ -4,6 +4,8 @@
 
 // as7262 communicates with an as7262 continually reading the spectrum..
 
+// +build go1.7
+
 package main
 
 import (
