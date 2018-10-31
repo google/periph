@@ -23,9 +23,7 @@ import (
 )
 
 func mainImpl() error {
-	if _, err := host.Init(); err != nil {
-		return err
-	}
+
 	i2cbus := flag.String("bus", "", "I²C bus (/dev/i2c-1)")
 
 	flag.Parse()
@@ -35,7 +33,7 @@ func mainImpl() error {
 		return err
 	}
 
-	// Open default I²C bus.
+	// Open I²C bus.
 	bus, err := i2creg.Open(*i2cbus)
 	if err != nil {
 		return fmt.Errorf("failed to open I²C: %v", err)

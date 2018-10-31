@@ -813,7 +813,7 @@ func TestNew(t *testing.T) {
 
 			bus := &i2ctest.Playback{DontPanic: true}
 			d, err := New(bus, &tt.opts)
-			if (err != nil) != tt.wantErr {
+			if err != nil != tt.wantErr {
 				t.Errorf("New() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}

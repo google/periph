@@ -194,15 +194,15 @@ func (d *Dev) Sense(ledDrive physic.ElectricCurrent, senseTime time.Duration) (S
 	if err := d.readVirtualRegister(deviceTemperatureReg, traw); err != nil {
 		return Spectrum{}, err
 	}
-	temperature := physic.Temperature((int8(traw[0])))*physic.Kelvin + physic.ZeroCelsius
+	temperature := physic.Temperature(int8(traw[0]))*physic.Kelvin + physic.ZeroCelsius
 	return Spectrum{
 		Bands: []Band{
-			Band{Wavelength: 450 * physic.NanoMetre, Counts: v, Value: vcal, Name: "V"},
-			Band{Wavelength: 500 * physic.NanoMetre, Counts: b, Value: bcal, Name: "B"},
-			Band{Wavelength: 550 * physic.NanoMetre, Counts: g, Value: gcal, Name: "G"},
-			Band{Wavelength: 570 * physic.NanoMetre, Counts: y, Value: ycal, Name: "Y"},
-			Band{Wavelength: 600 * physic.NanoMetre, Counts: o, Value: ocal, Name: "O"},
-			Band{Wavelength: 650 * physic.NanoMetre, Counts: r, Value: rcal, Name: "R"},
+			{Wavelength: 450 * physic.NanoMetre, Counts: v, Value: vcal, Name: "V"},
+			{Wavelength: 500 * physic.NanoMetre, Counts: b, Value: bcal, Name: "B"},
+			{Wavelength: 550 * physic.NanoMetre, Counts: g, Value: gcal, Name: "G"},
+			{Wavelength: 570 * physic.NanoMetre, Counts: y, Value: ycal, Name: "Y"},
+			{Wavelength: 600 * physic.NanoMetre, Counts: o, Value: ocal, Name: "O"},
+			{Wavelength: 650 * physic.NanoMetre, Counts: r, Value: rcal, Name: "R"},
 		},
 		SensorTemperature: temperature,
 		Gain:              d.gain,
@@ -448,7 +448,7 @@ func calcSenseTime(t time.Duration) (uint8, time.Duration) {
 		return 1, minSenseTime
 	}
 	// Minimum step is 2.8ms
-	quantizedTime := (t / minSenseTime)
+	quantizedTime := t / minSenseTime
 	return uint8(quantizedTime), quantizedTime * minSenseTime
 }
 
