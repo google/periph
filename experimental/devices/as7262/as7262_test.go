@@ -90,13 +90,13 @@ func TestDev_Sense(t *testing.T) {
 			tx:       sensorTestCaseInteruptValidRead,
 		},
 		{
-			name: "interuptTimeout",
+			name: "haltBeforeforEdge",
 			opts: Opts{
 				InterruptPin: intPin,
 			},
 			waiter:   dontwait,
 			sendEdge: false,
-			wantErr:  errPinTimeout,
+			wantErr:  errHalted,
 			want:     Spectrum{},
 			tx:       sensorTestCaseInteruptValidRead,
 		},
@@ -179,6 +179,12 @@ func TestDev_Sense(t *testing.T) {
 
 		if d.interrupt != nil && tt.sendEdge {
 			intPin.EdgesChan <- gpio.High
+		}
+		if tt.name == "haltBeforeforEdge" {
+			// Time must be less than senseTime.
+			time.AfterFunc(time.Millisecond, func() {
+				d.Halt()
+			})
 		}
 
 		got, err := d.Sense(physic.MilliAmpere*100, time.Millisecond*3)
