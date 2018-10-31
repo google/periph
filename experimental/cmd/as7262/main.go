@@ -2,7 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// as7262 communicates with an as7262 continually reading the spectrum..
+// as7262 communicates with an as7262 continually reading the spectrum.
 
 // +build go1.7
 
