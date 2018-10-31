@@ -804,6 +804,7 @@ func TestDev_Gain(t *testing.T) {
 		name    string
 		tx      []i2ctest.IO
 		timeout time.Duration
+		halt    bool
 		gain    Gain
 		wantErr error
 	}{
@@ -815,6 +816,19 @@ func TestDev_Gain(t *testing.T) {
 			},
 			timeout: time.Millisecond * 100,
 			wantErr: &IOError{"reading status register", nil},
+		},
+		{
+			name: "errHalt",
+			tx: []i2ctest.IO{
+				{Addr: 0x49, W: []byte{statusReg}, R: []byte{0x03}},
+				{Addr: 0x49, W: []byte{statusReg}, R: []byte{0x03}},
+				{Addr: 0x49, W: []byte{statusReg}, R: []byte{0x03}},
+				{Addr: 0x49, W: []byte{statusReg}, R: []byte{0x03}},
+				{Addr: 0x49, W: []byte{statusReg}, R: []byte{0x03}},
+			},
+			halt:    true,
+			timeout: time.Millisecond * 100,
+			wantErr: errHalted,
 		},
 		{
 			name:    "errGainValue",
@@ -840,7 +854,10 @@ func TestDev_Gain(t *testing.T) {
 			DontPanic: true,
 		}
 		d, _ := New(bus, &DefaultOpts)
-
+		go func() {
+			time.Sleep(time.Millisecond * 1)
+			d.Halt()
+		}()
 		got := d.Gain(tt.gain)
 
 		if _, ok := tt.wantErr.(*IOError); ok {
@@ -921,5 +938,22 @@ func TestIOError_Error(t *testing.T) {
 		if tt.want != got {
 			t.Errorf("expected %s but got %s", tt.want, got)
 		}
+	}
+}
+
+func TestIntergration_AfterHalt(t *testing.T) {
+	bus := &i2ctest.Playback{
+		Ops:       sensorTestCaseValidRead,
+		DontPanic: true,
+	}
+	d, _ := New(bus, &DefaultOpts)
+
+	d.Halt()
+	if _, err := d.Sense(physic.MilliAmpere*100, time.Millisecond*3); err == errHalted {
+		t.Errorf("got %v expected nil", errHalted)
+	}
+	d.Halt()
+	if err := d.Gain(G1x); err == errHalted {
+		t.Errorf("got %v expected nil", errHalted)
 	}
 }

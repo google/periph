@@ -125,13 +125,11 @@ func (d *Dev) Sense(ledDrive physic.ElectricCurrent, senseTime time.Duration) (S
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	d.done = make(chan struct{}, 1)
+	done := make(chan struct{}, 1)
 	d.canceledMu.Lock()
+	d.done = done
 	d.canceled = false
 	d.canceledMu.Unlock()
-	defer func() {
-		d.done <- struct{}{}
-	}()
 
 	it, integration := calcSenseTime(senseTime)
 	if err := d.writeVirtualRegister(intergrationReg, it); err != nil {
@@ -229,6 +227,7 @@ var waitForSensor = time.After
 func (d *Dev) Halt() error {
 	d.canceledMu.Lock()
 	defer d.canceledMu.Unlock()
+
 	if !d.canceled {
 		d.done <- struct{}{}
 		d.canceled = true
@@ -285,13 +284,11 @@ func (d *Dev) Gain(gain Gain) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
+	done := make(chan struct{}, 1)
 	d.canceledMu.Lock()
+	d.done = done
 	d.canceled = false
 	d.canceledMu.Unlock()
-	d.done = make(chan struct{}, 1)
-	defer func() {
-		d.done <- struct{}{}
-	}()
 
 	if err := d.writeVirtualRegister(controlReg, uint8(gain)); err != nil {
 		return err
