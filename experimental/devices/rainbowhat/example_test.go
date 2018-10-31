@@ -1,3 +1,7 @@
+// Copyright 2018 The Periph Authors. All rights reserved.
+// Use of this source code is governed under the Apache License, Version 2.0
+// that can be found in the LICENSE file.
+
 package rainbowhat_test
 
 import (
@@ -12,22 +16,45 @@ import (
 
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/physic"
+	"periph.io/x/periph/devices/apa102"
 	"periph.io/x/periph/experimental/devices/rainbowhat"
-
 	"periph.io/x/periph/host"
 )
 
-func main() {
+func Example() {
+
 	// Make sure periph is initialized.
 	if _, err := host.Init(); err != nil {
 		log.Fatal(err)
 	}
 
-	hat, err := rainbowhat.NewRainbowHat()
+	hat, err := rainbowhat.NewRainbowHat(&apa102.DefaultOpts)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer hat.Close()
+	defer hat.Halt()
+
+	handleButton := func(btn gpio.PinIn, led gpio.PinOut) {
+		ledState := false
+		if err := led.Out(gpio.Low); err != nil {
+			log.Fatal(err)
+		}
+		for {
+			btn.WaitForEdge(-1)
+			if btn.Read() == gpio.Low {
+				if ledState {
+					if err := led.Out(gpio.High); err != nil {
+						log.Fatal(err)
+					}
+				} else {
+					if err := led.Out(gpio.Low); err != nil {
+						log.Fatal(err)
+					}
+				}
+				ledState = !ledState
+			}
+		}
+	}
 
 	go handleButton(hat.GetButtonA(), hat.GetLedR())
 	go handleButton(hat.GetButtonB(), hat.GetLedG())
@@ -51,19 +78,22 @@ func main() {
 
 	display := hat.GetDisplay()
 	sensor := hat.GetBmp280()
-	count := 0
+	ticker := time.NewTicker(3 * time.Second)
 	go func() {
 		for {
 			var envi physic.Env
-			sensor.Sense(&envi)
+			if err := sensor.Sense(&envi); err != nil {
+				log.Fatal(err)
+			}
 
 			temp := fmt.Sprintf("%5s", envi.Temperature)
 			fmt.Printf("Pressure %8s \n", envi.Pressure)
 			fmt.Printf("Temperature %8s \n", envi.Temperature)
 
-			display.DisplayString(temp, true)
-			count++
-			time.Sleep(3 * time.Second)
+			if _, err := display.WriteString(temp); err != nil {
+				log.Fatal(err)
+			}
+			<-ticker.C
 		}
 	}()
 
@@ -80,18 +110,4 @@ func main() {
 
 	log.Println("Press ctrl+c to stop...")
 	<-done // Wait
-}
-
-func handleButton(btn gpio.PinIn, led gpio.PinOut) {
-	ledState := false
-	led.Out(gpio.Low)
-	for {
-		btn.WaitForEdge(-1)
-		if ledState {
-			led.Out(gpio.High)
-		} else {
-			led.Out(gpio.Low)
-		}
-		ledState = !ledState
-	}
 }

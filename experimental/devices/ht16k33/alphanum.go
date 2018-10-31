@@ -5,9 +5,6 @@
 package ht16k33
 
 import (
-	"fmt"
-	"strconv"
-
 	"periph.io/x/periph/conn/i2c"
 )
 
@@ -122,9 +119,7 @@ func NewAlphaNumericDisplay(bus i2c.Bus, address uint16) (*Display, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	display := &Display{dev: dev}
-	return display, nil
+	return &Display{dev: dev}, nil
 }
 
 // SetDigit at position to provided value.
@@ -136,50 +131,37 @@ func (d *Display) SetDigit(pos int, digit rune, decimal bool) error {
 	return d.dev.WriteColumn(pos, val)
 }
 
-// DisplayString print string of values to the display.
+// WriteString print string of values to the display.
 //
 // Characters in the string should be any ASCII value 32 to 127 (printable ASCII).
-func (d *Display) DisplayString(value string, justifyRight bool) error {
-	err := d.dev.Clear()
-	if err != nil {
-		return err
+func (d *Display) WriteString(s string) (int, error) {
+	if err := d.dev.Halt(); err != nil {
+		return 0, err
 	}
-	// Calculate starting position of digits based on justification.
-	pos := (4 - len(value))
-	if !justifyRight || pos < 0 {
+
+	pos := (4 - len(s))
+	if pos < 0 {
 		pos = 0
 	}
 	// Go through each character and print it on the display.
-	for _, ch := range value {
+	for _, ch := range s {
 		if ch == '.' {
 			// Print decimal points on the previous digit.
-			c := rune(value[pos-1])
+			c := rune(s[pos-1])
 			if err := d.SetDigit(pos-1, c, true); err != nil {
-				return err
+				return pos, err
 			}
 		} else {
 			if err := d.SetDigit(pos, ch, false); err != nil {
-				return err
+				return pos, err
 			}
 			pos++
 		}
 	}
-	return nil
-}
-
-// DisplayInt print a string of numeric values to the display.
-func (d *Display) DisplayInt(value int, justifyRight bool) error {
-	str := strconv.Itoa(value)
-	return d.DisplayString(str, justifyRight)
-}
-
-// DisplayFloat print a string of numeric values to the display.
-func (d *Display) DisplayFloat(value float64, justifyRight bool) error {
-	str := fmt.Sprintf("%5f", value)
-	return d.DisplayString(str, justifyRight)
+	return pos, nil
 }
 
 // Halt clear all the display.
 func (d *Display) Halt() error {
-	return d.dev.Clear()
+	return d.dev.Halt()
 }

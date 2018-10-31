@@ -5,19 +5,13 @@
 package rainbowhat
 
 import (
+	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/conn/spi/spireg"
 	"periph.io/x/periph/devices/apa102"
 	"periph.io/x/periph/devices/bmxx80"
 	"periph.io/x/periph/experimental/devices/ht16k33"
 	"periph.io/x/periph/host/rpi"
-
-	"periph.io/x/periph/conn/gpio"
-	"periph.io/x/periph/conn/i2c/i2creg"
-)
-
-const (
-	numPixels  = 7
-	bmp280Addr = 0x77
 )
 
 // Dev represents a Rainbow HAT  (https://shop.pimoroni.com/products/rainbow-hat-for-android-things)
@@ -36,18 +30,18 @@ type Dev struct {
 }
 
 // NewRainbowHat returns a rainbowhat driver.
-func NewRainbowHat() (*Dev, error) {
-	i2cPort, err := i2creg.Open("")
+func NewRainbowHat(ao *apa102.Opts) (*Dev, error) {
+	i2cPort, err := i2creg.Open("/dev/i2c-1")
 	if err != nil {
 		return nil, err
 	}
 
-	spiPort, err := spireg.Open("")
+	spiPort, err := spireg.Open("/dev/spidev0.0")
 	if err != nil {
 		return nil, err
 	}
 
-	bmp280, err := bmxx80.NewI2C(i2cPort, bmp280Addr, &bmxx80.DefaultOpts)
+	bmp280, err := bmxx80.NewI2C(i2cPort, 0x77, &bmxx80.DefaultOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -57,8 +51,8 @@ func NewRainbowHat() (*Dev, error) {
 		return nil, err
 	}
 
-	opts := apa102.DefaultOpts
-	opts.NumPixels = numPixels
+	opts := *ao
+	opts.NumPixels = 7
 	ledstrip, err := apa102.New(spiPort, &opts)
 	if err != nil {
 		return nil, err
@@ -78,15 +72,15 @@ func NewRainbowHat() (*Dev, error) {
 		servo:    rpi.P1_32, // PWM0
 	}
 
-	if err := dev.buttonA.In(gpio.PullUp, gpio.FallingEdge); err != nil {
+	if err := dev.buttonA.In(gpio.PullUp, gpio.BothEdges); err != nil {
 		return nil, err
 	}
 
-	if err := dev.buttonB.In(gpio.PullUp, gpio.FallingEdge); err != nil {
+	if err := dev.buttonB.In(gpio.PullUp, gpio.BothEdges); err != nil {
 		return nil, err
 	}
 
-	if err := dev.buttonC.In(gpio.PullUp, gpio.FallingEdge); err != nil {
+	if err := dev.buttonC.In(gpio.PullUp, gpio.BothEdges); err != nil {
 		return nil, err
 	}
 
@@ -148,35 +142,41 @@ func (d *Dev) GetServo() gpio.PinOut {
 	return d.servo
 }
 
-// Close halt all devices.
-func (d *Dev) Close() error {
-	err := d.bmp280.Halt()
-	if err != nil {
+// Halt all internal devices.
+func (d *Dev) Halt() error {
+	if err := d.bmp280.Halt(); err != nil {
 		return err
 	}
 
-	err = d.ledstrip.Halt()
-	if err != nil {
+	if err := d.ledstrip.Halt(); err != nil {
 		return err
 	}
 
-	err = d.display.Halt()
-	if err != nil {
+	if err := d.display.Halt(); err != nil {
 		return err
 	}
 
-	err = d.ledR.Out(gpio.Low)
-	if err != nil {
+	if err := d.ledR.Halt(); err != nil {
 		return err
 	}
 
-	err = d.ledG.Out(gpio.Low)
-	if err != nil {
+	if err := d.ledG.Halt(); err != nil {
 		return err
 	}
 
-	err = d.ledB.Out(gpio.Low)
-	if err != nil {
+	if err := d.ledB.Halt(); err != nil {
+		return err
+	}
+
+	if err := d.buttonA.Halt(); err != nil {
+		return err
+	}
+
+	if err := d.buttonB.Halt(); err != nil {
+		return err
+	}
+
+	if err := d.buttonC.Halt(); err != nil {
 		return err
 	}
 

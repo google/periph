@@ -4,12 +4,12 @@
 package ht16k33_test
 
 import (
+	"fmt"
 	"log"
 	"time"
 
 	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/experimental/devices/ht16k33"
-
 	"periph.io/x/periph/host"
 )
 
@@ -31,21 +31,33 @@ func Example() {
 	}
 	defer display.Halt()
 
-	display.DisplayString("ABCD", true)
+	if _, err := display.WriteString("ABCD"); err != nil {
+		log.Fatal(err)
+	}
 	time.Sleep(1 * time.Second)
 
-	display.DisplayString("GO", true)
+	if _, err := display.WriteString("GO"); err != nil {
+		log.Fatal(err)
+	}
 	time.Sleep(1 * time.Second)
 
-	display.DisplayInt(1234, true)
+	if _, err := display.WriteString(fmt.Sprintf("%d", 1234)); err != nil {
+		log.Fatal(err)
+	}
 	time.Sleep(1 * time.Second)
 
-	display.DisplayInt(60, true)
+	if _, err := display.WriteString(fmt.Sprintf("%d", 60)); err != nil {
+		log.Fatal(err)
+	}
 	time.Sleep(1 * time.Second)
 
-	display.DisplayFloat(23.99, true)
+	if _, err := display.WriteString(fmt.Sprintf("%5f", 23.99)); err != nil {
+		log.Fatal(err)
+	}
 	time.Sleep(1 * time.Second)
 
-	display.DisplayFloat(1.45, true)
+	if _, err := display.WriteString(fmt.Sprintf("%5f", 1.45)); err != nil {
+		log.Fatal(err)
+	}
 	time.Sleep(1 * time.Second)
 }

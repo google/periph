@@ -28,7 +28,7 @@ const (
 // BlinkFrequency display frequency must be a value allowed by the HT16K33.
 type BlinkFrequency byte
 
-// Note that frequency must be a value allowed by the HT16K33, specifically one of:
+// Blinking frequencies.
 const (
 	BlinkOff    = 0x00
 	Blink2Hz    = 0x02
@@ -38,18 +38,16 @@ const (
 
 // Dev is a handler to ht16k33 controller
 type Dev struct {
-	dev *i2c.Dev
+	dev i2c.Dev
 }
 
 // NewI2C returns a Dev object that communicates over I2C.
 //
 // To use on the default address, ht16k33.I2CAddr must be passed as argument.
 func NewI2C(bus i2c.Bus, address uint16) (*Dev, error) {
-	dev := &Dev{
-		dev: &i2c.Dev{Bus: bus, Addr: address},
-	}
-	err := dev.init()
-	if err != nil {
+	dev := &Dev{dev: i2c.Dev{Bus: bus, Addr: address}}
+
+	if err := dev.init(); err != nil {
 		return nil, err
 	}
 
@@ -92,24 +90,20 @@ func (d *Dev) SetBlink(freq BlinkFrequency) error {
 // Supports 16 levels, from 0 to 15.
 func (d *Dev) SetBrightness(brightness int) error {
 	if brightness < 0 || brightness > 15 {
-		return errors.New("Brightness must be a value of 0 to 15")
+		return errors.New("ht16k33: brightness must be between 0 and 15")
 	}
-	if _, err := d.dev.Write([]byte{cmdBrightness | byte(brightness)}); err != nil {
-		return err
-	}
-	return nil
+	_, err := d.dev.Write([]byte{cmdBrightness | byte(brightness)})
+	return err
 }
 
-// WriteColumn oie
+// WriteColumn set data in a given column.
 func (d *Dev) WriteColumn(column int, data uint16) error {
-	if _, err := d.dev.Write([]byte{byte(column * 2), byte(data & 0xFF), byte(data >> 8)}); err != nil {
-		return err
-	}
-	return nil
+	_, err := d.dev.Write([]byte{byte(column * 2), byte(data & 0xFF), byte(data >> 8)})
+	return err
 }
 
-// Clear contents of display buffer.
-func (d *Dev) Clear() error {
+// Halt clear the contents of display buffer.
+func (d *Dev) Halt() error {
 	for i := 0; i < 4; i++ {
 		if err := d.WriteColumn(i, 0); err != nil {
 			return err
