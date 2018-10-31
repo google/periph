@@ -51,19 +51,19 @@ func mainImpl() error {
 
 	// Read values from sensor every second.
 	everySecond := time.NewTicker(time.Second).C
-	var halt = make(chan os.Signal)
-	signal.Notify(halt, syscall.SIGTERM)
-	signal.Notify(halt, syscall.SIGINT)
+	var quit = make(chan os.Signal)
+	defer sensor.Halt()
+	signal.Notify(quit, syscall.SIGTERM)
+	signal.Notify(quit, syscall.SIGINT)
 
-	fmt.Println("ctrl+c to exit")
+	fmt.Println("ctrl+c to quit")
 
 	senseTime := time.Millisecond * 300
 
 	for {
 		select {
-		case <-halt:
-			sensor.Halt()
-			return fmt.Errorf("got exit signal")
+		case <-quit:
+			return nil
 		case <-everySecond:
 			spectrum, err := sensor.Sense(100*physic.MilliAmpere, senseTime)
 			if err != nil {
