@@ -2,12 +2,9 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// +build go1.7
-
 package as7262
 
 import (
-	"context"
 	"reflect"
 	"testing"
 	"time"
@@ -93,13 +90,13 @@ func TestDev_Sense(t *testing.T) {
 			tx:       sensorTestCaseInteruptValidRead,
 		},
 		{
-			name: "interuptTimeout",
+			name: "haltBeforeforEdge",
 			opts: Opts{
 				InterruptPin: intPin,
 			},
 			waiter:   dontwait,
 			sendEdge: false,
-			wantErr:  errPinTimeout,
+			wantErr:  errHalted,
 			want:     Spectrum{},
 			tx:       sensorTestCaseInteruptValidRead,
 		},
@@ -172,37 +169,39 @@ func TestDev_Sense(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		bus := &i2ctest.Playback{
+			Ops:       tt.tx,
+			DontPanic: true,
+		}
+		d, _ := New(bus, &tt.opts)
 
-			bus := &i2ctest.Playback{
-				Ops:       tt.tx,
-				DontPanic: true,
+		waitForSensor = tt.waiter(d)
+
+		if d.interrupt != nil && tt.sendEdge {
+			intPin.EdgesChan <- gpio.High
+		}
+		if tt.name == "haltBeforeforEdge" {
+			// Time must be less than senseTime.
+			time.AfterFunc(time.Millisecond, func() {
+				d.Halt()
+			})
+		}
+
+		got, err := d.Sense(physic.MilliAmpere*100, time.Millisecond*3)
+
+		if _, ok := tt.wantErr.(*IOError); ok {
+			if _, ok := err.(*IOError); !ok {
+				t.Errorf("expected IOError but %T", err)
 			}
-			d, _ := New(bus, &tt.opts)
-
-			waitForSensor = tt.waiter(d)
-
-			if d.interrupt != nil && tt.sendEdge {
-				intPin.EdgesChan <- gpio.High
+			if err.(*IOError).Op != tt.wantErr.(*IOError).Op {
+				t.Errorf("expected %s, but got %s", tt.wantErr.(*IOError).Op, err.(*IOError).Op)
 			}
-
-			got, err := d.Sense(physic.MilliAmpere*100, time.Millisecond*3)
-
-			if _, ok := tt.wantErr.(*IOError); ok {
-				if _, ok := err.(*IOError); !ok {
-					t.Errorf("expected IOError but %T", err)
-				}
-				if err.(*IOError).Op != tt.wantErr.(*IOError).Op {
-					t.Errorf("expected %s, but got %s", tt.wantErr.(*IOError).Op, err.(*IOError).Op)
-				}
-			} else if err != tt.wantErr {
-				t.Errorf("expected error: %v but got: %v", tt.wantErr, got)
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Dev.Sense() = %v, want %v", got, tt.want)
-			}
-
-		})
+		} else if err != tt.wantErr {
+			t.Errorf("expected error: %v but got: %v", tt.wantErr, got)
+		}
+		if !reflect.DeepEqual(got, tt.want) {
+			t.Errorf("Dev.Sense() = %v, want %v", got, tt.want)
+		}
 	}
 }
 
@@ -222,15 +221,13 @@ func Test_calcSenseTime(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			got1, got2 := calcSenseTime(test.t)
-			if got1 != test.want1 {
-				t.Errorf("calcSenseTime() expected %v but got %v", test.want1, got1)
-			}
-			if got2 != test.want2 {
-				t.Errorf("calcSenseTime() expected %v but got %v", test.want2, got2)
-			}
-		})
+		got1, got2 := calcSenseTime(test.t)
+		if got1 != test.want1 {
+			t.Errorf("calcSenseTime() expected %v but got %v", test.want1, got1)
+		}
+		if got2 != test.want2 {
+			t.Errorf("calcSenseTime() expected %v but got %v", test.want2, got2)
+		}
 	}
 }
 
@@ -254,11 +251,9 @@ func Test_calcLed(t *testing.T) {
 		{"-1", -1 * physic.MilliAmpere, 0x00},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got, _ := calcLed(tt.drive); got != tt.want {
-				t.Errorf("calcLed() = %v, want %v", got, tt.want)
-			}
-		})
+		if got, _ := calcLed(tt.drive); got != tt.want {
+			t.Errorf("calcLed() = %v, want %v", got, tt.want)
+		}
 	}
 }
 
@@ -372,44 +367,40 @@ func TestDev_pollStatus(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		bus := &i2ctest.Playback{
+			Ops:       tt.tx,
+			DontPanic: true,
+		}
 
-		t.Run(tt.name, func(t *testing.T) {
-			bus := &i2ctest.Playback{
-				Ops:       tt.tx,
-				DontPanic: true,
-			}
-			ctx, cancel := context.WithCancel(context.Background())
+		d := &Dev{
+			c:       &i2c.Dev{Bus: bus, Addr: 0x49},
+			done:    make(chan struct{}, 1),
+			timeout: tt.timeout,
+		}
+		defer d.Halt()
+		if tt.halt > time.Nanosecond {
+			go func() {
+				time.Sleep(tt.halt)
+				d.Halt()
+			}()
+		} else if tt.halt != 0 {
+			d.Halt()
+			d.Halt()
+		}
 
-			defer cancel()
-			d := &Dev{
-				c:       &i2c.Dev{Bus: bus, Addr: 0x49},
-				cancel:  cancel,
-				ctx:     ctx,
-				timeout: tt.timeout,
-			}
-			if tt.halt > time.Nanosecond {
-				go func() {
-					time.Sleep(tt.halt)
-					cancel()
-				}()
-			} else if tt.halt != 0 {
-				cancel()
-			}
+		got := d.pollStatus(tt.dir)
+		// t.Errorf("expected error: %v but got: %v", tt.wantErr, got)
 
-			got := d.pollStatus(tt.dir)
-			// t.Errorf("expected error: %v but got: %v", tt.wantErr, got)
-
-			if _, ok := tt.wantErr.(*IOError); ok {
-				if _, ok := got.(*IOError); !ok {
-					t.Errorf("expected IOError but %T", got)
-				}
-				if got.(*IOError).Op != tt.wantErr.(*IOError).Op {
-					t.Errorf("expected %s, but got %s", tt.wantErr.(*IOError).Op, got.(*IOError).Op)
-				}
-			} else if got != tt.wantErr {
-				t.Errorf("expected error: %v but got: %v", tt.wantErr, got)
+		if _, ok := tt.wantErr.(*IOError); ok {
+			if _, ok := got.(*IOError); !ok {
+				t.Errorf("expected IOError but %T", got)
 			}
-		})
+			if got.(*IOError).Op != tt.wantErr.(*IOError).Op {
+				t.Errorf("expected %s, but got %s", tt.wantErr.(*IOError).Op, got.(*IOError).Op)
+			}
+		} else if got != tt.wantErr {
+			t.Errorf("expected error: %v but got: %v", tt.wantErr, got)
+		}
 	}
 }
 
@@ -472,42 +463,37 @@ func TestDev_writeVirtualRegister(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		bus := &i2ctest.Playback{
+			Ops:       tt.tx,
+			DontPanic: true,
+		}
 
-		t.Run(tt.name, func(t *testing.T) {
-			bus := &i2ctest.Playback{
-				Ops:       tt.tx,
-				DontPanic: true,
-			}
-			ctx, cancel := context.WithCancel(context.Background())
+		d := &Dev{
+			c:       &i2c.Dev{Bus: bus, Addr: 0x49},
+			done:    make(chan struct{}, 1),
+			timeout: tt.timeout,
+		}
+		defer d.Halt()
+		if tt.halt > time.Nanosecond {
+			go func() {
+				time.Sleep(tt.halt)
+				d.Halt()
+			}()
+		} else if tt.halt != 0 {
+			d.Halt()
+		}
 
-			defer cancel()
-			d := &Dev{
-				c:       &i2c.Dev{Bus: bus, Addr: 0x49},
-				cancel:  cancel,
-				ctx:     ctx,
-				timeout: tt.timeout,
+		got := d.writeVirtualRegister(0x04, 0xFF)
+		if _, ok := tt.wantErr.(*IOError); ok {
+			if _, ok := got.(*IOError); !ok {
+				t.Errorf("expected IOError but %T", got)
 			}
-			if tt.halt > time.Nanosecond {
-				go func() {
-					time.Sleep(tt.halt)
-					cancel()
-				}()
-			} else if tt.halt != 0 {
-				cancel()
+			if got.(*IOError).Op != tt.wantErr.(*IOError).Op {
+				t.Errorf("expected %s, but got %s", tt.wantErr.(*IOError).Op, got.(*IOError).Op)
 			}
-
-			got := d.writeVirtualRegister(0x04, 0xFF)
-			if _, ok := tt.wantErr.(*IOError); ok {
-				if _, ok := got.(*IOError); !ok {
-					t.Errorf("expected IOError but %T", got)
-				}
-				if got.(*IOError).Op != tt.wantErr.(*IOError).Op {
-					t.Errorf("expected %s, but got %s", tt.wantErr.(*IOError).Op, got.(*IOError).Op)
-				}
-			} else if got != tt.wantErr {
-				t.Errorf("expected error: %v but got: %v", tt.wantErr, got)
-			}
-		})
+		} else if got != tt.wantErr {
+			t.Errorf("expected error: %v but got: %v", tt.wantErr, got)
+		}
 	}
 }
 
@@ -605,42 +591,36 @@ func TestDev_readVirtualRegister(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		bus := &i2ctest.Playback{
+			Ops:       tt.tx,
+			DontPanic: true,
+		}
+		d := &Dev{
+			c:       &i2c.Dev{Bus: bus, Addr: 0x49},
+			done:    make(chan struct{}, 1),
+			timeout: tt.timeout,
+		}
+		// defer d.Halt()
+		if tt.halt > time.Nanosecond {
+			go func() {
+				time.Sleep(tt.halt)
+				d.Halt()
+			}()
+		} else if tt.halt != 0 {
+			d.Halt()
+		}
 
-		t.Run(tt.name, func(t *testing.T) {
-			bus := &i2ctest.Playback{
-				Ops:       tt.tx,
-				DontPanic: true,
+		got := d.readVirtualRegister(0x04, tt.data)
+		if _, ok := tt.wantErr.(*IOError); ok {
+			if _, ok := got.(*IOError); !ok {
+				t.Errorf("expected IOError but %T", got)
 			}
-			ctx, cancel := context.WithCancel(context.Background())
-
-			defer cancel()
-			d := &Dev{
-				c:       &i2c.Dev{Bus: bus, Addr: 0x49},
-				cancel:  cancel,
-				ctx:     ctx,
-				timeout: tt.timeout,
+			if got.(*IOError).Op != tt.wantErr.(*IOError).Op {
+				t.Errorf("expected %s, but got %s", tt.wantErr.(*IOError).Op, got.(*IOError).Op)
 			}
-			if tt.halt > time.Nanosecond {
-				go func() {
-					time.Sleep(tt.halt)
-					cancel()
-				}()
-			} else if tt.halt != 0 {
-				cancel()
-			}
-
-			got := d.readVirtualRegister(0x04, tt.data)
-			if _, ok := tt.wantErr.(*IOError); ok {
-				if _, ok := got.(*IOError); !ok {
-					t.Errorf("expected IOError but %T", got)
-				}
-				if got.(*IOError).Op != tt.wantErr.(*IOError).Op {
-					t.Errorf("expected %s, but got %s", tt.wantErr.(*IOError).Op, got.(*IOError).Op)
-				}
-			} else if got != tt.wantErr {
-				t.Errorf("expected error: %v but got: %v", tt.wantErr, got)
-			}
-		})
+		} else if got != tt.wantErr {
+			t.Errorf("expected error: %v but got: %v", tt.wantErr, got)
+		}
 	}
 }
 
@@ -752,47 +732,41 @@ func TestDev_pollDataReady(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		bus := &i2ctest.Playback{
+			Ops:       tt.tx,
+			DontPanic: true,
+		}
 
-		t.Run(tt.name, func(t *testing.T) {
-			bus := &i2ctest.Playback{
-				Ops:       tt.tx,
-				DontPanic: true,
-			}
-			ctx, cancel := context.WithCancel(context.Background())
-
-			defer cancel()
-			d := &Dev{
-				c:       &i2c.Dev{Bus: bus, Addr: 0x49},
-				cancel:  cancel,
-				ctx:     ctx,
-				timeout: tt.timeout,
-			}
-			if tt.halt > time.Nanosecond {
-				go func() {
-					time.Sleep(tt.halt)
-					d.Halt()
-				}()
-			} else if tt.halt != 0 {
+		d := &Dev{
+			c:       &i2c.Dev{Bus: bus, Addr: 0x49},
+			done:    make(chan struct{}, 1),
+			timeout: tt.timeout,
+		}
+		defer d.Halt()
+		if tt.halt > time.Nanosecond {
+			go func() {
+				time.Sleep(tt.halt)
 				d.Halt()
-			}
+			}()
+		} else if tt.halt != 0 {
+			d.Halt()
+		}
 
-			got := d.pollDataReady()
-			if _, ok := tt.wantErr.(*IOError); ok {
-				if _, ok := got.(*IOError); !ok {
-					t.Errorf("expected IOError but %T", got)
-				}
-				if got.(*IOError).Op != tt.wantErr.(*IOError).Op {
-					t.Errorf("expected %s, but got %s", tt.wantErr.(*IOError).Op, got.(*IOError).Op)
-				}
-			} else if got != tt.wantErr {
-				t.Errorf("expected error: %v but got: %v", tt.wantErr, got)
+		got := d.pollDataReady()
+		if _, ok := tt.wantErr.(*IOError); ok {
+			if _, ok := got.(*IOError); !ok {
+				t.Errorf("expected IOError but %T", got)
 			}
-		})
+			if got.(*IOError).Op != tt.wantErr.(*IOError).Op {
+				t.Errorf("expected %s, but got %s", tt.wantErr.(*IOError).Op, got.(*IOError).Op)
+			}
+		} else if got != tt.wantErr {
+			t.Errorf("expected error: %v but got: %v", tt.wantErr, got)
+		}
 	}
 }
 
 func TestNew(t *testing.T) {
-	// _, cancel := context.WithCancel(context.Background())
 
 	tests := []struct {
 		name    string
@@ -809,22 +783,19 @@ func TestNew(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
 
-			bus := &i2ctest.Playback{DontPanic: true}
-			d, err := New(bus, &tt.opts)
-			if err != nil != tt.wantErr {
-				t.Errorf("New() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if tt.want1 != d.gain {
-				t.Errorf("New() wanted %v but got %v", tt.want1, d.gain)
-			}
-			if tt.want2 != d.interrupt {
-				t.Errorf("New() wanted %v but got %v", tt.want2, d.interrupt)
-			}
-
-		})
+		bus := &i2ctest.Playback{DontPanic: true}
+		d, err := New(bus, &tt.opts)
+		if err != nil != tt.wantErr {
+			t.Errorf("New() error = %v, wantErr %v", err, tt.wantErr)
+			return
+		}
+		if tt.want1 != d.gain {
+			t.Errorf("New() wanted %v but got %v", tt.want1, d.gain)
+		}
+		if tt.want2 != d.interrupt {
+			t.Errorf("New() wanted %v but got %v", tt.want2, d.interrupt)
+		}
 	}
 }
 
@@ -833,6 +804,7 @@ func TestDev_Gain(t *testing.T) {
 		name    string
 		tx      []i2ctest.IO
 		timeout time.Duration
+		halt    bool
 		gain    Gain
 		wantErr error
 	}{
@@ -844,6 +816,24 @@ func TestDev_Gain(t *testing.T) {
 			},
 			timeout: time.Millisecond * 100,
 			wantErr: &IOError{"reading status register", nil},
+		},
+		{
+			name: "errHalt",
+			tx: []i2ctest.IO{
+				{Addr: 0x49, W: []byte{statusReg}, R: []byte{0x03}},
+				{Addr: 0x49, W: []byte{statusReg}, R: []byte{0x03}},
+				{Addr: 0x49, W: []byte{statusReg}, R: []byte{0x03}},
+				{Addr: 0x49, W: []byte{statusReg}, R: []byte{0x03}},
+				{Addr: 0x49, W: []byte{statusReg}, R: []byte{0x03}},
+			},
+			halt:    true,
+			timeout: time.Millisecond * 100,
+			wantErr: errHalted,
+		},
+		{
+			name:    "errGainValue",
+			gain:    Gain(255),
+			wantErr: errGainValue,
 		},
 		{
 			name: "ok",
@@ -859,27 +849,27 @@ func TestDev_Gain(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		bus := &i2ctest.Playback{
+			Ops:       tt.tx,
+			DontPanic: true,
+		}
+		d, _ := New(bus, &DefaultOpts)
+		go func() {
+			time.Sleep(time.Millisecond * 1)
+			d.Halt()
+		}()
+		got := d.Gain(tt.gain)
 
-		t.Run(tt.name, func(t *testing.T) {
-			bus := &i2ctest.Playback{
-				Ops:       tt.tx,
-				DontPanic: true,
+		if _, ok := tt.wantErr.(*IOError); ok {
+			if _, ok := got.(*IOError); !ok {
+				t.Errorf("expected IOError but %T", got)
 			}
-			d, _ := New(bus, &DefaultOpts)
-
-			got := d.Gain(tt.gain)
-
-			if _, ok := tt.wantErr.(*IOError); ok {
-				if _, ok := got.(*IOError); !ok {
-					t.Errorf("expected IOError but %T", got)
-				}
-				if got.(*IOError).Op != tt.wantErr.(*IOError).Op {
-					t.Errorf("expected %s, but got %s", tt.wantErr.(*IOError).Op, got.(*IOError).Op)
-				}
-			} else if got != tt.wantErr {
-				t.Errorf("expected error: %v but got: %v", tt.wantErr, got)
+			if got.(*IOError).Op != tt.wantErr.(*IOError).Op {
+				t.Errorf("expected %s, but got %s", tt.wantErr.(*IOError).Op, got.(*IOError).Op)
 			}
-		})
+		} else if got != tt.wantErr {
+			t.Errorf("expected error: %v but got: %v", tt.wantErr, got)
+		}
 	}
 }
 
@@ -888,6 +878,47 @@ func TestDev_String(t *testing.T) {
 	d := &Dev{}
 	if d.String() != want {
 		t.Errorf("expected %s but got %s", want, d.String())
+	}
+}
+
+func TestBand_String(t *testing.T) {
+	want := " Band(0m)     0.0 counts"
+	d := Band{}
+	if d.String() != want {
+		t.Errorf("expected %s but got %s", want, d.String())
+	}
+}
+
+func TestSpectrum_String(t *testing.T) {
+	want := "Spectrum: Gain:1x, Led Drive 100mA, Sense Time: 2.8ms\n" +
+		"V Band(450nm)     0.2 counts\n" +
+		"B Band(500nm)     0.2 counts\n" +
+		"G Band(550nm)     0.2 counts\n" +
+		"Y Band(570nm)     0.2 counts\n" +
+		"O Band(600nm)     0.2 counts\n" +
+		"R Band(650nm)     0.2 counts"
+	d := validSpectrum
+	if d.String() != want {
+		t.Errorf("expected %s but got %s", want, d.String())
+	}
+}
+
+func TestGain_String(t *testing.T) {
+	tests := []struct {
+		name string
+		gain Gain
+		want string
+	}{
+		{"1x", G1x, "1x"},
+		{"4x", G4x, "3.7x"},
+		{"16x", G16x, "16x"},
+		{"64x", G64x, "64x"},
+		{"invalid", Gain(255), "bad gain value"},
+	}
+	for _, tt := range tests {
+		if got := tt.gain.String(); got != tt.want {
+			t.Errorf("Gain.String() %s expected %s but got %s", tt.name, tt.want, got)
+		}
 	}
 }
 
@@ -902,12 +933,27 @@ func TestIOError_Error(t *testing.T) {
 		{"errTimeoutPin", "", errPinTimeout, "ioerror while : timeout waiting for interrupt signal on pin"},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			e := &IOError{tt.op, tt.err}
-			got := e.Error()
-			if tt.want != got {
-				t.Errorf("expected %s but got %s", tt.want, got)
-			}
-		})
+		e := &IOError{tt.op, tt.err}
+		got := e.Error()
+		if tt.want != got {
+			t.Errorf("expected %s but got %s", tt.want, got)
+		}
+	}
+}
+
+func TestIntergration_AfterHalt(t *testing.T) {
+	bus := &i2ctest.Playback{
+		Ops:       sensorTestCaseValidRead,
+		DontPanic: true,
+	}
+	d, _ := New(bus, &DefaultOpts)
+
+	d.Halt()
+	if _, err := d.Sense(physic.MilliAmpere*100, time.Millisecond*3); err == errHalted {
+		t.Errorf("got %v expected nil", errHalted)
+	}
+	d.Halt()
+	if err := d.Gain(G1x); err == errHalted {
+		t.Errorf("got %v expected nil", errHalted)
 	}
 }

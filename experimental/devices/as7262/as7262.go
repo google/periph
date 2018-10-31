@@ -2,12 +2,9 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// +build go1.7
-
 package as7262
 
 import (
-	"context"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -35,34 +32,33 @@ var DefaultOpts = Opts{
 
 // New opens a handle to an AS7262 sensor.
 func New(bus i2c.Bus, opts *Opts) (*Dev, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-	<-ctx.Done()
+	// The nil or zero values for gain and interrupt are valid
 	return &Dev{
 		c:         &i2c.Dev{Bus: bus, Addr: 0x49},
 		gain:      opts.Gain,
 		interrupt: opts.InterruptPin,
-		order:     binary.BigEndian,
+		done:      make(chan struct{}, 1),
 		timeout:   200 * time.Millisecond,
-		cancel:    cancel,
-		ctx:       ctx,
 	}, nil
 }
 
 // Dev is a handle to the as7262 sensor.
 type Dev struct {
-	mu        sync.Mutex
 	c         conn.Conn
 	timeout   time.Duration
 	interrupt gpio.PinIn
-	// A new context should be provided for long running operations.
-	cancel context.CancelFunc
-	ctx    context.Context
-	gain   Gain
-	order  binary.ByteOrder
+
+	// Mutable
+	mu   sync.Mutex
+	gain Gain
+	done chan struct{}
+
+	// Guards canceled
+	canceledMu sync.Mutex
+	canceled   bool
 }
 
-// Spectrum is the reading from the senor including the actual sensor state for
+// Spectrum is the reading from the sensor including the actual sensor state for
 // the readings.
 type Spectrum struct {
 	Bands             []Band
@@ -70,7 +66,14 @@ type Spectrum struct {
 	Gain              Gain
 	LedDrive          physic.ElectricCurrent
 	Integration       time.Duration
-	//TODO:(NeuralSpaz) Pretty Printer.
+}
+
+func (s Spectrum) String() string {
+	str := fmt.Sprintf("Spectrum: Gain:%s, Led Drive %s, Sense Time: %s", s.Gain, s.LedDrive, s.Integration)
+	for _, band := range s.Bands {
+		str += "\n" + band.String()
+	}
+	return str
 }
 
 // Band has two types of measurement of relative spectral flux density.
@@ -97,6 +100,10 @@ type Band struct {
 	Name       string
 }
 
+func (b Band) String() string {
+	return fmt.Sprintf("%s Band(%s) %7.1f counts", b.Name, b.Wavelength, b.Value)
+}
+
 // Sense preforms a reading of relative spectral radiance of all the sensor
 // bands.
 //
@@ -118,8 +125,11 @@ func (d *Dev) Sense(ledDrive physic.ElectricCurrent, senseTime time.Duration) (S
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	d.ctx, d.cancel = context.WithCancel(context.Background())
-	defer d.cancel()
+	done := make(chan struct{}, 1)
+	d.canceledMu.Lock()
+	d.done = done
+	d.canceled = false
+	d.canceledMu.Unlock()
 
 	it, integration := calcSenseTime(senseTime)
 	if err := d.writeVirtualRegister(intergrationReg, it); err != nil {
@@ -146,7 +156,7 @@ func (d *Dev) Sense(ledDrive physic.ElectricCurrent, senseTime time.Duration) (S
 			if !edge {
 				return Spectrum{}, errPinTimeout
 			}
-		case <-d.ctx.Done():
+		case <-d.done:
 			return Spectrum{}, errHalted
 		}
 	} else {
@@ -156,7 +166,7 @@ func (d *Dev) Sense(ledDrive physic.ElectricCurrent, senseTime time.Duration) (S
 			if err := d.pollDataReady(); err != nil {
 				return Spectrum{}, err
 			}
-		case <-d.ctx.Done():
+		case <-d.done:
 			return Spectrum{}, errHalted
 		}
 
@@ -176,19 +186,19 @@ func (d *Dev) Sense(ledDrive physic.ElectricCurrent, senseTime time.Duration) (S
 		return Spectrum{}, err
 	}
 
-	v := d.order.Uint16(raw[0:2])
-	b := d.order.Uint16(raw[2:4])
-	g := d.order.Uint16(raw[4:6])
-	y := d.order.Uint16(raw[6:8])
-	o := d.order.Uint16(raw[8:10])
-	r := d.order.Uint16(raw[10:12])
+	v := binary.BigEndian.Uint16(raw[0:2])
+	b := binary.BigEndian.Uint16(raw[2:4])
+	g := binary.BigEndian.Uint16(raw[4:6])
+	y := binary.BigEndian.Uint16(raw[6:8])
+	o := binary.BigEndian.Uint16(raw[8:10])
+	r := binary.BigEndian.Uint16(raw[10:12])
 
-	vcal := float64(math.Float32frombits(d.order.Uint32(cal[0:4])))
-	bcal := float64(math.Float32frombits(d.order.Uint32(cal[4:8])))
-	gcal := float64(math.Float32frombits(d.order.Uint32(cal[8:12])))
-	ycal := float64(math.Float32frombits(d.order.Uint32(cal[12:16])))
-	ocal := float64(math.Float32frombits(d.order.Uint32(cal[16:20])))
-	rcal := float64(math.Float32frombits(d.order.Uint32(cal[20:24])))
+	vcal := float64(math.Float32frombits(binary.BigEndian.Uint32(cal[0:4])))
+	bcal := float64(math.Float32frombits(binary.BigEndian.Uint32(cal[4:8])))
+	gcal := float64(math.Float32frombits(binary.BigEndian.Uint32(cal[8:12])))
+	ycal := float64(math.Float32frombits(binary.BigEndian.Uint32(cal[12:16])))
+	ocal := float64(math.Float32frombits(binary.BigEndian.Uint32(cal[16:20])))
+	rcal := float64(math.Float32frombits(binary.BigEndian.Uint32(cal[20:24])))
 
 	traw := make([]byte, 1)
 	if err := d.readVirtualRegister(deviceTemperatureReg, traw); err != nil {
@@ -213,13 +223,18 @@ func (d *Dev) Sense(ledDrive physic.ElectricCurrent, senseTime time.Duration) (S
 
 var waitForSensor = time.After
 
-// Halt stops any pending operations
+// Halt stops any pending operations. Repeated calls to Halt do nothing.
 func (d *Dev) Halt() error {
-	d.cancel()
+	d.canceledMu.Lock()
+	defer d.canceledMu.Unlock()
+
+	if !d.canceled {
+		d.done <- struct{}{}
+		d.canceled = true
+	}
 	return nil
 }
 
-// String implaments the stringer interface
 func (d *Dev) String() string {
 	return fmt.Sprintf("AMS AS7262 6 channel visible spectrum sensor")
 }
@@ -238,16 +253,42 @@ const (
 	G64x Gain = 0x30
 )
 
+const (
+	_GainG1x  = "1x"
+	_GainG4x  = "3.7x"
+	_GainG16x = "16x"
+	_GainG64x = "64x"
+)
+
+func (g Gain) String() string {
+	switch {
+	case g == 0:
+		return _GainG1x
+	case g == 16:
+		return _GainG4x
+	case g == 32:
+		return _GainG16x
+	case g == 48:
+		return _GainG64x
+	default:
+		return "bad gain value"
+	}
+}
+
 // Gain sets the gain of the sensor. There are four levels of gain 1x, 3.7x, 16x,
 // and 64x.
 func (d *Dev) Gain(gain Gain) error {
-	// TODO(NeuralSpaz): check that value is valid before writing. Currently
-	// a client could cast any int as Gain.
+	if gain != G1x && gain != G4x && gain != G16x && gain != G64x {
+		return errGainValue
+	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	d.ctx, d.cancel = context.WithCancel(context.Background())
-	defer d.cancel()
+	done := make(chan struct{}, 1)
+	d.canceledMu.Lock()
+	d.done = done
+	d.canceled = false
+	d.canceledMu.Unlock()
 
 	if err := d.writeVirtualRegister(controlReg, uint8(gain)); err != nil {
 		return err
@@ -320,8 +361,8 @@ func (d *Dev) readVirtualRegister(register byte, data []byte) error {
 
 // Polls the data ready bit in the control register(virtual)
 func (d *Dev) pollDataReady() error {
-	pollctx, cancel := context.WithTimeout(context.Background(), d.timeout)
-	defer cancel()
+	timeout := time.NewTimer(d.timeout)
+	defer timeout.Stop()
 
 	for {
 		if err := d.pollStatus(clearBuffer); err != nil {
@@ -350,10 +391,10 @@ func (d *Dev) pollDataReady() error {
 		select {
 		case <-time.After(5 * time.Millisecond):
 			// Polling interval.
-		case <-pollctx.Done():
+		case <-timeout.C:
 			// Return error if it takes too long.
 			return errStatusDeadline
-		case <-d.ctx.Done():
+		case <-d.done:
 			return errHalted
 		}
 	}
@@ -376,11 +417,11 @@ const (
 // in the relevent buffer before a transaction while with a timeout.
 // Direction is used to set which buffer is being polled to be ready.
 func (d *Dev) pollStatus(dir direction) error {
-	pollctx, cancel := context.WithTimeout(context.Background(), d.timeout)
-	defer cancel()
+	timeout := time.NewTimer(d.timeout)
+	defer timeout.Stop()
 	// Check if already canceled first
 	select {
-	case <-d.ctx.Done():
+	case <-d.done:
 		return errHalted
 	default:
 		// Proceed.
@@ -424,10 +465,10 @@ func (d *Dev) pollStatus(dir direction) error {
 		select {
 		case <-time.After(5 * time.Millisecond):
 			// Polling interval.
-		case <-pollctx.Done():
+		case <-timeout.C:
 			// Return error if it takes too long.
 			return errStatusDeadline
-		case <-d.ctx.Done():
+		case <-d.done:
 			return errHalted
 		}
 	}
@@ -489,7 +530,6 @@ type IOError struct {
 	Err error
 }
 
-// Error implements the Error interface.
 func (e *IOError) Error() string {
 	if e.Err != nil {
 		return "ioerror while " + e.Op + ": " + e.Err.Error()
@@ -501,6 +541,7 @@ var (
 	errStatusDeadline = errors.New("deadline exceeded reading status register")
 	errPinTimeout     = errors.New("timeout waiting for interrupt signal on pin")
 	errHalted         = errors.New("received halt command")
+	errGainValue      = errors.New("invalid gain value")
 )
 
 const (

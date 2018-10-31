@@ -3,17 +3,12 @@
 // that can be found in the LICENSE file.
 
 // as7262 communicates with an as7262 continually reading the spectrum.
-
-// +build go1.7
-
 package main
 
 import (
 	"flag"
 	"fmt"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"periph.io/x/periph/conn/i2c/i2creg"
@@ -40,19 +35,15 @@ func mainImpl() error {
 	}
 	defer bus.Close()
 
-	// Create a new power sensor a sense with default options of 100 mΩ, 3.2A at
-	// address of 0x40 if no other address supplied with command line option.
+	// Create a spectrum sensor.
 	sensor, err := as7262.New(bus, &as7262.Opts{Gain: as7262.G16x})
 	if err != nil {
 		return fmt.Errorf("failed to open new sensor: %v", err)
 	}
 
-	// Read values from sensor every second.
+	// Create a ticker to read values from sensor every second.
 	everySecond := time.NewTicker(time.Second).C
-	var quit = make(chan os.Signal)
 	defer sensor.Halt()
-	signal.Notify(quit, syscall.SIGTERM)
-	signal.Notify(quit, syscall.SIGINT)
 
 	fmt.Println("ctrl+c to quit")
 
@@ -60,10 +51,8 @@ func mainImpl() error {
 
 	for {
 		select {
-		case <-quit:
-			return nil
 		case <-everySecond:
-			spectrum, err := sensor.Sense(100*physic.MilliAmpere, senseTime)
+			spectrum, err := sensor.Sense(12500*physic.MicroAmpere, senseTime)
 			if err != nil {
 				return fmt.Errorf("sensor reading error: %v", err)
 			}
