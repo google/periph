@@ -215,15 +215,13 @@ func Test_calcSenseTime(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			got1, got2 := calcSenseTime(test.t)
-			if got1 != test.want1 {
-				t.Errorf("calcSenseTime() expected %v but got %v", test.want1, got1)
-			}
-			if got2 != test.want2 {
-				t.Errorf("calcSenseTime() expected %v but got %v", test.want2, got2)
-			}
-		})
+		got1, got2 := calcSenseTime(test.t)
+		if got1 != test.want1 {
+			t.Errorf("calcSenseTime() expected %v but got %v", test.want1, got1)
+		}
+		if got2 != test.want2 {
+			t.Errorf("calcSenseTime() expected %v but got %v", test.want2, got2)
+		}
 	}
 }
 
