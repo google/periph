@@ -817,6 +817,11 @@ func TestDev_Gain(t *testing.T) {
 			wantErr: &IOError{"reading status register", nil},
 		},
 		{
+			name:    "errGainValue",
+			gain:    Gain(255),
+			wantErr: errGainValue,
+		},
+		{
 			name: "ok",
 			gain: G16x,
 			tx: []i2ctest.IO{
@@ -856,6 +861,47 @@ func TestDev_String(t *testing.T) {
 	d := &Dev{}
 	if d.String() != want {
 		t.Errorf("expected %s but got %s", want, d.String())
+	}
+}
+
+func TestBand_String(t *testing.T) {
+	want := " Band(0m)     0.0 counts"
+	d := Band{}
+	if d.String() != want {
+		t.Errorf("expected %s but got %s", want, d.String())
+	}
+}
+
+func TestSpectrum_String(t *testing.T) {
+	want := "Spectrum: Gain:1x, Led Drive 100mA, Sense Time: 2.8ms\n" +
+		"V Band(450nm)     0.2 counts\n" +
+		"B Band(500nm)     0.2 counts\n" +
+		"G Band(550nm)     0.2 counts\n" +
+		"Y Band(570nm)     0.2 counts\n" +
+		"O Band(600nm)     0.2 counts\n" +
+		"R Band(650nm)     0.2 counts"
+	d := validSpectrum
+	if d.String() != want {
+		t.Errorf("expected %s but got %s", want, d.String())
+	}
+}
+
+func TestGain_String(t *testing.T) {
+	tests := []struct {
+		name string
+		gain Gain
+		want string
+	}{
+		{"1x", G1x, "1x"},
+		{"4x", G4x, "3.7x"},
+		{"16x", G16x, "16x"},
+		{"64x", G64x, "64x"},
+		{"invalid", Gain(255), "bad gain value"},
+	}
+	for _, tt := range tests {
+		if got := tt.gain.String(); got != tt.want {
+			t.Errorf("Gain.String() %s expected %s but got %s", tt.name, tt.want, got)
+		}
 	}
 }
 
