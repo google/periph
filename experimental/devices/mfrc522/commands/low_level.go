@@ -24,7 +24,7 @@ const (
 	AuthFailure
 )
 
-// NewSPI creates and initializes the RFID card reader attached to SPI.
+// NewLowLevelSPI creates and initializes the RFID card reader attached to SPI.
 //
 // 	spiPort - the SPI device to use.
 // 	resetPin - reset GPIO pin.
