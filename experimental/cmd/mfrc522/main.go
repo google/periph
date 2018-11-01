@@ -134,7 +134,7 @@ func mainImpl() error {
 			}
 			defaultDataBytes[i] = byte(intVal)
 		}
-		err = rfid.WriteBlock(currentAccessMethod,
+		err = rfid.WriteCard(currentAccessMethod,
 			*sector,
 			*block,
 			defaultDataBytes,
