@@ -140,7 +140,7 @@ func (r *LowLevel) ClearBitmask(address, mask int) error {
 	return r.DevWrite(address, current&^byte(mask))
 }
 
-// stopCrypto stops the crypto chip.
+// StopCrypto stops the crypto chip.
 func (r *LowLevel) StopCrypto() error {
 	return r.ClearBitmask(Status2Reg, 0x08)
 }
