@@ -67,6 +67,25 @@ const (
 	Degree Angle = 17453293 * NanoRadian
 )
 
+// Set takes a string and tries to return a valid Angle.
+func (a *Angle) Set(s string) error {
+	v, n, err := setInt(s, nano)
+	if err != nil {
+		return err
+	}
+	switch s[n:] {
+	case "°", "Degrees", "degrees":
+		*a = (Angle)(v * int64(Degree) / int64(Radian))
+	case "Pi", "pi", "π":
+		*a = (Angle)(v * int64(Pi) / int64(Radian))
+	case "Radians", "radians", "Radian", "radian":
+		*a = (Angle)(v)
+	default:
+		return noUnits("Radian")
+	}
+	return nil
+}
+
 // Distance is a measurement of length stored as an int64 nano metre.
 //
 // This is one of the base unit in the International System of Units.
@@ -96,6 +115,47 @@ const (
 	Mile Distance = 1760 * Yard
 )
 
+// Set takes a string and tries to return a valid Distance.
+func (d *Distance) Set(s string) error {
+	dec, n, err := atod(s)
+	if err != nil {
+		return err
+	}
+	prefix := prefix(none)
+	if !(n == len(s)) {
+		var n1 int
+		prefix, n1 = parseSIPrefix([]rune(s[n:])[0])
+		if prefix == milli && !(s[n:] == "mm") {
+			prefix = none
+		}
+		if prefix == mega && !(s[n:] == "Mm") {
+			prefix = none
+		}
+		if prefix != none {
+			n += n1
+		}
+	}
+	v, err := dec.dtoi(int(prefix - nano))
+	if err != nil {
+		return err
+	}
+	switch s[n:] {
+	case "mile", "Mile", "miles", "Miles":
+		*d = (Distance)((v * 1609344) / 1000)
+	case "yard", "Yard", "yards", "Yards":
+		*d = (Distance)((v * 9144) / 10000)
+	case "foot", "Foot", "Feet", "feet", "ft", "Ft":
+		*d = (Distance)((v * 3048) / 10000)
+	case "in", "In", "inch", "Inch", "inches", "Inches":
+		*d = (Distance)((v * 254) / 10000)
+	case "m", "metre", "metres", "Metre", "Metres":
+		*d = (Distance)(v)
+	default:
+		return noUnits("m")
+	}
+	return nil
+}
+
 // ElectricCurrent is a measurement of a flow of electric charge stored as an
 // int64 nano Ampere.
 //
@@ -107,6 +167,22 @@ type ElectricCurrent int64
 // String returns the current formatted as a string in Ampere.
 func (e ElectricCurrent) String() string {
 	return nanoAsString(int64(e)) + "A"
+}
+
+// Set takes a string and tries to return a valid ElectricCurrent.
+func (e *ElectricCurrent) Set(s string) error {
+	v, n, err := setInt(s, nano)
+	if err != nil {
+		return err
+	}
+
+	switch s[n:] {
+	case "A", "a", "amp", "amps", "Amp", "Amps":
+		*e = (ElectricCurrent)(v)
+	default:
+		return noUnits("A")
+	}
+	return nil
 }
 
 const (
@@ -130,6 +206,22 @@ func (e ElectricPotential) String() string {
 	return nanoAsString(int64(e)) + "V"
 }
 
+// Set takes a string and tries to return a valid ElectricPotential.
+func (e *ElectricPotential) Set(s string) error {
+	v, n, err := setInt(s, nano)
+	if err != nil {
+		return err
+	}
+
+	switch s[n:] {
+	case "V", "v", "volt", "Volt", "volts", "Volts":
+		*e = (ElectricPotential)(v)
+	default:
+		return noUnits("V")
+	}
+	return nil
+}
+
 const (
 	// Volt is W/A, kg⋅m²/s³/A.
 	NanoVolt  ElectricPotential = 1
@@ -150,6 +242,22 @@ type ElectricResistance int64
 // String returns the resistance formatted as a string in Ohm.
 func (e ElectricResistance) String() string {
 	return nanoAsString(int64(e)) + "Ω"
+}
+
+// Set takes a string and tries to return a valid ElectricResistance.
+func (e *ElectricResistance) Set(s string) error {
+	v, n, err := setInt(s, nano)
+	if err != nil {
+		return err
+	}
+
+	switch s[n:] {
+	case "Ohm", "Ohms", "ohm", "ohms", "Ω":
+		*e = (ElectricResistance)(v)
+	default:
+		return noUnits("Ohm")
+	}
+	return nil
 }
 
 const (
@@ -176,6 +284,37 @@ type Force int64
 // String returns the force formatted as a string in Newton.
 func (f Force) String() string {
 	return nanoAsString(int64(f)) + "N"
+}
+
+// Set takes a string and tries to return a valid Force.
+func (f *Force) Set(s string) error {
+	d, n, err := atod(s)
+	if err != nil {
+		return err
+	}
+	prefix := prefix(none)
+	if !(n == len(s)) {
+		var n1 int
+		prefix, n1 = parseSIPrefix([]rune(s[n:])[0])
+		if prefix == nano && !(s[n:] == "nN") {
+			prefix = none
+		}
+		if prefix != none {
+			n += n1
+		}
+	}
+	v, err := d.dtoi(int(prefix - nano))
+	if err != nil {
+		return err
+	}
+
+	switch s[n:] {
+	case "N", "Newton", "newton", "Newtons", "newtons":
+		*f = (Force)(v)
+	default:
+		return noUnits("N")
+	}
+	return nil
 }
 
 const (
@@ -207,11 +346,36 @@ func (f Frequency) String() string {
 	return microAsString(int64(f)) + "Hz"
 }
 
+// Set takes a string and tries to return a valid Frequency.
+
+func (f *Frequency) Set(s string) error {
+	v, n, err := setInt(s, micro)
+	if err != nil {
+		return err
+	}
+
+	switch s[n:] {
+	case "Hz", "hz":
+		*f = (Frequency)(v)
+	default:
+		return noUnits("Hz")
+	}
+	return nil
+}
+
 // Duration returns the duration of one cycle at this frequency.
 func (f Frequency) Duration() time.Duration {
 	// Note: Duration() should have been named Period().
 	// TODO(maruel): Rounding should be fine-tuned.
 	return time.Second * time.Duration(Hertz) / time.Duration(f)
+}
+
+//ParseFrequency takes a string and returns a frequency. Formating of string is
+// 10MHz, 100µHz etc.
+func ParseFrequency(s string) (Frequency, error) {
+	var f Frequency
+	err := f.Set(s)
+	return f, err
 }
 
 // PeriodToFrequency returns the frequency for a period of this interval.
@@ -240,6 +404,47 @@ type Mass int64
 // String returns the mass formatted as a string in gram.
 func (m Mass) String() string {
 	return nanoAsString(int64(m)) + "g"
+}
+
+// Set takes a string and tries to return a valid Mass.
+func (m *Mass) Set(s string) error {
+	d, n, err := atod(s)
+	if err != nil {
+		return err
+	}
+	prefix := prefix(none)
+	if !(n == len(s)) {
+		var n1 int
+		prefix, n1 = parseSIPrefix([]rune(s[n:])[0])
+		if prefix == giga && !(s[n:] == "Gg") {
+			prefix = none
+		}
+		if prefix == tera && !(s[n:] == "Tg") {
+			prefix = none
+		}
+		if prefix != none {
+			n += n1
+		}
+	}
+	v, err := d.dtoi(int(prefix - nano))
+	if err != nil {
+		return err
+	}
+	// fmt.Println(s, n, v)
+	// fmt.Println("into switch ", s[n:])
+	switch s[n:] {
+	case "tonne", "Tonne", "tonnes", "Tonnes":
+		*m = (Mass)(v * 1000000)
+	case "pound", "Pound", "pounds", "Pounds", "lb":
+		*m = (Mass)((v * 45359237) / 100000)
+	case "ounce", "Ounce", "ounces", "Ounces", "oz", "Oz":
+		*m = (Mass)(v / 1000000000 * 28349523125)
+	case "g", "gram", "grams", "Gram", "Grams":
+		*m = (Mass)(v)
+	default:
+		return noUnits("g")
+	}
+	return nil
 }
 
 const (
@@ -274,6 +479,22 @@ func (p Pressure) String() string {
 	return nanoAsString(int64(p)) + "Pa"
 }
 
+// Set takes a string and tries to return a valid Pressure.
+func (p *Pressure) Set(s string) error {
+	v, n, err := setInt(s, nano)
+	if err != nil {
+		return err
+	}
+
+	switch s[n:] {
+	case "Pa", "pa", "Pascal", "pascal", "Pascals", "pascals":
+		*p = (Pressure)(v)
+	default:
+		return noUnits("Pa")
+	}
+	return nil
+}
+
 const (
 	// Pascal is N/m², kg/m/s².
 	NanoPascal  Pressure = 1
@@ -304,6 +525,23 @@ func (r RelativeHumidity) String() string {
 	return strconv.Itoa(int(r)/10) + "." + strconv.Itoa(frac) + "%rH"
 }
 
+// Set takes a string and tries to return a valid RelativeHumidity.
+func (r *RelativeHumidity) Set(s string) error {
+	v, n, err := setInt(s, prefix(-7))
+	if err != nil {
+		return err
+	}
+	switch s[n:] {
+	case "rH", "rh":
+		*r = (RelativeHumidity)(v)
+	case "%rH", "%rh":
+		*r = (RelativeHumidity)(v / 100)
+	default:
+		return noUnits("%rH")
+	}
+	return nil
+}
+
 const (
 	TenthMicroRH RelativeHumidity = 1                 // 0.00001%rH
 	MicroRH      RelativeHumidity = 10 * TenthMicroRH // 0.0001%rH
@@ -320,6 +558,46 @@ type Speed int64
 // String returns the speed formatted as a string in m/s.
 func (s Speed) String() string {
 	return nanoAsString(int64(s)) + "m/s"
+}
+
+// Set takes a string and tries to return a valid Speed.
+func (s *Speed) Set(str string) error {
+	d, n, err := atod(str)
+	if err != nil {
+		return err
+	}
+	prefix := prefix(none)
+	if !(n == len(str)) {
+		var n1 int
+		prefix, n1 = parseSIPrefix([]rune(str[n:])[0])
+		if prefix == milli && !(str[n:] == "mm/s") {
+			prefix = none
+		}
+		if prefix == kilo && !(str[n:] == "km/s") {
+			prefix = none
+		}
+		if prefix != none {
+			n += n1
+		}
+	}
+	v, err := d.dtoi(int(prefix - nano))
+	if err != nil {
+		return err
+	}
+
+	switch str[n:] {
+	case "fps":
+		*s = (Speed)((v / 1000000) * 304800)
+	case "mph":
+		*s = (Speed)((v / 1000000) * 447040)
+	case "km/h":
+		*s = (Speed)(v * 10 / 36)
+	case "m/s":
+		*s = (Speed)(v)
+	default:
+		return noUnits("m/s")
+	}
+	return nil
 }
 
 const (
@@ -349,6 +627,24 @@ type Temperature int64
 // String returns the temperature formatted as a string in °Celsius.
 func (t Temperature) String() string {
 	return nanoAsString(int64(t-ZeroCelsius)) + "°C"
+}
+
+// Set takes a string and tries to return a valid Temperature.
+func (t *Temperature) Set(s string) error {
+	v, n, err := setInt(s, nano)
+	if err != nil {
+		return err
+	}
+	switch s[n:] {
+	//TODO(neuralspaz) Fahrenheit
+	case "K":
+		*t = (Temperature)(v)
+	case "C", "°C":
+		*t = (Temperature)(v + int64(ZeroCelsius))
+	default:
+		return noUnits("K or C")
+	}
+	return nil
 }
 
 const (
@@ -381,6 +677,22 @@ func (p Power) String() string {
 	return nanoAsString(int64(p)) + "W"
 }
 
+// Set takes a string and tries to return a valid Power.
+func (p *Power) Set(s string) error {
+	v, n, err := setInt(s, nano)
+	if err != nil {
+		return err
+	}
+
+	switch s[n:] {
+	case "watt", "watts", "Watt", "Watts", "W", "w":
+		*p = (Power)(v)
+	default:
+		return noUnits("W")
+	}
+	return nil
+}
+
 const (
 	// Watt is unit of power J/s, kg⋅m²⋅s⁻³
 	NanoWatt  Power = 1
@@ -402,6 +714,22 @@ func (e Energy) String() string {
 	return nanoAsString(int64(e)) + "J"
 }
 
+// Set takes a string and tries to return a valid Energy.
+func (e *Energy) Set(s string) error {
+	v, n, err := setInt(s, nano)
+	if err != nil {
+		return err
+	}
+
+	switch s[n:] {
+	case "Joule", "Joules", "joule", "joules", "J", "j":
+		*e = (Energy)(v)
+	default:
+		return noUnits("J")
+	}
+	return nil
+}
+
 const (
 	// Joule is a unit of work. kg⋅m²⋅s⁻²
 	NanoJoule  Energy = 1
@@ -421,6 +749,22 @@ type ElectricalCapacitance int64
 // String returns the energy formatted as a string in Farad.
 func (c ElectricalCapacitance) String() string {
 	return picoAsString(int64(c)) + "F"
+}
+
+// Set takes a string and tries to return a valid ElectricalCapacitance.
+func (e *ElectricalCapacitance) Set(s string) error {
+	v, n, err := setInt(s, pico)
+	if err != nil {
+		return err
+	}
+
+	switch s[n:] {
+	case "f", "farad", "farads", "F", "Farad", "Farads":
+		*e = (ElectricalCapacitance)(v)
+	default:
+		return noUnits("F")
+	}
+	return nil
 }
 
 const (
@@ -451,6 +795,22 @@ func (l LuminousIntensity) String() string {
 	return nanoAsString(int64(l)) + "cd"
 }
 
+// Set takes a string and tries to return a valid LuminousIntensity.
+func (l *LuminousIntensity) Set(s string) error {
+	v, n, err := setInt(s, nano)
+	if err != nil {
+		return err
+	}
+
+	switch s[n:] {
+	case "cd", "Candela", "candela", "Candelas", "candelas":
+		*l = (LuminousIntensity)(v)
+	default:
+		return noUnits("cd")
+	}
+	return nil
+}
+
 const (
 	// Candela is a unit of luminous intensity. cd
 	NanoCandela  LuminousIntensity = 1
@@ -475,6 +835,22 @@ type LuminousFlux int64
 // String returns the energy formatted as a string in Lumens.
 func (f LuminousFlux) String() string {
 	return nanoAsString(int64(f)) + "lm"
+}
+
+// Set takes a string and tries to return a valid LuminousFlux.
+func (l *LuminousFlux) Set(s string) error {
+	v, n, err := setInt(s, nano)
+	if err != nil {
+		return err
+	}
+
+	switch s[n:] {
+	case "lm", "Lumen", "lumen", "Lumens", "lumens":
+		*l = (LuminousFlux)(v)
+	default:
+		return noUnits("lm")
+	}
+	return nil
 }
 
 const (

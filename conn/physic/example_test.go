@@ -184,3 +184,271 @@ func ExampleEnergy() {
 	// Output:
 	// 1J
 }
+
+func ExampleAngle_Set() {
+	var a physic.Angle
+
+	a.Set("2Pi")
+	fmt.Println(a)
+
+	a.Set("90Degrees")
+	fmt.Println(a)
+
+	a.Set("1Radian")
+	fmt.Println(a)
+	// Output:
+	// 360.0°
+	// 90.00°
+	// 57.296°
+}
+
+func ExampleDistance_Set() {
+	var d physic.Distance
+
+	d.Set("1Foot")
+	fmt.Println(d)
+
+	d.Set("1Metre")
+	fmt.Println(d)
+
+	d.Set("9Mile")
+	fmt.Println(d)
+	// Output:
+	// 304.800mm
+	// 1m
+	// 14.484km
+
+}
+
+func ExampleElectricCurrent_Set() {
+	var e physic.ElectricCurrent
+
+	e.Set("12.5mA")
+	fmt.Println(e)
+
+	e.Set("2.4kA")
+	fmt.Println(e)
+
+	e.Set("2Amps")
+	fmt.Println(e)
+	// Output:
+	// 12.500mA
+	// 2.400kA
+	// 2A
+}
+
+func ExampleElectricPotential_Set() {
+	var e physic.ElectricPotential
+
+	e.Set("250uV")
+	fmt.Println(e)
+
+	e.Set("100kV")
+	fmt.Println(e)
+
+	e.Set("12Volts")
+	fmt.Println(e)
+	// Output:
+	// 250µV
+	// 100kV
+	// 12V
+}
+
+func ExampleElectricResistance_Set() {
+	var e physic.ElectricResistance
+
+	e.Set("33.3kOhms")
+	fmt.Println(e)
+
+	e.Set("1Ohm")
+	fmt.Println(e)
+
+	e.Set("5MOhm")
+	fmt.Println(e)
+	// Output:
+	// 33.300kΩ
+	// 1Ω
+	// 5MΩ
+}
+
+func ExampleForce_Set() {
+	var f physic.Force
+
+	f.Set("9.8N")
+	fmt.Println(f)
+
+	// Output:
+	// 9.800N
+}
+
+func ExampleFrequency_Set() {
+	var f physic.Frequency
+
+	f.Set("10MHz")
+	fmt.Println(f)
+
+	f.Set("10mHz")
+	fmt.Println(f)
+
+	f.Set("1kHz")
+	fmt.Println(f)
+	// Output:
+	// 10MHz
+	// 10mHz
+	// 1kHz
+}
+
+func ExampleMass_Set() {
+	var m physic.Mass
+
+	m.Set("10mg")
+	fmt.Println(m)
+
+	m.Set("16.5kg")
+	fmt.Println(m)
+
+	m.Set("2.2oz")
+	fmt.Println(m)
+
+	m.Set("16Tonne")
+	fmt.Println(m)
+	// Output:
+	// 10mg
+	// 16.500kg
+	// 56.699g
+	// 16Mg
+}
+
+func ExamplePressure_Set() {
+	var p physic.Pressure
+
+	p.Set("300kPa")
+	fmt.Println(p)
+
+	p.Set("16MPascal")
+	fmt.Println(p)
+	// Output:
+	// 300kPa
+	// 16MPa
+}
+
+func ExampleRelativeHumidity_Set() {
+	var r physic.RelativeHumidity
+
+	r.Set("50.6%rH")
+	fmt.Println(r)
+
+	r.Set("20%rH")
+	fmt.Println(r)
+	// Output:
+	// 50.6%rH
+	// 20%rH
+}
+
+func ExampleSpeed_Set() {
+	var s physic.Speed
+
+	s.Set("10m/s")
+	fmt.Println(s)
+
+	s.Set("100km/h")
+	fmt.Println(s)
+
+	s.Set("2067fps")
+	fmt.Println(s)
+
+	s.Set("55mph")
+	fmt.Println(s)
+	// Output:
+	// 10m/s
+	// 27.778m/s
+	// 630.022m/s
+	// 24.587m/s
+}
+
+func ExampleTemperature_Set() {
+	var t physic.Temperature
+
+	t.Set("0C")
+	fmt.Println(t)
+
+	t.Set("1C")
+	fmt.Println(t)
+
+	t.Set("5MK")
+	fmt.Println(t)
+
+	// Output:
+	// 0°C
+	// 1°C
+	// 5M°C
+}
+
+func ExamplePower_Set() {
+	var p physic.Power
+
+	p.Set("25mW")
+	fmt.Println(p)
+
+	p.Set("1W")
+	fmt.Println(p)
+
+	p.Set("1.21GW")
+	fmt.Println(p)
+
+	// Output:
+	// 25mW
+	// 1W
+	// 1.210GW
+}
+
+func ExampleElectricalCapacitance_Set() {
+	var c physic.ElectricalCapacitance
+
+	c.Set("1F")
+	fmt.Println(c)
+
+	c.Set("22pF")
+	fmt.Println(c)
+	// Output:
+	// 1F
+	// 22pF
+}
+
+func ExampleLuminousFlux_Set() {
+	var l physic.LuminousFlux
+
+	l.Set("25mlm")
+	fmt.Println(l)
+
+	l.Set("2.5Mlm")
+	fmt.Println(l)
+
+	// Output:
+	// 25mlm
+	// 2.500Mlm
+}
+
+func ExampleLuminousIntensity_Set() {
+	var l physic.LuminousIntensity
+
+	l.Set("16cd")
+	fmt.Println(l)
+
+	// Output:
+	// 16cd
+}
+
+func ExampleEnergy_Set() {
+	var e physic.Energy
+
+	e.Set("2.6kJ")
+	fmt.Println(e)
+
+	e.Set("45mJ")
+	fmt.Println(e)
+
+	// Output:
+	// 2.600kJ
+	// 45mJ
+}
