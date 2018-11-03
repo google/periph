@@ -1549,6 +1549,125 @@ func TestMass_Set(t *testing.T) {
 	}
 }
 
+func TestSetOverflows(t *testing.T) {
+	var degree Angle
+	var metre Distance
+	var amp ElectricCurrent
+	var volt ElectricPotential
+	var ohm ElectricResistance
+	var farad ElectricalCapacitance
+	var newton Force
+	var hertz Frequency
+	var gram Mass
+	var pascal Pressure
+	var humidity RelativeHumidity
+	var metresPerSecond Speed
+	var celsius Temperature
+	var watt Power
+	var joule Energy
+	var candela LuminousIntensity
+	var lux LuminousFlux
+
+	tests := []struct {
+		name string
+		s    string
+		v    flag.Value
+	}{
+		{
+			name: "Angle Overflow",
+			s:    "100T",
+			v:    &degree,
+		},
+		{
+			name: "Distance Overflow",
+			s:    "100T",
+			v:    &metre,
+		},
+		{
+			name: "ElectricCurrent Overflow",
+			s:    "100T",
+			v:    &amp,
+		},
+		{
+			name: "ElectricPotential Overflow",
+			s:    "100T",
+			v:    &volt,
+		},
+		{
+			name: "ElectricResistance Overflow",
+			s:    "100T",
+			v:    &ohm,
+		},
+		{
+			name: "ElectricalCapacitance Overflow",
+			s:    "100T",
+			v:    &farad,
+		},
+		{
+			name: "Force Overflow",
+			s:    "100T",
+			v:    &newton,
+		},
+		{
+			name: "Frequency Overflow",
+			s:    "100T",
+			v:    &hertz,
+		},
+		{
+			name: "Mass Overflow",
+			s:    "100Tg",
+			v:    &gram,
+		},
+		{
+			name: "Pressure Overflow",
+			s:    "100T",
+			v:    &pascal,
+		},
+		{
+			name: "RelativeHumidity Overflow",
+			s:    "100T",
+			v:    &humidity,
+		},
+		{
+			name: "Speed Overflow",
+			s:    "100T",
+			v:    &metresPerSecond,
+		},
+		{
+			name: "Temperature Overflow",
+			s:    "100T",
+			v:    &celsius,
+		},
+		{
+			name: "Power Overflow",
+			s:    "100T",
+			v:    &watt,
+		},
+		{
+			name: "Energy Overflow",
+			s:    "100T",
+			v:    &joule,
+		},
+		{
+			name: "LuminousIntensity Overflow",
+			s:    "100GD100Tegree",
+			v:    &candela,
+		},
+		{
+			name: "LuminousFlux Overflow",
+			s:    "100T",
+			v:    &lux,
+		},
+	}
+	for _, tt := range tests {
+		err := tt.v.Set(tt.s)
+		if err == nil {
+			t.Errorf("%s expected overflow but got %v", tt.name, err)
+		}
+	}
+
+}
+
 func TestForce_Set(t *testing.T) {
 	tests := []struct {
 		name string
@@ -1811,6 +1930,10 @@ func TestMeta_Set(t *testing.T) {
 			"noUnitErrLuminousFlux", &lux, "1", true,
 			"parse error: no units provided, need: \"lm\"",
 		},
+		{
+			"overflow", &joule, "123456789012345678901234567890", true,
+			"parse error: overflows maximum is: \"9223372036854775807\"",
+		},
 	}
 
 	for _, tt := range tests {
@@ -1895,6 +2018,7 @@ func TestDoti(t *testing.T) {
 		{"-12", decimal{"123", -1, true}, -12, false},
 		{"123n", decimal{"123", 0, false}, 123, false},
 		{"max*10^1", decimal{"9223372036854775807", 1, false}, 9223372036854775807, true},
+		{"overflow", decimal{"9223372036854775807", 10, false}, 9223372036854775807, true},
 	}
 
 	for _, tt := range tests {
