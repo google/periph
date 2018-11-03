@@ -333,7 +333,7 @@ const (
 
 	LightSpeed Speed = 299792458 * MetrePerSecond
 
-	KilometrePerHour Speed = 277777777 * NanoMetrePerSecond
+	KilometrePerHour Speed = 277777778 * NanoMetrePerSecond
 	MilePerHour      Speed = 447040 * MicroMetrePerSecond
 	FootPerSecond    Speed = 304800 * MicroMetrePerSecond
 )
