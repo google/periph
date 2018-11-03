@@ -8,9 +8,8 @@ import (
 	"fmt"
 	"log"
 
-	"periph.io/x/periph/conn/physic"
-
 	"periph.io/x/periph/conn/i2c/i2creg"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/experimental/devices/ads1x15"
 	"periph.io/x/periph/host"
 )
@@ -29,7 +28,7 @@ func Example() {
 	defer bus.Close()
 
 	// Create a new ADS1115 ADC.
-	adc, err := ads1x15.NewADS1115(bus)
+	adc, err := ads1x15.NewADS1115(bus, &ads1x15.DefaultOpts)
 	if err != nil {
 		log.Fatalln(err)
 	}

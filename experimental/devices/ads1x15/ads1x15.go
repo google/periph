@@ -1,24 +1,26 @@
+// Copyright 2018 The Periph Authors. All rights reserved.
+// Use of this source code is governed under the Apache License, Version 2.0
+// that can be found in the LICENSE file.
+
 package ads1x15
 
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"math"
 	"sync"
 	"time"
 
+	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/pin"
-
-	"fmt"
-
-	"periph.io/x/periph/conn/i2c"
 )
 
 const (
 
-	// ADS1x15DefaultAddress is the default I2C address for the ADS1x15 components
-	ADS1x15DefaultAddress = 0x48
+	// I2CAddr is the default I2C address for the ADS1x15 components
+	I2CAddr uint16 = 0x48
 
 	ads1x15PointerConversion    = 0x00
 	ads1x15PointerConfig        = 0x01
@@ -42,6 +44,16 @@ const (
 	Channel3 = 3
 )
 
+// Opts holds the configuration options.
+type Opts struct {
+	I2cAddress uint16
+}
+
+// DefaultOpts are the recommended default options.
+var DefaultOpts = Opts{
+	I2cAddress: I2CAddr,
+}
+
 // Dev is the driver for the ADS1015/ADS1115 ADC
 type Dev struct {
 	// I2C Communication
@@ -49,30 +61,38 @@ type Dev struct {
 
 	name string
 
-	gainConfig      map[int]uint16
-	dataRates       map[int]uint16
-	gainVoltage     map[int]physic.ElectricPotential
-	DefaultDataRate int
-	mutex           *sync.Mutex
+	gainConfig  map[int]uint16
+	dataRates   map[int]uint16
+	gainVoltage map[int]physic.ElectricPotential
+	mutex       *sync.Mutex
+}
+
+// Reading is the result of AnalogPin.Read()  (obviously not the case right now but this could be)
+type Reading struct {
+	V   physic.ElectricPotential
+	Raw int32
 }
 
 // AnalogPin represents a pin which is able to read an electric potential
 type AnalogPin interface {
 	pin.Pin
-	Read() (physic.ElectricPotential, error)
+	// Range returns the maximum supported range [min, max] of the values.
+	Range() (Reading, Reading)
+	// Read returns the current pin level.
+	Read() (Reading, error)
 }
 
 type ads1x15AnalogPin struct {
 	adc               *Dev
-	preparedQuery     []byte
+	query             []byte
 	voltageMultiplier physic.ElectricPotential
 	waitTime          time.Duration
 }
 
 // NewADS1015 creates a new driver for the ADS1015 (12-bit ADC)
 // Largely inspired by: https://github.com/adafruit/Adafruit_Python_ADS1x15
-func NewADS1015(i i2c.Bus, options ...func(*Dev)) (l *Dev, err error) {
-	l, err = newADS1x15(i, options...)
+func NewADS1015(i i2c.Bus, opts *Opts) (l *Dev, err error) {
+	l, err = newADS1x15(i, opts)
 
 	l.dataRates = map[int]uint16{
 		128:  0x0000,
@@ -83,9 +103,6 @@ func NewADS1015(i i2c.Bus, options ...func(*Dev)) (l *Dev, err error) {
 		2400: 0x00A0,
 		3300: 0x00C0,
 	}
-	if l.DefaultDataRate == 0 {
-		l.DefaultDataRate = 1600
-	}
 
 	l.name = "ADS1015"
 
@@ -93,8 +110,8 @@ func NewADS1015(i i2c.Bus, options ...func(*Dev)) (l *Dev, err error) {
 }
 
 // NewADS1115 creates a new driver for the ADS1115 (16-bit ADC)
-func NewADS1115(i i2c.Bus, options ...func(*Dev)) (l *Dev, err error) {
-	l, err = newADS1x15(i, options...)
+func NewADS1115(i i2c.Bus, opts *Opts) (l *Dev, err error) {
+	l, err = newADS1x15(i, opts)
 
 	l.dataRates = map[int]uint16{
 		8:   0x0000,
@@ -107,18 +124,14 @@ func NewADS1115(i i2c.Bus, options ...func(*Dev)) (l *Dev, err error) {
 		860: 0x00E0,
 	}
 
-	if l.DefaultDataRate == 0 {
-		l.DefaultDataRate = 128
-	}
-
 	l.name = "ADS1115"
 
 	return
 }
 
-func newADS1x15(i i2c.Bus, options ...func(*Dev)) (l *Dev, err error) {
+func newADS1x15(i i2c.Bus, opts *Opts) (l *Dev, err error) {
 	l = &Dev{
-		c: i2c.Dev{Bus: i, Addr: ADS1x15DefaultAddress},
+		c: i2c.Dev{Bus: i, Addr: opts.I2cAddress},
 		// Mapping of gain values to config register values.
 		gainConfig: map[int]uint16{
 			2 / 3: 0x0000,
@@ -139,22 +152,15 @@ func newADS1x15(i i2c.Bus, options ...func(*Dev)) (l *Dev, err error) {
 		mutex: &sync.Mutex{},
 	}
 
-	for _, option := range options {
-		option(l)
-	}
-
 	return
 }
 
-// Halt returns true if devices is halted successfully
-func (d *Dev) Halt() (err error) { return }
-
-// WithI2CAddress option sets the ADS1x15Driver I2C address, if it is not the default.
-func WithI2CAddress(i2cAddress uint16) func(*Dev) {
-	return func(d *Dev) {
-		d.c.Addr = i2cAddress
-	}
+func (d *Dev) String() string {
+	return d.name
 }
+
+// Halt returns true if devices is halted successfully
+func (d *Dev) Halt() error { return nil }
 
 func (d *Dev) PinForChannel(channel int, maxVoltage physic.ElectricPotential, minimumFrequency physic.Frequency) (pin AnalogPin, err error) {
 	if err = d.checkChannel(channel); err != nil {
@@ -255,15 +261,15 @@ func (d *Dev) prepareQuery(mux int, maxVoltage physic.ElectricPotential, minimum
 	// Build the query to the ADC
 	configBytes := make([]byte, 2)
 	binary.BigEndian.PutUint16(configBytes, config)
-	preparedQuery := append([]byte{ads1x15PointerConfig}, configBytes...)
+	query := append([]byte{ads1x15PointerConfig}, configBytes...)
 
 	// The wait for the ADC sample to finish is based on the sample rate plus a
 	// small offset to be sure (0.1 millisecond).
-	waitTime := time.Duration(1000000/dataRate+100) * time.Microsecond
+	waitTime := time.Second/time.Duration(dataRate) + 100*time.Microsecond
 
 	pin = &ads1x15AnalogPin{
 		adc:               d,
-		preparedQuery:     preparedQuery,
+		query:             query,
 		voltageMultiplier: voltageMultiplier,
 		waitTime:          waitTime,
 	}
@@ -271,7 +277,7 @@ func (d *Dev) prepareQuery(mux int, maxVoltage physic.ElectricPotential, minimum
 	return
 }
 
-func (d *Dev) executePreparedQuery(query []byte, waitTime time.Duration, voltageMultiplier physic.ElectricPotential) (value physic.ElectricPotential, err error) {
+func (d *Dev) executePreparedQuery(query []byte, waitTime time.Duration, voltageMultiplier physic.ElectricPotential) (reading Reading, err error) {
 	// Lock the ADC converter to avoid multiple simultaneous readings.
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
@@ -292,13 +298,9 @@ func (d *Dev) executePreparedQuery(query []byte, waitTime time.Duration, voltage
 	}
 
 	// Convert the raw data into physical value.
-	result := physic.ElectricPotential(binary.BigEndian.Uint16(data))
-
-	if result&0x8000 != 0 {
-		result -= 1 << 16
-	}
-
-	value = result * voltageMultiplier / physic.ElectricPotential(1<<15)
+	raw := int16(binary.BigEndian.Uint16(data))
+	reading.Raw = int32(raw)
+	reading.V = physic.ElectricPotential(reading.Raw) * voltageMultiplier / physic.ElectricPotential(1<<15)
 
 	return
 }
@@ -367,8 +369,19 @@ func (d *Dev) checkChannel(channel int) (err error) {
 	return
 }
 
-func (p *ads1x15AnalogPin) Read() (physic.ElectricPotential, error) {
-	return p.adc.executePreparedQuery(p.preparedQuery, p.waitTime, p.voltageMultiplier)
+// Range returns the maximum supported range [min, max] of the values.
+func (p *ads1x15AnalogPin) Range() (minValue Reading, maxValue Reading) {
+	maxValue.V = p.voltageMultiplier
+	maxValue.Raw = 1 << 15
+	minValue.V = -maxValue.V
+	minValue.Raw = -maxValue.Raw
+
+	return
+}
+
+// Read returns the current pin level.
+func (p *ads1x15AnalogPin) Read() (Reading, error) {
+	return p.adc.executePreparedQuery(p.query, p.waitTime, p.voltageMultiplier)
 }
 
 func (p *ads1x15AnalogPin) Name() string {
@@ -383,8 +396,8 @@ func (p *ads1x15AnalogPin) Function() string {
 	return "DEPRECATED"
 }
 
-func (p *ads1x15AnalogPin) Halt() (err error) {
-	return
+func (p *ads1x15AnalogPin) Halt() error {
+	return nil
 }
 
 func (p *ads1x15AnalogPin) String() string {
