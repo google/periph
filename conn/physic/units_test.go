@@ -1910,14 +1910,14 @@ func TestDoti(t *testing.T) {
 
 }
 
-func BenchmarkSetDistanceFloat(b *testing.B) {
+func BenchmarkSetDistance(b *testing.B) {
 	var t Temperature
 	for i := 0; i < b.N; i++ {
-		t.Set("-337.2m")
+		t.Set("-337.2C")
 	}
 }
 
-func BenchmarkSetPowerInt(b *testing.B) {
+func BenchmarkSetPower(b *testing.B) {
 	var t Power
 	for i := 0; i < b.N; i++ {
 		t.Set("-337.2w")
