@@ -40,7 +40,7 @@ func mainFunc() error {
 		return fmt.Errorf(pinPattern, "data", "-data", "-data 26")
 	}
 	if *gain != 128 && *gain != 64 && *gain != 32 {
-		return fmt.Errorf("invalid gain '%d', must be either 128, 64 or 32")
+		return fmt.Errorf("invalid gain '%d', must be either 128, 64 or 32", *gain)
 	}
 	if *cont && *samples != 0 {
 		return fmt.Errorf("-cont and -samples can't be used together")
