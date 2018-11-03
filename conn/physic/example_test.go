@@ -134,7 +134,7 @@ func ExampleSpeed() {
 	// Output:
 	// 10mm/s
 	// 299.792Mm/s
-	// 3.600m/s
+	// 277.778mm/s
 	// 447.040mm/s
 	// 304.800mm/s
 }

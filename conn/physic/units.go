@@ -85,6 +85,7 @@ const (
 	Metre      Distance = 1000 * MilliMetre
 	KiloMetre  Distance = 1000 * Metre
 	MegaMetre  Distance = 1000 * KiloMetre
+	GigaMetre  Distance = 1000 * MegaMetre
 
 	// Conversion between Metre and imperial units.
 	Thou Distance = 25400 * NanoMetre
@@ -112,6 +113,9 @@ const (
 	MicroAmpere ElectricCurrent = 1000 * NanoAmpere
 	MilliAmpere ElectricCurrent = 1000 * MicroAmpere
 	Ampere      ElectricCurrent = 1000 * MilliAmpere
+	KiloAmpere  ElectricCurrent = 1000 * Ampere
+	MegaAmpere  ElectricCurrent = 1000 * KiloAmpere
+	GigaAmpere  ElectricCurrent = 1000 * MegaAmpere
 )
 
 // ElectricPotential is a measurement of electric potential stored as an int64
@@ -132,6 +136,8 @@ const (
 	MilliVolt ElectricPotential = 1000 * MicroVolt
 	Volt      ElectricPotential = 1000 * MilliVolt
 	KiloVolt  ElectricPotential = 1000 * Volt
+	MegaVolt  ElectricPotential = 1000 * KiloVolt
+	GigaVolt  ElectricPotential = 1000 * MegaVolt
 )
 
 // ElectricResistance is a measurement of the difficulty to pass an electric
@@ -153,6 +159,7 @@ const (
 	Ohm      ElectricResistance = 1000 * MilliOhm
 	KiloOhm  ElectricResistance = 1000 * Ohm
 	MegaOhm  ElectricResistance = 1000 * KiloOhm
+	GigaOhm  ElectricResistance = 1000 * MegaOhm
 )
 
 // Force is a measurement of interaction that will change the motion of an
@@ -178,6 +185,7 @@ const (
 	Newton      Force = 1000 * MilliNewton
 	KiloNewton  Force = 1000 * Newton
 	MegaNewton  Force = 1000 * KiloNewton
+	GigaNewton  Force = 1000 * MegaNewton
 
 	EarthGravity Force = 9806650 * MicroNewton
 
@@ -218,6 +226,7 @@ const (
 	KiloHertz  Frequency = 1000 * Hertz
 	MegaHertz  Frequency = 1000 * KiloHertz
 	GigaHertz  Frequency = 1000 * MegaHertz
+	TeraHertz  Frequency = 1000 * GigaHertz
 )
 
 // Mass is a measurement of mass stored as an int64 nano gram.
@@ -239,6 +248,7 @@ const (
 	Gram      Mass = 1000 * MilliGram
 	KiloGram  Mass = 1000 * Gram
 	MegaGram  Mass = 1000 * KiloGram
+	GigaGram  Mass = 1000 * MegaGram
 	Tonne     Mass = MegaGram
 
 	// Conversion between Gram and imperial units.
@@ -319,10 +329,11 @@ const (
 	MetrePerSecond      Speed = 1000 * MilliMetrePerSecond
 	KiloMetrePerSecond  Speed = 1000 * MetrePerSecond
 	MegaMetrePerSecond  Speed = 1000 * KiloMetrePerSecond
+	GigaMetrePerSecond  Speed = 1000 * MegaMetrePerSecond
 
 	LightSpeed Speed = 299792458 * MetrePerSecond
 
-	KilometrePerHour Speed = 3600 * MilliMetrePerSecond
+	KilometrePerHour Speed = 277777777 * NanoMetrePerSecond
 	MilePerHour      Speed = 447040 * MicroMetrePerSecond
 	FootPerSecond    Speed = 304800 * MicroMetrePerSecond
 )
@@ -344,6 +355,9 @@ const (
 	MicroKelvin Temperature = 1000 * NanoKelvin
 	MilliKelvin Temperature = 1000 * MicroKelvin
 	Kelvin      Temperature = 1000 * MilliKelvin
+	KiloKelvin  Temperature = 1000 * Kelvin
+	MegaKelvin  Temperature = 1000 * KiloKelvin
+	GigaKelvin  Temperature = 1000 * MegaKelvin
 
 	// Conversion between Kelvin and Celsius.
 	ZeroCelsius  Temperature = 273150 * MilliKelvin
