@@ -114,18 +114,15 @@ func (d *HX711) Read(timeout time.Duration) (int32, error) {
 		}
 	}
 
-	// Convert the 24-bit value to a 32-bit value by moving the MSB and padding
-	// the top byte with 1s if the value was negative.
-	if value&0x00800000 != 0 {
-		value |= 0xFF000000
-	}
+	// Convert the 24-bit 2's compliment value to a 32-bit signed value.
+	var signedValue int32 = int32(value<<8) >> 8
 
 	// Pulse the clock 1-3 more times to set the new ADC mode.
 	for i := 0; i < int(d.InputMode); i++ {
 		d.clk.Out(gpio.High)
 		d.clk.Out(gpio.Low)
 	}
-	return int32(value), nil
+	return signedValue, nil
 }
 
 // StartContinuousRead starts reading values continuously from the ADC.  It
