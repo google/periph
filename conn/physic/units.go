@@ -768,19 +768,20 @@ var powerOf10 = [19]uint64{
 	1000000000000000000,
 }
 
-// Converts from decimal to int64, using the decimal.digits and converting to a
-// unit64. Scale is combined with the decimal exponent to maximise the
-// resolution and is in powers of ten.
+// Converts from decimal to int64, using the decimal.digits character values and
+// converting to a intermediate unit64.
+// Scale is combined with the decimal exponent to maximise the resolution and is
+// in powers of ten.
 func dtoi(d decimal, scale int) (int64, error) {
 	// Maximum value for a int64.
 	const max = (1<<63 - 1)
 	// Use uint till the last as it allows checks for overflows.
 	var u uint64
-	for _, c := range []byte(d.digits) {
+	for i := 0; i < len(d.digits); i++ {
 		// Check that is is a digit.
-		if c >= '0' && c <= '9' {
+		if d.digits[i] >= '0' && d.digits[i] <= '9' {
 			// '0' = 0x30 '1' = 0x31 ...etc.
-			digit := c - '0'
+			digit := d.digits[i] - '0'
 			// *10 is decimal shift left.
 			u *= 10
 			check := u + uint64(digit)
@@ -797,7 +798,9 @@ func dtoi(d decimal, scale int) (int64, error) {
 	}
 
 	// Get the total magnitude of the number.
-	// a^x * b^y = a*b^(x+y)
+	// a^x * b^y = a*b^(x+y) since scale is of the order unity this becomes
+	// 1^x * b^y = b^(x+y).
+
 	// mag must be positive to use as index in to powerOf10 array.
 	mag := d.exp + scale
 	if mag > 18 {
@@ -824,11 +827,11 @@ func dtoi(d decimal, scale int) (int64, error) {
 	return n, nil
 }
 
-// Converts a string to decimal form and how many bytes of the string are
-// numeric. The string may contain other prefix and suffixes, The string must
-// start with something numeric such as a + - or digit. Trailing non number
-// characters are ignored. significant digits are stored without leading or
-// trailing zeros, rather an exponet is used.
+// Converts a string to a decimal form. The return int is how many bytes of the
+// string are numeric. The string may contain +-0 prefixes and arbitrary
+// suffixes as trailing non number characters are ignored.
+// Significant digits are stored without leading or trailing zeros, rather an
+// exponet is used.
 func atod(s string) (decimal, int, error) {
 	var d decimal
 	start := 0
@@ -877,7 +880,7 @@ func atod(s string) (decimal, int, error) {
 	last := end
 	seenDigit = false
 	exp := 0
-	// Strip non significant zeros.
+	// Strip non significant zeros to find base exponent.
 	for i := end - 1; i > start-1; i-- {
 		switch {
 		case s[i] >= '1' && s[i] <= '9':
@@ -902,7 +905,7 @@ func atod(s string) (decimal, int, error) {
 	}
 
 	if dp > start && dp < end {
-		//Concatenate with out decimal point
+		// Concatenate with out decimal point.
 		d.digits = s[start:dp] + s[dp+1:end]
 	} else {
 		d.digits = s[start:end]
