@@ -1474,7 +1474,7 @@ func TestSpeed_Set(t *testing.T) {
 		{"10Mm/s", "10Mm/s", 10 * MegaMetrePerSecond},
 		{"100Mm/s", "100Mm/s", 100 * MegaMetrePerSecond},
 		{"1Gm/s", "1Gm/s", 1 * GigaMetrePerSecond},
-		{"1km/h", "1km/h", 1 * KilometrePerHour},
+		{"1km/h", "1km/h", 1*KilometrePerHour - 1}, // rounding
 		{"1mph", "1mph", 1 * MilePerHour},
 		{"1fps", "1fps", 1 * FootPerSecond},
 		{"100km/h", "100km/h", 27777777777 * NanoMetrePerSecond},
