@@ -68,7 +68,8 @@ const (
 	Degree Angle = 17453293 * NanoRadian
 )
 
-// Set takes a string and tries to return a valid Angle.
+// Set sets the Angle to the value represented by s. Units can be provided in
+// are Degree, Deg, Rad, Radians and pi with optional SI prefixes.
 func (a *Angle) Set(s string) error {
 	v, n, err := set(s, nano)
 	if err != nil {
@@ -116,7 +117,8 @@ const (
 	Mile Distance = 1760 * Yard
 )
 
-// Set takes a string and tries to return a valid Distance.
+// Set sets the Distance to the value represented by s. Units can be provided in
+// are miles, metres, feet, inches and yards with optional SI prefixes.
 func (d *Distance) Set(s string) error {
 	dec, n, err := atod(s)
 	if err != nil {
@@ -170,7 +172,8 @@ func (e ElectricCurrent) String() string {
 	return nanoAsString(int64(e)) + "A"
 }
 
-// Set takes a string and tries to return a valid ElectricCurrent.
+// Set sets the ElectricCurrent to the value represented by s. Units can be
+// provided in amps with optional SI prefixes.
 func (e *ElectricCurrent) Set(s string) error {
 	v, n, err := set(s, nano)
 	if err != nil {
@@ -207,7 +210,8 @@ func (e ElectricPotential) String() string {
 	return nanoAsString(int64(e)) + "V"
 }
 
-// Set takes a string and tries to return a valid ElectricPotential.
+// Set sets the ElectricPotential to the value represented by s. Units are to be
+// provided in volts with optional SI prefixes.
 func (e *ElectricPotential) Set(s string) error {
 	v, n, err := set(s, nano)
 	if err != nil {
@@ -245,7 +249,8 @@ func (e ElectricResistance) String() string {
 	return nanoAsString(int64(e)) + "Ω"
 }
 
-// Set takes a string and tries to return a valid ElectricResistance.
+// Set sets the ElectricResistance to the value represented by s. Units are to be
+// provided in ohms with optional SI prefixes.
 func (e *ElectricResistance) Set(s string) error {
 	v, n, err := set(s, nano)
 	if err != nil {
@@ -287,7 +292,8 @@ func (f Force) String() string {
 	return nanoAsString(int64(f)) + "N"
 }
 
-// Set takes a string and tries to return a valid Force.
+// Set sets the Force to the value represented by s. Units are to be provided in
+// newtons with optional SI prefixes.
 func (f *Force) Set(s string) error {
 	d, n, err := atod(s)
 	if err != nil {
@@ -347,7 +353,8 @@ func (f Frequency) String() string {
 	return microAsString(int64(f)) + "Hz"
 }
 
-// Set takes a string and tries to return a valid Frequency.
+// Set sets the Frequency to the value represented by s. Units are to be
+// provided in hertz with optional SI prefixes.
 func (f *Frequency) Set(s string) error {
 	v, n, err := set(s, micro)
 	if err != nil {
@@ -355,7 +362,7 @@ func (f *Frequency) Set(s string) error {
 	}
 
 	switch strings.ToLower(s[n:]) {
-	case "hz":
+	case "hz", "hertz":
 		*f = (Frequency)(v)
 	default:
 		return noUnits("Hz")
@@ -398,7 +405,8 @@ func (m Mass) String() string {
 	return nanoAsString(int64(m)) + "g"
 }
 
-// Set takes a string and tries to return a valid Mass.
+// Set sets the Mass to the value represented by s. Units are to be provided
+// in grams, ounces, pounds or tonnes with optional SI prefixes.
 func (m *Mass) Set(s string) error {
 	d, n, err := atod(s)
 	if err != nil {
@@ -470,7 +478,8 @@ func (p Pressure) String() string {
 	return nanoAsString(int64(p)) + "Pa"
 }
 
-// Set takes a string and tries to return a valid Pressure.
+// Set sets the Pressure to the value represented by s. Units are to be provided
+// in pascals with optional SI prefixes.
 func (p *Pressure) Set(s string) error {
 	v, n, err := set(s, nano)
 	if err != nil {
@@ -516,7 +525,9 @@ func (r RelativeHumidity) String() string {
 	return strconv.Itoa(int(r)/10) + "." + strconv.Itoa(frac) + "%rH"
 }
 
-// Set takes a string and tries to return a valid RelativeHumidity.
+// Set sets the RelativeHumidity to the value represented by s. Units are to be
+// provided in relative humidity or percent relative humidity with optional
+// SI prefixes.
 func (r *RelativeHumidity) Set(s string) error {
 	v, n, err := set(s, prefix(-7))
 	if err != nil {
@@ -551,7 +562,8 @@ func (s Speed) String() string {
 	return nanoAsString(int64(s)) + "m/s"
 }
 
-// Set takes a string and tries to return a valid Speed.
+// Set sets the Speed to the value represented by s. Units are to be provided in
+// fps, mph, km/h or m/s with optional SI prefixes.
 func (s *Speed) Set(str string) error {
 	d, n, err := atod(str)
 	if err != nil {
@@ -620,7 +632,8 @@ func (t Temperature) String() string {
 	return nanoAsString(int64(t-ZeroCelsius)) + "°C"
 }
 
-// Set takes a string and tries to return a valid Temperature.
+// Set sets the Temperature to the value represented by s. Units are to be
+// provided in kelvin or celsius with optional SI prefixes.
 func (t *Temperature) Set(s string) error {
 	v, n, err := set(s, nano)
 	if err != nil {
@@ -628,9 +641,9 @@ func (t *Temperature) Set(s string) error {
 	}
 	switch strings.ToLower(s[n:]) {
 	//TODO(neuralspaz) Fahrenheit
-	case "k":
+	case "k", "kelvin":
 		*t = (Temperature)(v)
-	case "c", "°c":
+	case "c", "°c", "celsius":
 		*t = (Temperature)(v + int64(ZeroCelsius))
 	default:
 		return noUnits("K or C")
@@ -668,7 +681,8 @@ func (p Power) String() string {
 	return nanoAsString(int64(p)) + "W"
 }
 
-// Set takes a string and tries to return a valid Power.
+// Set sets the Power to the value represented by s. Units are to be provided in
+// watts with optional SI prefixes.
 func (p *Power) Set(s string) error {
 	v, n, err := set(s, nano)
 	if err != nil {
@@ -705,7 +719,8 @@ func (e Energy) String() string {
 	return nanoAsString(int64(e)) + "J"
 }
 
-// Set takes a string and tries to return a valid Energy.
+// Set sets the Energy to the value represented by s. Units are to be provided
+// in joules with optional SI prefixes.
 func (e *Energy) Set(s string) error {
 	v, n, err := set(s, nano)
 	if err != nil {
@@ -743,7 +758,8 @@ func (c ElectricalCapacitance) String() string {
 	return picoAsString(int64(c)) + "F"
 }
 
-// Set takes a string and tries to return a valid ElectricalCapacitance.
+// Set sets the ElectricalCapacitance to the value represented by s. Units are
+// to be provided in farads with optional SI prefixes.
 func (e *ElectricalCapacitance) Set(s string) error {
 	v, n, err := set(s, pico)
 	if err != nil {
@@ -787,7 +803,8 @@ func (l LuminousIntensity) String() string {
 	return nanoAsString(int64(l)) + "cd"
 }
 
-// Set takes a string and tries to return a valid LuminousIntensity.
+// Set sets the LuminousIntensity to the value represented by s. Units are to be
+// provided in candelas with optional SI prefixes.
 func (l *LuminousIntensity) Set(s string) error {
 	v, n, err := set(s, nano)
 	if err != nil {
@@ -829,7 +846,8 @@ func (f LuminousFlux) String() string {
 	return nanoAsString(int64(f)) + "lm"
 }
 
-// Set takes a string and tries to return a valid LuminousFlux.
+// Set sets the LuminousFlux to the value represented by s. Units are to be
+// provided in lumens with optional SI prefixes.
 func (l *LuminousFlux) Set(s string) error {
 	v, n, err := set(s, nano)
 	if err != nil {
@@ -1349,7 +1367,9 @@ func atod(s string) (decimal, int, error) {
 	return d, last, nil
 }
 
-// Set is a helper for converting a string and a prefix in to a physic unit.
+// Set is a helper for converting a string and a prefix in to a physic unit. It
+// can be used when characters of the units do not conflict with any of the SI
+// prefixes.
 func set(s string, base prefix) (int64, int, error) {
 	d, n, err := atod(s)
 	if err != nil {
@@ -1403,6 +1423,8 @@ const (
 	tera  prefix = 12
 )
 
+// take a prefix rune and converts it to an int. For use with indexing directly
+// into a string length of the prefix rune is also returned.
 func parseSIPrefix(r rune) (prefix, int) {
 	switch r {
 	case 'p':
