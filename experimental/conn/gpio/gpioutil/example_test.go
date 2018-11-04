@@ -12,7 +12,7 @@ import (
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/physic"
-	"periph.io/x/periph/experimental/devices/gpioutil"
+	"periph.io/x/periph/experimental/conn/gpio/gpioutil"
 )
 
 func ExampleDebounce() {
