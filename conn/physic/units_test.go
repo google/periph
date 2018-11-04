@@ -610,7 +610,7 @@ func TestDoti(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got, err := tt.d.dtoi(0)
+		got, err := dtoi(tt.d, 0)
 
 		if got != tt.want && !tt.err {
 			t.Errorf("got %v expected %v", got, tt.want)
@@ -693,7 +693,7 @@ func BenchmarkString2Decimal2Int(b *testing.B) {
 		if d, n, err = atod("337.2m"); err != nil {
 			b.Fatal(err)
 		}
-		if v, err = d.dtoi(0); err != nil {
+		if v, err = dtoi(d, 0); err != nil {
 			b.Fatal(err)
 		}
 	}

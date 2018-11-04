@@ -771,7 +771,7 @@ var powerOf10 = [19]uint64{
 // Converts from decimal to int64, using the decimal.digits and converting to a
 // unit64. Scale is combined with the decimal exponent to maximise the
 // resolution and is in powers of ten.
-func (d *decimal) dtoi(scale int) (int64, error) {
+func dtoi(d decimal, scale int) (int64, error) {
 	// Maximum value for a int64.
 	const max = (1<<63 - 1)
 	// Use uint till the last as it allows checks for overflows.
