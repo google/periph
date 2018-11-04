@@ -5,6 +5,7 @@
 package physic_test
 
 import (
+	"flag"
 	"fmt"
 	"time"
 
@@ -202,6 +203,13 @@ func ExampleAngle_Set() {
 	// 57.296°
 }
 
+func ExampleAngle_flag() {
+	var a physic.Angle
+
+	flag.Var(&a, "angle", "angle to set the servo to")
+	flag.Parse()
+}
+
 func ExampleDistance_Set() {
 	var d physic.Distance
 
@@ -218,6 +226,13 @@ func ExampleDistance_Set() {
 	// 1m
 	// 14.484km
 
+}
+
+func ExampleDistance_flag() {
+	var d physic.Distance
+
+	flag.Var(&d, "distance", "x axis travel length")
+	flag.Parse()
 }
 
 func ExampleElectricCurrent_Set() {
@@ -237,38 +252,59 @@ func ExampleElectricCurrent_Set() {
 	// 2A
 }
 
+func ExampleElectricCurrent_flag() {
+	var m physic.ElectricCurrent
+
+	flag.Var(&m, "motor", "rated motor current")
+	flag.Parse()
+}
+
 func ExampleElectricPotential_Set() {
-	var e physic.ElectricPotential
+	var v physic.ElectricPotential
 
-	e.Set("250uV")
-	fmt.Println(e)
+	v.Set("250uV")
+	fmt.Println(v)
 
-	e.Set("100kV")
-	fmt.Println(e)
+	v.Set("100kV")
+	fmt.Println(v)
 
-	e.Set("12Volts")
-	fmt.Println(e)
+	v.Set("12Volts")
+	fmt.Println(v)
 	// Output:
 	// 250µV
 	// 100kV
 	// 12V
 }
 
+func ExampleElectricPotential_flag() {
+	var v physic.ElectricPotential
+
+	flag.Var(&v, "cutout", "battery full charge voltage")
+	flag.Parse()
+}
+
 func ExampleElectricResistance_Set() {
-	var e physic.ElectricResistance
+	var r physic.ElectricResistance
 
-	e.Set("33.3kOhms")
-	fmt.Println(e)
+	r.Set("33.3kOhms")
+	fmt.Println(r)
 
-	e.Set("1Ohm")
-	fmt.Println(e)
+	r.Set("1Ohm")
+	fmt.Println(r)
 
-	e.Set("5MOhm")
-	fmt.Println(e)
+	r.Set("5MOhm")
+	fmt.Println(r)
 	// Output:
 	// 33.300kΩ
 	// 1Ω
 	// 5MΩ
+}
+
+func ExampleElectricResistance_flag() {
+	var r physic.ElectricResistance
+
+	flag.Var(&r, "shunt", "shunt resistor value")
+	flag.Parse()
 }
 
 func ExampleForce_Set() {
@@ -279,6 +315,13 @@ func ExampleForce_Set() {
 
 	// Output:
 	// 9.800N
+}
+
+func ExampleForce_flag() {
+	var f physic.Force
+
+	flag.Var(&f, "force", "load cell wakeup force")
+	flag.Parse()
 }
 
 func ExampleFrequency_Set() {
@@ -296,6 +339,13 @@ func ExampleFrequency_Set() {
 	// 10MHz
 	// 10mHz
 	// 1kHz
+}
+
+func ExampleFrequency_flag() {
+	var pwm physic.Frequency
+
+	flag.Var(&pwm, "pwm", "pwm frequency")
+	flag.Parse()
 }
 
 func ExampleMass_Set() {
@@ -319,6 +369,13 @@ func ExampleMass_Set() {
 	// 16Mg
 }
 
+func ExampleMass_flag() {
+	var m physic.Mass
+
+	flag.Var(&m, "weight", "amount of cat food to dispense")
+	flag.Parse()
+}
+
 func ExamplePressure_Set() {
 	var p physic.Pressure
 
@@ -332,6 +389,13 @@ func ExamplePressure_Set() {
 	// 16MPa
 }
 
+func ExamplePressure_flag() {
+	var p physic.Pressure
+
+	flag.Var(&p, "setpoint", "pressure for pump to maintain")
+	flag.Parse()
+}
+
 func ExampleRelativeHumidity_Set() {
 	var r physic.RelativeHumidity
 
@@ -343,6 +407,13 @@ func ExampleRelativeHumidity_Set() {
 	// Output:
 	// 50.6%rH
 	// 20%rH
+}
+
+func ExampleRelativeHumidity_flag() {
+	var h physic.RelativeHumidity
+
+	flag.Var(&h, "humidity", "green house humidity high alarm level")
+	flag.Parse()
 }
 
 func ExampleSpeed_Set() {
@@ -366,6 +437,13 @@ func ExampleSpeed_Set() {
 	// 24.587m/s
 }
 
+func ExampleSpeed_flag() {
+	var s physic.Speed
+
+	flag.Var(&s, "speed", "window shutter closing speed")
+	flag.Parse()
+}
+
 func ExampleTemperature_Set() {
 	var t physic.Temperature
 
@@ -382,6 +460,13 @@ func ExampleTemperature_Set() {
 	// 0°C
 	// 1°C
 	// 5M°C
+}
+
+func ExampleTemperature_flag() {
+	var t physic.Temperature
+
+	flag.Var(&t, "temp", "thermostat setpoint")
+	flag.Parse()
 }
 
 func ExamplePower_Set() {
@@ -402,6 +487,13 @@ func ExamplePower_Set() {
 	// 1.210GW
 }
 
+func ExamplePower_flag() {
+	var p physic.Power
+
+	flag.Var(&p, "power", "heater maximum power")
+	flag.Parse()
+}
+
 func ExampleElectricalCapacitance_Set() {
 	var c physic.ElectricalCapacitance
 
@@ -413,6 +505,13 @@ func ExampleElectricalCapacitance_Set() {
 	// Output:
 	// 1F
 	// 22pF
+}
+
+func ExampleElectricalCapacitance_flag() {
+	var c physic.ElectricalCapacitance
+
+	flag.Var(&c, "mintouch", "minimum touch sensitivity")
+	flag.Parse()
 }
 
 func ExampleLuminousFlux_Set() {
@@ -428,6 +527,12 @@ func ExampleLuminousFlux_Set() {
 	// 25mlm
 	// 2.500Mlm
 }
+func ExampleLuminousFlux_flag() {
+	var l physic.LuminousFlux
+
+	flag.Var(&l, "low", "mood light level")
+	flag.Parse()
+}
 
 func ExampleLuminousIntensity_Set() {
 	var l physic.LuminousIntensity
@@ -437,6 +542,13 @@ func ExampleLuminousIntensity_Set() {
 
 	// Output:
 	// 16cd
+}
+
+func ExampleLuminousIntensity_flag() {
+	var l physic.LuminousIntensity
+
+	flag.Var(&l, "dusk", "light level to turn on light")
+	flag.Parse()
 }
 
 func ExampleEnergy_Set() {
@@ -451,4 +563,11 @@ func ExampleEnergy_Set() {
 	// Output:
 	// 2.600kJ
 	// 45mJ
+}
+
+func ExampleEnergy_flag() {
+	var e physic.Energy
+
+	flag.Var(&e, "capacity", "capacity of battery")
+	flag.Parse()
 }

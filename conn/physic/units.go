@@ -7,6 +7,7 @@ package physic
 import (
 	"errors"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -69,16 +70,16 @@ const (
 
 // Set takes a string and tries to return a valid Angle.
 func (a *Angle) Set(s string) error {
-	v, n, err := setInt(s, nano)
+	v, n, err := set(s, nano)
 	if err != nil {
 		return err
 	}
-	switch s[n:] {
-	case "°", "Degrees", "degrees":
+	switch strings.ToLower(s[n:]) {
+	case "°", "deg", "degrees", "d":
 		*a = (Angle)(v * int64(Degree) / int64(Radian))
-	case "Pi", "pi", "π":
+	case "pi", "π":
 		*a = (Angle)(v * int64(Pi) / int64(Radian))
-	case "Radians", "radians", "Radian", "radian":
+	case "rad", "radians", "radian", "r":
 		*a = (Angle)(v)
 	default:
 		return noUnits("Radian")
@@ -135,20 +136,20 @@ func (d *Distance) Set(s string) error {
 			n += n1
 		}
 	}
-	v, err := dec.dtoi(int(prefix - nano))
+	v, err := dtoi(dec, int(prefix-nano))
 	if err != nil {
 		return err
 	}
-	switch s[n:] {
-	case "mile", "Mile", "miles", "Miles":
+	switch strings.ToLower(s[n:]) {
+	case "mile", "miles":
 		*d = (Distance)((v * 1609344) / 1000)
-	case "yard", "Yard", "yards", "Yards":
+	case "yard", "yards":
 		*d = (Distance)((v * 9144) / 10000)
-	case "foot", "Foot", "Feet", "feet", "ft", "Ft":
+	case "foot", "feet", "ft":
 		*d = (Distance)((v * 3048) / 10000)
-	case "in", "In", "inch", "Inch", "inches", "Inches":
+	case "in", "inch", "inches":
 		*d = (Distance)((v * 254) / 10000)
-	case "m", "metre", "metres", "Metre", "Metres":
+	case "m", "metre", "metres":
 		*d = (Distance)(v)
 	default:
 		return noUnits("m")
@@ -171,13 +172,13 @@ func (e ElectricCurrent) String() string {
 
 // Set takes a string and tries to return a valid ElectricCurrent.
 func (e *ElectricCurrent) Set(s string) error {
-	v, n, err := setInt(s, nano)
+	v, n, err := set(s, nano)
 	if err != nil {
 		return err
 	}
 
-	switch s[n:] {
-	case "A", "a", "amp", "amps", "Amp", "Amps":
+	switch strings.ToLower(s[n:]) {
+	case "a", "amp", "amps":
 		*e = (ElectricCurrent)(v)
 	default:
 		return noUnits("A")
@@ -208,13 +209,13 @@ func (e ElectricPotential) String() string {
 
 // Set takes a string and tries to return a valid ElectricPotential.
 func (e *ElectricPotential) Set(s string) error {
-	v, n, err := setInt(s, nano)
+	v, n, err := set(s, nano)
 	if err != nil {
 		return err
 	}
 
-	switch s[n:] {
-	case "V", "v", "volt", "Volt", "volts", "Volts":
+	switch strings.ToLower(s[n:]) {
+	case "v", "volt", "volts":
 		*e = (ElectricPotential)(v)
 	default:
 		return noUnits("V")
@@ -246,13 +247,13 @@ func (e ElectricResistance) String() string {
 
 // Set takes a string and tries to return a valid ElectricResistance.
 func (e *ElectricResistance) Set(s string) error {
-	v, n, err := setInt(s, nano)
+	v, n, err := set(s, nano)
 	if err != nil {
 		return err
 	}
 
-	switch s[n:] {
-	case "Ohm", "Ohms", "ohm", "ohms", "Ω":
+	switch strings.ToLower(s[n:]) {
+	case "ohm", "ohms", "ω": // ω is lowercase Ω.
 		*e = (ElectricResistance)(v)
 	default:
 		return noUnits("Ohm")
@@ -303,13 +304,13 @@ func (f *Force) Set(s string) error {
 			n += n1
 		}
 	}
-	v, err := d.dtoi(int(prefix - nano))
+	v, err := dtoi(d, int(prefix-nano))
 	if err != nil {
 		return err
 	}
 
-	switch s[n:] {
-	case "N", "Newton", "newton", "Newtons", "newtons":
+	switch strings.ToLower(s[n:]) {
+	case "n", "newton", "newtons":
 		*f = (Force)(v)
 	default:
 		return noUnits("N")
@@ -347,15 +348,14 @@ func (f Frequency) String() string {
 }
 
 // Set takes a string and tries to return a valid Frequency.
-
 func (f *Frequency) Set(s string) error {
-	v, n, err := setInt(s, micro)
+	v, n, err := set(s, micro)
 	if err != nil {
 		return err
 	}
 
-	switch s[n:] {
-	case "Hz", "hz":
+	switch strings.ToLower(s[n:]) {
+	case "hz":
 		*f = (Frequency)(v)
 	default:
 		return noUnits("Hz")
@@ -368,14 +368,6 @@ func (f Frequency) Duration() time.Duration {
 	// Note: Duration() should have been named Period().
 	// TODO(maruel): Rounding should be fine-tuned.
 	return time.Second * time.Duration(Hertz) / time.Duration(f)
-}
-
-//ParseFrequency takes a string and returns a frequency. Formating of string is
-// 10MHz, 100µHz etc.
-func ParseFrequency(s string) (Frequency, error) {
-	var f Frequency
-	err := f.Set(s)
-	return f, err
 }
 
 // PeriodToFrequency returns the frequency for a period of this interval.
@@ -426,20 +418,19 @@ func (m *Mass) Set(s string) error {
 			n += n1
 		}
 	}
-	v, err := d.dtoi(int(prefix - nano))
+	v, err := dtoi(d, int(prefix-nano))
 	if err != nil {
 		return err
 	}
-	// fmt.Println(s, n, v)
-	// fmt.Println("into switch ", s[n:])
-	switch s[n:] {
-	case "tonne", "Tonne", "tonnes", "Tonnes":
+	// TODO(NeuralSpaz): Rounding
+	switch strings.ToLower(s[n:]) {
+	case "tonne", "tonnes":
 		*m = (Mass)(v * 1000000)
-	case "pound", "Pound", "pounds", "Pounds", "lb":
-		*m = (Mass)((v * 45359237) / 100000)
-	case "ounce", "Ounce", "ounces", "Ounces", "oz", "Oz":
+	case "pound", "pounds", "lb":
+		*m = (Mass)((v*45359237 + 50000) / 100000)
+	case "ounce", "ounces", "oz":
 		*m = (Mass)(v / 1000000000 * 28349523125)
-	case "g", "gram", "grams", "Gram", "Grams":
+	case "g", "gram", "grams":
 		*m = (Mass)(v)
 	default:
 		return noUnits("g")
@@ -481,13 +472,13 @@ func (p Pressure) String() string {
 
 // Set takes a string and tries to return a valid Pressure.
 func (p *Pressure) Set(s string) error {
-	v, n, err := setInt(s, nano)
+	v, n, err := set(s, nano)
 	if err != nil {
 		return err
 	}
-
-	switch s[n:] {
-	case "Pa", "pa", "Pascal", "pascal", "Pascals", "pascals":
+	// TODO(NeuralSpaz): Add support for hg, hPa and psi
+	switch strings.ToLower(s[n:]) {
+	case "pa", "pascal", "pascals":
 		*p = (Pressure)(v)
 	default:
 		return noUnits("Pa")
@@ -527,14 +518,14 @@ func (r RelativeHumidity) String() string {
 
 // Set takes a string and tries to return a valid RelativeHumidity.
 func (r *RelativeHumidity) Set(s string) error {
-	v, n, err := setInt(s, prefix(-7))
+	v, n, err := set(s, prefix(-7))
 	if err != nil {
 		return err
 	}
-	switch s[n:] {
-	case "rH", "rh":
+	switch strings.ToLower(s[n:]) {
+	case "rh":
 		*r = (RelativeHumidity)(v)
-	case "%rH", "%rh":
+	case "%", "%rh":
 		*r = (RelativeHumidity)(v / 100)
 	default:
 		return noUnits("%rH")
@@ -580,12 +571,12 @@ func (s *Speed) Set(str string) error {
 			n += n1
 		}
 	}
-	v, err := d.dtoi(int(prefix - nano))
+	v, err := dtoi(d, int(prefix-nano))
 	if err != nil {
 		return err
 	}
 
-	switch str[n:] {
+	switch strings.ToLower(str[n:]) {
 	case "fps":
 		*s = (Speed)((v / 1000000) * 304800)
 	case "mph":
@@ -631,15 +622,15 @@ func (t Temperature) String() string {
 
 // Set takes a string and tries to return a valid Temperature.
 func (t *Temperature) Set(s string) error {
-	v, n, err := setInt(s, nano)
+	v, n, err := set(s, nano)
 	if err != nil {
 		return err
 	}
-	switch s[n:] {
+	switch strings.ToLower(s[n:]) {
 	//TODO(neuralspaz) Fahrenheit
-	case "K":
+	case "k":
 		*t = (Temperature)(v)
-	case "C", "°C":
+	case "c", "°c":
 		*t = (Temperature)(v + int64(ZeroCelsius))
 	default:
 		return noUnits("K or C")
@@ -679,13 +670,13 @@ func (p Power) String() string {
 
 // Set takes a string and tries to return a valid Power.
 func (p *Power) Set(s string) error {
-	v, n, err := setInt(s, nano)
+	v, n, err := set(s, nano)
 	if err != nil {
 		return err
 	}
 
-	switch s[n:] {
-	case "watt", "watts", "Watt", "Watts", "W", "w":
+	switch strings.ToLower(s[n:]) {
+	case "watt", "watts", "w":
 		*p = (Power)(v)
 	default:
 		return noUnits("W")
@@ -716,13 +707,13 @@ func (e Energy) String() string {
 
 // Set takes a string and tries to return a valid Energy.
 func (e *Energy) Set(s string) error {
-	v, n, err := setInt(s, nano)
+	v, n, err := set(s, nano)
 	if err != nil {
 		return err
 	}
 
-	switch s[n:] {
-	case "Joule", "Joules", "joule", "joules", "J", "j":
+	switch strings.ToLower(s[n:]) {
+	case "joule", "joules", "j":
 		*e = (Energy)(v)
 	default:
 		return noUnits("J")
@@ -739,6 +730,7 @@ const (
 	KiloJoule  Energy = 1000 * Joule
 	MegaJoule  Energy = 1000 * KiloJoule
 	GigaJoule  Energy = 1000 * MegaJoule
+	// TODO(NeuralSpaz): Add Calorie support.
 )
 
 // ElectricalCapacitance is a measurement of capacitance stored as a pico farad.
@@ -753,13 +745,13 @@ func (c ElectricalCapacitance) String() string {
 
 // Set takes a string and tries to return a valid ElectricalCapacitance.
 func (e *ElectricalCapacitance) Set(s string) error {
-	v, n, err := setInt(s, pico)
+	v, n, err := set(s, pico)
 	if err != nil {
 		return err
 	}
 
-	switch s[n:] {
-	case "f", "farad", "farads", "F", "Farad", "Farads":
+	switch strings.ToLower(s[n:]) {
+	case "f", "farad", "farads":
 		*e = (ElectricalCapacitance)(v)
 	default:
 		return noUnits("F")
@@ -797,13 +789,13 @@ func (l LuminousIntensity) String() string {
 
 // Set takes a string and tries to return a valid LuminousIntensity.
 func (l *LuminousIntensity) Set(s string) error {
-	v, n, err := setInt(s, nano)
+	v, n, err := set(s, nano)
 	if err != nil {
 		return err
 	}
 
-	switch s[n:] {
-	case "cd", "Candela", "candela", "Candelas", "candelas":
+	switch strings.ToLower(s[n:]) {
+	case "cd", "candela", "candelas":
 		*l = (LuminousIntensity)(v)
 	default:
 		return noUnits("cd")
@@ -839,13 +831,13 @@ func (f LuminousFlux) String() string {
 
 // Set takes a string and tries to return a valid LuminousFlux.
 func (l *LuminousFlux) Set(s string) error {
-	v, n, err := setInt(s, nano)
+	v, n, err := set(s, nano)
 	if err != nil {
 		return err
 	}
 
-	switch s[n:] {
-	case "lm", "Lumen", "lumen", "Lumens", "lumens":
+	switch strings.ToLower(s[n:]) {
+	case "lm", "lumen", "lumens":
 		*l = (LuminousFlux)(v)
 	default:
 		return noUnits("lm")
@@ -1355,6 +1347,27 @@ func atod(s string) (decimal, int, error) {
 		}
 	}
 	return d, last, nil
+}
+
+// Set is a helper for converting a string and a prefix in to a physic unit.
+func set(s string, base prefix) (int64, int, error) {
+	d, n, err := atod(s)
+	if err != nil {
+		return 0, n, err
+	}
+	si := prefix(none)
+	if !(n == len(s)) {
+		var n1 int
+		si, n1 = parseSIPrefix([]rune(s[n:])[0])
+		if si != none {
+			n += n1
+		}
+	}
+	v, err := dtoi(d, int(si-base))
+	if err != nil {
+		return v, 0, err
+	}
+	return v, n, nil
 }
 
 type parseError struct {

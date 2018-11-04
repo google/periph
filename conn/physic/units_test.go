@@ -7,6 +7,7 @@ package physic
 import (
 	"bytes"
 	"errors"
+	"flag"
 	"fmt"
 	"strconv"
 	"testing"
@@ -947,27 +948,6 @@ func TestDistance_Set(t *testing.T) {
 		fs.Parse([]string{"-d", tt.s})
 		if got != tt.want {
 			t.Errorf("%s wanted: %v(%d) but got: %v(%d)", tt.name, tt.want, tt.want, got, got)
-		}
-	}
-}
-
-func TestParseFrequency(t *testing.T) {
-	tests := []struct {
-		name    string
-		s       string
-		want    Frequency
-		wantErr bool
-	}{
-		{"100µHz", "100µHz", 100 * MicroHertz, false},
-	}
-	for _, tt := range tests {
-		got, err := ParseFrequency(tt.s)
-		if (err != nil) != tt.wantErr {
-			t.Errorf("ParseFrequency() error = %v, wantErr %v", err, tt.wantErr)
-			return
-		}
-		if got != tt.want {
-			t.Errorf("ParseFrequency() = %v, want %v", got, tt.want)
 		}
 	}
 }
