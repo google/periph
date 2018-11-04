@@ -6,6 +6,7 @@ package physic
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -535,4 +536,167 @@ func BenchmarkCelsiusFloatg(b *testing.B) {
 		buf.WriteString(fmt.Sprintf("%g°C", v))
 		buf.Reset()
 	}
+}
+
+func TestAtod(t *testing.T) {
+	const (
+		negative = true
+		postive  = false
+	)
+	tests := []struct {
+		s    string
+		want decimal
+		used int
+		err  bool
+	}{
+		{"123456789", decimal{"123456789", 0, postive}, 9, false},
+		{"1nM", decimal{"1", 0, postive}, 1, false},
+		{"2.2nM", decimal{"22", -1, postive}, 3, false},
+		{"12.5mA", decimal{"125", -1, postive}, 4, false},
+		{"-12.5mA", decimal{"125", -1, negative}, 5, false},
+		{"1.1.1", decimal{}, 0, true},
+		{"1ma1", decimal{"1", 0, postive}, 1, false},
+		{"-0.00001%rH", decimal{"1", -5, negative}, 8, false},
+		{"0.00001%rH", decimal{"1", -5, postive}, 7, false},
+		{"--1ma1", decimal{"1", 0, negative}, 3, false},
+		{"++100ma1", decimal{"1", 2, postive}, 5, false},
+		{"1.0", decimal{"1", 0, postive}, 3, false},
+		{"0.10001", decimal{"10001", -5, postive}, 7, false},
+		{"-0.10001", decimal{"10001", -5, negative}, 8, false},
+		{"%-0.10001", decimal{"10001", -5, negative}, 0, true},
+		{"1n", decimal{"1", 0, postive}, 1, false},
+		{"200n", decimal{"2", 2, postive}, 3, false},
+	}
+
+	for _, tt := range tests {
+		got, n, err := atod(tt.s)
+
+		if got != tt.want && !tt.err {
+			t.Errorf("got %v expected %v", got, tt.want)
+		}
+		if tt.err && err == nil {
+			t.Errorf("expected error %v but got nil", err)
+		}
+
+		if n != tt.used {
+			t.Errorf("expected to consume %d char but used %d", tt.used, n)
+		}
+	}
+}
+
+func TestDoti(t *testing.T) {
+	tests := []struct {
+		name string
+		d    decimal
+		want int64
+		err  bool
+	}{
+		{"123", decimal{"123", 0, false}, 123, false},
+		{"-123", decimal{"123", 0, true}, -123, false},
+		{"1230", decimal{"123", 1, false}, 1230, false},
+		{"-1230", decimal{"123", 1, true}, -1230, false},
+		{"1230", decimal{"123", 20, false}, 1230, true},
+		{"-1230", decimal{"123", 20, true}, -1230, true},
+		{"max", decimal{"9223372036854775807", 0, false}, 9223372036854775807, false},
+		{"-max", decimal{"9223372036854775807", 0, true}, -9223372036854775807, false},
+		{"max+1", decimal{"9223372036854775808", 0, true}, 0, true},
+		{"1a", decimal{"1a", 0, false}, 123, true},
+		{"2.7b", decimal{"2.7b", 0, true}, -123, true},
+		{"12", decimal{"123", -1, false}, 12, false},
+		{"-12", decimal{"123", -1, true}, -12, false},
+		{"123n", decimal{"123", 0, false}, 123, false},
+		{"max*10^1", decimal{"9223372036854775807", 1, false}, 9223372036854775807, true},
+		{"overflow", decimal{"9223372036854775807", 10, false}, 9223372036854775807, true},
+	}
+
+	for _, tt := range tests {
+		got, err := tt.d.dtoi(0)
+
+		if got != tt.want && !tt.err {
+			t.Errorf("got %v expected %v", got, tt.want)
+		}
+		if tt.err && err == nil {
+			t.Errorf("expected %v but got nil, %v", err, got)
+		}
+	}
+
+}
+
+func TestPrefix(t *testing.T) {
+	tests := []struct {
+		name   string
+		prefix rune
+		want   prefix
+		n      int
+	}{
+		{"pico", 'p', pico, 1},
+		{"nano", 'n', nano, 1},
+		{"micro", 'u', micro, 1},
+		{"mu", 'µ', micro, 2},
+		{"milli", 'm', milli, 1},
+		{"none", 0, none, 0},
+		{"kilo", 'k', kilo, 1},
+		{"mega", 'M', mega, 1},
+		{"giga", 'G', giga, 1},
+		{"tera", 'T', tera, 1},
+	}
+	for _, tt := range tests {
+		got, n := parseSIPrefix(tt.prefix)
+
+		if got != tt.want || n != tt.n {
+			t.Errorf("wanted prefix %d, and len %d, but got prefix %d, and len %d", tt.want, tt.n, got, n)
+		}
+
+	}
+}
+
+func TestParseError(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want string
+	}{
+		{"empty", &parseError{s: "", err: nil}, "parse error"},
+		{"empty", &parseError{s: "", err: errors.New("test")}, "parse error: test: \"" + "\""},
+		{"noUnits", noUnits("someunit"), "parse error: no units provided, need: \"someunit\""},
+	}
+	for _, tt := range tests {
+		got := tt.err.Error()
+
+		if got != tt.want {
+			t.Errorf("wanted err string:\n%s but got:\n%s", tt.want, got)
+		}
+
+	}
+}
+
+func BenchmarkDecimal(b *testing.B) {
+	var d decimal
+	var n int
+	var err error
+	for i := 0; i < b.N; i++ {
+		if d, n, err = atod("337.2m"); err != nil {
+			b.Fatal(err)
+		}
+	}
+	b.StopTimer()
+	fmt.Sprintf("%v %d", d, n)
+}
+
+func BenchmarkString2Decimal2Int(b *testing.B) {
+
+	var d decimal
+	var n int
+	var err error
+	var v int64
+	for i := 0; i < b.N; i++ {
+		if d, n, err = atod("337.2m"); err != nil {
+			b.Fatal(err)
+		}
+		if v, err = d.dtoi(0); err != nil {
+			b.Fatal(err)
+		}
+	}
+	b.StopTimer()
+	fmt.Sprintf("%d %d", v, n)
 }
