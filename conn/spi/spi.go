@@ -101,14 +101,9 @@ type Packet struct {
 	// completed. This can be leveraged to create long transaction as multiple
 	// packets like to use 9 bits commands then 8 bits data.
 	//
-	// Casual observation on a Rasberry Pi 3 is that two packets with
-	// KeepCS:false, there is a few µs with CS asserted after the clock stops,
-	// then 11.2µs with CS not asserted, then CS is asserted for (roughly) one
-	// clock cycle before the clock starts again for the next packet. This seems
-	// to be independent of the port clock speed but this wasn't fully verified.
-	//
-	// It cannot be expected that the driver will correctly keep CS asserted even
-	// if KeepCS:true on the last packet.
+	// Normally during a spi.Conn.TxPackets() call, KeepCS should be set to true
+	// for all packets except the last one. If the last one is set to true, the
+	// CS line stays asserted, leaving the transaction hanging on the bus.
 	//
 	// KeepCS is ignored when NoCS was specified to Connect.
 	KeepCS bool
@@ -125,8 +120,14 @@ type Conn interface {
 	// The maximum number of bytes can be limited depending on the driver. Query
 	// conn.Limits.MaxTxSize() can be used to determine the limit.
 	//
-	// If the last packet has KeepCS:true, the behavior is undefined. The CS line
-	// will likely not stay asserted. This is a driver limitation.
+	// If the last packet has KeepCS:true, the CS line stays asserted. This
+	// enables doing SPI transaction over multiple calls.
+	//
+	// Conversely, if any packet beside the last one has KeepCS:false, the CS
+	// line will blip for a short amount of time to force a new transaction.
+	//
+	// It was observed on RPi3 hardware to have a one clock delay between each
+	// packet.
 	TxPackets(p []Packet) error
 }
 

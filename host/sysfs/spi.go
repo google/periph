@@ -183,7 +183,6 @@ func newSPI(busNumber, chipSelect int) (*SPI, error) {
 			f:          f,
 			busNumber:  busNumber,
 			chipSelect: chipSelect,
-			p:          [2]spi.Packet{{KeepCS: true}, {KeepCS: true}},
 		},
 	}, nil
 }
@@ -289,9 +288,13 @@ func (s *spiConn) Tx(w, r []byte) error {
 	if s.halfDuplex && len(w) != 0 && len(r) != 0 {
 		// Create two packets for HalfDuplex operation: one write then one read.
 		s.p[0].R = nil
+		s.p[0].KeepCS = true
 		s.p[1].W = nil
 		s.p[1].R = r
+		s.p[1].KeepCS = false
 		p = s.p[:2]
+	} else {
+		s.p[0].KeepCS = false
 	}
 	if err := s.txPackets(p); err != nil {
 		return fmt.Errorf("sysfs-spi: Tx() failed: %v", err)
@@ -396,10 +399,14 @@ func (s *spiConn) txPackets(p []spi.Packet) error {
 		if bits == 0 {
 			bits = s.bitsPerWord
 		}
-		m[i].reset(p[i].W, p[i].R, f, bits)
-		if !s.noCS && !p[i].KeepCS {
-			m[i].csChange = 1
+		csInvert := false
+		if !s.noCS {
+			// Invert CS behavior when a packet has KeepCS false, except for the last
+			// packet when KeepCS is true.
+			last := i == len(p)-1
+			csInvert = p[i].KeepCS == last
 		}
+		m[i].reset(p[i].W, p[i].R, f, bits, csInvert)
 	}
 	return s.f.Ioctl(spiIOCTx(len(m)), uintptr(unsafe.Pointer(&m[0])))
 }
@@ -517,7 +524,7 @@ type spiIOCTransfer struct {
 	pad         uint16
 }
 
-func (s *spiIOCTransfer) reset(w, r []byte, f physic.Frequency, bitsPerWord uint8) {
+func (s *spiIOCTransfer) reset(w, r []byte, f physic.Frequency, bitsPerWord uint8, csInvert bool) {
 	s.tx = 0
 	s.rx = 0
 	s.length = 0
@@ -533,7 +540,11 @@ func (s *spiIOCTransfer) reset(w, r []byte, f physic.Frequency, bitsPerWord uint
 	s.speedHz = uint32((f + 500*physic.MilliHertz) / physic.Hertz)
 	s.delayUsecs = 0
 	s.bitsPerWord = bitsPerWord
-	s.csChange = 0
+	if csInvert {
+		s.csChange = 1
+	} else {
+		s.csChange = 0
+	}
 	s.txNBits = 0
 	s.rxNBits = 0
 	s.pad = 0
