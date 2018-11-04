@@ -1945,7 +1945,7 @@ func TestMeta_Set(t *testing.T) {
 			t.Errorf("case %s got %v", tt.name, got)
 		}
 		if tt.wantErr && got.Error() != tt.err {
-			t.Errorf("case %s got %v", tt.name, got)
+			t.Errorf("case %s \n   got:%v \nwanted:%v", tt.name, got, tt.err)
 		}
 	}
 }
