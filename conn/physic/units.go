@@ -792,9 +792,15 @@ func dtoi(d decimal, scale int) (int64, error) {
 			// Similarly if check > max it will overflow when converted to int64.
 			if check < u || check > maxInt64 {
 				if d.neg {
-					return (-maxInt64), &parseError{err: errors.New("overflows minimum is"), s: "-" + maxUint64Str}
+					return -maxInt64, &parseError{
+						s:   "-" + maxUint64Str,
+						err: errors.New("overflows minimum is"),
+					}
 				}
-				return maxInt64, &parseError{err: errors.New("overflows maximum is"), s: maxUint64Str}
+				return maxInt64, &parseError{
+					s:   maxUint64Str,
+					err: errors.New("overflows maximum is"),
+				}
 			}
 			u = check
 		} else {
@@ -821,9 +827,15 @@ func dtoi(d decimal, scale int) (int64, error) {
 		check := u * powerOf10[mag]
 		if check < u || check > maxInt64 {
 			if d.neg {
-				return -maxInt64, &parseError{err: errors.New("overflows minimum is"), s: "-" + maxUint64Str}
+				return -maxInt64, &parseError{
+					s:   "-" + maxUint64Str,
+					err: errors.New("overflows minimum is"),
+				}
 			}
-			return maxInt64, &parseError{err: errors.New("overflows maximum is"), s: maxUint64Str}
+			return maxInt64, &parseError{
+				s:   maxUint64Str,
+				err: errors.New("overflows maximum is"),
+			}
 		}
 		u *= powerOf10[mag]
 	}
@@ -839,7 +851,7 @@ func dtoi(d decimal, scale int) (int64, error) {
 // string are numeric. The string may contain +-0 prefixes and arbitrary
 // suffixes as trailing non number characters are ignored.
 // Significant digits are stored without leading or trailing zeros, rather an
-// exponet is used.
+// exponent is used.
 func atod(s string) (decimal, int, error) {
 	var d decimal
 	start := 0
@@ -848,18 +860,47 @@ func atod(s string) (decimal, int, error) {
 	seenDigit := false
 	seenZero := false
 	isPoint := false
+	seenPlus := false
 
 	// Strip leading zeros, +/- and mark DP.
 	for i := 0; i < len(s); i++ {
 		switch {
 		case s[i] == '-':
+			if seenPlus {
+				return decimal{}, 0, &parseError{
+					s:   s,
+					err: errors.New("can't contain both plus and minus symbols"),
+				}
+			}
+			if d.neg {
+				return decimal{}, 0, &parseError{
+					s:   s,
+					err: errors.New("multiple minus symbols"),
+				}
+			}
 			d.neg = true
 			start++
 		case s[i] == '+':
+			if d.neg {
+				return decimal{}, 0, &parseError{
+					s:   s,
+					err: errors.New("can't contain both plus and minus symbols"),
+				}
+			}
+			if seenPlus {
+				return decimal{}, 0, &parseError{
+					s:   s,
+					err: errors.New("multiple plus symbols"),
+				}
+			}
+			seenPlus = true
 			start++
 		case s[i] == '.':
 			if isPoint {
-				return d, 0, &parseError{s, i, errors.New("multiple decimal points")}
+				return decimal{}, 0, &parseError{
+					s:   s,
+					err: errors.New("multiple decimal points"),
+				}
 			}
 			isPoint = true
 			dp = i
@@ -875,7 +916,10 @@ func atod(s string) (decimal, int, error) {
 			seenDigit = true
 		default:
 			if !seenDigit && !seenZero {
-				return d, 0, &parseError{s: s, err: errors.New("is not a number")}
+				return decimal{}, 0, &parseError{
+					s:   s,
+					err: errors.New("is not a number"),
+				}
 			}
 			end = i
 			break

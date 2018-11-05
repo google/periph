@@ -555,10 +555,9 @@ func TestAtod(t *testing.T) {
 		{"12.5mA", decimal{"125", -1, positive}, 4},
 		{"-12.5mA", decimal{"125", -1, negative}, 5},
 		{"1ma1", decimal{"1", 0, positive}, 1},
+		{"+1ma1", decimal{"1", 0, positive}, 2},
 		{"-0.00001%rH", decimal{"1", -5, negative}, 8},
 		{"0.00001%rH", decimal{"1", -5, positive}, 7},
-		{"--1ma1", decimal{"1", 0, negative}, 3},
-		{"++100ma1", decimal{"1", 2, positive}, 5},
 		{"1.0", decimal{"1", 0, positive}, 3},
 		{"0.10001", decimal{"10001", -5, positive}, 7},
 		{"-0.10001", decimal{"10001", -5, negative}, 8},
@@ -575,6 +574,10 @@ func TestAtod(t *testing.T) {
 		{"1.1.1", decimal{}, 0},
 		{"aba", decimal{}, 0},
 		{"%-0.10001", decimal{}, 0},
+		{"--100ma", decimal{}, 0},
+		{"++100ma", decimal{}, 0},
+		{"+-100ma", decimal{}, 0},
+		{"-+100ma", decimal{}, 0},
 	}
 
 	for _, tt := range succeeds {
@@ -700,7 +703,6 @@ func TestPrefix(t *testing.T) {
 		if got != tt.want || n != tt.n {
 			t.Errorf("wanted prefix %d, and len %d, but got prefix %d, and len %d", tt.want, tt.n, got, n)
 		}
-
 	}
 }
 
@@ -720,9 +722,9 @@ func TestParseError(t *testing.T) {
 		if got != tt.want {
 			t.Errorf("wanted err string:\n%s but got:\n%s", tt.want, got)
 		}
-
 	}
 }
+
 func TestMaxInt64(t *testing.T) {
 	if strconv.FormatUint(maxInt64, 10) != maxUint64Str {
 		t.Fatal("unexpected text representation of max")
@@ -743,7 +745,6 @@ func BenchmarkDecimal(b *testing.B) {
 }
 
 func BenchmarkString2Decimal2Int(b *testing.B) {
-
 	var d decimal
 	var n int
 	var err error
@@ -774,7 +775,6 @@ func BenchmarkDecimalNeg(b *testing.B) {
 }
 
 func BenchmarkString2Decimal2IntNeg(b *testing.B) {
-
 	var d decimal
 	var n int
 	var err error
