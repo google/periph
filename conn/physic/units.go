@@ -746,7 +746,7 @@ type decimal struct {
 }
 
 // Positive powers of 10 in the form such that powerOF10[index] = 10^index.
-var powerOf10 = [19]uint64{
+var powerOf10 = [...]uint64{
 	1,
 	10,
 	100,
@@ -768,13 +768,16 @@ var powerOf10 = [19]uint64{
 	1000000000000000000,
 }
 
+// Maximum value for a int64.
+const maxInt64 = (1<<63 - 1)
+
+var maxUint64Str = "9223372036854775807"
+
 // Converts from decimal to int64, using the decimal.digits character values and
 // converting to a intermediate unit64.
 // Scale is combined with the decimal exponent to maximise the resolution and is
 // in powers of ten.
 func dtoi(d decimal, scale int) (int64, error) {
-	// Maximum value for a int64.
-	const max = (1<<63 - 1)
 	// Use uint till the last as it allows checks for overflows.
 	var u uint64
 	for i := 0; i < len(d.digits); i++ {
@@ -787,8 +790,11 @@ func dtoi(d decimal, scale int) (int64, error) {
 			check := u + uint64(digit)
 			// Check should always be larger than u unless we have overflowed.
 			// Similarly if check > max it will overflow when converted to int64.
-			if check < u || check > max {
-				return int64(u), &parseError{err: errors.New("overflows maximum is"), s: strconv.FormatUint(max, 10)}
+			if check < u || check > maxInt64 {
+				if d.neg {
+					return (-maxInt64), &parseError{err: errors.New("overflows minimum is"), s: "-" + maxUint64Str}
+				}
+				return maxInt64, &parseError{err: errors.New("overflows maximum is"), s: maxUint64Str}
 			}
 			u = check
 		} else {
@@ -800,22 +806,24 @@ func dtoi(d decimal, scale int) (int64, error) {
 	// Get the total magnitude of the number.
 	// a^x * b^y = a*b^(x+y) since scale is of the order unity this becomes
 	// 1^x * b^y = b^(x+y).
-
 	// mag must be positive to use as index in to powerOf10 array.
 	mag := d.exp + scale
-	if mag > 18 {
-		return 0, errors.New("exceeds maximum exponent")
-	}
 	if mag < 0 {
 		mag *= -1
 	}
+	if mag > 18 {
+		return 0, errors.New("exponent exceeds int64")
+	}
 	// Divide is = 10^(-mag)
 	if d.exp+scale < 0 {
-		u /= powerOf10[mag]
+		u = (u + powerOf10[mag]/2) / powerOf10[mag]
 	} else {
 		check := u * powerOf10[mag]
-		if check < u || check > max {
-			return max, &parseError{err: errors.New("overflows maximum is"), s: strconv.FormatUint(max, 10)}
+		if check < u || check > maxInt64 {
+			if d.neg {
+				return -maxInt64, &parseError{err: errors.New("overflows minimum is"), s: "-" + maxUint64Str}
+			}
+			return maxInt64, &parseError{err: errors.New("overflows maximum is"), s: maxUint64Str}
 		}
 		u *= powerOf10[mag]
 	}
@@ -836,7 +844,7 @@ func atod(s string) (decimal, int, error) {
 	var d decimal
 	start := 0
 	dp := 0
-	end := 0
+	end := len(s)
 	seenDigit := false
 	seenZero := false
 	isPoint := false
@@ -874,9 +882,6 @@ func atod(s string) (decimal, int, error) {
 		}
 	}
 
-	if end == 0 {
-		end = len(s)
-	}
 	last := end
 	seenDigit = false
 	exp := 0
@@ -960,23 +965,23 @@ const (
 func parseSIPrefix(r rune) (prefix, int) {
 	switch r {
 	case 'p':
-		return pico, len(string(r))
+		return pico, len("p")
 	case 'n':
-		return nano, len(string(r))
+		return nano, len("n")
 	case 'u':
-		return micro, len(string(r))
+		return micro, len("u")
 	case 'µ':
-		return micro, len(string(r))
+		return micro, len("µ")
 	case 'm':
-		return milli, len(string(r))
+		return milli, len("m")
 	case 'k':
-		return kilo, len(string(r))
+		return kilo, len("k")
 	case 'M':
-		return mega, len(string(r))
+		return mega, len("M")
 	case 'G':
-		return giga, len(string(r))
+		return giga, len("G")
 	case 'T':
-		return tera, len(string(r))
+		return tera, len("T")
 	default:
 		return none, 0
 	}

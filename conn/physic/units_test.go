@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -541,85 +542,138 @@ func BenchmarkCelsiusFloatg(b *testing.B) {
 func TestAtod(t *testing.T) {
 	const (
 		negative = true
-		postive  = false
+		positive = false
 	)
-	tests := []struct {
-		s    string
-		want decimal
-		used int
-		err  bool
+	succeeds := []struct {
+		in       string
+		expected decimal
+		n        int
 	}{
-		{"123456789", decimal{"123456789", 0, postive}, 9, false},
-		{"1nM", decimal{"1", 0, postive}, 1, false},
-		{"2.2nM", decimal{"22", -1, postive}, 3, false},
-		{"12.5mA", decimal{"125", -1, postive}, 4, false},
-		{"-12.5mA", decimal{"125", -1, negative}, 5, false},
-		{"1.1.1", decimal{}, 0, true},
-		{"1ma1", decimal{"1", 0, postive}, 1, false},
-		{"-0.00001%rH", decimal{"1", -5, negative}, 8, false},
-		{"0.00001%rH", decimal{"1", -5, postive}, 7, false},
-		{"--1ma1", decimal{"1", 0, negative}, 3, false},
-		{"++100ma1", decimal{"1", 2, postive}, 5, false},
-		{"1.0", decimal{"1", 0, postive}, 3, false},
-		{"0.10001", decimal{"10001", -5, postive}, 7, false},
-		{"-0.10001", decimal{"10001", -5, negative}, 8, false},
-		{"%-0.10001", decimal{"10001", -5, negative}, 0, true},
-		{"1n", decimal{"1", 0, postive}, 1, false},
-		{"200n", decimal{"2", 2, postive}, 3, false},
+		{"123456789", decimal{"123456789", 0, positive}, 9},
+		{"1nM", decimal{"1", 0, positive}, 1},
+		{"2.2nM", decimal{"22", -1, positive}, 3},
+		{"12.5mA", decimal{"125", -1, positive}, 4},
+		{"-12.5mA", decimal{"125", -1, negative}, 5},
+		{"1ma1", decimal{"1", 0, positive}, 1},
+		{"-0.00001%rH", decimal{"1", -5, negative}, 8},
+		{"0.00001%rH", decimal{"1", -5, positive}, 7},
+		{"--1ma1", decimal{"1", 0, negative}, 3},
+		{"++100ma1", decimal{"1", 2, positive}, 5},
+		{"1.0", decimal{"1", 0, positive}, 3},
+		{"0.10001", decimal{"10001", -5, positive}, 7},
+		{"-0.10001", decimal{"10001", -5, negative}, 8},
+		{"1n", decimal{"1", 0, positive}, 1},
+		{"200n", decimal{"2", 2, positive}, 3},
+		{".01", decimal{"1", -2, positive}, 3},
 	}
 
-	for _, tt := range tests {
-		got, n, err := atod(tt.s)
+	fails := []struct {
+		in       string
+		expected decimal
+		n        int
+	}{
+		{"1.1.1", decimal{}, 0},
+		{"aba", decimal{}, 0},
+		{"%-0.10001", decimal{}, 0},
+	}
 
-		if got != tt.want && !tt.err {
-			t.Errorf("got %v expected %v", got, tt.want)
-		}
-		if tt.err && err == nil {
-			t.Errorf("expected error %v but got nil", err)
-		}
+	for _, tt := range succeeds {
+		got, n, err := atod(tt.in)
 
-		if n != tt.used {
-			t.Errorf("expected to consume %d char but used %d", tt.used, n)
+		if got != tt.expected {
+			t.Errorf("case atod(\"%s\") got %v expected %v", tt.in, got, tt.expected)
+		}
+		if err != nil {
+			t.Errorf("case atod(\"%s\") unexpected expected error %v", tt.in, err)
+		}
+		if n != tt.n {
+			t.Errorf("case atod(\"%s\") expected to consume %d char but used %d", tt.in, tt.n, n)
+		}
+	}
+
+	for _, tt := range fails {
+		got, n, err := atod(tt.in)
+
+		if got != tt.expected {
+			t.Errorf("case atod(\"%s\") got %v expected %v", tt.in, got, tt.expected)
+		}
+		if err == nil {
+			t.Errorf("case atod(\"%s\") expected error %v", tt.in, err)
+		}
+		if n != tt.n {
+			t.Errorf("case atod(\"%s\") expected to consume %d char but used %d", tt.in, tt.n, n)
 		}
 	}
 }
 
 func TestDoti(t *testing.T) {
-	tests := []struct {
-		name string
-		d    decimal
-		want int64
-		err  bool
+	const (
+		negative = true
+		positive = false
+	)
+	succeeds := []struct {
+		name     string
+		in       decimal
+		expected int64
 	}{
-		{"123", decimal{"123", 0, false}, 123, false},
-		{"-123", decimal{"123", 0, true}, -123, false},
-		{"1230", decimal{"123", 1, false}, 1230, false},
-		{"-1230", decimal{"123", 1, true}, -1230, false},
-		{"1230", decimal{"123", 20, false}, 1230, true},
-		{"-1230", decimal{"123", 20, true}, -1230, true},
-		{"max", decimal{"9223372036854775807", 0, false}, 9223372036854775807, false},
-		{"-max", decimal{"9223372036854775807", 0, true}, -9223372036854775807, false},
-		{"max+1", decimal{"9223372036854775808", 0, true}, 0, true},
-		{"1a", decimal{"1a", 0, false}, 123, true},
-		{"2.7b", decimal{"2.7b", 0, true}, -123, true},
-		{"12", decimal{"123", -1, false}, 12, false},
-		{"-12", decimal{"123", -1, true}, -12, false},
-		{"123n", decimal{"123", 0, false}, 123, false},
-		{"max*10^1", decimal{"9223372036854775807", 1, false}, 9223372036854775807, true},
-		{"overflow", decimal{"9223372036854775807", 10, false}, 9223372036854775807, true},
+		{"123", decimal{"123", 0, positive}, 123},
+		{"-123", decimal{"123", 0, negative}, -123},
+		{"1230", decimal{"123", 1, positive}, 1230},
+		{"-1230", decimal{"123", 1, negative}, -1230},
+		{"12.3", decimal{"123", -1, positive}, 12},
+		{"-12.3", decimal{"123", -1, negative}, -12},
+		{"123n", decimal{"123", 0, positive}, 123},
+		{"max", decimal{"9223372036854775807", 0, positive}, 9223372036854775807},
+		{"rounding(5.6)", decimal{"56", -1, positive}, 6},
+		{"rounding(5.5)", decimal{"55", -1, positive}, 6},
+		{"rounding(5.4)", decimal{"54", -1, positive}, 5},
+		{"rounding(-5.6)", decimal{"56", -1, negative}, -6},
+		{"rounding(-5.5)", decimal{"55", -1, negative}, -6},
+		{"rounding(-5.4)", decimal{"54", -1, negative}, -5},
+		{"rounding(0.6)", decimal{"6", -1, positive}, 1},
+		{"rounding(0.5)", decimal{"5", -1, positive}, 1},
+		{"rounding(0.4)", decimal{"4", -1, positive}, 0},
+		{"rounding(-0.6)", decimal{"6", -1, negative}, -1},
+		{"rounding(-0.5)", decimal{"5", -1, negative}, -1},
+		{"rounding(-0.4)", decimal{"4", -1, negative}, -0},
 	}
 
-	for _, tt := range tests {
-		got, err := dtoi(tt.d, 0)
+	fails := []struct {
+		name     string
+		in       decimal
+		expected int64
+	}{
+		{"max+1", decimal{"9223372036854775808", 0, positive}, 9223372036854775807},
+		{"-max-1", decimal{"9223372036854775808", 0, negative}, -9223372036854775807},
+		{"non digit in decimal.digit)", decimal{"1a", 0, positive}, 0},
+		{"non digit in decimal.digit)", decimal{"2.7b", 0, negative}, 0},
+		{"exponet too large for int64", decimal{"123", 20, positive}, 0},
+		{"exponet too small for int64", decimal{"123", -20, positive}, 0},
+		{"max*10^1", decimal{"9223372036854775807", 1, positive}, 9223372036854775807},
+		{"-max*10^1", decimal{"9223372036854775807", 1, negative}, -9223372036854775807},
+	}
 
-		if got != tt.want && !tt.err {
-			t.Errorf("got %v expected %v", got, tt.want)
+	for _, tt := range succeeds {
+		got, err := dtoi(tt.in, 0)
+
+		if got != tt.expected {
+			t.Errorf("case dtoi() %s got %v expected %v", tt.name, got, tt.expected)
 		}
-		if tt.err && err == nil {
-			t.Errorf("expected %v but got nil, %v", err, got)
+		if err != nil {
+			t.Errorf("case dtoi() %s got an unexpected error %v", tt.name, err)
 		}
 	}
 
+	for _, tt := range fails {
+		got, err := dtoi(tt.in, 0)
+
+		if got != tt.expected {
+			t.Errorf("case dtoi() %s got %v expected %v", tt.name, got, tt.expected)
+		}
+		if err == nil {
+			t.Errorf("case dtoi() %s expected %v but got nil", tt.name, err)
+		}
+	}
 }
 
 func TestPrefix(t *testing.T) {
@@ -669,6 +723,11 @@ func TestParseError(t *testing.T) {
 
 	}
 }
+func TestingMaxInt64(t *testing.T) {
+	if strconv.FormatUint(maxInt64, 10) != maxUint64Str {
+		t.Fatal("unexpected text representation of max")
+	}
+}
 
 func BenchmarkDecimal(b *testing.B) {
 	var d decimal
@@ -680,7 +739,8 @@ func BenchmarkDecimal(b *testing.B) {
 		}
 	}
 	b.StopTimer()
-	fmt.Sprintf("%v %d", d, n)
+	buf := bytes.Buffer{}
+	buf.WriteString(fmt.Sprintf("%v %d", d, n))
 }
 
 func BenchmarkString2Decimal2Int(b *testing.B) {
@@ -698,5 +758,39 @@ func BenchmarkString2Decimal2Int(b *testing.B) {
 		}
 	}
 	b.StopTimer()
-	fmt.Sprintf("%d %d", v, n)
+	buf := bytes.Buffer{}
+	buf.WriteString(fmt.Sprintf("%d %d", v, n))
+}
+
+func BenchmarkDecimalNeg(b *testing.B) {
+	var d decimal
+	var n int
+	var err error
+	for i := 0; i < b.N; i++ {
+		if d, n, err = atod("-337.2m"); err != nil {
+			b.Fatal(err)
+		}
+	}
+	b.StopTimer()
+	buf := bytes.Buffer{}
+	buf.WriteString(fmt.Sprintf("%v %d", d, n))
+}
+
+func BenchmarkString2Decimal2IntNeg(b *testing.B) {
+
+	var d decimal
+	var n int
+	var err error
+	var v int64
+	for i := 0; i < b.N; i++ {
+		if d, n, err = atod("-337.2m"); err != nil {
+			b.Fatal(err)
+		}
+		if v, err = dtoi(d, 0); err != nil {
+			b.Fatal(err)
+		}
+	}
+	b.StopTimer()
+	buf := bytes.Buffer{}
+	buf.WriteString(fmt.Sprintf("%d %d", v, n))
 }
