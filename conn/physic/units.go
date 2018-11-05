@@ -866,6 +866,10 @@ func atod(s string) (decimal, int, error) {
 	for i := 0; i < len(s); i++ {
 		switch {
 		case s[i] == '-':
+			if seenDigit {
+				end = i
+				break
+			}
 			if seenPlus {
 				return decimal{}, 0, &parseError{
 					s:   s,
@@ -878,13 +882,13 @@ func atod(s string) (decimal, int, error) {
 					err: errors.New("multiple minus symbols"),
 				}
 			}
+			d.neg = true
+			start++
+		case s[i] == '+':
 			if seenDigit {
 				end = i
 				break
 			}
-			d.neg = true
-			start++
-		case s[i] == '+':
 			if d.neg {
 				return decimal{}, 0, &parseError{
 					s:   s,
@@ -896,10 +900,6 @@ func atod(s string) (decimal, int, error) {
 					s:   s,
 					err: errors.New("multiple plus symbols"),
 				}
-			}
-			if seenDigit {
-				end = i
-				break
 			}
 			seenPlus = true
 			start++
