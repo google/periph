@@ -564,6 +564,8 @@ func TestAtod(t *testing.T) {
 		{"1n", decimal{"1", 0, positive}, 1},
 		{"200n", decimal{"2", 2, positive}, 3},
 		{".01", decimal{"1", -2, positive}, 3},
+		{"1-2", decimal{"1", 0, positive}, 1},
+		{"1+2", decimal{"1", 0, positive}, 1},
 	}
 
 	fails := []struct {
