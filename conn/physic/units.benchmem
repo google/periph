@@ -1,0 +1,12 @@
+goos: linux
+goarch: amd64
+pkg: periph.io/x/periph/conn/physic
+BenchmarkCelsiusString-4           	50000000	       145 ns/op	       5 B/op	       1 allocs/op
+BenchmarkCelsiusFloatf-4           	10000000	       680 ns/op	      16 B/op	       2 allocs/op
+BenchmarkCelsiusFloatg-4           	20000000	       401 ns/op	      16 B/op	       2 allocs/op
+BenchmarkDecimal-4                 	100000000	       131 ns/op	       4 B/op	       1 allocs/op
+BenchmarkString2Decimal2Int-4      	50000000	       165 ns/op	       4 B/op	       1 allocs/op
+BenchmarkDecimalNeg-4              	50000000	       134 ns/op	       4 B/op	       1 allocs/op
+BenchmarkString2Decimal2IntNeg-4   	50000000	       166 ns/op	       4 B/op	       1 allocs/op
+PASS
+ok  	periph.io/x/periph/conn/physic	60.564s

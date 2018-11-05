@@ -704,7 +704,7 @@ func picoAsString(v int64) string {
 		precision = v % 1000000
 		base = int(v / 1000000)
 		if precision > 500000 {
-			base += 1
+			base++
 		}
 		frac = (base % 1000)
 		base = base / 1000

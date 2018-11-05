@@ -723,7 +723,7 @@ func TestParseError(t *testing.T) {
 
 	}
 }
-func TestingMaxInt64(t *testing.T) {
+func TestMaxInt64(t *testing.T) {
 	if strconv.FormatUint(maxInt64, 10) != maxUint64Str {
 		t.Fatal("unexpected text representation of max")
 	}
@@ -739,8 +739,7 @@ func BenchmarkDecimal(b *testing.B) {
 		}
 	}
 	b.StopTimer()
-	buf := bytes.Buffer{}
-	buf.WriteString(fmt.Sprintf("%v %d", d, n))
+	_ = fmt.Sprintf("%v %d", d, n)
 }
 
 func BenchmarkString2Decimal2Int(b *testing.B) {
@@ -758,8 +757,7 @@ func BenchmarkString2Decimal2Int(b *testing.B) {
 		}
 	}
 	b.StopTimer()
-	buf := bytes.Buffer{}
-	buf.WriteString(fmt.Sprintf("%d %d", v, n))
+	_ = fmt.Sprintf("%d %d", v, n)
 }
 
 func BenchmarkDecimalNeg(b *testing.B) {
@@ -772,8 +770,7 @@ func BenchmarkDecimalNeg(b *testing.B) {
 		}
 	}
 	b.StopTimer()
-	buf := bytes.Buffer{}
-	buf.WriteString(fmt.Sprintf("%v %d", d, n))
+	_ = fmt.Sprintf("%v %d", d, n)
 }
 
 func BenchmarkString2Decimal2IntNeg(b *testing.B) {
@@ -791,6 +788,5 @@ func BenchmarkString2Decimal2IntNeg(b *testing.B) {
 		}
 	}
 	b.StopTimer()
-	buf := bytes.Buffer{}
-	buf.WriteString(fmt.Sprintf("%d %d", v, n))
+	_ = fmt.Sprintf("%d %d", v, n)
 }
