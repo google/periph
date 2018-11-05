@@ -5,6 +5,7 @@
 package physic
 
 import (
+	"errors"
 	"strconv"
 	"time"
 )
@@ -703,7 +704,7 @@ func picoAsString(v int64) string {
 		precision = v % 1000000
 		base = int(v / 1000000)
 		if precision > 500000 {
-			base += 1
+			base++
 		}
 		frac = (base % 1000)
 		base = base / 1000
@@ -732,4 +733,308 @@ func picoAsString(v int64) string {
 		return sign + strconv.Itoa(base) + unit
 	}
 	return sign + strconv.Itoa(base) + "." + prefixZeros(3, frac) + unit
+}
+
+// Decimal is the exact representation of decimal number.
+type decimal struct {
+	// digits hold the string representation of the significant decimal digits.
+	digits string
+	// exponent is the left or right decimal shift. (powers of ten).
+	exp int
+	// neg it true if the number is negative.
+	neg bool
+}
+
+// Positive powers of 10 in the form such that powerOF10[index] = 10^index.
+var powerOf10 = [...]uint64{
+	1,
+	10,
+	100,
+	1000,
+	10000,
+	100000,
+	1000000,
+	10000000,
+	100000000,
+	1000000000,
+	10000000000,
+	100000000000,
+	1000000000000,
+	10000000000000,
+	100000000000000,
+	1000000000000000,
+	10000000000000000,
+	100000000000000000,
+	1000000000000000000,
+}
+
+// Maximum value for a int64.
+const maxInt64 = (1<<63 - 1)
+
+var maxUint64Str = "9223372036854775807"
+
+// Converts from decimal to int64, using the decimal.digits character values and
+// converting to a intermediate unit64.
+// Scale is combined with the decimal exponent to maximise the resolution and is
+// in powers of ten.
+func dtoi(d decimal, scale int) (int64, error) {
+	// Use uint till the last as it allows checks for overflows.
+	var u uint64
+	for i := 0; i < len(d.digits); i++ {
+		// Check that is is a digit.
+		if d.digits[i] >= '0' && d.digits[i] <= '9' {
+			// '0' = 0x30 '1' = 0x31 ...etc.
+			digit := d.digits[i] - '0'
+			// *10 is decimal shift left.
+			u *= 10
+			check := u + uint64(digit)
+			// Check should always be larger than u unless we have overflowed.
+			// Similarly if check > max it will overflow when converted to int64.
+			if check < u || check > maxInt64 {
+				if d.neg {
+					return -maxInt64, &parseError{
+						s:   "-" + maxUint64Str,
+						err: errors.New("overflows minimum is"),
+					}
+				}
+				return maxInt64, &parseError{
+					s:   maxUint64Str,
+					err: errors.New("overflows maximum is"),
+				}
+			}
+			u = check
+		} else {
+			// Should not get here if used atod to generate the decimal.
+			return 0, &parseError{err: errors.New("not a number")}
+		}
+	}
+
+	// Get the total magnitude of the number.
+	// a^x * b^y = a*b^(x+y) since scale is of the order unity this becomes
+	// 1^x * b^y = b^(x+y).
+	// mag must be positive to use as index in to powerOf10 array.
+	mag := d.exp + scale
+	if mag < 0 {
+		mag *= -1
+	}
+	if mag > 18 {
+		return 0, errors.New("exponent exceeds int64")
+	}
+	// Divide is = 10^(-mag)
+	if d.exp+scale < 0 {
+		u = (u + powerOf10[mag]/2) / powerOf10[mag]
+	} else {
+		check := u * powerOf10[mag]
+		if check < u || check > maxInt64 {
+			if d.neg {
+				return -maxInt64, &parseError{
+					s:   "-" + maxUint64Str,
+					err: errors.New("overflows minimum is"),
+				}
+			}
+			return maxInt64, &parseError{
+				s:   maxUint64Str,
+				err: errors.New("overflows maximum is"),
+			}
+		}
+		u *= powerOf10[mag]
+	}
+
+	n := int64(u)
+	if d.neg {
+		n *= -1
+	}
+	return n, nil
+}
+
+// Converts a string to a decimal form. The return int is how many bytes of the
+// string are numeric. The string may contain +-0 prefixes and arbitrary
+// suffixes as trailing non number characters are ignored.
+// Significant digits are stored without leading or trailing zeros, rather an
+// exponent is used.
+func atod(s string) (decimal, int, error) {
+	var d decimal
+	start := 0
+	dp := 0
+	end := len(s)
+	seenDigit := false
+	seenZero := false
+	isPoint := false
+	seenPlus := false
+
+	// Strip leading zeros, +/- and mark DP.
+	for i := 0; i < len(s); i++ {
+		switch {
+		case s[i] == '-':
+			if seenDigit {
+				end = i
+				break
+			}
+			if seenPlus {
+				return decimal{}, 0, &parseError{
+					s:   s,
+					err: errors.New("can't contain both plus and minus symbols"),
+				}
+			}
+			if d.neg {
+				return decimal{}, 0, &parseError{
+					s:   s,
+					err: errors.New("multiple minus symbols"),
+				}
+			}
+			d.neg = true
+			start++
+		case s[i] == '+':
+			if seenDigit {
+				end = i
+				break
+			}
+			if d.neg {
+				return decimal{}, 0, &parseError{
+					s:   s,
+					err: errors.New("can't contain both plus and minus symbols"),
+				}
+			}
+			if seenPlus {
+				return decimal{}, 0, &parseError{
+					s:   s,
+					err: errors.New("multiple plus symbols"),
+				}
+			}
+			seenPlus = true
+			start++
+		case s[i] == '.':
+			if isPoint {
+				return decimal{}, 0, &parseError{
+					s:   s,
+					err: errors.New("multiple decimal points"),
+				}
+			}
+			isPoint = true
+			dp = i
+			if !seenDigit {
+				start++
+			}
+		case s[i] == '0':
+			if !seenDigit {
+				start++
+			}
+			seenZero = true
+		case s[i] >= '1' && s[i] <= '9':
+			seenDigit = true
+		default:
+			if !seenDigit && !seenZero {
+				return decimal{}, 0, &parseError{
+					s:   s,
+					err: errors.New("is not a number"),
+				}
+			}
+			end = i
+			break
+		}
+	}
+
+	last := end
+	seenDigit = false
+	exp := 0
+	// Strip non significant zeros to find base exponent.
+	for i := end - 1; i > start-1; i-- {
+		switch {
+		case s[i] >= '1' && s[i] <= '9':
+			seenDigit = true
+		case s[i] == '.':
+			if !seenDigit {
+				end--
+			}
+		case s[i] == '0':
+			if !seenDigit {
+				if i > dp {
+					end--
+				}
+				if i <= dp || dp == 0 {
+					exp++
+				}
+			}
+		default:
+			last--
+			end--
+		}
+	}
+
+	if dp > start && dp < end {
+		// Concatenate with out decimal point.
+		d.digits = s[start:dp] + s[dp+1:end]
+	} else {
+		d.digits = s[start:end]
+	}
+	if !isPoint {
+		d.exp = exp
+	} else {
+		ttl := dp - start
+		length := len(d.digits)
+		if ttl > 0 {
+			d.exp = ttl - length
+		} else {
+			d.exp = ttl - length + 1
+		}
+	}
+	return d, last, nil
+}
+
+type parseError struct {
+	s        string
+	position int
+	err      error
+}
+
+func (p *parseError) Error() string {
+	if p.err == nil {
+		return "parse error"
+	}
+	return "parse error: " + p.err.Error() + ": \"" + p.s + "\""
+}
+
+func noUnits(s string) error {
+	return &parseError{s: s, err: errors.New("no units provided, need")}
+}
+
+type prefix int
+
+const (
+	pico  prefix = -12
+	nano  prefix = -9
+	micro prefix = -6
+	milli prefix = -3
+	none  prefix = 0
+	deca  prefix = 1
+	hecto prefix = 2
+	kilo  prefix = 3
+	mega  prefix = 6
+	giga  prefix = 9
+	tera  prefix = 12
+)
+
+func parseSIPrefix(r rune) (prefix, int) {
+	switch r {
+	case 'p':
+		return pico, len("p")
+	case 'n':
+		return nano, len("n")
+	case 'u':
+		return micro, len("u")
+	case 'µ':
+		return micro, len("µ")
+	case 'm':
+		return milli, len("m")
+	case 'k':
+		return kilo, len("k")
+	case 'M':
+		return mega, len("M")
+	case 'G':
+		return giga, len("G")
+	case 'T':
+		return tera, len("T")
+	default:
+		return none, 0
+	}
 }
