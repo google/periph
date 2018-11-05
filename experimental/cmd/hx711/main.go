@@ -31,16 +31,11 @@ func mainFunc() error {
 		return err
 	}
 
-	const pinPattern = "no %s pin specified. Please provide the pin via '%s' flag, for example '%s'"
-
 	if *clkPin == "" {
-		return fmt.Errorf(pinPattern, "clock", "-clk", "-clk 25")
+		return fmt.Errorf("-clk is required")
 	}
 	if *dataPin == "" {
-		return fmt.Errorf(pinPattern, "data", "-data", "-data 26")
-	}
-	if *gain != 128 && *gain != 64 && *gain != 32 {
-		return fmt.Errorf("invalid gain '%d', must be either 128, 64 or 32", *gain)
+		return fmt.Errorf("-data is required")
 	}
 	if *cont && *samples != 0 {
 		return fmt.Errorf("-cont and -samples can't be used together")
@@ -48,24 +43,27 @@ func mainFunc() error {
 
 	clkPinReg := gpioreg.ByName(*clkPin)
 	if clkPinReg == nil {
-		return fmt.Errorf("Clock pin %s can not be found", *clkPin)
+		return fmt.Errorf("clock pin %s can not be found", *clkPin)
 	}
 	dataPinReg := gpioreg.ByName(*dataPin)
 	if dataPin == nil {
-		return fmt.Errorf("Data pin %s can not be found", *dataPin)
+		return fmt.Errorf("data pin %s can not be found", *dataPin)
 	}
 
 	dev, err := hx711.New(clkPinReg, dataPinReg)
 	if err != nil {
 		return err
 	}
+
 	switch *gain {
 	case 128:
-		dev.InputMode = hx711.CHANNEL_A_GAIN_128
+		dev.SetInputMode(hx711.CHANNEL_A_GAIN_128)
 	case 64:
-		dev.InputMode = hx711.CHANNEL_A_GAIN_64
+		dev.SetInputMode(hx711.CHANNEL_A_GAIN_64)
 	case 32:
-		dev.InputMode = hx711.CHANNEL_B_GAIN_32
+		dev.SetInputMode(hx711.CHANNEL_B_GAIN_32)
+	default:
+		return fmt.Errorf("invalid gain '%d', must be either 128, 64 or 32", *gain)
 	}
 
 	if *cont {

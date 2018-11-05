@@ -4,7 +4,9 @@
 
 // Package hx711 implements an interface to the HX711 analog to digital converter.
 //
-// Datasheet: https://www.mouser.com/ds/2/813/hx711_english-1022875.pdf
+// Datasheet
+//
+// https://www.mouser.com/ds/2/813/hx711_english-1022875.pdf
 package hx711
 
 import (
@@ -23,9 +25,6 @@ var (
 // InputMode controls the voltage gain and the channel multiplexer on the HX711.
 // Channel A can be used with a gain of 128 or 64, and Channel B can be used
 // with a gain of 32.
-//
-// Changing the InputMode on an HX711 will only take effect *after* the next
-// read.
 type InputMode int
 
 const (
@@ -37,17 +36,16 @@ const (
 	readPollInterval = 50 * time.Millisecond
 )
 
-type HX711 struct {
-	InputMode InputMode
-
-	clk     gpio.PinOut
-	data    gpio.PinIn
-	useEdge bool
-	done    chan struct{}
+type Dev struct {
+	inputMode InputMode
+	clk       gpio.PinOut
+	data      gpio.PinIn
+	useEdge   bool
+	done      chan struct{}
 }
 
 // New creates a new HX711 device.
-func New(clk gpio.PinOut, data gpio.PinIn) (*HX711, error) {
+func New(clk gpio.PinOut, data gpio.PinIn) (*Dev, error) {
 	// Try enabling edge detection on the data pin.
 	var useEdge bool
 	if err := data.In(gpio.PullDown, gpio.FallingEdge); err != nil {
@@ -59,10 +57,12 @@ func New(clk gpio.PinOut, data gpio.PinIn) (*HX711, error) {
 		useEdge = true
 	}
 
-	clk.Out(gpio.Low)
+	if err := clk.Out(gpio.Low); err != nil {
+		return nil, err
+	}
 
-	return &HX711{
-		InputMode: CHANNEL_A_GAIN_128,
+	return &Dev{
+		inputMode: CHANNEL_A_GAIN_128,
 		clk:       clk,
 		data:      data,
 		useEdge:   useEdge,
@@ -70,8 +70,14 @@ func New(clk gpio.PinOut, data gpio.PinIn) (*HX711, error) {
 	}, nil
 }
 
+// SetInputMode changes the voltage gain and channel multiplexer mode.
+func (d *Dev) SetInputMode(inputMode InputMode) {
+	d.inputMode = inputMode
+	d.readImmediately()
+}
+
 // IsReady returns true if there is data ready to be read from the ADC.
-func (d *HX711) IsReady() bool {
+func (d *Dev) IsReady() bool {
 	return d.data.Read() == gpio.Low
 }
 
@@ -79,7 +85,7 @@ func (d *HX711) IsReady() bool {
 // there is data ready for retrieval.  If the ADC doesn't pull its Data pin low
 // to indicate there is data ready before the timeout is reached, TimeoutError
 // is returned.
-func (d *HX711) Read(timeout time.Duration) (int32, error) {
+func (d *Dev) Read(timeout time.Duration) (int32, error) {
 	if d.useEdge {
 		// If the clock pin supports edge detection, wait for the falling edge that
 		// indicates the ADC has data.
@@ -100,6 +106,10 @@ func (d *HX711) Read(timeout time.Duration) (int32, error) {
 		}
 	}
 
+	return d.readImmediately(), nil
+}
+
+func (d *Dev) readImmediately() int32 {
 	// Shift the 24-bit 2's compliment value.
 	var value uint32
 	for i := 0; i < dataBits; i++ {
@@ -118,11 +128,11 @@ func (d *HX711) Read(timeout time.Duration) (int32, error) {
 	var signedValue int32 = int32(value<<8) >> 8
 
 	// Pulse the clock 1-3 more times to set the new ADC mode.
-	for i := 0; i < int(d.InputMode); i++ {
+	for i := 0; i < int(d.inputMode); i++ {
 		d.clk.Out(gpio.High)
 		d.clk.Out(gpio.Low)
 	}
-	return signedValue, nil
+	return signedValue
 }
 
 // StartContinuousRead starts reading values continuously from the ADC.  It
@@ -132,7 +142,7 @@ func (d *HX711) Read(timeout time.Duration) (int32, error) {
 //
 // Calling StartContinuousRead again before StopContinuousRead is an error,
 // and nil will be returned.
-func (d *HX711) StartContinuousRead() <-chan int32 {
+func (d *Dev) StartContinuousRead() <-chan int32 {
 	if d.done != nil {
 		return nil
 	}
@@ -144,7 +154,6 @@ func (d *HX711) StartContinuousRead() <-chan int32 {
 			select {
 			case <-done:
 				close(ret)
-				d.done = nil
 				return
 			default:
 				value, err := d.Read(time.Second)
@@ -162,12 +171,15 @@ func (d *HX711) StartContinuousRead() <-chan int32 {
 // StopContinuousRead stops a continuous read that was started with
 // StartContinuousRead.  This will close the channel that was returned by
 // StartContinuousRead.
-func (d *HX711) StopContinuousRead() {
-	close(d.done)
+func (d *Dev) StopContinuousRead() {
+	if d.done != nil {
+		close(d.done)
+		d.done = nil
+	}
 }
 
 // ReadAveraged reads several samples from the ADC and returns the mean value.
-func (d *HX711) ReadAveraged(timeout time.Duration, samples int) (int32, error) {
+func (d *Dev) ReadAveraged(timeout time.Duration, samples int) (int32, error) {
 	var sum int64
 	for i := 0; i < samples; i++ {
 		value, err := d.Read(timeout)
