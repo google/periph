@@ -40,21 +40,16 @@ type Dev struct {
 	inputMode InputMode
 	clk       gpio.PinOut
 	data      gpio.PinIn
-	useEdge   bool
 	done      chan struct{}
 }
 
 // New creates a new HX711 device.
+// The data pin must support edge detection.  If your pin doesn't natively
+// support edge detection you can use PollEdge from
+// periph.io/x/periph/experimental/conn/gpio/gpioutil
 func New(clk gpio.PinOut, data gpio.PinIn) (*Dev, error) {
-	// Try enabling edge detection on the data pin.
-	var useEdge bool
 	if err := data.In(gpio.PullDown, gpio.FallingEdge); err != nil {
-		if err := data.In(gpio.PullDown, gpio.NoEdge); err != nil {
-			return nil, err
-		}
-		useEdge = false
-	} else {
-		useEdge = true
+		return nil, err
 	}
 
 	if err := clk.Out(gpio.Low); err != nil {
@@ -65,7 +60,6 @@ func New(clk gpio.PinOut, data gpio.PinIn) (*Dev, error) {
 		inputMode: CHANNEL_A_GAIN_128,
 		clk:       clk,
 		data:      data,
-		useEdge:   useEdge,
 		done:      nil,
 	}, nil
 }
@@ -86,23 +80,10 @@ func (d *Dev) IsReady() bool {
 // to indicate there is data ready before the timeout is reached, TimeoutError
 // is returned.
 func (d *Dev) Read(timeout time.Duration) (int32, error) {
-	if d.useEdge {
-		// If the clock pin supports edge detection, wait for the falling edge that
-		// indicates the ADC has data.
-		if !d.IsReady() {
-			if !d.data.WaitForEdge(timeout) {
-				return 0, TimeoutError
-			}
-		}
-	} else {
-		// If the clock pin doesn't support edge detection just poll every few
-		// milliseconds.
-		startTime := time.Now()
-		for !d.IsReady() {
-			if time.Now().Sub(startTime) > timeout {
-				return 0, TimeoutError
-			}
-			time.Sleep(readPollInterval)
+	// Wait for the falling edge that indicates the ADC has data.
+	if !d.IsReady() {
+		if !d.data.WaitForEdge(timeout) {
+			return 0, TimeoutError
 		}
 	}
 

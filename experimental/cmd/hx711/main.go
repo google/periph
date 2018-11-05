@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"periph.io/x/periph/conn/gpio/gpioreg"
+	"periph.io/x/periph/conn/physic"
+	"periph.io/x/periph/experimental/conn/gpio/gpioutil"
 	"periph.io/x/periph/experimental/devices/hx711"
 	"periph.io/x/periph/host"
 )
@@ -25,6 +27,8 @@ func mainFunc() error {
 	cont := flag.Bool("cont", false, "Reads continuously from the ADC")
 	samples := flag.Int("samples", 0,
 		"Reads several samples from the ADC and outputs the average value")
+	usePollEdge := flag.Bool("poll-edge", false,
+		"Poll the data pin instead of using edge detection")
 	flag.Parse()
 
 	if _, err := host.Init(); err != nil {
@@ -48,6 +52,10 @@ func mainFunc() error {
 	dataPinReg := gpioreg.ByName(*dataPin)
 	if dataPin == nil {
 		return fmt.Errorf("data pin %s can not be found", *dataPin)
+	}
+
+	if *usePollEdge {
+		dataPinReg = gpioutil.PollEdge(dataPinReg, 20*physic.KiloHertz)
 	}
 
 	dev, err := hx711.New(clkPinReg, dataPinReg)
