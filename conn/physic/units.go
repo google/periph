@@ -435,9 +435,25 @@ func (m *Mass) Set(s string) error {
 	case "tonne", "tonnes":
 		*m = (Mass)(v * 1000000)
 	case "pound", "pounds", "lb":
-		*m = (Mass)((v*45359237 + 50000) / 100000)
+		if v >= 0 {
+			*m = (Mass)((v*45359237 + 50000) / 100000)
+		} else {
+			*m = (Mass)((v*45359237 - 50000) / 100000)
+		}
 	case "ounce", "ounces", "oz":
-		*m = (Mass)(v / 1000000000 * 28349523125)
+		if v >= 0 {
+			if v < 325344874 {
+				*m = (Mass)(((v*28349523125 + 500000000) / 1000000000))
+			} else {
+				*m = (Mass)(((v + 500000000) / 1000000000) * 28349523125)
+			}
+		} else {
+			if v > -325344874 {
+				*m = (Mass)(((v*28349523125 - 500000000) / 1000000000))
+			} else {
+				*m = (Mass)(((v - 500000000) / 1000000000) * 28349523125)
+			}
+		}
 	case "g", "gram", "grams":
 		*m = (Mass)(v)
 	default:
@@ -588,7 +604,7 @@ func (s *Speed) Set(str string) error {
 	if !(n == len(str)) {
 		var n1 int
 		prefix, n1 = parseSIPrefix([]rune(str[n:])[0])
-		if prefix == milli && !(str[n:] == "mm/s") {
+		if prefix == milli && !(str[n:] == "mm/s") && !(str[n:] == "mfps") {
 			prefix = none
 		}
 		if prefix == kilo && !(str[n:] == "km/s") {
@@ -605,11 +621,23 @@ func (s *Speed) Set(str string) error {
 
 	switch strings.ToLower(str[n:]) {
 	case "fps":
-		*s = (Speed)((v / 1000000) * 304800)
+		if v >= 0 {
+			*s = (Speed)(((v*3048 + 5000) / 10000))
+		} else {
+			*s = (Speed)(((v*3048 - 5000) / 10000))
+		}
 	case "mph":
-		*s = (Speed)((v / 1000000) * 447040)
+		if v >= 0 {
+			*s = (Speed)(((v*44704 + 50000) / 100000))
+		} else {
+			*s = (Speed)(((v*44704 - 50000) / 100000))
+		}
 	case "km/h":
-		*s = (Speed)(((v * 10) + 18) / 36)
+		if v >= 0 {
+			*s = (Speed)((v*10 + 18) / 36)
+		} else {
+			*s = (Speed)((v*10 - 18) / 36)
+		}
 	case "m/s":
 		*s = (Speed)(v)
 	default:
