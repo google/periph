@@ -5,7 +5,6 @@
 package physic
 
 import (
-	"bytes"
 	"errors"
 	"flag"
 	"fmt"
@@ -513,33 +512,6 @@ func TestMicroAsString(t *testing.T) {
 	}
 }
 
-func BenchmarkCelsiusString(b *testing.B) {
-	v := 10*Celsius + ZeroCelsius
-	buf := bytes.Buffer{}
-	for i := 0; i < b.N; i++ {
-		buf.WriteString(v.String())
-		buf.Reset()
-	}
-}
-
-func BenchmarkCelsiusFloatf(b *testing.B) {
-	v := float64(10)
-	buf := bytes.Buffer{}
-	for i := 0; i < b.N; i++ {
-		buf.WriteString(fmt.Sprintf("%.1f°C", v))
-		buf.Reset()
-	}
-}
-
-func BenchmarkCelsiusFloatg(b *testing.B) {
-	v := float64(10)
-	buf := bytes.Buffer{}
-	for i := 0; i < b.N; i++ {
-		buf.WriteString(fmt.Sprintf("%g°C", v))
-		buf.Reset()
-	}
-}
-
 func TestAtod(t *testing.T) {
 	const (
 		negative = true
@@ -746,66 +718,6 @@ func TestMaxInt64(t *testing.T) {
 	}
 }
 
-func BenchmarkDecimal(b *testing.B) {
-	var d decimal
-	var n int
-	var err error
-	for i := 0; i < b.N; i++ {
-		if d, n, err = atod("337.2m"); err != nil {
-			b.Fatal(err)
-		}
-	}
-	b.StopTimer()
-	_ = fmt.Sprintf("%v %d", d, n)
-}
-
-func BenchmarkString2Decimal2Int(b *testing.B) {
-	var d decimal
-	var n int
-	var err error
-	var v int64
-	for i := 0; i < b.N; i++ {
-		if d, n, err = atod("337.2m"); err != nil {
-			b.Fatal(err)
-		}
-		if v, err = dtoi(d, 0); err != nil {
-			b.Fatal(err)
-		}
-	}
-	b.StopTimer()
-	_ = fmt.Sprintf("%d %d", v, n)
-}
-
-func BenchmarkDecimalNeg(b *testing.B) {
-	var d decimal
-	var n int
-	var err error
-	for i := 0; i < b.N; i++ {
-		if d, n, err = atod("-337.2m"); err != nil {
-			b.Fatal(err)
-		}
-	}
-	b.StopTimer()
-	_ = fmt.Sprintf("%v %d", d, n)
-}
-
-func BenchmarkString2Decimal2IntNeg(b *testing.B) {
-	var d decimal
-	var n int
-	var err error
-	var v int64
-	for i := 0; i < b.N; i++ {
-		if d, n, err = atod("-337.2m"); err != nil {
-			b.Fatal(err)
-		}
-		if v, err = dtoi(d, 0); err != nil {
-			b.Fatal(err)
-		}
-	}
-	b.StopTimer()
-	_ = fmt.Sprintf("%d %d", v, n)
-}
-
 func TestAngle_Set(t *testing.T) {
 	tests := []struct {
 		name string
@@ -958,7 +870,6 @@ func TestElectricalCapacitance_Set(t *testing.T) {
 		s    string
 		want ElectricalCapacitance
 	}{
-
 		{"1pF", "1pF", 1 * PicoFarad},
 		{"10pF", "10pF", 10 * PicoFarad},
 		{"100pF", "100pF", 100 * PicoFarad},
@@ -1004,7 +915,6 @@ func TestElectricCurrent_Set(t *testing.T) {
 		s    string
 		want ElectricCurrent
 	}{
-
 		{"1nA", "1nA", 1 * NanoAmpere},
 		{"10nA", "10nA", 10 * NanoAmpere},
 		{"100nA", "100nA", 100 * NanoAmpere},
@@ -1051,7 +961,6 @@ func TestTemperature_Set(t *testing.T) {
 		s    string
 		want Temperature
 	}{
-
 		{"1nK", "1nK", 1 * NanoKelvin},
 		{"10nK", "10nK", 10 * NanoKelvin},
 		{"100nK", "100nK", 100 * NanoKelvin},
@@ -1078,6 +987,17 @@ func TestTemperature_Set(t *testing.T) {
 		{"0°C", "0°C", ZeroCelsius},
 		{"20C", "20C", ZeroCelsius + 20*Kelvin},
 		{"-20C", "-20C", ZeroCelsius - 20*Kelvin},
+		{"0F", "0F", 255372222222 * NanoKelvin},
+		{"1F", "1F", ZeroFahrenheit + Fahrenheit},
+		{"0F", "0F", ZeroFahrenheit},
+		{"33F", "33F", 273705555555 * NanoKelvin},
+		{"32F", "32F", ZeroCelsius},
+		{"-40F", "-40F", ZeroCelsius - 40*Kelvin},
+		{"212F", "212F", 373150000000 * NanoKelvin},
+		{"-40F", "-40F", 233150000000 * NanoKelvin},
+		{"5000F", "5000F", 3033150000000 * NanoKelvin},
+		{"18446F", "18446F", 10503150000000 * NanoKelvin},
+		{"-459.67F", "-459.67F", 0 * NanoKelvin},
 	}
 
 	for _, tt := range tests {
@@ -1086,7 +1006,7 @@ func TestTemperature_Set(t *testing.T) {
 		fs.Var(&got, "t", "value of temperature")
 		fs.Parse([]string{"-t", tt.s})
 		if got != tt.want {
-			t.Errorf("%s wanted: %v but got: %v(%d)", tt.name, tt.want, got, got)
+			t.Errorf("%s wanted: %v(%d) but got: %v(%d)", tt.name, tt.want, tt.want, got, got)
 		}
 	}
 }
@@ -1097,7 +1017,6 @@ func TestElectricPotential_Set(t *testing.T) {
 		s    string
 		want ElectricPotential
 	}{
-
 		{"1nV", "1nV", 1 * NanoVolt},
 		{"10nV", "10nV", 10 * NanoVolt},
 		{"100nV", "100nV", 100 * NanoVolt},
@@ -1143,7 +1062,6 @@ func TestElectricResistance_Set(t *testing.T) {
 		s    string
 		want ElectricResistance
 	}{
-
 		{"1nΩ", "1nΩ", 1 * NanoOhm},
 		{"10nΩ", "10nΩ", 10 * NanoOhm},
 		{"100nΩ", "100nΩ", 100 * NanoOhm},
@@ -1189,7 +1107,6 @@ func TestPower_Set(t *testing.T) {
 		s    string
 		want Power
 	}{
-
 		{"1nW", "1nW", 1 * NanoWatt},
 		{"10nW", "10nW", 10 * NanoWatt},
 		{"100nW", "100nW", 100 * NanoWatt},
@@ -1239,7 +1156,6 @@ func TestEnergy_Set(t *testing.T) {
 		s    string
 		want Energy
 	}{
-
 		{"1nJ", "1nJ", 1 * NanoJoule},
 		{"10nJ", "10nJ", 10 * NanoJoule},
 		{"100nJ", "100nJ", 100 * NanoJoule},
@@ -1287,7 +1203,6 @@ func TestPressure_Set(t *testing.T) {
 		s    string
 		want Pressure
 	}{
-
 		{"1nPa", "1nPa", 1 * NanoPascal},
 		{"10nPa", "10nPa", 10 * NanoPascal},
 		{"100nPa", "100nPa", 100 * NanoPascal},
@@ -1310,14 +1225,12 @@ func TestPressure_Set(t *testing.T) {
 		{"10MPa", "10MPa", 10 * MegaPascal},
 		{"100MPa", "100MPa", 100 * MegaPascal},
 		{"1GPa", "1GPa", 1 * GigaPascal},
-		//TODO(NeuralSpaz): why do these tests fail.
-		// it is from pico
-		// {"10Pascal", "10Pascal", 10 * Pascal},
-		// {"10Pascals", "10Pascals", 10 * Pascal},
-		// {"10pascal", "10pascal", 10 * Pascal},
-		// {"10pascals", "10pascals", 10 * Pascal},
-		// {"10Pa", "10Pa", 10 * Pascal},
-		// {"10pa", "10pa", 10 * Pascal},
+		{"10Pascal", "10Pascal", 10 * Pascal},
+		{"10Pascals", "10Pascals", 10 * Pascal},
+		{"10pascal", "10pascal", 10 * Pascal},
+		{"10pascals", "10pascals", 10 * Pascal},
+		{"10Pa", "10Pa", 10 * Pascal},
+		{"10pa", "10pa", 10 * Pascal},
 	}
 
 	for _, tt := range tests {
@@ -1337,7 +1250,6 @@ func TestLuminousIntensity_Set(t *testing.T) {
 		s    string
 		want LuminousIntensity
 	}{
-
 		{"1ncd", "1ncd", 1 * NanoCandela},
 		{"10ncd", "10ncd", 10 * NanoCandela},
 		{"100ncd", "100ncd", 100 * NanoCandela},
@@ -1384,7 +1296,6 @@ func TestLuminousFlux_Set(t *testing.T) {
 		s    string
 		want LuminousFlux
 	}{
-
 		{"1nlm", "1nlm", 1 * NanoLumen},
 		{"10nlm", "10nlm", 10 * NanoLumen},
 		{"100nlm", "100nlm", 100 * NanoLumen},
@@ -1431,7 +1342,6 @@ func TestSpeed_Set(t *testing.T) {
 		s    string
 		want Speed
 	}{
-
 		{"1nm/s", "1nm/s", 1 * NanoMetrePerSecond},
 		{"10nm/s", "10nm/s", 10 * NanoMetrePerSecond},
 		{"100nm/s", "100nm/s", 100 * NanoMetrePerSecond},
@@ -1454,12 +1364,13 @@ func TestSpeed_Set(t *testing.T) {
 		{"10Mm/s", "10Mm/s", 10 * MegaMetrePerSecond},
 		{"100Mm/s", "100Mm/s", 100 * MegaMetrePerSecond},
 		{"1Gm/s", "1Gm/s", 1 * GigaMetrePerSecond},
-		{"1km/h", "1km/h", 1*KilometrePerHour - 1}, // rounding
+		{"1km/h", "1km/h", 1 * KilometrePerHour},
+		{"10km/h", "10km/h", 2777777778 * NanoMetrePerSecond},
+		{"100km/h", "100km/h", 27777777778 * NanoMetrePerSecond},
+		{"1000km/h", "1000km/h", 277777777778 * NanoMetrePerSecond},
 		{"1mph", "1mph", 1 * MilePerHour},
 		{"1fps", "1fps", 1 * FootPerSecond},
-		{"100km/h", "100km/h", 27777777777 * NanoMetrePerSecond},
-		// {"1km/h", "100km/h", Speed(float64(1*MetrePerSecond) / 3.6)},
-	}
+		{"100km/h", "100km/h", 27777777778 * NanoMetrePerSecond}}
 
 	for _, tt := range tests {
 		var got Speed
@@ -1478,7 +1389,6 @@ func TestMass_Set(t *testing.T) {
 		s    string
 		want Mass
 	}{
-
 		{"1ng", "1ng", 1 * NanoGram},
 		{"10ng", "10ng", 10 * NanoGram},
 		{"100ng", "100ng", 100 * NanoGram},
@@ -1639,13 +1549,13 @@ func TestSetOverflows(t *testing.T) {
 			v:    &lux,
 		},
 	}
+
 	for _, tt := range tests {
 		err := tt.v.Set(tt.s)
 		if err == nil {
 			t.Errorf("%s expected overflow but got %v", tt.name, err)
 		}
 	}
-
 }
 
 func TestForce_Set(t *testing.T) {
@@ -1892,7 +1802,7 @@ func TestMeta_Set(t *testing.T) {
 		},
 		{
 			"noUnitErrTemperature", &celsius, "1", true,
-			"parse error: no units provided, need: \"K or C\"",
+			"parse error: no units provided, need: \"K, C or F\"",
 		},
 		{
 			"noUnitErrPower", &watt, "1", true,
@@ -1914,6 +1824,10 @@ func TestMeta_Set(t *testing.T) {
 			"overflow", &joule, "123456789012345678901234567890", true,
 			"parse error: overflows maximum is: \"9223372036854775807\"",
 		},
+		{
+			"fahrenheit overflow", &celsius, "18.447kF", true,
+			"parse error: maximum is 18446.744F: \"18.447kF\"",
+		},
 	}
 
 	for _, tt := range tests {
@@ -1930,114 +1844,82 @@ func TestMeta_Set(t *testing.T) {
 	}
 }
 
-func TestAtod(t *testing.T) {
-	const (
-		negative = true
-		postive  = false
-	)
-	tests := []struct {
-		s    string
-		want decimal
-		used int
-		err  bool
-	}{
-		{"123456789", decimal{"123456789", 0, postive}, 9, false},
-		{"1nM", decimal{"1", 0, postive}, 1, false},
-		{"2.2nM", decimal{"22", -1, postive}, 3, false},
-		{"12.5mA", decimal{"125", -1, postive}, 4, false},
-		{"-12.5mA", decimal{"125", -1, negative}, 5, false},
-		{"1.1.1", decimal{}, 0, true},
-		{"1ma1", decimal{"1", 0, postive}, 1, false},
-		{"-0.00001%rH", decimal{"1", -5, negative}, 8, false},
-		{"0.00001%rH", decimal{"1", -5, postive}, 7, false},
-		{"--1ma1", decimal{"1", 0, negative}, 3, false},
-		{"++100ma1", decimal{"1", 2, postive}, 5, false},
-		{"1.0", decimal{"1", 0, postive}, 3, false},
-		{"0.10001", decimal{"10001", -5, postive}, 7, false},
-		{"-0.10001", decimal{"10001", -5, negative}, 8, false},
-		{"%-0.10001", decimal{"10001", -5, negative}, 0, true},
-		{"1n", decimal{"1", 0, postive}, 1, false},
-		{"200n", decimal{"2", 2, postive}, 3, false},
-	}
-
-	for _, tt := range tests {
-		got, n, err := atod(tt.s)
-
-		if got != tt.want && !tt.err {
-			t.Errorf("got %v expected %v", got, tt.want)
-		}
-		if tt.err && err == nil {
-			t.Errorf("expected error %v but got nil", err)
-		}
-
-		if n != tt.used {
-			t.Errorf("expected to consume %d char but used %d", tt.used, n)
+func BenchmarkDecimal(b *testing.B) {
+	var d decimal
+	var n int
+	var err error
+	for i := 0; i < b.N; i++ {
+		if d, n, err = atod("337.2m"); err != nil {
+			b.Fatal(err)
 		}
 	}
+	b.StopTimer()
+	_ = fmt.Sprintf("%v %d", d, n)
 }
 
-func TestDoti(t *testing.T) {
-	tests := []struct {
-		name string
-		d    decimal
-		want int64
-		err  bool
-	}{
-		{"123", decimal{"123", 0, false}, 123, false},
-		{"-123", decimal{"123", 0, true}, -123, false},
-		{"1230", decimal{"123", 1, false}, 1230, false},
-		{"-1230", decimal{"123", 1, true}, -1230, false},
-		{"1230", decimal{"123", 20, false}, 1230, true},
-		{"-1230", decimal{"123", 20, true}, -1230, true},
-		{"max", decimal{"9223372036854775807", 0, false}, 9223372036854775807, false},
-		{"-max", decimal{"9223372036854775807", 0, true}, -9223372036854775807, false},
-		{"max+1", decimal{"9223372036854775808", 0, true}, 0, true},
-		{"1a", decimal{"1a", 0, false}, 123, true},
-		{"2.7b", decimal{"2.7b", 0, true}, -123, true},
-		{"12", decimal{"123", -1, false}, 12, false},
-		{"-12", decimal{"123", -1, true}, -12, false},
-		{"123n", decimal{"123", 0, false}, 123, false},
-		{"max*10^1", decimal{"9223372036854775807", 1, false}, 9223372036854775807, true},
-		{"overflow", decimal{"9223372036854775807", 10, false}, 9223372036854775807, true},
-	}
-
-	for _, tt := range tests {
-		got, err := tt.d.dtoi(0)
-
-		if got != tt.want && !tt.err {
-			t.Errorf("got %v expected %v", got, tt.want)
+func BenchmarkString2Decimal2Int(b *testing.B) {
+	var d decimal
+	var n int
+	var err error
+	var v int64
+	for i := 0; i < b.N; i++ {
+		if d, n, err = atod("337.2m"); err != nil {
+			b.Fatal(err)
 		}
-		if tt.err && err == nil {
-			t.Errorf("expected %v but got nil, %v", err, got)
+		if v, err = dtoi(d, 0); err != nil {
+			b.Fatal(err)
 		}
 	}
+	b.StopTimer()
+	_ = fmt.Sprintf("%d %d", v, n)
+}
 
+func BenchmarkDecimalNeg(b *testing.B) {
+	var d decimal
+	var n int
+	var err error
+	for i := 0; i < b.N; i++ {
+		if d, n, err = atod("-337.2m"); err != nil {
+			b.Fatal(err)
+		}
+	}
+	b.StopTimer()
+	_ = fmt.Sprintf("%v %d", d, n)
+}
+
+func BenchmarkString2Decimal2IntNeg(b *testing.B) {
+	var d decimal
+	var n int
+	var err error
+	var v int64
+	for i := 0; i < b.N; i++ {
+		if d, n, err = atod("-337.2m"); err != nil {
+			b.Fatal(err)
+		}
+		if v, err = dtoi(d, 0); err != nil {
+			b.Fatal(err)
+		}
+	}
+	b.StopTimer()
+	_ = fmt.Sprintf("%d %d", v, n)
 }
 
 func BenchmarkSetDistance(b *testing.B) {
 	var t Temperature
+	var err error
 	for i := 0; i < b.N; i++ {
-		t.Set("-337.2C")
+		err = t.Set("-337.2C")
 	}
+	b.StopTimer()
+	_ = fmt.Sprintf("%v, %v", err, t)
 }
 
 func BenchmarkSetPower(b *testing.B) {
-	var t Power
+	var p Power
+	var err error
 	for i := 0; i < b.N; i++ {
-		t.Set("-337.2w")
+		err = p.Set("-337.2w")
 	}
-}
-
-func BenchmarkDecimal(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		atod("-337.2m")
-	}
-}
-
-func BenchmarkDecimalInt(b *testing.B) {
-	var d decimal
-	for i := 0; i < b.N; i++ {
-		d, _, _ = atod("-337.2m")
-		d.dtoi(0)
-	}
+	b.StopTimer()
+	_ = fmt.Sprintf("%v, %v", err, p)
 }

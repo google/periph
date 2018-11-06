@@ -147,7 +147,7 @@ func ExampleTemperature() {
 	// Output:
 	// -273.150°C
 	// 23.010°C
-	// 26.666°C
+	// 26.667°C
 }
 
 func ExamplePower() {

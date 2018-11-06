@@ -481,7 +481,22 @@ func (p Pressure) String() string {
 // Set sets the Pressure to the value represented by s. Units are to be provided
 // in pascals with optional SI prefixes.
 func (p *Pressure) Set(s string) error {
-	v, n, err := set(s, nano)
+	d, n, err := atod(s)
+	if err != nil {
+		return err
+	}
+	prefix := prefix(none)
+	if !(n == len(s)) {
+		var n1 int
+		prefix, n1 = parseSIPrefix([]rune(s[n:])[0])
+		if prefix == pico {
+			prefix = none
+		}
+		if prefix != none {
+			n += n1
+		}
+	}
+	v, err := dtoi(d, int(prefix-nano))
 	if err != nil {
 		return err
 	}
@@ -594,7 +609,7 @@ func (s *Speed) Set(str string) error {
 	case "mph":
 		*s = (Speed)((v / 1000000) * 447040)
 	case "km/h":
-		*s = (Speed)(v * 10 / 36)
+		*s = (Speed)(((v * 10) + 18) / 36)
 	case "m/s":
 		*s = (Speed)(v)
 	default:
@@ -640,13 +655,18 @@ func (t *Temperature) Set(s string) error {
 		return err
 	}
 	switch strings.ToLower(s[n:]) {
-	//TODO(neuralspaz) Fahrenheit
 	case "k", "kelvin":
 		*t = (Temperature)(v)
 	case "c", "°c", "celsius":
 		*t = (Temperature)(v + int64(ZeroCelsius))
+	case "f", "fahrenheit":
+		if v > 18446744000000 {
+			// Maximum F is ~18446.744F
+			return &parseError{s: s, err: errors.New("maximum is 18446.744F")}
+		}
+		*t = (Temperature)((5*v + 2298350000000) / 9)
 	default:
-		return noUnits("K or C")
+		return noUnits("K, C or F")
 	}
 	return nil
 }
@@ -666,7 +686,7 @@ const (
 	Celsius      Temperature = Kelvin
 
 	// Conversion between Kelvin and Fahrenheit.
-	ZeroFahrenheit  Temperature = 255372 * MilliKelvin
+	ZeroFahrenheit  Temperature = 255372222222 * NanoKelvin
 	MilliFahrenheit Temperature = 555555 * NanoKelvin
 	Fahrenheit      Temperature = 555555555 * NanoKelvin
 )
