@@ -25,8 +25,6 @@ func mainFunc() error {
 	gain := flag.Int("gain", 128,
 		"Voltage gain. Must be one of 128, 64 or 32. Using 32 selects Channel B")
 	cont := flag.Bool("cont", false, "Reads continuously from the ADC")
-	samples := flag.Int("samples", 0,
-		"Reads several samples from the ADC and outputs the average value")
 	usePollEdge := flag.Bool("poll-edge", false,
 		"Poll the data pin instead of using edge detection")
 	flag.Parse()
@@ -40,9 +38,6 @@ func mainFunc() error {
 	}
 	if *dataPin == "" {
 		return fmt.Errorf("-data is required")
-	}
-	if *cont && *samples != 0 {
-		return fmt.Errorf("-cont and -samples can't be used together")
 	}
 
 	clkPinReg := gpioreg.ByName(*clkPin)
@@ -79,12 +74,6 @@ func mainFunc() error {
 		for {
 			fmt.Println(<-ch)
 		}
-	} else if *samples != 0 {
-		value, err := dev.ReadAveraged(timeout, *samples)
-		if err != nil {
-			return err
-		}
-		fmt.Println(value)
 	} else {
 		value, err := dev.Read(timeout)
 		if err != nil {
