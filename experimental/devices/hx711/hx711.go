@@ -6,7 +6,7 @@
 //
 // Datasheet
 //
-// https://www.mouser.com/ds/2/813/hx711_english-1022875.pdf
+// http://www.aviaic.com/Download/hx711F_EN.pdf.pdf
 package hx711
 
 import (
@@ -31,9 +31,6 @@ const (
 	CHANNEL_A_GAIN_128 InputMode = 1
 	CHANNEL_A_GAIN_64  InputMode = 3
 	CHANNEL_B_GAIN_32  InputMode = 2
-
-	dataBits         = 24
-	readPollInterval = 50 * time.Millisecond
 )
 
 type Dev struct {
@@ -93,35 +90,32 @@ func (d *Dev) Read(timeout time.Duration) (int32, error) {
 func (d *Dev) readImmediately() int32 {
 	// Shift the 24-bit 2's compliment value.
 	var value uint32
-	for i := 0; i < dataBits; i++ {
+	for i := 0; i < 24; i++ {
 		d.clk.Out(gpio.High)
 		level := d.data.Read()
 		d.clk.Out(gpio.Low)
 
+		value <<= 1
 		if level {
-			value = (value << 1) | 1
-		} else {
-			value = (value << 1)
+			value |= 1
 		}
 	}
-
-	// Convert the 24-bit 2's compliment value to a 32-bit signed value.
-	var signedValue int32 = int32(value<<8) >> 8
 
 	// Pulse the clock 1-3 more times to set the new ADC mode.
 	for i := 0; i < int(d.inputMode); i++ {
 		d.clk.Out(gpio.High)
 		d.clk.Out(gpio.Low)
 	}
-	return signedValue
+	// Convert the 24-bit 2's compliment value to a 32-bit signed value.
+	return int32(value<<8) >> 8
 }
 
 // StartContinuousRead starts reading values continuously from the ADC.  It
 // returns a channel that you can use to receive these values.
 //
-// You must call StopContinuousRead to stop reading.
+// You must call Halt to stop reading.
 //
-// Calling StartContinuousRead again before StopContinuousRead is an error,
+// Calling StartContinuousRead again before Halt is an error,
 // and nil will be returned.
 func (d *Dev) StartContinuousRead() <-chan int32 {
 	if d.done != nil {
@@ -149,25 +143,11 @@ func (d *Dev) StartContinuousRead() <-chan int32 {
 	return ret
 }
 
-// StopContinuousRead stops a continuous read that was started with
-// StartContinuousRead.  This will close the channel that was returned by
-// StartContinuousRead.
-func (d *Dev) StopContinuousRead() {
+// Halt stops a continuous read that was started with StartContinuousRead.
+// This will close the channel that was returned by StartContinuousRead.
+func (d *Dev) Halt() {
 	if d.done != nil {
 		close(d.done)
 		d.done = nil
 	}
-}
-
-// ReadAveraged reads several samples from the ADC and returns the mean value.
-func (d *Dev) ReadAveraged(timeout time.Duration, samples int) (int32, error) {
-	var sum int64
-	for i := 0; i < samples; i++ {
-		value, err := d.Read(timeout)
-		if err != nil {
-			return 0, err
-		}
-		sum += int64(value)
-	}
-	return int32(sum / int64(samples)), nil
 }
