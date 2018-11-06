@@ -68,18 +68,56 @@ const (
 	Degree Angle = 17453293 * NanoRadian
 )
 
+const (
+	maxDegrees int64 = (maxInt64 - 500000000) / int64(Degree)
+	maxPis     int64 = (maxInt64 - 500000000) / int64(Pi)
+)
+
 // Set sets the Angle to the value represented by s. Units can be provided in
 // are Degree, Deg, Rad, Radians and pi with optional SI prefixes.
 func (a *Angle) Set(s string) error {
-	v, n, err := set(s, nano)
+	dec, n, err := atod(s)
+	if err != nil {
+		return err
+	}
+	prefix := prefix(none)
+	if !(n == len(s)) {
+		var n1 int
+		prefix, n1 = parseSIPrefix([]rune(s[n:])[0])
+		// Check for units that could be confused with prefixes.
+		if prefix == pico {
+			switch strings.ToLower(s[n:]) {
+			case "pi", "π":
+				prefix = none
+			}
+		}
+		if prefix != none {
+			n += n1
+		}
+	}
+	v, err := dtoi(dec, int(prefix-nano))
 	if err != nil {
 		return err
 	}
 	switch strings.ToLower(s[n:]) {
 	case "°", "deg", "degrees", "d":
-		*a = (Angle)(v * int64(Degree) / int64(Radian))
+		if v > maxDegrees || v < -maxDegrees {
+			return &parseError{err: errors.New("value too large")}
+		}
+		if v >= 0 {
+			*a = (Angle)((v*int64(Degree) + 500000000) / 1000000000)
+		} else {
+			*a = (Angle)((v*int64(Degree) - 500000000) / 1000000000)
+		}
 	case "pi", "π":
-		*a = (Angle)(v * int64(Pi) / int64(Radian))
+		if v > maxPis || v < -maxPis {
+			return &parseError{err: errors.New("value too large")}
+		}
+		if v >= 0 {
+			*a = (Angle)((v*int64(Pi) + 500000000) / 1000000000)
+		} else {
+			*a = (Angle)((v*int64(Pi) - 500000000) / 1000000000)
+		}
 	case "rad", "radians", "radian", "r":
 		*a = (Angle)(v)
 	default:
@@ -117,9 +155,19 @@ const (
 	Mile Distance = 1760 * Yard
 )
 
+const (
+	maxMiles  int64 = (maxInt64 - 500) / (int64(Mile) / 1000000) // ~Max/1609344
+	maxYards  int64 = (maxInt64 - 5000) / (int64(Yard) / 100000) // ~Max/9144
+	maxFeet   int64 = (maxInt64 - 5000) / (int64(Foot) / 100000) // ~Max/3048
+	maxInches int64 = (maxInt64 - 5000) / (int64(Inch) / 100000) // ~Max/254
+)
+
 // Set sets the Distance to the value represented by s. Units can be provided in
 // are miles, metres, feet, inches and yards with optional SI prefixes.
 func (d *Distance) Set(s string) error {
+	// Only default base metric unit has full range all other units are limited,
+	// as any conversion calculations must fit inside a int64. Conversion math
+	// should be ordered so as to maintain as much fidelity as possible.
 	dec, n, err := atod(s)
 	if err != nil {
 		return err
@@ -128,11 +176,18 @@ func (d *Distance) Set(s string) error {
 	if !(n == len(s)) {
 		var n1 int
 		prefix, n1 = parseSIPrefix([]rune(s[n:])[0])
-		if prefix == milli && !(s[n:] == "mm") {
-			prefix = none
+		// Check for units that could be confused with prefixes.
+		if prefix == milli {
+			switch strings.ToLower(s[n:]) {
+			case "mile", "metre", "miles", "metres", "m":
+				prefix = none
+			}
 		}
-		if prefix == mega && !(s[n:] == "Mm") {
-			prefix = none
+		if prefix == mega {
+			switch strings.ToLower(s[n:]) {
+			case "mile", "metre", "miles", "metres", "m":
+				prefix = none
+			}
 		}
 		if prefix != none {
 			n += n1
@@ -144,17 +199,46 @@ func (d *Distance) Set(s string) error {
 	}
 	switch strings.ToLower(s[n:]) {
 	case "mile", "miles":
-		*d = (Distance)((v * 1609344) / 1000)
+		if v > maxMiles || v < -maxMiles {
+			return &parseError{err: errors.New("too big use metric")}
+		}
+		if v >= 0 {
+			*d = (Distance)((v*1609344 + 500) / 1000)
+		} else {
+			*d = (Distance)((v*1609344 - 500) / 1000)
+		}
 	case "yard", "yards":
-		*d = (Distance)((v * 9144) / 10000)
+
+		if v > maxYards || v < -maxYards {
+			return &parseError{err: errors.New("too big use metric")}
+		}
+		if v >= 0 {
+			*d = (Distance)((v*9144 + 5000) / 10000)
+		} else {
+			*d = (Distance)((v*9144 - 5000) / 10000)
+		}
 	case "foot", "feet", "ft":
-		*d = (Distance)((v * 3048) / 10000)
+		if v > maxFeet || v < -maxFeet {
+			return &parseError{err: errors.New("too big use metric")}
+		}
+		if v >= 0 {
+			*d = (Distance)((v*3048 + 5000) / 10000)
+		} else {
+			*d = (Distance)((v*3048 - 5000) / 10000)
+		}
 	case "in", "inch", "inches":
-		*d = (Distance)((v * 254) / 10000)
+		if v > maxInches || v < -maxInches {
+			return &parseError{err: errors.New("too big use metric")}
+		}
+		if v >= 0 {
+			*d = (Distance)((v*254 + 5000) / 10000)
+		} else {
+			*d = (Distance)((v*254 - 5000) / 10000)
+		}
 	case "m", "metre", "metres":
 		*d = (Distance)(v)
 	default:
-		return noUnits("m")
+		return noUnits("m, Metre, Mile, Inch, Foot or Yard")
 	}
 	return nil
 }
@@ -181,7 +265,7 @@ func (e *ElectricCurrent) Set(s string) error {
 	}
 
 	switch strings.ToLower(s[n:]) {
-	case "a", "amp", "amps":
+	case "a", "amp", "amps", "ampere":
 		*e = (ElectricCurrent)(v)
 	default:
 		return noUnits("A")
@@ -416,11 +500,17 @@ func (m *Mass) Set(s string) error {
 	if !(n == len(s)) {
 		var n1 int
 		prefix, n1 = parseSIPrefix([]rune(s[n:])[0])
-		if prefix == giga && !(s[n:] == "Gg") {
-			prefix = none
+		if prefix == giga {
+			switch strings.ToLower(s[n:]) {
+			case "gram", "grams", "g":
+				prefix = none
+			}
 		}
-		if prefix == tera && !(s[n:] == "Tg") {
-			prefix = none
+		if prefix == tera {
+			switch strings.ToLower(s[n:]) {
+			case "tonne", "tonnes":
+				prefix = none
+			}
 		}
 		if prefix != none {
 			n += n1
@@ -433,14 +523,19 @@ func (m *Mass) Set(s string) error {
 	// TODO(NeuralSpaz): Rounding
 	switch strings.ToLower(s[n:]) {
 	case "tonne", "tonnes":
+		//TODO(NeuralSpaz): Max Tonne
 		*m = (Mass)(v * 1000000)
 	case "pound", "pounds", "lb":
+		//TODO(NeuralSpaz): Max lb
 		if v >= 0 {
 			*m = (Mass)((v*45359237 + 50000) / 100000)
 		} else {
 			*m = (Mass)((v*45359237 - 50000) / 100000)
 		}
 	case "ounce", "ounces", "oz":
+		// Scales v up to maintain precision of oz/gram.
+		// Re-ordering of operations to stay within the range of int64.
+		//TODO(NeuralSpaz): Max oz
 		if v >= 0 {
 			if v < 325344874 {
 				*m = (Mass)(((v*28349523125 + 500000000) / 1000000000))
@@ -568,7 +663,11 @@ func (r *RelativeHumidity) Set(s string) error {
 	case "rh":
 		*r = (RelativeHumidity)(v)
 	case "%", "%rh":
-		*r = (RelativeHumidity)(v / 100)
+		if v >= 0 {
+			*r = (RelativeHumidity)((v + 50) / 100)
+		} else {
+			*r = (RelativeHumidity)((v - 50) / 100)
+		}
 	default:
 		return noUnits("%rH")
 	}
@@ -621,18 +720,21 @@ func (s *Speed) Set(str string) error {
 
 	switch strings.ToLower(str[n:]) {
 	case "fps":
+		//TODO(NeuralSpaz): Max
 		if v >= 0 {
 			*s = (Speed)(((v*3048 + 5000) / 10000))
 		} else {
 			*s = (Speed)(((v*3048 - 5000) / 10000))
 		}
 	case "mph":
+		//TODO(NeuralSpaz): Max
 		if v >= 0 {
 			*s = (Speed)(((v*44704 + 50000) / 100000))
 		} else {
 			*s = (Speed)(((v*44704 - 50000) / 100000))
 		}
 	case "km/h":
+		//TODO(NeuralSpaz): Max
 		if v >= 0 {
 			*s = (Speed)((v*10 + 18) / 36)
 		} else {
@@ -692,7 +794,7 @@ func (t *Temperature) Set(s string) error {
 			// Maximum F is ~18446.744F
 			return &parseError{s: s, err: errors.New("maximum is 18446.744F")}
 		}
-		*t = (Temperature)((5*v + 2298350000000) / 9)
+		*t = (Temperature)(((5*v + 2298350000000) + 4) / 9)
 	default:
 		return noUnits("K, C or F")
 	}
@@ -716,7 +818,7 @@ const (
 	// Conversion between Kelvin and Fahrenheit.
 	ZeroFahrenheit  Temperature = 255372222222 * NanoKelvin
 	MilliFahrenheit Temperature = 555555 * NanoKelvin
-	Fahrenheit      Temperature = 555555555 * NanoKelvin
+	Fahrenheit      Temperature = 555555556 * NanoKelvin
 )
 
 // Power is a measurement of power stored as a nano watts.
@@ -1447,6 +1549,9 @@ type parseError struct {
 func (p *parseError) Error() string {
 	if p.err == nil {
 		return "parse error"
+	}
+	if p.s == "" {
+		return "parse error: " + p.err.Error()
 	}
 	return "parse error: " + p.err.Error() + ": \"" + p.s + "\""
 }
