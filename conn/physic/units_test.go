@@ -727,7 +727,7 @@ func TestParseError(t *testing.T) {
 		want string
 	}{
 		{"empty", &parseError{s: "", err: nil}, "parse error"},
-		{"empty", &parseError{s: "", err: errors.New("test")}, "parse error: test: \"" + "\""},
+		{"empty", &parseError{s: "", err: errors.New("test")}, "parse error: test"},
 		{"noUnits", noUnits("someunit"), "parse error: no units provided, need: \"someunit\""},
 	}
 	for _, tt := range tests {
