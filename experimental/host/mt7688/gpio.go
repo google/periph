@@ -10,17 +10,17 @@ import (
 
 // All the pins supported by the CPU.
 var (
-	GPIO0  *Pin // I2S_DIN
-	GPIO1  *Pin // I2S_DOUT
-	GPIO2  *Pin // I2S_WS
-	GPIO3  *Pin // I2S_SCK
-	GPIO4  *Pin // I2C_SCL
-	GPIO5  *Pin // I2C_SDA
-	GPIO6  *Pin // SPI_CS1, CLK0
-	GPIO7  *Pin // SPI_CLK
-	GPIO8  *Pin // SPI_MOSI
-	GPIO9  *Pin // SPI_MISO
-	GPIO10 *Pin // SPI_CS0
+	GPIO0  *Pin // I2S0_DIN
+	GPIO1  *Pin // I2S0_DOUT
+	GPIO2  *Pin // I2S0_WS
+	GPIO3  *Pin // I2S0_SCK
+	GPIO4  *Pin // I2C0_SCL
+	GPIO5  *Pin // I2C0_SDA
+	GPIO6  *Pin // SPI0_CS1, CLK0
+	GPIO7  *Pin // SPI0_CLK
+	GPIO8  *Pin // SPI0_MOSI
+	GPIO9  *Pin // SPI0_MISO
+	GPIO10 *Pin // SPI0_CS0
 	GPIO11 *Pin // CLK0
 	GPIO12 *Pin // UART0_TX
 	GPIO13 *Pin // UART0_RX
@@ -40,20 +40,20 @@ var (
 	GPIO27 *Pin
 	GPIO28 *Pin
 	GPIO29 *Pin
-	GPIO30 *Pin // JTAG_TRST
-	GPIO31 *Pin // JTAG_TCK
-	GPIO32 *Pin // JTAG_TMS
-	GPIO33 *Pin // JTAG_TDI
-	GPIO34 *Pin // JTAG_TDO
+	GPIO30 *Pin // JTAG0_TRST (7688KN)
+	GPIO31 *Pin // JTAG0_TCK  (7688KN)
+	GPIO32 *Pin // JTAG0_TMS  (7688KN)
+	GPIO33 *Pin // JTAG0_TDI  (7688KN)
+	GPIO34 *Pin // JTAG0_TDO  (7688KN)
 	GPIO35 *Pin
 	GPIO36 *Pin
 	GPIO37 *Pin // CLKO
 	GPIO38 *Pin
-	GPIO39 *Pin // JTAG_TRST
-	GPIO40 *Pin // JTAG_TCK
-	GPIO41 *Pin // JTAG_TMS
-	GPIO42 *Pin // JTAG_TDI
-	GPIO43 *Pin // JTAG_TDO
+	GPIO39 *Pin // JTAG0_TRST (7688AN)
+	GPIO40 *Pin // JTAG0_TCK  (7688AN)
+	GPIO41 *Pin // JTAG0_TMS  (7688AN)
+	GPIO42 *Pin // JTAG0_TDI  (7688AN)
+	GPIO43 *Pin // JTAG0_TDO  (7688AN)
 	GPIO44 *Pin
 	GPIO45 *Pin // UART1_TX, PWM0
 	GPIO46 *Pin // UART1_RX, PWM1
@@ -68,17 +68,17 @@ var (
 // the GPIO Pin Function Mapping on page 108:
 // https://labs.mediatek.com/fileMedia/download/9ef51e98-49b1-489a-b27e-391bac9f7bf3
 var mapping = [][3]pin.Func{
-	{"I2S_DIN"}, // 0
-	{"I2S_DOUT"},
-	{"I2S_WS"},
-	{"I2S_SCK"},
-	{"I2C_SCL"},
-	{"I2C_SDA"}, // 5
-	{"SPI_CS1", "", "CLK0"},
-	{"SPI_CLK"},
-	{"SPI_MOSI"},
-	{"SPI_MISO"},
-	{"SPI_CS0"}, // 10
+	{"I2S0_DIN"}, // 0
+	{"I2S0_DOUT"},
+	{"I2S0_WS"},
+	{"I2S0_SCK"},
+	{"I2C0_SCL"},
+	{"I2C0_SDA"}, // 5
+	{"SPI0_CS1", "", "CLK0"},
+	{"SPI0_CLK"},
+	{"SPI0_MOSI"},
+	{"SPI0_MISO"},
+	{"SPI0_CS0"}, // 10
 	{"", "CLK0"},
 	{"UART0_TX"},
 	{"UART0_RX"},
@@ -98,20 +98,20 @@ var mapping = [][3]pin.Func{
 	{""},
 	{""},
 	{""},
-	{"", "", "JTAG_TRST"}, // 30
-	{"", "", "JTAG_TCK"},
-	{"", "", "JTAG_TMS"},
-	{"", "", "JTAG_TDI"},
-	{"", "", "JTAG_TDO"},
+	{"", "", "JTAG0_TRST"}, // 30
+	{"", "", "JTAG0_TCK"},
+	{"", "", "JTAG0_TMS"},
+	{"", "", "JTAG0_TDI"},
+	{"", "", "JTAG0_TDO"},
 	{""}, // 35
 	{""},
 	{"CLK0"},
 	{""},
-	{"", "", "JTAG_TRST"},
-	{"", "", "JTAG_TCK"}, // 40
-	{"", "", "JTAG_TMS"},
-	{"", "", "JTAG_TDI"},
-	{"", "", "JTAG_TDO"},
+	{"", "", "JTAG0_TRST"},
+	{"", "", "JTAG0_TCK"}, // 40
+	{"", "", "JTAG0_TMS"},
+	{"", "", "JTAG0_TDI"},
+	{"", "", "JTAG0_TDO"},
 	{""},
 	{"UART1_TX", "PWM0"}, // 45
 	{"UART1_RX", "PWM1"},
