@@ -705,7 +705,7 @@ func TestPrefix(t *testing.T) {
 		{"micro", 'u', micro, 1},
 		{"mu", 'µ', micro, 2},
 		{"milli", 'm', milli, 1},
-		{"none", 0, none, 0},
+		{"unit", 0, unit, 0},
 		{"kilo", 'k', kilo, 1},
 		{"mega", 'M', mega, 1},
 		{"giga", 'G', giga, 1},
@@ -745,7 +745,7 @@ func TestMaxInt64(t *testing.T) {
 	}
 }
 
-func TestSetHelper(t *testing.T) {
+func TestValueOfUnitString(t *testing.T) {
 	succeeds := []struct {
 		in        string
 		uintbase  prefix
@@ -759,6 +759,7 @@ func TestSetHelper(t *testing.T) {
 		{"1m", pico, 1000000000, 2},
 		{"1k", pico, 1000000000000000, 2},
 		{"1M", pico, 1000000000000000000, 2},
+		{"9.223372036854775807M", pico, 9223372036854775807, 21},
 		{"1p", nano, 0, 2},
 		{"1n", nano, 1, 2},
 		{"1u", nano, 1000, 2},
@@ -767,6 +768,7 @@ func TestSetHelper(t *testing.T) {
 		{"1k", nano, 1000000000000, 2},
 		{"1M", nano, 1000000000000000, 2},
 		{"1G", nano, 1000000000000000000, 2},
+		{"9.223372036854775807G", nano, 9223372036854775807, 21},
 		{"1p", micro, 0, 2},
 		{"1n", micro, 0, 2},
 		{"1u", micro, 1, 2},
@@ -776,37 +778,39 @@ func TestSetHelper(t *testing.T) {
 		{"1M", micro, 1000000000000, 2},
 		{"1G", micro, 1000000000000000, 2},
 		{"1T", micro, 1000000000000000000, 2},
+		{"9.223372036854775807T", micro, 9223372036854775807, 21},
 	}
 
 	fails := []struct {
 		in     string
 		prefix prefix
 	}{
-		{"1G", pico},
-		{"1T", pico},
-		{"1T", nano},
+		{"9.223372036854775808M", pico},
+		{"9.223372036854775808G", nano},
+		{"9.223372036854775808T", micro},
 		{"not a number", nano},
+		{string([]byte{0x31, 0x01}), nano}, // 0x01 is a invalid utf8 start byte.
 	}
 
 	for _, tt := range succeeds {
-		got, used, err := set(tt.in, tt.uintbase)
+		got, used, err := valueOfUnitString(tt.in, tt.uintbase)
 
 		if got != tt.expected {
-			t.Errorf("set(%s,%d) wanted: %v(%d) but got: %v(%d)", tt.in, tt.uintbase, tt.expected, tt.expected, got, got)
+			t.Errorf("valueOfUnitString(%s,%d) wanted: %v(%d) but got: %v(%d)", tt.in, tt.uintbase, tt.expected, tt.expected, got, got)
 		}
 		if used != tt.usedChars {
-			t.Errorf("set(%s,%d) used %d chars but should used: %d chars", tt.in, tt.uintbase, used, tt.usedChars)
+			t.Errorf("valueOfUnitString(%s,%d) used %d chars but should used: %d chars", tt.in, tt.uintbase, used, tt.usedChars)
 		}
 		if err != nil {
-			t.Errorf("set(%s,%d) got unexpected error: %v", tt.in, tt.uintbase, err)
+			t.Errorf("valueOfUnitString(%s,%d) got unexpected error: %v", tt.in, tt.uintbase, err)
 		}
 	}
 
 	for _, tt := range fails {
-		_, _, err := set(tt.in, tt.prefix)
+		_, _, err := valueOfUnitString(tt.in, tt.prefix)
 
 		if err == nil {
-			t.Errorf("set(%s,%d) got expected error but got none", tt.in, tt.prefix)
+			t.Errorf("valueOfUnitString(%s,%d) got expected error but got none", tt.in, tt.prefix)
 		}
 	}
 }
@@ -840,13 +844,34 @@ func TestFrequency_Set(t *testing.T) {
 		{"1THz", 1 * TeraHertz},
 		{"12.345Hz", 12345 * MilliHertz},
 		{"-12.345Hz", -12345 * MilliHertz},
+		{"10", 10 * Hertz},
+		{"9.223372036854775807THz", 9223372036854775807 * MicroHertz},
 	}
 
 	fails := []struct {
-		in string
+		in  string
+		err string
 	}{
-		{"10THz"},
-		{"10"},
+		{
+			"10THz",
+			"exponent exceeds int64",
+		},
+		{
+			"9.223372036854775808THz",
+			"parse error: overflows maximum is: \"9223372036854775807\"",
+		},
+		{
+			"-9.223372036854775808THz",
+			"parse error: overflows minimum is: \"-9223372036854775807\"",
+		},
+		{
+			"1random",
+			"parse error: \"random\" is not a valid unit for physic.Frequency",
+		},
+		{
+			"Hz",
+			"parse error: is not a number: \"Hz\"",
+		},
 	}
 
 	for _, tt := range succeeds {
@@ -866,8 +891,8 @@ func TestFrequency_Set(t *testing.T) {
 
 		err := got.Set(tt.in)
 
-		if err == nil {
-			t.Errorf("Frequency.Set(%s) got expected error but got none", tt.in)
+		if err.Error() != tt.err {
+			t.Errorf("Frequency.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
 		}
 	}
 }

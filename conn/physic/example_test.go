@@ -85,13 +85,19 @@ func ExampleFrequency() {
 func ExampleFrequency_Set() {
 	var f physic.Frequency
 
-	f.Set("10MHz")
+	if err := f.Set("10MHz"); err != nil {
+		fmt.Println(err)
+	}
 	fmt.Println(f)
 
-	f.Set("10mHz")
+	if err := f.Set("10mHz"); err != nil {
+		fmt.Println(err)
+	}
 	fmt.Println(f)
 
-	f.Set("1kHz")
+	if err := f.Set("1kHz"); err != nil {
+		fmt.Println(err)
+	}
 	fmt.Println(f)
 	// Output:
 	// 10MHz

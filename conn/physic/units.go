@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 // Angle is the measurement of the difference in orientation between two vectors
@@ -211,16 +212,16 @@ func (f Frequency) String() string {
 // Set sets the Frequency to the value represented by s. Units are to be
 // provided in hertz with optional SI prefixes.
 func (f *Frequency) Set(s string) error {
-	v, n, err := set(s, micro)
+	v, n, err := valueOfUnitString(s, micro)
 	if err != nil {
 		return err
 	}
 
 	switch strings.ToLower(s[n:]) {
-	case "hz", "hertz":
+	case "", "hz", "hertz":
 		*f = (Frequency)(v)
 	default:
-		return noUnits("Hz")
+		return incorrectUnit(s[n:], "physic.Frequency")
 	}
 	return nil
 }
@@ -999,20 +1000,27 @@ func atod(s string) (decimal, int, error) {
 	return d, last, nil
 }
 
-// Set is a helper for converting a string and a prefix in to a physic unit. It
-// can be used when characters of the units do not conflict with any of the SI
-// prefixes.
-func set(s string, base prefix) (int64, int, error) {
+// valueOfUnitString is a helper for converting a string and a prefix in to a
+// physic unit. It can be used when characters of the units do not conflict with
+// any of the SI prefixes.
+func valueOfUnitString(s string, base prefix) (int64, int, error) {
 	d, n, err := atod(s)
 	if err != nil {
 		return 0, n, err
 	}
-	si := prefix(none)
-	if !(n == len(s)) {
-		var n1 int
-		si, n1 = parseSIPrefix([]rune(s[n:])[0])
-		if si != none {
-			n += n1
+	si := prefix(unit)
+	if n != len(s) {
+		r, rsize := utf8.DecodeRuneInString(s[n:])
+		if r <= 1 || rsize == 0 {
+			return 0, 0, &parseError{
+				err: errors.New("unexpected end of string"),
+				s:   s,
+			}
+		}
+		var siSize int
+		si, siSize = parseSIPrefix(r)
+		if si != unit {
+			n += siSize
 		}
 	}
 	v, err := dtoi(d, int(si-base))
@@ -1042,6 +1050,10 @@ func noUnits(s string) error {
 	return &parseError{s: s, err: errors.New("no units provided, need")}
 }
 
+func incorrectUnit(inputString, want string) error {
+	return &parseError{err: errors.New("\"" + inputString + "\"" + " is not a valid unit for " + want)}
+}
+
 type prefix int
 
 const (
@@ -1049,7 +1061,7 @@ const (
 	nano  prefix = -9
 	micro prefix = -6
 	milli prefix = -3
-	none  prefix = 0
+	unit  prefix = 0
 	deca  prefix = 1
 	hecto prefix = 2
 	kilo  prefix = 3
@@ -1079,6 +1091,6 @@ func parseSIPrefix(r rune) (prefix, int) {
 	case 'T':
 		return tera, len("T")
 	default:
-		return none, 0
+		return unit, 0
 	}
 }
