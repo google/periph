@@ -10,53 +10,53 @@ import (
 
 // All the pins supported by the CPU.
 var (
-	GPIO0  *Pin // I2S_SDI
-	GPIO1  *Pin // I2S_SDO
-	GPIO2  *Pin // I2S_WS
-	GPIO3  *Pin // I2S_CLK
-	GPIO4  *Pin // I2C_SCLK
-	GPIO5  *Pin // I2C_SD
-	GPIO6  *Pin // SPI_CS1
-	GPIO7  *Pin // SPI_CLK
-	GPIO8  *Pin // SPI_MOSI
-	GPIO9  *Pin // SPI_MISO
-	GPIO10 *Pin // SPI_CS0
-	GPIO11 *Pin // GPIO0
-	GPIO12 *Pin // UART_TXD0
-	GPIO13 *Pin // UART_RXD0
-	GPIO14 *Pin // MDI_TP_P1
-	GPIO15 *Pin // MDI_TN_P1
-	GPIO16 *Pin // MDI_RP_P1
-	GPIO17 *Pin // MDI_RN_P1
-	GPIO18 *Pin // MDI_RP_P2
-	GPIO19 *Pin // MDI_RN_P2
-	GPIO20 *Pin // MDI_TP_P2
-	GPIO21 *Pin // MDI_TN_P2
-	GPIO22 *Pin // MDI_TP_P3
-	GPIO23 *Pin // MDI_TN_P3
-	GPIO24 *Pin // MDI_RP_P3
-	GPIO25 *Pin // MDI_RN_P3
-	GPIO26 *Pin // MDI_RP_P4
-	GPIO27 *Pin // MDI_RN_P4
-	GPIO28 *Pin // MDI_TP_P4
-	GPIO29 *Pin // MDI_TN_P4
-	GPIO30 *Pin // EPHY_LED4_N_JTRST_N (7688KN)
-	GPIO31 *Pin // EPHY_LED3_N_JTCLK (7688KN)
-	GPIO32 *Pin // EPHY_LED2_N_JTMS (7688KN)
-	GPIO33 *Pin // EPHY_LED1_N_JTDI (7688KN)
-	GPIO34 *Pin // EPHY_LED0_N_JTDO (7688KN)
-	GPIO35 *Pin // WLED_N (7688KN)
-	GPIO36 *Pin // PERST_N
-	GPIO37 *Pin // REF_CLKO
-	GPIO38 *Pin // WDT_RST_N
-	GPIO39 *Pin // EPHY_LED4_N_JTRST_N (7688AN)
-	GPIO40 *Pin // EPHY_LED3_N_JTCLK (7688AN)
-	GPIO41 *Pin // EPHY_LED2_N_JTMS (7688AN)
-	GPIO42 *Pin // EPHY_LED1_N_JTDI (7688AN)
-	GPIO43 *Pin // EPHY_LED0_N_JTDO (7688AN)
-	GPIO44 *Pin // WLED_N (7688AN)
-	GPIO45 *Pin // UART_TXD1
-	GPIO46 *Pin // UART_RXD1
+	GPIO0  *Pin // I2S0_DIN
+	GPIO1  *Pin // I2S0_DOUT
+	GPIO2  *Pin // I2S0_WS
+	GPIO3  *Pin // I2S0_SCK
+	GPIO4  *Pin // I2C0_SCL
+	GPIO5  *Pin // I2C0_SDA
+	GPIO6  *Pin // SPI0_CS1, CLK0
+	GPIO7  *Pin // SPI0_CLK
+	GPIO8  *Pin // SPI0_MOSI
+	GPIO9  *Pin // SPI0_MISO
+	GPIO10 *Pin // SPI0_CS0
+	GPIO11 *Pin // CLK0
+	GPIO12 *Pin // UART0_TX
+	GPIO13 *Pin // UART0_RX
+	GPIO14 *Pin // PWM0
+	GPIO15 *Pin // PWM1
+	GPIO16 *Pin // UART2_TX
+	GPIO17 *Pin // UART2_RX
+	GPIO18 *Pin // PWM0
+	GPIO19 *Pin // PWM1
+	GPIO20 *Pin // UART2_TX, PWM2
+	GPIO21 *Pin // UART2_RX, PWM3
+	GPIO22 *Pin
+	GPIO23 *Pin
+	GPIO24 *Pin
+	GPIO25 *Pin
+	GPIO26 *Pin
+	GPIO27 *Pin
+	GPIO28 *Pin
+	GPIO29 *Pin
+	GPIO30 *Pin // JTAG0_TRST (7688KN)
+	GPIO31 *Pin // JTAG0_TCK  (7688KN)
+	GPIO32 *Pin // JTAG0_TMS  (7688KN)
+	GPIO33 *Pin // JTAG0_TDI  (7688KN)
+	GPIO34 *Pin // JTAG0_TDO  (7688KN)
+	GPIO35 *Pin
+	GPIO36 *Pin
+	GPIO37 *Pin // CLKO
+	GPIO38 *Pin
+	GPIO39 *Pin // JTAG0_TRST (7688AN)
+	GPIO40 *Pin // JTAG0_TCK  (7688AN)
+	GPIO41 *Pin // JTAG0_TMS  (7688AN)
+	GPIO42 *Pin // JTAG0_TDI  (7688AN)
+	GPIO43 *Pin // JTAG0_TDO  (7688AN)
+	GPIO44 *Pin
+	GPIO45 *Pin // UART1_TX, PWM0
+	GPIO46 *Pin // UART1_RX, PWM1
 )
 
 // mappingMT7688 describes the mapping of the MT7688 processor gpios to their
@@ -68,53 +68,53 @@ var (
 // the GPIO Pin Function Mapping on page 108:
 // https://labs.mediatek.com/fileMedia/download/9ef51e98-49b1-489a-b27e-391bac9f7bf3
 var mapping = [][3]pin.Func{
-	{"I2SSDI", "PCMDRX"}, // 0
-	{"I2SSDO", "PCMDTX"},
-	{"I2SW", "PCMCLK"},
-	{"I2SCLK", "PCMFS"},
-	{"I2C_SCLK"},
-	{"I2C_SD"}, // 5
-	{"SPI_CS1", "REF_CLKO"},
-	{"SPI_CLK"},
-	{"SPI_MOSI"},
-	{"SPI_MISO"},
-	{"SPI_CS0"}, // 10
-	{"GPIO#11", "REF_CLKO", "PERST_N"},
-	{"UART_TXD0"},
-	{"UART_RXD0"},
-	{"SPIS_CS", "", "PWM_CH0"},
-	{"SPIS_CLK", "", "PWM_CH1"}, // 15
-	{"SPIS_MISO", "", "UART_TXD2"},
-	{"SPIS_MOSI", "", "UART_RXD2"},
-	{"PWM_CH0", "", "eMMC_D7"},
-	{"PWM_CH1", "", "eMMC_D6"},
-	{"UART_TXD2", "PWM_CH2", "eMMC_D5"}, // 20
-	{"UART_RXD2", "PWM_CH3", "eMMC_D4"},
-	{"SD_WP"}, // TODO: add aliases mapping eMMC
-	{"SD_CD"},
-	{"SD_D1"},
-	{"SD_D0"}, // 25
-	{"SD_CLK"},
-	{"SD_CMD"},
-	{"SD_D3"},
-	{"SD_D2"},
-	{"EPHY_LED4_K", "", "JTAG_RST_N"}, // 30
-	{"EPHY_LED3_K", "", "JTAG_CLK"},
-	{"EPHY_LED2_K", "", "JTAG_TMS"},
-	{"EPHY_LED1_K", "", "JTAG_TDI"},
-	{"EPHY_LED0_K", "", "JTAG_TDO"},
-	{"WLED_N"}, // 35
-	{"PERST_N"},
-	{"REF_CLKO"},
-	{"WDT_RST_N"},
-	{"EPHY_LED4_N", "", "JTAG_RST_N"},
-	{"EPHY_LED3_N", "", "JTAG_CLK"}, // 40
-	{"EPHY_LED2_N", "", "JTAG_TMS"},
-	{"EPHY_LED1_N", "", "JTAG_TDI"},
-	{"EPHY_LED0_N", "", "JTAG_TDO"},
-	{"WLED_N"},
-	{"UART_TXD1", "PWM_CH0"}, // 45
-	{"UART_RXD1", "PWM_CH1"},
+	{"I2S0_DIN"}, // 0
+	{"I2S0_DOUT"},
+	{"I2S0_WS"},
+	{"I2S0_SCK"},
+	{"I2C0_SCL"},
+	{"I2C0_SDA"}, // 5
+	{"SPI0_CS1", "", "CLK0"},
+	{"SPI0_CLK"},
+	{"SPI0_MOSI"},
+	{"SPI0_MISO"},
+	{"SPI0_CS0"}, // 10
+	{"", "CLK0"},
+	{"UART0_TX"},
+	{"UART0_RX"},
+	{"", "", "PWM0"},
+	{"", "", "PWM1"}, // 15
+	{"", "", "UART2_TX"},
+	{"", "", "UART2_RX"},
+	{"PWM0"},
+	{"PWM1"},
+	{"UART2_TX", "PWM2"}, // 20
+	{"UART2_RX", "PWM3"},
+	{""},
+	{""},
+	{""},
+	{""}, // 25
+	{""},
+	{""},
+	{""},
+	{""},
+	{"", "", "JTAG0_TRST"}, // 30
+	{"", "", "JTAG0_TCK"},
+	{"", "", "JTAG0_TMS"},
+	{"", "", "JTAG0_TDI"},
+	{"", "", "JTAG0_TDO"},
+	{""}, // 35
+	{""},
+	{"CLK0"},
+	{""},
+	{"", "", "JTAG0_TRST"},
+	{"", "", "JTAG0_TCK"}, // 40
+	{"", "", "JTAG0_TMS"},
+	{"", "", "JTAG0_TDI"},
+	{"", "", "JTAG0_TDO"},
+	{""},
+	{"UART1_TX", "PWM0"}, // 45
+	{"UART1_RX", "PWM1"},
 }
 
 func init() {
