@@ -34,17 +34,27 @@ func Example() {
 	}
 
 	// Obtain an analog pin from the ADC
-	pin, err := adc.PinForChannel(ads1x15.Channel0, 5*physic.Volt, 1*physic.Hertz)
+	pin, err := adc.PinForDifferenceOfChannels(ads1x15.Channel0, ads1x15.Channel3, 5*physic.Volt, 1*physic.Hertz, ads1x15.SaveEnergy)
 	if err != nil {
 		log.Fatalln(err)
 	}
+	defer pin.Halt()
 
 	// Read values from ADC.
-	value, err := pin.Read()
+	fmt.Println("Single reading")
+	reading, err := pin.Read()
 
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	fmt.Println(value)
+	fmt.Println(reading)
+
+	// Read values continously from ADC.
+	fmt.Println("Continuous reading")
+	c := pin.ReadContinuous()
+
+	for reading := range c {
+		fmt.Println(reading)
+	}
 }
