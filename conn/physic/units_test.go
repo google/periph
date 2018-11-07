@@ -745,6 +745,133 @@ func TestMaxInt64(t *testing.T) {
 	}
 }
 
+func TestSetHelper(t *testing.T) {
+	succeeds := []struct {
+		in        string
+		uintbase  prefix
+		expected  int64
+		usedChars int
+	}{
+		{"1p", pico, 1, 2},
+		{"1n", pico, 1000, 2},
+		{"1u", pico, 1000000, 2},
+		{"1µ", pico, 1000000, 3},
+		{"1m", pico, 1000000000, 2},
+		{"1k", pico, 1000000000000000, 2},
+		{"1M", pico, 1000000000000000000, 2},
+		{"1p", nano, 0, 2},
+		{"1n", nano, 1, 2},
+		{"1u", nano, 1000, 2},
+		{"1µ", nano, 1000, 3},
+		{"1m", nano, 1000000, 2},
+		{"1k", nano, 1000000000000, 2},
+		{"1M", nano, 1000000000000000, 2},
+		{"1G", nano, 1000000000000000000, 2},
+		{"1p", micro, 0, 2},
+		{"1n", micro, 0, 2},
+		{"1u", micro, 1, 2},
+		{"1µ", micro, 1, 3},
+		{"1m", micro, 1000, 2},
+		{"1k", micro, 1000000000, 2},
+		{"1M", micro, 1000000000000, 2},
+		{"1G", micro, 1000000000000000, 2},
+		{"1T", micro, 1000000000000000000, 2},
+	}
+
+	fails := []struct {
+		in     string
+		prefix prefix
+	}{
+		{"1G", pico},
+		{"1T", pico},
+		{"1T", nano},
+		{"not a number", nano},
+	}
+
+	for _, tt := range succeeds {
+		got, used, err := set(tt.in, tt.uintbase)
+
+		if got != tt.expected {
+			t.Errorf("set(%s,%d) wanted: %v(%d) but got: %v(%d)", tt.in, tt.uintbase, tt.expected, tt.expected, got, got)
+		}
+		if used != tt.usedChars {
+			t.Errorf("set(%s,%d) used %d chars but should used: %d chars", tt.in, tt.uintbase, used, tt.usedChars)
+		}
+		if err != nil {
+			t.Errorf("set(%s,%d) got unexpected error: %v", tt.in, tt.uintbase, err)
+		}
+	}
+
+	for _, tt := range fails {
+		_, _, err := set(tt.in, tt.prefix)
+
+		if err == nil {
+			t.Errorf("set(%s,%d) got expected error but got none", tt.in, tt.prefix)
+		}
+	}
+}
+
+func TestFrequency_Set(t *testing.T) {
+	succeeds := []struct {
+		in       string
+		expected Frequency
+	}{
+		{"1uHz", 1 * MicroHertz},
+		{"10uHz", 10 * MicroHertz},
+		{"100uHz", 100 * MicroHertz},
+		{"1µHz", 1 * MicroHertz},
+		{"10µHz", 10 * MicroHertz},
+		{"100µHz", 100 * MicroHertz},
+		{"1mHz", 1 * MilliHertz},
+		{"10mHz", 10 * MilliHertz},
+		{"100mHz", 100 * MilliHertz},
+		{"1Hz", 1 * Hertz},
+		{"10Hz", 10 * Hertz},
+		{"100Hz", 100 * Hertz},
+		{"1kHz", 1 * KiloHertz},
+		{"10kHz", 10 * KiloHertz},
+		{"100kHz", 100 * KiloHertz},
+		{"1MHz", 1 * MegaHertz},
+		{"10MHz", 10 * MegaHertz},
+		{"100MHz", 100 * MegaHertz},
+		{"1GHz", 1 * GigaHertz},
+		{"10GHz", 10 * GigaHertz},
+		{"100GHz", 100 * GigaHertz},
+		{"1THz", 1 * TeraHertz},
+		{"12.345Hz", 12345 * MilliHertz},
+		{"-12.345Hz", -12345 * MilliHertz},
+	}
+
+	fails := []struct {
+		in string
+	}{
+		{"10THz"},
+		{"10"},
+	}
+
+	for _, tt := range succeeds {
+		var got Frequency
+		err := got.Set(tt.in)
+
+		if got != tt.expected {
+			t.Errorf("Frequency.Set(%s) wanted: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+		}
+		if err != nil {
+			t.Errorf("Frequency.Set(%s) got unexpected error: %v", tt.in, err)
+		}
+	}
+
+	for _, tt := range fails {
+		var got Frequency
+
+		err := got.Set(tt.in)
+
+		if err == nil {
+			t.Errorf("Frequency.Set(%s) got expected error but got none", tt.in)
+		}
+	}
+}
+
 func BenchmarkDecimal(b *testing.B) {
 	var d decimal
 	var n int

@@ -5,6 +5,7 @@
 package physic_test
 
 import (
+	"flag"
 	"fmt"
 	"time"
 
@@ -79,6 +80,30 @@ func ExampleFrequency() {
 	// 10mHz
 	// 101.010Hz
 	// 10MHz
+}
+
+func ExampleFrequency_Set() {
+	var f physic.Frequency
+
+	f.Set("10MHz")
+	fmt.Println(f)
+
+	f.Set("10mHz")
+	fmt.Println(f)
+
+	f.Set("1kHz")
+	fmt.Println(f)
+	// Output:
+	// 10MHz
+	// 10mHz
+	// 1kHz
+}
+
+func ExampleFrequency_flag() {
+	var pwm physic.Frequency
+
+	flag.Var(&pwm, "pwm", "pwm frequency")
+	flag.Parse()
 }
 
 func ExampleFrequency_Duration() {

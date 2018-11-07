@@ -7,6 +7,7 @@ package physic
 import (
 	"errors"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -205,6 +206,23 @@ type Frequency int64
 // String returns the frequency formatted as a string in Hertz.
 func (f Frequency) String() string {
 	return microAsString(int64(f)) + "Hz"
+}
+
+// Set sets the Frequency to the value represented by s. Units are to be
+// provided in hertz with optional SI prefixes.
+func (f *Frequency) Set(s string) error {
+	v, n, err := set(s, micro)
+	if err != nil {
+		return err
+	}
+
+	switch strings.ToLower(s[n:]) {
+	case "hz", "hertz":
+		*f = (Frequency)(v)
+	default:
+		return noUnits("Hz")
+	}
+	return nil
 }
 
 // Duration returns the duration of one cycle at this frequency.
@@ -979,6 +997,29 @@ func atod(s string) (decimal, int, error) {
 		}
 	}
 	return d, last, nil
+}
+
+// Set is a helper for converting a string and a prefix in to a physic unit. It
+// can be used when characters of the units do not conflict with any of the SI
+// prefixes.
+func set(s string, base prefix) (int64, int, error) {
+	d, n, err := atod(s)
+	if err != nil {
+		return 0, n, err
+	}
+	si := prefix(none)
+	if !(n == len(s)) {
+		var n1 int
+		si, n1 = parseSIPrefix([]rune(s[n:])[0])
+		if si != none {
+			n += n1
+		}
+	}
+	v, err := dtoi(d, int(si-base))
+	if err != nil {
+		return v, 0, err
+	}
+	return v, n, nil
 }
 
 type parseError struct {
