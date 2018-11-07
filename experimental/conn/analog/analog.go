@@ -2,34 +2,46 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package analog defines analog pins, both DAC and ADC.
+// Package analog defines analog pins, both digital to analog converter (DAC)
+// and analog to digital converter (ADC).
 package analog
 
 import (
 	"errors"
 
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/pin"
 )
 
-// ADC is an analog-to-digital-conversion input.
-type ADC interface {
+// Reading is the result of PinADC.Read().
+type Reading struct {
+	// V is the interpreted electrical level.
+	V physic.ElectricPotential
+	// Raw is the raw measurement.
+	Raw int32
+}
+
+// PinADC is an analog-to-digital-conversion input.
+type PinADC interface {
 	pin.Pin
 	// Range returns the maximum supported range [min, max] of the values.
-	Range() (int32, int32)
+	Range() (Reading, Reading)
 	// Read returns the current pin level.
-	Read() int32
+	Read() (Reading, error)
 }
 
-// DAC is an digital-to-analog-conversion output.
-type DAC interface {
+// PinDAC is an digital-to-analog-conversion output.
+type PinDAC interface {
 	pin.Pin
 	// Range returns the maximum supported range [min, max] of the values.
-	Range() (int32, int32)
+	//
+	// It is possible for a DAC that the Reading.V value is not set.
+	Range() (Reading, Reading)
 	// Out sets an analog output value.
-	DAC(v int32)
+	Out(v int32) error
 }
 
-// INVALID implements both ADC and DAC and fails on all access.
+// INVALID implements both PinADC and PinDAC and fails on all access.
 var INVALID invalidPin
 
 //
@@ -57,13 +69,21 @@ func (invalidPin) Function() string {
 	return ""
 }
 
-func (invalidPin) Range() (int32, int32) {
-	return 0, 0
+func (invalidPin) Halt() error {
+	return errInvalidPin
 }
 
-func (invalidPin) Read() int32 {
-	return 0
+func (invalidPin) Range() (Reading, Reading) {
+	return Reading{}, Reading{}
 }
 
-func (invalidPin) DAC(v int32) {
+func (invalidPin) Read() (Reading, error) {
+	return Reading{}, errInvalidPin
 }
+
+func (invalidPin) Out(v int32) error {
+	return errInvalidPin
+}
+
+var _ PinADC = &INVALID
+var _ PinDAC = &INVALID

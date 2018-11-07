@@ -14,7 +14,7 @@ import (
 
 	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/physic"
-	"periph.io/x/periph/conn/pin"
+	"periph.io/x/periph/experimental/conn/analog"
 )
 
 // I2CAddr is the default I2C address for the ADS1x15 components.
@@ -107,29 +107,20 @@ var DefaultOpts = Opts{
 	I2cAddress: I2CAddr,
 }
 
+// PinADC represents a pin which is able to read an electric potential.
+type PinADC interface {
+	analog.PinADC
+	// ReadContinuous opens a channel and reads continuously at the frequency the
+	// pin was configured for.
+	ReadContinuous() <-chan analog.Reading
+}
+
 // Dev is an handle to an ADS1015/ADS1115 ADC.
 type Dev struct {
 	c         i2c.Dev
 	name      string
 	dataRates map[int]uint16
 	mu        sync.Mutex
-}
-
-// Reading is the result of AnalogPin.Read()
-type Reading struct {
-	V   physic.ElectricPotential
-	Raw int32
-}
-
-// AnalogPin represents a pin which is able to read an electric potential.
-type AnalogPin interface {
-	pin.Pin
-	// Range returns the maximum supported range [min, max] of the values.
-	Range() (Reading, Reading)
-	// Read returns the current pin level.
-	Read() (Reading, error)
-	// ReadContinuous opens a channel and reads continuously
-	ReadContinuous() <-chan Reading
 }
 
 // NewADS1015 creates a new driver for the ADS1015 (12-bit ADC).
@@ -181,7 +172,7 @@ func (d *Dev) Halt() error {
 // requested frequency.
 //
 // The channel can either be an absolute reading or a differential one.
-func (d *Dev) PinForChannel(c Channel, maxVoltage physic.ElectricPotential, f physic.Frequency, q ConversionQuality) (AnalogPin, error) {
+func (d *Dev) PinForChannel(c Channel, maxVoltage physic.ElectricPotential, f physic.Frequency, q ConversionQuality) (PinADC, error) {
 	// Determine the most appropriate gain
 	gain, err := d.bestGainForElectricPotential(maxVoltage)
 	if err != nil {
@@ -249,7 +240,7 @@ func (d *Dev) PinForChannel(c Channel, maxVoltage physic.ElectricPotential, f ph
 	}, nil
 }
 
-func (d *Dev) executePreparedQuery(query []byte, waitTime time.Duration, voltageMultiplier physic.ElectricPotential) (Reading, error) {
+func (d *Dev) executePreparedQuery(query []byte, waitTime time.Duration, voltageMultiplier physic.ElectricPotential) (analog.Reading, error) {
 	// Lock the ADC converter to avoid multiple simultaneous readings.
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -257,7 +248,7 @@ func (d *Dev) executePreparedQuery(query []byte, waitTime time.Duration, voltage
 	// Send the config value to start the ADC conversion.
 	// Explicitly break the 16-bit value down to a big endian pair of bytes.
 	if err := d.c.Tx(query, nil); err != nil {
-		return Reading{}, err
+		return analog.Reading{}, err
 	}
 
 	// Wait for the ADC sample to finish.
@@ -266,12 +257,12 @@ func (d *Dev) executePreparedQuery(query []byte, waitTime time.Duration, voltage
 	// Retrieve the result.
 	data := []byte{0, 0}
 	if err := d.c.Tx([]byte{ads1x15PointerConversion}, data); err != nil {
-		return Reading{}, err
+		return analog.Reading{}, err
 	}
 
 	// Convert the raw data into physical value.
 	raw := int16(binary.BigEndian.Uint16(data))
-	return Reading{
+	return analog.Reading{
 		Raw: int32(raw),
 		V:   physic.ElectricPotential(raw) * voltageMultiplier / physic.ElectricPotential(1<<15),
 	}, nil
@@ -406,20 +397,20 @@ type analogPin struct {
 }
 
 // Range returns the maximum supported range [min, max] of the values.
-func (p *analogPin) Range() (Reading, Reading) {
-	max := Reading{Raw: math.MaxInt16, V: p.voltageMultiplier}
-	min := Reading{Raw: -math.MaxInt16, V: -p.voltageMultiplier}
+func (p *analogPin) Range() (analog.Reading, analog.Reading) {
+	max := analog.Reading{Raw: math.MaxInt16, V: p.voltageMultiplier}
+	min := analog.Reading{Raw: -math.MaxInt16, V: -p.voltageMultiplier}
 	return min, max
 }
 
 // Read returns the current pin level.
-func (p *analogPin) Read() (Reading, error) {
+func (p *analogPin) Read() (analog.Reading, error) {
 	return p.adc.executePreparedQuery(p.query[:], p.waitTime, p.voltageMultiplier)
 }
 
-func (p *analogPin) ReadContinuous() <-chan Reading {
+func (p *analogPin) ReadContinuous() <-chan analog.Reading {
 	p.Halt()
-	reading := make(chan Reading)
+	reading := make(chan analog.Reading)
 	p.stop = make(chan struct{})
 
 	go func() {
