@@ -33,8 +33,8 @@ func Example() {
 		log.Fatalln(err)
 	}
 
-	// Obtain an analog pin from the ADC
-	pin, err := adc.PinForDifferenceOfChannels(ads1x15.Channel0, ads1x15.Channel3, 5*physic.Volt, 1*physic.Hertz, ads1x15.SaveEnergy)
+	// Obtain an analog pin from the ADC.
+	pin, err := adc.PinForChannel(ads1x15.Channel0Minus3, 5*physic.Volt, 1*physic.Hertz, ads1x15.SaveEnergy)
 	if err != nil {
 		log.Fatalln(err)
 	}
