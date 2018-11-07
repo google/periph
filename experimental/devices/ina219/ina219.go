@@ -157,7 +157,7 @@ func (d *Dev) calibrate(sense physic.ElectricResistance, maxCurrent physic.Elect
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	d.currentLSB = maxCurrent / (2 << 15)
+	d.currentLSB = maxCurrent / (1 << 15)
 	d.powerLSB = physic.Power(d.currentLSB * 20)
 	// Calibration Register = 0.04096 / (current LSB * Shunt Resistance)
 	// Where lsb is in Amps and resistance is in ohms.
