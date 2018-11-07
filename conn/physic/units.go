@@ -991,6 +991,9 @@ func (p *parseError) Error() string {
 	if p.err == nil {
 		return "parse error"
 	}
+	if p.s == "" {
+		return "parse error: " + p.err.Error()
+	}
 	return "parse error: " + p.err.Error() + ": \"" + p.s + "\""
 }
 
