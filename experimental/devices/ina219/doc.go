@@ -8,7 +8,7 @@
 // Calibration
 //
 // Calibration is recommended for accurate current and power measurements.
-// Voltage measurements do not require sensor calibration. To calibrate meansure
+// Voltage measurements do not require sensor calibration. To calibrate, measure
 // the actual value of the shunt resistor.
 //
 // Datasheet
