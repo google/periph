@@ -41,7 +41,7 @@ func TestNew(t *testing.T) {
 			},
 			want: fields{
 				currentLSB: 97656 * physic.NanoAmpere,
-				powerLSB:   1953120 * physic.NanoWatt,
+				powerLSB:   1953125 * physic.NanoWatt,
 			},
 		},
 		{name: "badAddressOption",
@@ -64,7 +64,7 @@ func TestNew(t *testing.T) {
 			},
 			want: fields{
 				currentLSB: 97656 * physic.NanoAmpere,
-				powerLSB:   1953120 * physic.NanoWatt,
+				powerLSB:   1953125 * physic.NanoWatt,
 			},
 			err: nil,
 		},
@@ -76,7 +76,7 @@ func TestNew(t *testing.T) {
 			},
 			want: fields{
 				currentLSB: 30517 * physic.NanoAmpere,
-				powerLSB:   610340 * physic.NanoWatt,
+				powerLSB:   610352 * physic.NanoWatt,
 			},
 			err: nil,
 		},
@@ -88,7 +88,7 @@ func TestNew(t *testing.T) {
 			},
 			want: fields{
 				currentLSB: 97656 * physic.NanoAmpere,
-				powerLSB:   1953120 * physic.NanoWatt,
+				powerLSB:   1953125 * physic.NanoWatt,
 			},
 			err: nil,
 		},
@@ -331,7 +331,7 @@ func TestCalibrate(t *testing.T) {
 			},
 			want: fields{
 				currentLSB: 97656 * physic.NanoAmpere,
-				powerLSB:   1953120 * physic.NanoWatt,
+				powerLSB:   1953125 * physic.NanoWatt,
 			},
 			tx: []i2ctest.IO{
 				{Addr: 0x40, W: []byte{0x05, 0x10, 0x62}, R: []byte{}},
