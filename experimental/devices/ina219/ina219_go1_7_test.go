@@ -315,13 +315,12 @@ func TestCalibrate(t *testing.T) {
 			err: errMaxCurrentInvalid,
 		},
 		{
-			name: "errIO",
+			name: "errCalibrationOverflow",
 			args: fields{
 				sense:      physic.MilliOhm,
 				maxCurrent: physic.Ampere,
 			},
-			err:       stringErr,
-			errString: "unexpected Tx",
+			err: errCalibrationOverflow,
 		},
 		{
 			name: "default",
