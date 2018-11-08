@@ -7,7 +7,9 @@ package physic
 import (
 	"errors"
 	"strconv"
+	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 // Angle is the measurement of the difference in orientation between two vectors
@@ -205,6 +207,48 @@ type Frequency int64
 // String returns the frequency formatted as a string in Hertz.
 func (f Frequency) String() string {
 	return microAsString(int64(f)) + "Hz"
+}
+
+const (
+	maxFrequency = 9223372036854775807 * MicroHertz
+	minFrequency = -9223372036854775807 * MicroHertz
+)
+
+// Set sets the Frequency to the value represented by s. Units are to be
+// provided in hertz with optional SI prefixes.
+func (f *Frequency) Set(s string) error {
+	v, n, err := valueOfUnitString(s, micro)
+	if err != nil {
+		if e, ok := err.(*parseError); ok {
+			switch e.err {
+			case errOverflowsInt64:
+				return errors.New("maximum value is " + maxFrequency.String())
+			case errUnderflowsInt64:
+				return errors.New("minimum value is " + minFrequency.String())
+			case errNotANumber:
+				found, _ := containsUnitString(s, "Hertz", "Hz")
+				if found != "" {
+					return errors.New("does not contain number")
+				}
+				return errors.New("does not contain number or unit \"Hz\"")
+			}
+		}
+		return err
+	}
+
+	switch strings.ToLower(s[n:]) {
+	case "hz", "hertz":
+		*f = (Frequency)(v)
+	case "":
+		return noUnits("Hz")
+	default:
+		found, extra := containsUnitString(s[n:], "Hertz", "Hz")
+		if found != "" {
+			return unknownUnitPrefix(found, extra, "n,p,u,µ,m,k,M,G or T")
+		}
+		return incorrectUnit(s[n:], "physic.Frequency")
+	}
+	return nil
 }
 
 // Duration returns the duration of one cycle at this frequency.
@@ -773,6 +817,12 @@ const maxInt64 = (1<<63 - 1)
 
 var maxUint64Str = "9223372036854775807"
 
+var (
+	errOverflowsInt64  = errors.New("exceeds maximum")
+	errUnderflowsInt64 = errors.New("exceeds minimum")
+	errNotANumber      = errors.New("not a number")
+)
+
 // Converts from decimal to int64, using the decimal.digits character values and
 // converting to a intermediate unit64.
 // Scale is combined with the decimal exponent to maximise the resolution and is
@@ -793,19 +843,19 @@ func dtoi(d decimal, scale int) (int64, error) {
 			if check < u || check > maxInt64 {
 				if d.neg {
 					return -maxInt64, &parseError{
-						s:   "-" + maxUint64Str,
-						err: errors.New("overflows minimum is"),
+						msg: "-" + maxUint64Str,
+						err: errUnderflowsInt64,
 					}
 				}
 				return maxInt64, &parseError{
-					s:   maxUint64Str,
-					err: errors.New("overflows maximum is"),
+					msg: maxUint64Str,
+					err: errOverflowsInt64,
 				}
 			}
 			u = check
 		} else {
 			// Should not get here if used atod to generate the decimal.
-			return 0, &parseError{err: errors.New("not a number")}
+			return 0, &parseError{err: errNotANumber}
 		}
 	}
 
@@ -828,13 +878,13 @@ func dtoi(d decimal, scale int) (int64, error) {
 		if check < u || check > maxInt64 {
 			if d.neg {
 				return -maxInt64, &parseError{
-					s:   "-" + maxUint64Str,
-					err: errors.New("overflows minimum is"),
+					msg: "-" + maxUint64Str,
+					err: errUnderflowsInt64,
 				}
 			}
 			return maxInt64, &parseError{
-				s:   maxUint64Str,
-				err: errors.New("overflows maximum is"),
+				msg: maxUint64Str,
+				err: errOverflowsInt64,
 			}
 		}
 		u *= powerOf10[mag]
@@ -872,13 +922,13 @@ func atod(s string) (decimal, int, error) {
 			}
 			if seenPlus {
 				return decimal{}, 0, &parseError{
-					s:   s,
+					msg: s,
 					err: errors.New("can't contain both plus and minus symbols"),
 				}
 			}
 			if d.neg {
 				return decimal{}, 0, &parseError{
-					s:   s,
+					msg: s,
 					err: errors.New("multiple minus symbols"),
 				}
 			}
@@ -891,13 +941,13 @@ func atod(s string) (decimal, int, error) {
 			}
 			if d.neg {
 				return decimal{}, 0, &parseError{
-					s:   s,
+					msg: s,
 					err: errors.New("can't contain both plus and minus symbols"),
 				}
 			}
 			if seenPlus {
 				return decimal{}, 0, &parseError{
-					s:   s,
+					msg: s,
 					err: errors.New("multiple plus symbols"),
 				}
 			}
@@ -906,7 +956,7 @@ func atod(s string) (decimal, int, error) {
 		case s[i] == '.':
 			if isPoint {
 				return decimal{}, 0, &parseError{
-					s:   s,
+					msg: s,
 					err: errors.New("multiple decimal points"),
 				}
 			}
@@ -925,8 +975,8 @@ func atod(s string) (decimal, int, error) {
 		default:
 			if !seenDigit && !seenZero {
 				return decimal{}, 0, &parseError{
-					s:   s,
-					err: errors.New("is not a number"),
+					msg: s,
+					err: errNotANumber,
 				}
 			}
 			end = i
@@ -981,24 +1031,80 @@ func atod(s string) (decimal, int, error) {
 	return d, last, nil
 }
 
+// valueOfUnitString is a helper for converting a string and a prefix in to a
+// physic unit. It can be used when characters of the units do not conflict with
+// any of the SI prefixes.
+func valueOfUnitString(s string, base prefix) (int64, int, error) {
+	d, n, err := atod(s)
+	if err != nil {
+		return 0, n, err
+	}
+	si := prefix(unit)
+	if n != len(s) {
+		r, rsize := utf8.DecodeRuneInString(s[n:])
+		if r <= 1 || rsize == 0 {
+			return 0, 0, &parseError{
+				err: errors.New("unexpected end of string"),
+				msg: s,
+			}
+		}
+		var siSize int
+		si, siSize = parseSIPrefix(r)
+		n += siSize
+
+	}
+	v, err := dtoi(d, int(si-base))
+	if err != nil {
+		return v, 0, err
+	}
+	return v, n, nil
+}
+
+// For units with short and or plural variations order units with longest first.
+// eg Degrees, Degree, Deg.
+func containsUnitString(s string, units ...string) (string, string) {
+	sub := strings.ToLower(s)
+	for _, unit := range units {
+		unitLow := strings.ToLower(unit)
+		if strings.Contains(sub, unitLow) {
+			index := strings.Index(sub, unitLow)
+			if index >= 0 {
+				// prefix
+				return unit, s[:index]
+			}
+		}
+	}
+	return "", ""
+}
+
 type parseError struct {
-	s        string
-	position int
-	err      error
+	msg string
+	err error
 }
 
 func (p *parseError) Error() string {
 	if p.err == nil {
 		return "parse error"
 	}
-	if p.s == "" {
-		return "parse error: " + p.err.Error()
+	if p.msg == "" {
+		return p.err.Error()
 	}
-	return "parse error: " + p.err.Error() + ": \"" + p.s + "\""
+	return p.err.Error() + " " + p.msg
 }
 
 func noUnits(s string) error {
-	return &parseError{s: s, err: errors.New("no units provided, need")}
+	return &parseError{msg: s, err: errors.New("no units provided, need")}
+}
+
+func incorrectUnit(inputString, want string) error {
+	return &parseError{err: errors.New("\"" + inputString + "\"" + " is not a valid unit for " + want)}
+}
+
+func unknownUnitPrefix(unit string, prefix string, valid string) error {
+	return &parseError{
+		msg: "valid prefixes for \"" + unit + "\" are " + valid,
+		err: errors.New("contains unknown unit prefix \"" + prefix + "\"."),
+	}
 }
 
 type prefix int
@@ -1008,7 +1114,7 @@ const (
 	nano  prefix = -9
 	micro prefix = -6
 	milli prefix = -3
-	none  prefix = 0
+	unit  prefix = 0
 	deca  prefix = 1
 	hecto prefix = 2
 	kilo  prefix = 3
@@ -1038,6 +1144,6 @@ func parseSIPrefix(r rune) (prefix, int) {
 	case 'T':
 		return tera, len("T")
 	default:
-		return none, 0
+		return unit, 0
 	}
 }
