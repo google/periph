@@ -17,15 +17,72 @@ import (
 	"periph.io/x/periph/conn/pin"
 )
 
-const (
-	// I2CAddr is the default I2C address for the ADS1x15 components.
-	I2CAddr uint16 = 0x48
+// I2CAddr is the default I2C address for the ADS1x15 components.
+const I2CAddr uint16 = 0x48
 
-	Channel0 = 0
-	Channel1 = 1
-	Channel2 = 2
-	Channel3 = 3
+// Channel is the analog reading to do. It can be either an absolute reading or
+// a differential reading between two pins.
+type Channel int
+
+const (
+	// Absolute reading.
+	Channel0 Channel = 4
+	Channel1 Channel = 5
+	Channel2 Channel = 6
+	Channel3 Channel = 7
+
+	// Differential reading.
+	Channel0Minus1 Channel = 0
+	Channel0Minus3 Channel = 1
+	Channel1Minus3 Channel = 2
+	Channel2Minus3 Channel = 3
 )
+
+func (c Channel) String() string {
+	switch c {
+	case Channel0:
+		return "0"
+	case Channel1:
+		return "1"
+	case Channel2:
+		return "2"
+	case Channel3:
+		return "3"
+	case Channel0Minus1:
+		return "0-1"
+	case Channel0Minus3:
+		return "0-3"
+	case Channel1Minus3:
+		return "1-3"
+	case Channel2Minus3:
+		return "2-3"
+	default:
+		return "Invalid"
+	}
+}
+
+func (c Channel) number() int {
+	switch c {
+	case Channel0:
+		return 0
+	case Channel1:
+		return 1
+	case Channel2:
+		return 2
+	case Channel3:
+		return 3
+	case Channel0Minus1:
+		return 4
+	case Channel0Minus3:
+		return 5
+	case Channel1Minus3:
+		return 6
+	case Channel2Minus3:
+		return 7
+	default:
+		return -1
+	}
+}
 
 // ConversionQuality represents a request for a compromise between energy
 // saving versus conversion quality.
@@ -58,13 +115,13 @@ type Dev struct {
 	mu        sync.Mutex
 }
 
-// Reading is the result of AnalogPin.Read()  (obviously not the case right now but this could be)
+// Reading is the result of AnalogPin.Read()
 type Reading struct {
 	V   physic.ElectricPotential
 	Raw int32
 }
 
-// AnalogPin represents a pin which is able to read an electric potential
+// AnalogPin represents a pin which is able to read an electric potential.
 type AnalogPin interface {
 	pin.Pin
 	// Range returns the maximum supported range [min, max] of the values.
@@ -120,47 +177,11 @@ func (d *Dev) Halt() error {
 	return nil
 }
 
-// PinForChannel returns a pin able to measure the electric potential at the
-// given channel.
-func (d *Dev) PinForChannel(channel int, maxVoltage physic.ElectricPotential, requestedFrequency physic.Frequency, conversionQuality ConversionQuality) (AnalogPin, error) {
-	if err := d.checkChannel(channel); err != nil {
-		return nil, err
-	}
-	return d.prepareQuery(channel+0x04, maxVoltage, requestedFrequency, conversionQuality)
-}
-
-// PinForDifferenceOfChannels returns a pin which measures the difference in
-// volts between 2 inputs: channelA - channelB.
-// diff can be:
-// * Channel 0 - channel 1
-// * Channel 0 - channel 3
-// * Channel 1 - channel 3
-// * Channel 2 - channel 3
-func (d *Dev) PinForDifferenceOfChannels(channelA int, channelB int, maxVoltage physic.ElectricPotential, requestedFrequency physic.Frequency, conversionQuality ConversionQuality) (AnalogPin, error) {
-	var mux int
-
-	if err := d.checkChannel(channelA); err != nil {
-		return nil, err
-	}
-	if err := d.checkChannel(channelB); err != nil {
-		return nil, err
-	}
-
-	if channelA == Channel0 && channelB == Channel1 {
-		mux = 0
-	} else if channelA == Channel0 && channelB == Channel3 {
-		mux = 1
-	} else if channelA == Channel1 && channelB == Channel3 {
-		mux = 2
-	} else if channelA == Channel2 && channelB == Channel3 {
-		mux = 3
-	} else {
-		return nil, errors.New("only some differences of channels are allowed:  0 - 1, 0 - 3, 1 - 3 or 2 - 3")
-	}
-	return d.prepareQuery(mux, maxVoltage, requestedFrequency, conversionQuality)
-}
-
-func (d *Dev) prepareQuery(mux int, maxVoltage physic.ElectricPotential, requestedFrequency physic.Frequency, conversionQuality ConversionQuality) (AnalogPin, error) {
+// PinForChannel returns an AnalogPin for the requested channel at the
+// requested frequency.
+//
+// The channel can either be an absolute reading or a differential one.
+func (d *Dev) PinForChannel(c Channel, maxVoltage physic.ElectricPotential, f physic.Frequency, q ConversionQuality) (AnalogPin, error) {
 	// Determine the most appropriate gain
 	gain, err := d.bestGainForElectricPotential(maxVoltage)
 	if err != nil {
@@ -179,16 +200,15 @@ func (d *Dev) prepareQuery(mux int, maxVoltage physic.ElectricPotential, request
 		return nil, errors.New("gain must be one of: 2/3, 1, 2, 4, 8, 16")
 	}
 
-	// Determine the most appropriate data rate
-	dataRate, err := d.bestDataRateForFrequency(requestedFrequency, conversionQuality)
+	// Determine the most appropriate data rate.
+	dataRate, err := d.bestDataRateForFrequency(f, q)
 	if err != nil {
 		return nil, err
 	}
 
 	dataRateConf, ok := d.dataRates[dataRate]
-
 	if !ok {
-		// Write a nice error message in case the data rate is not found
+		// Write a nice error message in case the data rate is not found.
 		keys := []int{}
 		for k := range d.dataRates {
 			keys = append(keys, k)
@@ -200,7 +220,7 @@ func (d *Dev) prepareQuery(mux int, maxVoltage physic.ElectricPotential, request
 	var config uint16
 	config = ads1x15ConfigOsSingle // Go out of power-down mode for conversion.
 	// Specify mux value.
-	config |= uint16((mux & 0x07) << ads1x15ConfigMuxOffset)
+	config |= uint16(c) << ads1x15ConfigMuxOffset
 	// Validate the passed in gain and then set it in the config.
 	config |= gainConf
 	// Set the mode (continuous or single shot).
@@ -211,21 +231,21 @@ func (d *Dev) prepareQuery(mux int, maxVoltage physic.ElectricPotential, request
 	config |= dataRateConf
 	config |= ads1x15ConfigCompQueDisable // Disable comparator mode.
 
-	// Build the query to the ADC
-	configBytes := make([]byte, 2)
-	binary.BigEndian.PutUint16(configBytes, config)
-	query := append([]byte{ads1x15PointerConfig}, configBytes...)
+	// Build the query to the ADC.
+	configBytes := [2]byte{}
+	binary.BigEndian.PutUint16(configBytes[:], config)
 
 	// The wait for the ADC sample to finish is based on the sample rate plus a
 	// small offset to be sure (0.1 millisecond).
 	waitTime := time.Second/time.Duration(dataRate) + 100*time.Microsecond
 
-	return &ads1x15AnalogPin{
+	return &analogPin{
 		adc:                d,
-		query:              query,
+		c:                  c,
+		query:              [...]byte{ads1x15PointerConfig, configBytes[0], configBytes[1]},
 		voltageMultiplier:  voltageMultiplier,
 		waitTime:           waitTime,
-		requestedFrequency: requestedFrequency,
+		requestedFrequency: f,
 	}, nil
 }
 
@@ -277,14 +297,14 @@ func (d *Dev) bestGainForElectricPotential(voltage physic.ElectricPotential) (in
 	}
 
 	if currentBestGain < 0 {
-		return 0, fmt.Errorf("maximum voltage which can be read is %s", max.String())
+		return 0, errors.New("maximum voltage which can be read is " + max.String())
 	}
 	return currentBestGain, nil
 }
 
 // bestDataRateForFrequency returns the gain the most data rate to read samples
 // at least at the requested frequency.
-func (d *Dev) bestDataRateForFrequency(requestedFrequency physic.Frequency, conversionQuality ConversionQuality) (int, error) {
+func (d *Dev) bestDataRateForFrequency(f physic.Frequency, q ConversionQuality) (int, error) {
 	var max physic.Frequency
 	currentBestDataRate := -1
 
@@ -296,7 +316,7 @@ func (d *Dev) bestDataRateForFrequency(requestedFrequency physic.Frequency, conv
 	var comparator func(physic.Frequency, physic.Frequency) bool
 	var difference physic.Frequency
 
-	switch conversionQuality {
+	switch q {
 	case SaveEnergy:
 		// Saving energy requires the maximum data rate
 		difference = physic.Frequency(-1)
@@ -306,7 +326,7 @@ func (d *Dev) bestDataRateForFrequency(requestedFrequency physic.Frequency, conv
 		difference = physic.Frequency(math.MaxInt64)
 		comparator = func(newDiff physic.Frequency, difference physic.Frequency) bool { return newDiff < difference }
 	default:
-		return 0, fmt.Errorf("unknown value for ConversionQuality")
+		return 0, errors.New("unknown value for ConversionQuality")
 	}
 
 	for key := range d.dataRates {
@@ -317,7 +337,7 @@ func (d *Dev) bestDataRateForFrequency(requestedFrequency physic.Frequency, conv
 			max = freq
 		}
 
-		newDiff := freq - requestedFrequency
+		newDiff := freq - f
 		// Conversion rate slower than the requested frequency is not suitable
 		if newDiff < 0 {
 			continue
@@ -330,17 +350,9 @@ func (d *Dev) bestDataRateForFrequency(requestedFrequency physic.Frequency, conv
 	}
 
 	if currentBestDataRate < 0 {
-		return 0, fmt.Errorf("maximum frequency which can be read is %s", max.String())
+		return 0, errors.New("maximum frequency which can be read is " + max.String())
 	}
-
 	return currentBestDataRate, nil
-}
-
-func (d *Dev) checkChannel(channel int) error {
-	if channel < 0 || channel > 3 {
-		return errors.New("invalid channel, must be between 0 and 3")
-	}
-	return nil
 }
 
 //
@@ -383,9 +395,10 @@ var (
 	}
 )
 
-type ads1x15AnalogPin struct {
+type analogPin struct {
 	adc                *Dev
-	query              []byte
+	c                  Channel
+	query              [3]byte
 	voltageMultiplier  physic.ElectricPotential
 	waitTime           time.Duration
 	requestedFrequency physic.Frequency
@@ -393,26 +406,26 @@ type ads1x15AnalogPin struct {
 }
 
 // Range returns the maximum supported range [min, max] of the values.
-func (p *ads1x15AnalogPin) Range() (Reading, Reading) {
+func (p *analogPin) Range() (Reading, Reading) {
 	max := Reading{Raw: math.MaxInt16, V: p.voltageMultiplier}
 	min := Reading{Raw: -math.MaxInt16, V: -p.voltageMultiplier}
 	return min, max
 }
 
 // Read returns the current pin level.
-func (p *ads1x15AnalogPin) Read() (Reading, error) {
-	return p.adc.executePreparedQuery(p.query, p.waitTime, p.voltageMultiplier)
+func (p *analogPin) Read() (Reading, error) {
+	return p.adc.executePreparedQuery(p.query[:], p.waitTime, p.voltageMultiplier)
 }
 
-func (p *ads1x15AnalogPin) ReadContinuous() <-chan Reading {
-	p.stopContinous()
+func (p *analogPin) ReadContinuous() <-chan Reading {
+	p.Halt()
 	reading := make(chan Reading)
 	p.stop = make(chan struct{})
 
 	go func() {
 		t := time.NewTicker(p.requestedFrequency.Duration())
 		defer t.Stop()
-		defer p.stopContinous()
+		defer p.Halt()
 		defer close(reading)
 
 		for {
@@ -433,30 +446,26 @@ func (p *ads1x15AnalogPin) ReadContinuous() <-chan Reading {
 	return reading
 }
 
-func (p *ads1x15AnalogPin) Name() string {
-	return fmt.Sprintf("%s pin", p.adc.name)
+func (p *analogPin) Name() string {
+	return p.adc.name + "(" + p.c.String() + ")"
 }
 
-func (p *ads1x15AnalogPin) Number() int {
-	return -1
+func (p *analogPin) Number() int {
+	return p.c.number()
 }
 
-func (p *ads1x15AnalogPin) Function() string {
-	return "DEPRECATED"
+func (p *analogPin) Function() string {
+	return "ADC"
 }
 
-func (p *ads1x15AnalogPin) Halt() error {
-	p.stopContinous()
-	return nil
-}
-
-func (p *ads1x15AnalogPin) String() string {
-	return p.Name()
-}
-
-func (p *ads1x15AnalogPin) stopContinous() {
+func (p *analogPin) Halt() error {
 	if p.stop != nil {
 		close(p.stop)
 		p.stop = nil
 	}
+	return nil
+}
+
+func (p *analogPin) String() string {
+	return p.Name()
 }
