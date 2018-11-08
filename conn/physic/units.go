@@ -209,6 +209,11 @@ func (f Frequency) String() string {
 	return microAsString(int64(f)) + "Hz"
 }
 
+const (
+	maxFrequency = 9223372036854775807 * MicroHertz
+	minFrequency = -9223372036854775807 * MicroHertz
+)
+
 // Set sets the Frequency to the value represented by s. Units are to be
 // provided in hertz with optional SI prefixes.
 func (f *Frequency) Set(s string) error {
@@ -217,17 +222,15 @@ func (f *Frequency) Set(s string) error {
 		if e, ok := err.(*parseError); ok {
 			switch e.err {
 			case errOverflowsInt64:
-				found, _ := containsUnitString(s[n:], "Hertz", "Hz")
-				return &parseError{
-					msg: "maximum value for \"" + found + "\" is " + e.msg + "n" + found,
-					err: errors.New(""),
-				}
+				return errors.New("maximum value is " + maxFrequency.String())
 			case errUnderflowsInt64:
-				found, _ := containsUnitString(s[n:], "Hertz", "Hz")
-				return &parseError{
-					msg: "minimum value for \"" + found + "\" is " + e.msg + "n" + found,
-					err: errors.New(""),
+				return errors.New("minimum value is " + minFrequency.String())
+			case errNotANumber:
+				found, _ := containsUnitString(s, "Hertz", "Hz")
+				if found != "" {
+					return errors.New("does not contain number")
 				}
+				return errors.New("does not contain number or unit \"Hz\"")
 			}
 		}
 		return err
@@ -817,6 +820,7 @@ var maxUint64Str = "9223372036854775807"
 var (
 	errOverflowsInt64  = errors.New("exceeds maximum")
 	errUnderflowsInt64 = errors.New("exceeds minimum")
+	errNotANumber      = errors.New("not a number")
 )
 
 // Converts from decimal to int64, using the decimal.digits character values and
@@ -851,7 +855,7 @@ func dtoi(d decimal, scale int) (int64, error) {
 			u = check
 		} else {
 			// Should not get here if used atod to generate the decimal.
-			return 0, &parseError{err: errors.New("not a number")}
+			return 0, &parseError{err: errNotANumber}
 		}
 	}
 
@@ -972,7 +976,7 @@ func atod(s string) (decimal, int, error) {
 			if !seenDigit && !seenZero {
 				return decimal{}, 0, &parseError{
 					msg: s,
-					err: errors.New("is not a number"),
+					err: errNotANumber,
 				}
 			}
 			end = i
@@ -1064,7 +1068,7 @@ func containsUnitString(s string, units ...string) (string, string) {
 		unitLow := strings.ToLower(unit)
 		if strings.Contains(sub, unitLow) {
 			index := strings.Index(sub, unitLow)
-			if index > 0 {
+			if index >= 0 {
 				// prefix
 				return unit, s[:index]
 			}

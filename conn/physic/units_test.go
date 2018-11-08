@@ -915,12 +915,28 @@ func TestFrequency_Set(t *testing.T) {
 			"no units provided, need Hz",
 		},
 		{
+			"922337203685477580",
+			"maximum value is 9.223THz",
+		},
+		{
+			"-922337203685477580",
+			"minimum value is -9.223THz",
+		},
+		{
 			"9.223372036854775808THz",
-			" maximum value for \"Hz\" is 9223372036854775807nHz",
+			"maximum value is 9.223THz",
 		},
 		{
 			"-9.223372036854775808THz",
-			" minimum value for \"Hz\" is -9223372036854775807nHz",
+			"minimum value is -9.223THz",
+		},
+		{
+			"9.223372036854775808THertz",
+			"maximum value is 9.223THz",
+		},
+		{
+			"-9.223372036854775808THertz",
+			"minimum value is -9.223THz",
 		},
 		{
 			"1random",
@@ -928,7 +944,27 @@ func TestFrequency_Set(t *testing.T) {
 		},
 		{
 			"Hz",
-			"is not a number Hz",
+			"does not contain number",
+		},
+		{
+			"RPM",
+			"does not contain number or unit \"Hz\"",
+		},
+		{
+			"++1Hz",
+			"multiple plus symbols ++1Hz",
+		},
+		{
+			"--1Hz",
+			"multiple minus symbols --1Hz",
+		},
+		{
+			"+-1Hz",
+			"can't contain both plus and minus symbols +-1Hz",
+		},
+		{
+			"1.1.1.1Hz",
+			"multiple decimal points 1.1.1.1Hz",
 		},
 	}
 
