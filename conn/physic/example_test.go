@@ -7,6 +7,7 @@ package physic_test
 import (
 	"flag"
 	"fmt"
+	"log"
 	"time"
 
 	"periph.io/x/periph/conn/physic"
@@ -86,17 +87,17 @@ func ExampleFrequency_Set() {
 	var f physic.Frequency
 
 	if err := f.Set("10MHz"); err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 	fmt.Println(f)
 
 	if err := f.Set("10mHz"); err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 	fmt.Println(f)
 
 	if err := f.Set("1kHz"); err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 	fmt.Println(f)
 	// Output:

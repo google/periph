@@ -214,13 +214,35 @@ func (f Frequency) String() string {
 func (f *Frequency) Set(s string) error {
 	v, n, err := valueOfUnitString(s, micro)
 	if err != nil {
+		if e, ok := err.(*parseError); ok {
+			switch e.err {
+			case errOverflowsInt64:
+				found, _ := containsUnitString(s[n:], "Hertz", "Hz")
+				return &parseError{
+					msg: "maximum value for \"" + found + "\" is " + e.msg + "n" + found,
+					err: errors.New(""),
+				}
+			case errUnderflowsInt64:
+				found, _ := containsUnitString(s[n:], "Hertz", "Hz")
+				return &parseError{
+					msg: "minimum value for \"" + found + "\" is " + e.msg + "n" + found,
+					err: errors.New(""),
+				}
+			}
+		}
 		return err
 	}
 
 	switch strings.ToLower(s[n:]) {
-	case "", "hz", "hertz":
+	case "hz", "hertz":
 		*f = (Frequency)(v)
+	case "":
+		return noUnits("Hz")
 	default:
+		found, extra := containsUnitString(s[n:], "Hertz", "Hz")
+		if found != "" {
+			return unknownUnitPrefix(found, extra, "n,p,u,µ,m,k,M,G or T")
+		}
 		return incorrectUnit(s[n:], "physic.Frequency")
 	}
 	return nil
@@ -792,6 +814,11 @@ const maxInt64 = (1<<63 - 1)
 
 var maxUint64Str = "9223372036854775807"
 
+var (
+	errOverflowsInt64  = errors.New("exceeds maximum")
+	errUnderflowsInt64 = errors.New("exceeds minimum")
+)
+
 // Converts from decimal to int64, using the decimal.digits character values and
 // converting to a intermediate unit64.
 // Scale is combined with the decimal exponent to maximise the resolution and is
@@ -812,13 +839,13 @@ func dtoi(d decimal, scale int) (int64, error) {
 			if check < u || check > maxInt64 {
 				if d.neg {
 					return -maxInt64, &parseError{
-						s:   "-" + maxUint64Str,
-						err: errors.New("overflows minimum is"),
+						msg: "-" + maxUint64Str,
+						err: errUnderflowsInt64,
 					}
 				}
 				return maxInt64, &parseError{
-					s:   maxUint64Str,
-					err: errors.New("overflows maximum is"),
+					msg: maxUint64Str,
+					err: errOverflowsInt64,
 				}
 			}
 			u = check
@@ -847,13 +874,13 @@ func dtoi(d decimal, scale int) (int64, error) {
 		if check < u || check > maxInt64 {
 			if d.neg {
 				return -maxInt64, &parseError{
-					s:   "-" + maxUint64Str,
-					err: errors.New("overflows minimum is"),
+					msg: "-" + maxUint64Str,
+					err: errUnderflowsInt64,
 				}
 			}
 			return maxInt64, &parseError{
-				s:   maxUint64Str,
-				err: errors.New("overflows maximum is"),
+				msg: maxUint64Str,
+				err: errOverflowsInt64,
 			}
 		}
 		u *= powerOf10[mag]
@@ -891,13 +918,13 @@ func atod(s string) (decimal, int, error) {
 			}
 			if seenPlus {
 				return decimal{}, 0, &parseError{
-					s:   s,
+					msg: s,
 					err: errors.New("can't contain both plus and minus symbols"),
 				}
 			}
 			if d.neg {
 				return decimal{}, 0, &parseError{
-					s:   s,
+					msg: s,
 					err: errors.New("multiple minus symbols"),
 				}
 			}
@@ -910,13 +937,13 @@ func atod(s string) (decimal, int, error) {
 			}
 			if d.neg {
 				return decimal{}, 0, &parseError{
-					s:   s,
+					msg: s,
 					err: errors.New("can't contain both plus and minus symbols"),
 				}
 			}
 			if seenPlus {
 				return decimal{}, 0, &parseError{
-					s:   s,
+					msg: s,
 					err: errors.New("multiple plus symbols"),
 				}
 			}
@@ -925,7 +952,7 @@ func atod(s string) (decimal, int, error) {
 		case s[i] == '.':
 			if isPoint {
 				return decimal{}, 0, &parseError{
-					s:   s,
+					msg: s,
 					err: errors.New("multiple decimal points"),
 				}
 			}
@@ -944,7 +971,7 @@ func atod(s string) (decimal, int, error) {
 		default:
 			if !seenDigit && !seenZero {
 				return decimal{}, 0, &parseError{
-					s:   s,
+					msg: s,
 					err: errors.New("is not a number"),
 				}
 			}
@@ -1014,14 +1041,13 @@ func valueOfUnitString(s string, base prefix) (int64, int, error) {
 		if r <= 1 || rsize == 0 {
 			return 0, 0, &parseError{
 				err: errors.New("unexpected end of string"),
-				s:   s,
+				msg: s,
 			}
 		}
 		var siSize int
 		si, siSize = parseSIPrefix(r)
-		if si != unit {
-			n += siSize
-		}
+		n += siSize
+
 	}
 	v, err := dtoi(d, int(si-base))
 	if err != nil {
@@ -1030,28 +1056,51 @@ func valueOfUnitString(s string, base prefix) (int64, int, error) {
 	return v, n, nil
 }
 
+// For units with short and or plural variations order units with longest first.
+// eg Degrees, Degree, Deg.
+func containsUnitString(s string, units ...string) (string, string) {
+	sub := strings.ToLower(s)
+	for _, unit := range units {
+		unitLow := strings.ToLower(unit)
+		if strings.Contains(sub, unitLow) {
+			index := strings.Index(sub, unitLow)
+			if index > 0 {
+				// prefix
+				return unit, s[:index]
+			}
+		}
+	}
+	return "", ""
+}
+
 type parseError struct {
-	s        string
-	position int
-	err      error
+	msg string
+	err error
 }
 
 func (p *parseError) Error() string {
 	if p.err == nil {
 		return "parse error"
 	}
-	if p.s == "" {
-		return "parse error: " + p.err.Error()
+	if p.msg == "" {
+		return p.err.Error()
 	}
-	return "parse error: " + p.err.Error() + ": \"" + p.s + "\""
+	return p.err.Error() + " " + p.msg
 }
 
 func noUnits(s string) error {
-	return &parseError{s: s, err: errors.New("no units provided, need")}
+	return &parseError{msg: s, err: errors.New("no units provided, need")}
 }
 
 func incorrectUnit(inputString, want string) error {
 	return &parseError{err: errors.New("\"" + inputString + "\"" + " is not a valid unit for " + want)}
+}
+
+func unknownUnitPrefix(unit string, prefix string, valid string) error {
+	return &parseError{
+		msg: "valid prefixes for \"" + unit + "\" are " + valid,
+		err: errors.New("contains unknown unit prefix \"" + prefix + "\"."),
+	}
 }
 
 type prefix int

@@ -726,9 +726,9 @@ func TestParseError(t *testing.T) {
 		err  error
 		want string
 	}{
-		{"empty", &parseError{s: "", err: nil}, "parse error"},
-		{"empty", &parseError{s: "", err: errors.New("test")}, "parse error: test"},
-		{"noUnits", noUnits("someunit"), "parse error: no units provided, need: \"someunit\""},
+		{"empty", &parseError{msg: "", err: nil}, "parse error"},
+		{"empty", &parseError{msg: "", err: errors.New("test")}, "test"},
+		{"noUnits", noUnits("someunit"), "no units provided, need someunit"},
 	}
 	for _, tt := range tests {
 		got := tt.err.Error()
@@ -760,6 +760,16 @@ func TestValueOfUnitString(t *testing.T) {
 		{"1k", pico, 1000000000000000, 2},
 		{"1M", pico, 1000000000000000000, 2},
 		{"9.223372036854775807M", pico, 9223372036854775807, 21},
+		{"9223372036854775807p", pico, 9223372036854775807, 20},
+		{"-1p", pico, -1, 3},
+		{"-1n", pico, -1000, 3},
+		{"-1u", pico, -1000000, 3},
+		{"-1µ", pico, -1000000, 4},
+		{"-1m", pico, -1000000000, 3},
+		{"-1k", pico, -1000000000000000, 3},
+		{"-1M", pico, -1000000000000000000, 3},
+		{"-9.223372036854775807M", pico, -9223372036854775807, 22},
+		{"-9223372036854775807p", pico, -9223372036854775807, 21},
 		{"1p", nano, 0, 2},
 		{"1n", nano, 1, 2},
 		{"1u", nano, 1000, 2},
@@ -769,6 +779,17 @@ func TestValueOfUnitString(t *testing.T) {
 		{"1M", nano, 1000000000000000, 2},
 		{"1G", nano, 1000000000000000000, 2},
 		{"9.223372036854775807G", nano, 9223372036854775807, 21},
+		{"9223372036854775807n", nano, 9223372036854775807, 20},
+		{"-1p", nano, -0, 3},
+		{"-1n", nano, -1, 3},
+		{"-1u", nano, -1000, 3},
+		{"-1µ", nano, -1000, 4},
+		{"-1m", nano, -1000000, 3},
+		{"-1k", nano, -1000000000000, 3},
+		{"-1M", nano, -1000000000000000, 3},
+		{"-1G", nano, -1000000000000000000, 3},
+		{"-9.223372036854775807G", nano, -9223372036854775807, 22},
+		{"-9223372036854775807n", nano, -9223372036854775807, 21},
 		{"1p", micro, 0, 2},
 		{"1n", micro, 0, 2},
 		{"1u", micro, 1, 2},
@@ -779,6 +800,18 @@ func TestValueOfUnitString(t *testing.T) {
 		{"1G", micro, 1000000000000000, 2},
 		{"1T", micro, 1000000000000000000, 2},
 		{"9.223372036854775807T", micro, 9223372036854775807, 21},
+		{"9223372036854775807u", micro, 9223372036854775807, 20},
+		{"-1p", micro, -0, 3},
+		{"-1n", micro, -0, 3},
+		{"-1u", micro, -1, 3},
+		{"-1µ", micro, -1, 4},
+		{"-1m", micro, -1000, 3},
+		{"-1k", micro, -1000000000, 3},
+		{"-1M", micro, -1000000000000, 3},
+		{"-1G", micro, -1000000000000000, 3},
+		{"-1T", micro, -1000000000000000000, 3},
+		{"-9.223372036854775807T", micro, -9223372036854775807, 22},
+		{"-9223372036854775807u", micro, -9223372036854775807, 21},
 	}
 
 	fails := []struct {
@@ -788,6 +821,15 @@ func TestValueOfUnitString(t *testing.T) {
 		{"9.223372036854775808M", pico},
 		{"9.223372036854775808G", nano},
 		{"9.223372036854775808T", micro},
+		{"9223372036854775808p", pico},
+		{"9223372036854775808n", nano},
+		{"9223372036854775808u", micro},
+		{"-9.223372036854775808M", pico},
+		{"-9.223372036854775808G", nano},
+		{"-9.223372036854775808T", micro},
+		{"-9223372036854775808p", pico},
+		{"-9223372036854775808n", nano},
+		{"-9223372036854775808u", micro},
 		{"not a number", nano},
 		{string([]byte{0x31, 0x01}), nano}, // 0x01 is a invalid utf8 start byte.
 	}
@@ -844,8 +886,8 @@ func TestFrequency_Set(t *testing.T) {
 		{"1THz", 1 * TeraHertz},
 		{"12.345Hz", 12345 * MilliHertz},
 		{"-12.345Hz", -12345 * MilliHertz},
-		{"10", 10 * Hertz},
 		{"9.223372036854775807THz", 9223372036854775807 * MicroHertz},
+		{"-9.223372036854775807THz", -9223372036854775807 * MicroHertz},
 	}
 
 	fails := []struct {
@@ -857,20 +899,36 @@ func TestFrequency_Set(t *testing.T) {
 			"exponent exceeds int64",
 		},
 		{
+			"10EHz",
+			"contains unknown unit prefix \"E\". valid prefixes for \"Hz\" are n,p,u,µ,m,k,M,G or T",
+		},
+		{
+			"10ExaHz",
+			"contains unknown unit prefix \"Exa\". valid prefixes for \"Hz\" are n,p,u,µ,m,k,M,G or T",
+		},
+		{
+			"10eHzE",
+			"contains unknown unit prefix \"e\". valid prefixes for \"Hz\" are n,p,u,µ,m,k,M,G or T",
+		},
+		{
+			"10",
+			"no units provided, need Hz",
+		},
+		{
 			"9.223372036854775808THz",
-			"parse error: overflows maximum is: \"9223372036854775807\"",
+			" maximum value for \"Hz\" is 9223372036854775807nHz",
 		},
 		{
 			"-9.223372036854775808THz",
-			"parse error: overflows minimum is: \"-9223372036854775807\"",
+			" minimum value for \"Hz\" is -9223372036854775807nHz",
 		},
 		{
 			"1random",
-			"parse error: \"random\" is not a valid unit for physic.Frequency",
+			"\"random\" is not a valid unit for physic.Frequency",
 		},
 		{
 			"Hz",
-			"parse error: is not a number: \"Hz\"",
+			"is not a number Hz",
 		},
 	}
 
