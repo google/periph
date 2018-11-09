@@ -36,12 +36,12 @@ func TestNew(t *testing.T) {
 	}{
 		{name: "defaults",
 			tx: []i2ctest.IO{
-				{Addr: 0x40, W: []byte{calibrationRegister, 0x20, 0xc4}, R: []byte{}},
+				{Addr: 0x40, W: []byte{calibrationRegister, 0x10, 0x62}, R: []byte{}},
 				{Addr: 0x40, W: []byte{configRegister, 0x1f, 0xff}, R: []byte{}},
 			},
 			want: fields{
-				currentLSB: 48828 * physic.NanoAmpere,
-				powerLSB:   976560 * physic.NanoWatt,
+				currentLSB: 97656 * physic.NanoAmpere,
+				powerLSB:   1953125 * physic.NanoWatt,
 			},
 		},
 		{name: "badAddressOption",
@@ -59,36 +59,36 @@ func TestNew(t *testing.T) {
 		{name: "setAddress",
 			opts: Opts{Address: 0x41},
 			tx: []i2ctest.IO{
-				{Addr: 0x41, W: []byte{calibrationRegister, 0x20, 0xc4}, R: []byte{}},
+				{Addr: 0x41, W: []byte{calibrationRegister, 0x10, 0x62}, R: []byte{}},
 				{Addr: 0x41, W: []byte{configRegister, 0x1f, 0xff}, R: []byte{}},
 			},
 			want: fields{
-				currentLSB: 48828 * physic.NanoAmpere,
-				powerLSB:   976560 * physic.NanoWatt,
+				currentLSB: 97656 * physic.NanoAmpere,
+				powerLSB:   1953125 * physic.NanoWatt,
 			},
 			err: nil,
 		},
 		{name: "setMaxCurrent",
 			opts: Opts{MaxCurrent: 1000 * physic.MilliAmpere},
 			tx: []i2ctest.IO{
-				{Addr: 0x40, W: []byte{calibrationRegister, 0x68, 0xdc}, R: []byte{}},
+				{Addr: 0x40, W: []byte{calibrationRegister, 0x34, 0x6e}, R: []byte{}},
 				{Addr: 0x40, W: []byte{configRegister, 0x1f, 0xff}, R: []byte{}},
 			},
 			want: fields{
-				currentLSB: 15258 * physic.NanoAmpere,
-				powerLSB:   305160 * physic.NanoWatt,
+				currentLSB: 30517 * physic.NanoAmpere,
+				powerLSB:   610352 * physic.NanoWatt,
 			},
 			err: nil,
 		},
 		{name: "setSenseResistor",
-			opts: Opts{SenseResistor: 10 * physic.MilliOhm},
+			opts: Opts{SenseResistor: 20 * physic.MilliOhm},
 			tx: []i2ctest.IO{
-				{Addr: 0x40, W: []byte{calibrationRegister, 0x47, 0xae}, R: []byte{}},
+				{Addr: 0x40, W: []byte{calibrationRegister, 0x51, 0xeb}, R: []byte{}},
 				{Addr: 0x40, W: []byte{configRegister, 0x1f, 0xff}, R: []byte{}},
 			},
 			want: fields{
-				currentLSB: 48828 * physic.NanoAmpere,
-				powerLSB:   976560 * physic.NanoWatt,
+				currentLSB: 97656 * physic.NanoAmpere,
+				powerLSB:   1953125 * physic.NanoWatt,
 			},
 			err: nil,
 		},
@@ -103,7 +103,7 @@ func TestNew(t *testing.T) {
 		},
 		{name: "errWritingToConfigRegister",
 			tx: []i2ctest.IO{
-				{Addr: 0x40, W: []byte{calibrationRegister, 0x20, 0xc4}, R: []byte{}},
+				{Addr: 0x40, W: []byte{calibrationRegister, 0x10, 0x62}, R: []byte{}},
 				{Addr: 0x40, W: []byte{configRegister}, R: []byte{}},
 			},
 			want: fields{
@@ -177,7 +177,7 @@ func TestSense(t *testing.T) {
 			err:  errReadShunt,
 			args: Opts{},
 			tx: []i2ctest.IO{
-				{Addr: 0x40, W: []byte{calibrationRegister, 0x20, 0xc4}, R: []byte{}},
+				{Addr: 0x40, W: []byte{calibrationRegister, 0x10, 0x62}, R: []byte{}},
 				{Addr: 0x40, W: []byte{configRegister, 0x1f, 0xff}, R: []byte{}},
 				{Addr: 0x40, W: []byte{shuntVoltageRegister}, R: []byte{}},
 			},
@@ -187,7 +187,7 @@ func TestSense(t *testing.T) {
 			err:  errReadBus,
 			args: Opts{},
 			tx: []i2ctest.IO{
-				{Addr: 0x40, W: []byte{calibrationRegister, 0x20, 0xc4}, R: []byte{}},
+				{Addr: 0x40, W: []byte{calibrationRegister, 0x10, 0x62}, R: []byte{}},
 				{Addr: 0x40, W: []byte{configRegister, 0x1f, 0xff}, R: []byte{}},
 				{Addr: 0x40, W: []byte{shuntVoltageRegister}, R: []byte{0x00, 0x00}},
 				{Addr: 0x40, W: []byte{busVoltageRegister}, R: []byte{}},
@@ -198,7 +198,7 @@ func TestSense(t *testing.T) {
 			err:  errReadCurrent,
 			args: Opts{},
 			tx: []i2ctest.IO{
-				{Addr: 0x40, W: []byte{calibrationRegister, 0x20, 0xc4}, R: []byte{}},
+				{Addr: 0x40, W: []byte{calibrationRegister, 0x10, 0x62}, R: []byte{}},
 				{Addr: 0x40, W: []byte{configRegister, 0x1f, 0xff}, R: []byte{}},
 				{Addr: 0x40, W: []byte{shuntVoltageRegister}, R: []byte{0x00, 0x00}},
 				{Addr: 0x40, W: []byte{busVoltageRegister}, R: []byte{0x00, 0x00}},
@@ -210,7 +210,7 @@ func TestSense(t *testing.T) {
 			err:  errReadPower,
 			args: Opts{},
 			tx: []i2ctest.IO{
-				{Addr: 0x40, W: []byte{calibrationRegister, 0x20, 0xc4}, R: []byte{}},
+				{Addr: 0x40, W: []byte{calibrationRegister, 0x10, 0x62}, R: []byte{}},
 				{Addr: 0x40, W: []byte{configRegister, 0x1f, 0xff}, R: []byte{}},
 				{Addr: 0x40, W: []byte{shuntVoltageRegister}, R: []byte{0x00, 0x00}},
 				{Addr: 0x40, W: []byte{busVoltageRegister}, R: []byte{0x00, 0x00}},
@@ -223,7 +223,7 @@ func TestSense(t *testing.T) {
 			err:  nil,
 			args: Opts{},
 			tx: []i2ctest.IO{
-				{Addr: 0x40, W: []byte{calibrationRegister, 0x20, 0xc4}, R: []byte{}},
+				{Addr: 0x40, W: []byte{calibrationRegister, 0x10, 0x62}, R: []byte{}},
 				{Addr: 0x40, W: []byte{configRegister, 0x1f, 0xff}, R: []byte{}},
 				{Addr: 0x40, W: []byte{shuntVoltageRegister}, R: []byte{0x00, 0x00}},
 				{Addr: 0x40, W: []byte{busVoltageRegister}, R: []byte{0x00, 0x00}},
@@ -237,7 +237,7 @@ func TestSense(t *testing.T) {
 			err:  errRegisterOverflow,
 			args: Opts{},
 			tx: []i2ctest.IO{
-				{Addr: 0x40, W: []byte{calibrationRegister, 0x20, 0xc4}, R: []byte{}},
+				{Addr: 0x40, W: []byte{calibrationRegister, 0x10, 0x62}, R: []byte{}},
 				{Addr: 0x40, W: []byte{configRegister, 0x1f, 0xff}, R: []byte{}},
 				{Addr: 0x40, W: []byte{shuntVoltageRegister}, R: []byte{0x00, 0x00}},
 				{Addr: 0x40, W: []byte{busVoltageRegister}, R: []byte{0x00, 0x01}},
@@ -315,13 +315,12 @@ func TestCalibrate(t *testing.T) {
 			err: errMaxCurrentInvalid,
 		},
 		{
-			name: "errIO",
+			name: "errCalibrationOverflow",
 			args: fields{
 				sense:      physic.MilliOhm,
 				maxCurrent: physic.Ampere,
 			},
-			err:       stringErr,
-			errString: "unexpected Tx",
+			err: errCalibrationOverflow,
 		},
 		{
 			name: "default",
@@ -330,11 +329,11 @@ func TestCalibrate(t *testing.T) {
 				maxCurrent: 3200 * physic.MilliAmpere,
 			},
 			want: fields{
-				currentLSB: 48828 * physic.NanoAmpere,
-				powerLSB:   976560 * physic.NanoWatt,
+				currentLSB: 97656 * physic.NanoAmpere,
+				powerLSB:   1953125 * physic.NanoWatt,
 			},
 			tx: []i2ctest.IO{
-				{Addr: 0x40, W: []byte{0x05, 0x20, 0xc4}, R: []byte{}},
+				{Addr: 0x40, W: []byte{0x05, 0x10, 0x62}, R: []byte{}},
 			},
 			err: nil,
 		},

@@ -157,13 +157,16 @@ func (d *Dev) calibrate(sense physic.ElectricResistance, maxCurrent physic.Elect
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	d.currentLSB = maxCurrent / (2 << 15)
-	d.powerLSB = physic.Power(d.currentLSB * 20)
+	d.currentLSB = maxCurrent / (1 << 15)
+	d.powerLSB = physic.Power((maxCurrent*20 + (1 << 14)) / (1 << 15))
 	// Calibration Register = 0.04096 / (current LSB * Shunt Resistance)
 	// Where lsb is in Amps and resistance is in ohms.
 	// Calibration register is 16 bits.
-	cal := uint16(calibratescale / (int64(d.currentLSB) * int64(sense)))
-	return d.m.WriteUint16(calibrationRegister, cal)
+	cal := calibratescale / (int64(d.currentLSB) * int64(sense))
+	if cal >= (1 << 16) {
+		return errCalibrationOverflow
+	}
+	return d.m.WriteUint16(calibrationRegister, uint16(cal))
 }
 
 // PowerMonitor represents measurements from ina219 sensor.
@@ -189,4 +192,5 @@ var (
 	errMaxCurrentInvalid         = errors.New("max current cannot be negative or zero")
 	errRegisterOverflow          = errors.New("bus voltage register overflow")
 	errWritingToConfigRegister   = errors.New("failed to write to configuration register")
+	errCalibrationOverflow       = errors.New("calibration would exceed maximum scaling")
 )
