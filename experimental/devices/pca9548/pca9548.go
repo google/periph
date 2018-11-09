@@ -14,6 +14,7 @@ import (
 	"periph.io/x/periph/conn/physic"
 )
 
+// Dev is handle to a pca9548 I²C Multiplexer.
 type Dev struct {
 	c       i2c.Bus
 	address uint16
@@ -24,11 +25,15 @@ type Dev struct {
 	port uint8
 }
 
+// DefaultOpts is the recommended default options.
 var DefaultOpts = Opts{Address: 0x70, Ports: 8}
 
+// Opts is the pca9548 configuration.
 type Opts struct {
+	// Address pca9548 I²C Address.
 	Address uint16
-	Ports   uint8
+	// Ports number of physical ports on I²C Multiplexer.
+	Ports uint8
 }
 
 // Register creates a new handel to a pca9548 I²C multiplexer, and registers
@@ -63,7 +68,8 @@ func (d *Dev) ListPortNames() []string {
 	return d.names
 }
 
-// Scan the channel for i2c devices, returns a slice of i2c addresses
+// Scan scans every port of the multiplexer and every I²C address for devices,
+// returns a map of I²C multiplexer ports names to slice of device I²C address.
 func (d *Dev) Scan() ScanList {
 	devices := make(map[string][]uint16)
 	rx := []byte{0x00}
@@ -73,15 +79,15 @@ func (d *Dev) Scan() ScanList {
 		for address := uint16(1); address < 0x77; address++ {
 			err := d.tx(port, address, nil, rx)
 			if err == nil {
-				devs := devices["mux-"+addrStr+"-"+portID]
-				devs = append(devs, address)
-				devices["mux-"+addrStr+"-"+portID] = devs
+				portName := "mux-" + addrStr + "-" + portID
+				devices[portName] = append(devices[portName], address)
 			}
 		}
 	}
 	return devices
 }
 
+// ScanList is a map of I²C port names and I²C address of discovered devices.
 type ScanList map[string][]uint16
 
 func (l ScanList) String() string {
