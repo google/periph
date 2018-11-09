@@ -287,6 +287,60 @@ func (s *SmokeTest) testEdgesBoth(p1, p2 gpio.PinIO) error {
 	return nil
 }
 
+// testWaitForEdge ensures that a pending WaitForEdge() can be canceled with
+// Halt().
+func (s *SmokeTest) testWaitForEdge(p1, p2 gpio.PinIO) (err error) {
+	fmt.Printf("  Testing WaitForEdge+Halt\n")
+	if err = preparePins(p1, p2); err != nil {
+		return err
+	}
+	if err = p1.In(gpio.Float, gpio.BothEdges); err != nil {
+		return err
+	}
+	const short = 100 * time.Millisecond
+	const timeout = 5 * time.Second
+	// First an blocked wait. The 100ms is kinda crappy but there's no way to
+	// guarantee that the WaitForEdge is blocking.
+	now := time.Now()
+	t := time.AfterFunc(short, func() {
+		if err2 := p1.Halt(); err == nil {
+			err = err2
+		}
+	})
+	if p1.WaitForEdge(timeout) {
+		t.Stop()
+		return fmt.Errorf("unexpected edge; waited for %s", time.Since(now))
+	}
+	if d := time.Since(now); d < short {
+		return fmt.Errorf("wait returned too early after %s", d)
+	} else if d >= timeout {
+		//return fmt.Errorf("wait timed out after %s", d)
+		fmt.Println("Known failure due to https://github.com/google/periph/issues/323")
+		return nil
+	}
+	return errors.New("unexpected success; https://github.com/google/periph/issues/323")
+	/* Need to comment out otherwise go vet will be unhappy.
+	// Then make sure it still works after.
+	s.slowSleep()
+	now = time.Now()
+	t = time.AfterFunc(short, func() {
+		if err2 := p2.Out(gpio.High); err == nil {
+			err = err2
+		}
+	})
+	if !p1.WaitForEdge(-1) {
+		t.Stop()
+		return fmt.Errorf("expected edge; waited for %s", time.Since(now))
+	}
+	if d := time.Since(now); d < short {
+		return fmt.Errorf("wait returned too early after %s", d)
+	} else if d >= timeout {
+		return fmt.Errorf("wait timed out after %s", d)
+	}
+	return
+	*/
+}
+
 // testEdgesSide tests with gpio.RisingEdge or gpio.FallingEdge.
 //
 // The following events are tested for:
@@ -387,6 +441,9 @@ func (s *SmokeTest) testEdges(p1, p2 gpio.PinIO) error {
 	if err := s.testEdgesBoth(p1, p2); err != nil {
 		return err
 	}
+	if err := s.testWaitForEdge(p1, p2); err != nil {
+		return err
+	}
 	if err := s.testEdgesSide(p1, p2, gpio.RisingEdge); err != nil {
 		return err
 	}
@@ -420,6 +477,7 @@ func (s *SmokeTest) testPull(p1, p2 gpio.PinIO) error {
 	return nil
 }
 
+// testCycle runs testBasic, testEdges and testPull.
 func (s *SmokeTest) testCycle(p1, p2 gpio.PinIO) error {
 	fmt.Printf("Testing %s -> %s\n", p2, p1)
 	if err := s.testBasic(p1, p2); err != nil {
@@ -487,6 +545,11 @@ func since(start time.Time) string {
 type loggingPin struct {
 	gpio.PinIO
 	start time.Time
+}
+
+func (p *loggingPin) Halt() error {
+	fmt.Printf("    %s %s.Halt()\n", since(p.start), p)
+	return p.PinIO.Halt()
 }
 
 func (p *loggingPin) In(pull gpio.Pull, edge gpio.Edge) error {
