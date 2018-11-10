@@ -25,9 +25,9 @@ workers:
     - periph-smoketest
     - gpio
     - -pin1
-    - GPIO70
+    - P8_45
     - -pin2
-    - GPIO71
+    - P8_46
 - name: chip-a87d
   checks:
   - cmd:

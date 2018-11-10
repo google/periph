@@ -105,11 +105,7 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) error {
 	}
 
 	// Disable pull testing when using sysfs because it is not supported.
-	_, s.noPull = p1.(*sysfs.Pin)
-	if !s.noPull {
-		_, s.noPull = p2.(*sysfs.Pin)
-	}
-	if s.noPull {
+	if s.noPull = isSysfsPin(p1) || isSysfsPin(p2); s.noPull {
 		fmt.Printf("Skipping input pull resistor on sysfs\n")
 	}
 
@@ -130,6 +126,14 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) error {
 		fmt.Printf("(Exit) Failed to reset %s as input: %s\n", pl1, err2)
 	}
 	return err
+}
+
+func isSysfsPin(p gpio.PinIO) bool {
+	if r, ok := p.(gpio.RealPin); ok {
+		p = r.Real()
+	}
+	_, ok := p.(*sysfs.Pin)
+	return ok
 }
 
 func (s *SmokeTest) slowSleep() {
