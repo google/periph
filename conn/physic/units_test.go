@@ -888,6 +888,7 @@ func TestElectricResistance_Set(t *testing.T) {
 		{"-12.345Ohm", -12345 * MilliOhm},
 		{"9.223372036854775807GOhm", 9223372036854775807 * NanoOhm},
 		{"-9.223372036854775807GOhm", -9223372036854775807 * NanoOhm},
+		{"1MΩ", 1 * MegaOhm},
 	}
 
 	fails := []struct {
@@ -971,7 +972,6 @@ func TestElectricResistance_Set(t *testing.T) {
 	for _, tt := range succeeds {
 		var got ElectricResistance
 		err := got.Set(tt.in)
-
 		if got != tt.expected {
 			t.Errorf("ElectricResistance.Set(%s) expected: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
 		}
@@ -982,10 +982,7 @@ func TestElectricResistance_Set(t *testing.T) {
 
 	for _, tt := range fails {
 		var got ElectricResistance
-
-		err := got.Set(tt.in)
-
-		if err.Error() != tt.err {
+		if err := got.Set(tt.in); err.Error() != tt.err {
 			t.Errorf("ElectricResistance.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
 		}
 	}

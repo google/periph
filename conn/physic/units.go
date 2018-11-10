@@ -155,8 +155,8 @@ func (e ElectricResistance) String() string {
 }
 
 // Set sets the ElectricResistance to the value represented by s. Units are to
-// be provided in Ohm/Ohms or Ω with an optional SI prefix (n,p,u,µ,m,k,M,G or
-// T)
+// be provided in "Ohm", "Ohms" or "Ω" with an optional SI prefix: "n", "p", "u"
+// , "µ", "m", "k", "M", "G" or "T".
 func (f *ElectricResistance) Set(s string) error {
 	v, n, err := valueOfUnitString(s, nano)
 	if err != nil {
@@ -167,8 +167,7 @@ func (f *ElectricResistance) Set(s string) error {
 			case errUnderflowsInt64:
 				return errors.New("minimum value is " + minElectricResistance.String())
 			case errNotANumber:
-				found, _ := containsUnitString(s, "Ohm", "Ohms", "Ω")
-				if found != "" {
+				if found, _ := containsUnitString(s, "Ohm", "Ohms", "Ω"); found != "" {
 					return errors.New("does not contain number")
 				}
 				return errors.New("does not contain number or unit \"Ohm\"")
@@ -177,8 +176,12 @@ func (f *ElectricResistance) Set(s string) error {
 		return err
 	}
 
+	if s[n:] == "Ω" {
+		*f = (ElectricResistance)(v)
+		return nil
+	}
 	switch strings.ToLower(s[n:]) {
-	case "ohm", "ohms", "ω": // ω is lowercase Ω
+	case "ohm", "ohms":
 		*f = (ElectricResistance)(v)
 	case "":
 		return noUnits("Ohm")
