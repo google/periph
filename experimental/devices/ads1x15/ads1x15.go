@@ -226,9 +226,8 @@ func (d *Dev) PinForChannel(c Channel, maxVoltage physic.ElectricPotential, f ph
 	configBytes := [2]byte{}
 	binary.BigEndian.PutUint16(configBytes[:], config)
 
-	// The wait for the ADC sample to finish is based on the sample rate plus a
-	// small offset to be sure (0.1 millisecond).
-	waitTime := time.Second/time.Duration(dataRate) + 100*time.Microsecond
+	// The wait for the ADC sample to finish is based on the sample rate.
+	waitTime := time.Second / time.Duration(dataRate)
 
 	return &analogPin{
 		adc:                d,
