@@ -417,16 +417,16 @@ func (p *analogPin) ReadContinuous() <-chan analog.Reading {
 
 	// First release the current continuous reading if there is one
 	if p.stop != nil {
+		p.stop <- struct{}{}
 		close(p.stop)
 		p.stop = nil
 	}
-	reading := make(chan analog.Reading)
+	reading := make(chan analog.Reading, 16)
 	p.stop = make(chan struct{})
 
 	go func() {
 		t := time.NewTicker(p.requestedFrequency.Duration())
 		defer t.Stop()
-		defer p.Halt()
 		defer close(reading)
 
 		for {
@@ -466,6 +466,7 @@ func (p *analogPin) Halt() error {
 	defer p.mu.Unlock()
 
 	if p.stop != nil {
+		p.stop <- struct{}{}
 		close(p.stop)
 		p.stop = nil
 	}
