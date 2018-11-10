@@ -33,14 +33,14 @@ func mainImpl() error {
 	}
 	defer bus.Close()
 
-	// Registers a multiplexer with 8 ports at address 0x70 if no other address
+	// Creates a multiplexer with 8 ports at address 0x70 if no other address
 	// supplied with command line option.
 	mux, err := pca9548.New(bus, &pca9548.Opts{Address: *address})
 	if err != nil {
 		return fmt.Errorf("failed to load new mux: %v", err)
 	}
 
-	// Register all 8 ports
+	// Register all 8 ports.
 	busz := make(map[int]string)
 	for i := 0; i < 8; i++ {
 		name := "mux" + strconv.Itoa(i)
@@ -51,7 +51,7 @@ func mainImpl() error {
 		busz[i] = name
 	}
 
-	// Create a place to store the results from the scan
+	// Create a place to store the results from the scan.
 	results := make(map[string][]uint16)
 	fmt.Println("Starting Scan")
 	// Loop through each bus scanning all addresses for a response.

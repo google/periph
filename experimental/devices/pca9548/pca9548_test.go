@@ -299,8 +299,9 @@ func Test_port_Tx(t *testing.T) {
 func Test_port_String(t *testing.T) {
 	p := port{
 		number: 6,
+		name:   "mux0",
 	}
-	expected := "Port:6"
+	expected := "Port:mux0 6"
 
 	got := p.String()
 	if got != expected {
