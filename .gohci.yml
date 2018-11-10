@@ -10,6 +10,7 @@ workers:
     - ./cmd/headers-list
     - ./cmd/i2c-list
     - ./cmd/periph-info
+    - ./cmd/periph-smoketest
     - ./cmd/spi-list
   - cmd:
     - periph-info
@@ -20,6 +21,13 @@ workers:
     - i2c-list
   - cmd:
     - spi-list
+  - cmd:
+    - periph-smoketest
+    - gpio
+    - -pin1
+    - GPIO70
+    - -pin2
+    - GPIO71
 - name: chip-a87d
   checks:
   - cmd:
