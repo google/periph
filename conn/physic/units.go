@@ -154,6 +154,44 @@ func (e ElectricResistance) String() string {
 	return nanoAsString(int64(e)) + "Ω"
 }
 
+// Set sets the ElectricResistance to the value represented by s. Units are to
+// be provided in Ohm/Ohms or Ω with an optional SI prefix (n,p,u,µ,m,k,M,G or
+// T)
+func (f *ElectricResistance) Set(s string) error {
+	v, n, err := valueOfUnitString(s, nano)
+	if err != nil {
+		if e, ok := err.(*parseError); ok {
+			switch e.err {
+			case errOverflowsInt64:
+				return errors.New("maximum value is " + maxElectricResistance.String())
+			case errUnderflowsInt64:
+				return errors.New("minimum value is " + minElectricResistance.String())
+			case errNotANumber:
+				found, _ := containsUnitString(s, "Ohm", "Ohms", "Ω")
+				if found != "" {
+					return errors.New("does not contain number")
+				}
+				return errors.New("does not contain number or unit \"Ohm\"")
+			}
+		}
+		return err
+	}
+
+	switch strings.ToLower(s[n:]) {
+	case "ohm", "ohms", "ω": // ω is lowercase Ω
+		*f = (ElectricResistance)(v)
+	case "":
+		return noUnits("Ohm")
+	default:
+		found, extra := containsUnitString(s[n:], "Ohm", "Ohm", "Ω")
+		if found != "" {
+			return unknownUnitPrefix(found, extra, "n,p,u,µ,m,k,M,G or T")
+		}
+		return incorrectUnit(s[n:], "physic.ElectricResistance")
+	}
+	return nil
+}
+
 const (
 	// Ohm is V/A, kg⋅m²/s³/A².
 	NanoOhm  ElectricResistance = 1
@@ -163,6 +201,9 @@ const (
 	KiloOhm  ElectricResistance = 1000 * Ohm
 	MegaOhm  ElectricResistance = 1000 * KiloOhm
 	GigaOhm  ElectricResistance = 1000 * MegaOhm
+
+	maxElectricResistance = 9223372036854775807 * NanoOhm
+	minElectricResistance = -9223372036854775807 * NanoOhm
 )
 
 // Force is a measurement of interaction that will change the motion of an
