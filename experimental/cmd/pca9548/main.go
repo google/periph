@@ -9,6 +9,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
 
 	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/experimental/devices/pca9548"
@@ -34,30 +35,43 @@ func mainImpl() error {
 
 	// Registers a multiplexer with 8 ports at address 0x70 if no other address
 	// supplied with command line option.
-	_, err = pca9548.Register(bus, &pca9548.Opts{Address: *address})
+	mux, err := pca9548.New(bus, &pca9548.Opts{Address: *address})
 	if err != nil {
 		return fmt.Errorf("failed to load new mux: %v", err)
 	}
 
-	devices := make(map[string][]uint16)
-	fmt.Println("Starting Scan")
+	// Register all 8 ports
+	busz := make(map[int]string)
 	for i := 0; i < 8; i++ {
-		busname := fmt.Sprintf("mux-%x-%d", *address, i)
-		mux, err := i2creg.Open(busname)
-		defer mux.Close()
-		rx := []byte{0x00}
+		name := "mux" + strconv.Itoa(i)
+		err = mux.Register(i, name)
 		if err != nil {
 			return err
 		}
-		for addr := uint16(0); addr < 0x77; addr++ {
-			if err := mux.Tx(addr, nil, rx); err == nil {
-				devices[busname] = append(devices[busname], addr)
+		busz[i] = name
+	}
+
+	// Create a place to store the results from the scan
+	results := make(map[string][]uint16)
+	fmt.Println("Starting Scan")
+	// Loop through each bus scanning all addresses for a response.
+	for i := 0; i < 8; i++ {
+		m, err := i2creg.Open(busz[i])
+		if err != nil {
+			return err
+		}
+		defer m.Close()
+
+		rx := []byte{0x00}
+		for addr := uint16(1); addr < 0x77; addr++ {
+			if err := m.Tx(addr, nil, rx); err == nil {
+				results[busz[i]] = append(results[busz[i]], addr)
 			}
 		}
 	}
 
 	fmt.Println("Scan Results:")
-	for bus, addrs := range devices {
+	for bus, addrs := range results {
 		fmt.Printf("Bus[%s] %d found\n", bus, len(addrs))
 		for _, addr := range addrs {
 			fmt.Printf("\tDevice at %#2x\n", addr)

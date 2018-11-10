@@ -7,57 +7,116 @@ package pca9548
 import (
 	"testing"
 
+	"periph.io/x/periph/conn/physic"
+
 	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/conn/i2c/i2ctest"
 	"periph.io/x/periph/host"
 )
 
 func TestNew(t *testing.T) {
-	bus := &i2ctest.Playback{
-		Ops: []i2ctest.IO{
-			{Addr: 0x70, W: nil, R: []byte{0xFF}},
+	tests := []struct {
+		tx      []i2ctest.IO
+		wantErr bool
+	}{
+		{
+			tx:      []i2ctest.IO{{Addr: 0x70, W: nil, R: []byte{0xFF}}},
+			wantErr: false,
 		},
-		DontPanic: true,
-	}
-	d, err := Register(bus, &DefaultOpts)
-
-	if err != nil {
-		t.Errorf("got unexpected error: %v", err)
+		{
+			tx:      []i2ctest.IO{{Addr: 0x70, W: nil, R: nil}},
+			wantErr: true,
+		},
 	}
 
-	if d.address != uint16(DefaultOpts.Address) {
-		t.Errorf("expeected address %d, but got %d", DefaultOpts.Address, d.address)
-	}
+	for _, tt := range tests {
+		bus := &i2ctest.Playback{Ops: tt.tx, DontPanic: true}
+		_, err := New(bus, &DefaultOpts)
 
-	// Cleanup.
-	i2creg.Unregister("mux-70-0")
-	i2creg.Unregister("mux-70-1")
-	i2creg.Unregister("mux-70-2")
-	i2creg.Unregister("mux-70-3")
-	i2creg.Unregister("mux-70-4")
-	i2creg.Unregister("mux-70-5")
-	i2creg.Unregister("mux-70-6")
-	i2creg.Unregister("mux-70-7")
-	i2creg.Unregister("pca9548-70-0")
-	i2creg.Unregister("pca9548-70-1")
-	i2creg.Unregister("pca9548-70-2")
-	i2creg.Unregister("pca9548-70-3")
-	i2creg.Unregister("pca9548-70-4")
-	i2creg.Unregister("pca9548-70-5")
-	i2creg.Unregister("pca9548-70-6")
-	i2creg.Unregister("pca9548-70-7")
+		if err != nil && !tt.wantErr {
+			t.Errorf("got unexpected error %v", err)
+		}
+
+		if err == nil && tt.wantErr {
+			t.Errorf("expected error but got none")
+		}
+	}
 }
 
+func TestRegister(t *testing.T) {
+	tests := []struct {
+		alias   string
+		port    int
+		wantErr bool
+	}{
+		{"mux0", 0, false},
+		{"mux0", -1, true},
+	}
+
+	for _, tt := range tests {
+		bus := &i2ctest.Playback{
+			Ops: []i2ctest.IO{
+				{Addr: 0x70, W: nil, R: []byte{0xFF}},
+			},
+			DontPanic: true,
+		}
+		host.Init()
+
+		mux, err := New(bus, &DefaultOpts)
+		if err != nil {
+			t.Fatalf("failed to create I²C mux: %v", err)
+		}
+
+		err = mux.Register(tt.port, tt.alias)
+		if err != nil && !tt.wantErr {
+			t.Errorf("got unexpected error %v", err)
+		}
+
+		if err == nil && tt.wantErr {
+			t.Errorf("expected error but got none")
+		}
+
+		// Cleanup
+		i2creg.Unregister("playback-pca9548-70-0")
+		i2creg.Unregister(tt.alias)
+	}
+}
+
+func TestDev_Halt(t *testing.T) {
+	// TODO(neuralSpaz)
+	d := &Dev{}
+	err := d.Halt()
+	if err != nil {
+		t.Errorf("expected error but got none")
+	}
+}
+
+func TestDev_String(t *testing.T) {
+	tests := []struct {
+		d    *Dev
+		want string
+	}{
+		{d: &Dev{address: 0x70}, want: "pca9548-70"},
+	}
+
+	for _, tt := range tests {
+
+		if got := tt.d.String(); got != tt.want {
+			t.Errorf("Dev.String() = %v, want %v", got, tt.want)
+		}
+	}
+}
 func TestDev_Tx(t *testing.T) {
 	var tests = []struct {
-		initial uint8
-		port    string
+		alias   string
+		port    int
 		address uint16
 		tx      []i2ctest.IO
 		wantErr bool
 	}{
 		{
-			port:    "mux-70-0",
+			alias:   "mux0",
+			port:    0,
 			address: 0x30,
 			tx: []i2ctest.IO{
 				{Addr: 0x70, W: nil, R: []byte{0xFF}},
@@ -66,7 +125,8 @@ func TestDev_Tx(t *testing.T) {
 			},
 		},
 		{
-			port:    "mux-70-1",
+			alias:   "mux1",
+			port:    1,
 			address: 0x30,
 			tx: []i2ctest.IO{
 				{Addr: 0x70, W: nil, R: []byte{0xFF}},
@@ -75,7 +135,8 @@ func TestDev_Tx(t *testing.T) {
 			},
 		},
 		{
-			port:    "mux-70-2",
+			alias:   "mux2",
+			port:    2,
 			address: 0x30,
 			tx: []i2ctest.IO{
 				{Addr: 0x70, W: nil, R: []byte{0xFF}},
@@ -84,7 +145,8 @@ func TestDev_Tx(t *testing.T) {
 			},
 		},
 		{
-			port:    "mux-70-3",
+			alias:   "mux3",
+			port:    3,
 			address: 0x30,
 			tx: []i2ctest.IO{
 				{Addr: 0x70, W: nil, R: []byte{0xFF}},
@@ -93,7 +155,8 @@ func TestDev_Tx(t *testing.T) {
 			},
 		},
 		{
-			port:    "mux-70-4",
+			alias:   "mux4",
+			port:    4,
 			address: 0x30,
 			tx: []i2ctest.IO{
 				{Addr: 0x70, W: nil, R: []byte{0xFF}},
@@ -102,7 +165,8 @@ func TestDev_Tx(t *testing.T) {
 			},
 		},
 		{
-			port:    "mux-70-5",
+			alias:   "mux5",
+			port:    5,
 			address: 0x30,
 			tx: []i2ctest.IO{
 				{Addr: 0x70, W: nil, R: []byte{0xFF}},
@@ -111,7 +175,8 @@ func TestDev_Tx(t *testing.T) {
 			},
 		},
 		{
-			port:    "mux-70-6",
+			alias:   "mux6",
+			port:    6,
 			address: 0x30,
 			tx: []i2ctest.IO{
 				{Addr: 0x70, W: nil, R: []byte{0xFF}},
@@ -120,7 +185,8 @@ func TestDev_Tx(t *testing.T) {
 			},
 		},
 		{
-			port:    "mux-70-7",
+			alias:   "mux7",
+			port:    7,
 			address: 0x30,
 			tx: []i2ctest.IO{
 				{Addr: 0x70, W: nil, R: []byte{0xFF}},
@@ -129,7 +195,8 @@ func TestDev_Tx(t *testing.T) {
 			},
 		},
 		{
-			port:    "mux-70-0",
+			alias:   "mux0",
+			port:    0,
 			address: 0x70,
 			tx: []i2ctest.IO{
 				{Addr: 0x70, W: nil, R: []byte{0xFF}},
@@ -137,7 +204,8 @@ func TestDev_Tx(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			port:    "mux-70-0",
+			alias:   "mux0",
+			port:    0,
 			address: 0x30,
 			tx: []i2ctest.IO{
 				{Addr: 0x70, W: nil, R: []byte{0xFF}},
@@ -153,17 +221,21 @@ func TestDev_Tx(t *testing.T) {
 		}
 		host.Init()
 
-		_, err := Register(bus, &DefaultOpts)
+		mux, err := New(bus, &DefaultOpts)
 		if err != nil {
-			t.Errorf("failed to open I²C: %v", err)
+			t.Fatalf("failed to open I²C: %v", err)
 		}
 
-		bus0, err := i2creg.Open(tt.port)
+		err = mux.Register(tt.port, tt.alias)
 		if err != nil {
-			t.Errorf("failed to open I²C: %v", err)
+			t.Fatalf("failed to open I²C: %v", err)
 		}
-		defer bus0.Close()
-		err = bus0.Tx(tt.address, []byte{0xAA}, []byte{0xBB})
+		muxbus, err := i2creg.Open(tt.alias)
+		if err != nil {
+			t.Fatalf("failed to open I²C: %v", err)
+		}
+		defer muxbus.Close()
+		err = muxbus.Tx(tt.address, []byte{0xAA}, []byte{0xBB})
 
 		if err != nil && !tt.wantErr {
 			t.Errorf("expected no error but got: %v", err)
@@ -173,22 +245,54 @@ func TestDev_Tx(t *testing.T) {
 		}
 
 		// Cleanup
-		i2creg.Unregister("mux-70-0")
-		i2creg.Unregister("mux-70-1")
-		i2creg.Unregister("mux-70-2")
-		i2creg.Unregister("mux-70-3")
-		i2creg.Unregister("mux-70-4")
-		i2creg.Unregister("mux-70-5")
-		i2creg.Unregister("mux-70-6")
-		i2creg.Unregister("mux-70-7")
-		i2creg.Unregister("pca9548-70-0")
-		i2creg.Unregister("pca9548-70-1")
-		i2creg.Unregister("pca9548-70-2")
-		i2creg.Unregister("pca9548-70-3")
-		i2creg.Unregister("pca9548-70-4")
-		i2creg.Unregister("pca9548-70-5")
-		i2creg.Unregister("pca9548-70-6")
-		i2creg.Unregister("pca9548-70-7")
+		i2creg.Unregister("mux0")
+		i2creg.Unregister("mux1")
+		i2creg.Unregister("mux2")
+		i2creg.Unregister("mux3")
+		i2creg.Unregister("mux4")
+		i2creg.Unregister("mux5")
+		i2creg.Unregister("mux6")
+		i2creg.Unregister("mux7")
+		i2creg.Unregister("playback-pca9548-70-0")
+		i2creg.Unregister("playback-pca9548-70-1")
+		i2creg.Unregister("playback-pca9548-70-2")
+		i2creg.Unregister("playback-pca9548-70-3")
+		i2creg.Unregister("playback-pca9548-70-4")
+		i2creg.Unregister("playback-pca9548-70-5")
+		i2creg.Unregister("playback-pca9548-70-6")
+		i2creg.Unregister("playback-pca9548-70-7")
+	}
+}
+
+func Test_port_Tx(t *testing.T) {
+	tests := []struct {
+		p       port
+		wantErr bool
+	}{
+		{
+			p:       port{number: 6},
+			wantErr: true,
+		},
+		{
+			p: port{number: 0x6, mux: &Dev{address: 0x70, port: 6,
+				c: &i2ctest.Playback{
+					Ops: []i2ctest.IO{{Addr: 0x1, W: nil, R: nil}},
+				},
+			},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		err := tt.p.Tx(0x01, nil, nil)
+
+		if err != nil && !tt.wantErr {
+			t.Errorf("got unexpected error %v", err)
+		}
+
+		if err == nil && tt.wantErr {
+			t.Errorf("expected error but got none")
+		}
 	}
 }
 
@@ -201,5 +305,14 @@ func Test_port_String(t *testing.T) {
 	got := p.String()
 	if got != expected {
 		t.Errorf("expected: \n%v but got: \n%v", expected, got)
+	}
+}
+
+func Test_port_SetSpeed(t *testing.T) {
+	// TODO(neuralSpaz)
+	p := &port{}
+	err := p.SetSpeed(400 * physic.KiloHertz)
+	if err != nil {
+		t.Errorf("expected error but got none")
 	}
 }

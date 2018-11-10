@@ -31,37 +31,41 @@ type Dev struct {
 	address uint16
 
 	// Mutable.
-	mu   sync.Mutex
-	port uint8
+	mu    sync.Mutex
+	port  uint8
+	ports uint8
 }
 
-// Register creates a new handle to a pca9548 I²C multiplexer, and registers
-// port names with the host. These ports can then be used as any other i2c.Bus.
-// The registered port names are in the form: pca9548/mux-ADD-I where ADD is the
-// multiplexer I²C address in hex and I is the port number.
-// example: "pca9548-70-0" and "mux-70-0".
-func Register(bus i2c.Bus, opts *Opts) (*Dev, error) {
+// New creates a new handle to a pca9548 I²C multiplexer.
+func New(bus i2c.Bus, opts *Opts) (*Dev, error) {
 	d := &Dev{
 		c:       bus,
 		port:    0xFF,
 		address: uint16(opts.Address),
+		// TODO(NeuralSpaz): Make number of ports safely settable after New()
+		ports: 8,
 	}
 	r := make([]byte, 1)
 	err := bus.Tx(uint16(opts.Address), nil, r)
 	if err != nil {
-		return nil, errors.New("could not communicated with multiplexer: " + err.Error())
-	}
-
-	for i := uint8(0); i < 8; i++ {
-		portID := strconv.FormatUint(uint64(i), 10)
-		addrStr := strconv.FormatUint(uint64(opts.Address), 16)
-		name := addrStr + "-" + portID
-		opener := newOpener(d, i)
-		if err := i2creg.Register("pca9548-"+name, []string{"mux-" + name}, int((opts.Address*10 + int(i))), opener); err != nil {
-			return nil, err
-		}
+		return nil, errors.New("could not communicate with multiplexer: " + err.Error())
 	}
 	return d, nil
+}
+
+// Register registers port number and port name with the host. These ports can
+// then be used as any other i2c.Bus. Alias bus name that needs to be unique.
+func (d *Dev) Register(port int, alias string) error {
+	if port >= int(d.ports) || port < 0 {
+		return errors.New("port number must be between 0 and 7")
+	}
+
+	portID := strconv.FormatInt(int64(port), 10)
+	addrStr := strconv.FormatUint(uint64(d.address), 16)
+	name := d.c.String() + "-pca9548-" + addrStr + "-" + portID
+
+	opener := newOpener(d, uint8(port))
+	return i2creg.Register(name, []string{alias}, int(int(d.address)*10+port), opener)
 }
 
 // Halt does nothing.
@@ -115,7 +119,7 @@ func (p *port) Tx(addr uint16, w, r []byte) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if p.mux == nil {
-		return errors.New("port" + strconv.FormatUint(uint64(p.number), 10) + "has been closed")
+		return errors.New("port " + strconv.FormatUint(uint64(p.number), 10) + " has been closed")
 	}
 	return p.mux.tx(p.number, addr, w, r)
 }
