@@ -5,7 +5,6 @@
 package pca9548
 
 import (
-	"fmt"
 	"testing"
 
 	"periph.io/x/periph/conn/i2c/i2creg"
@@ -15,23 +14,38 @@ import (
 
 func TestNew(t *testing.T) {
 	bus := &i2ctest.Playback{
-		Ops:       nil,
+		Ops: []i2ctest.IO{
+			{Addr: 0x70, W: nil, R: []byte{0xFF}},
+		},
 		DontPanic: true,
 	}
 	d, err := Register(bus, &DefaultOpts)
-	defer func() {
-		ports := d.ListPortNames()
-		for _, port := range ports {
-			i2creg.Unregister(port)
-		}
-	}()
+
 	if err != nil {
-		t.Errorf("don't know how that happened, there was nothing that could fail")
+		t.Errorf("got unexpected error: %v", err)
 	}
 
-	if d.address != DefaultOpts.Address {
+	if d.address != uint16(DefaultOpts.Address) {
 		t.Errorf("expeected address %d, but got %d", DefaultOpts.Address, d.address)
 	}
+
+	// Cleanup.
+	i2creg.Unregister("mux-70-0")
+	i2creg.Unregister("mux-70-1")
+	i2creg.Unregister("mux-70-2")
+	i2creg.Unregister("mux-70-3")
+	i2creg.Unregister("mux-70-4")
+	i2creg.Unregister("mux-70-5")
+	i2creg.Unregister("mux-70-6")
+	i2creg.Unregister("mux-70-7")
+	i2creg.Unregister("pca9548-70-0")
+	i2creg.Unregister("pca9548-70-1")
+	i2creg.Unregister("pca9548-70-2")
+	i2creg.Unregister("pca9548-70-3")
+	i2creg.Unregister("pca9548-70-4")
+	i2creg.Unregister("pca9548-70-5")
+	i2creg.Unregister("pca9548-70-6")
+	i2creg.Unregister("pca9548-70-7")
 }
 
 func TestDev_Tx(t *testing.T) {
@@ -46,6 +60,7 @@ func TestDev_Tx(t *testing.T) {
 			port:    "mux-70-0",
 			address: 0x30,
 			tx: []i2ctest.IO{
+				{Addr: 0x70, W: nil, R: []byte{0xFF}},
 				{Addr: 0x70, W: []byte{0x01}, R: []byte{}},
 				{Addr: 0x30, W: []byte{0xAA}, R: []byte{0xBB}},
 			},
@@ -54,6 +69,7 @@ func TestDev_Tx(t *testing.T) {
 			port:    "mux-70-1",
 			address: 0x30,
 			tx: []i2ctest.IO{
+				{Addr: 0x70, W: nil, R: []byte{0xFF}},
 				{Addr: 0x70, W: []byte{0x02}, R: []byte{}},
 				{Addr: 0x30, W: []byte{0xAA}, R: []byte{0xBB}},
 			},
@@ -62,6 +78,7 @@ func TestDev_Tx(t *testing.T) {
 			port:    "mux-70-2",
 			address: 0x30,
 			tx: []i2ctest.IO{
+				{Addr: 0x70, W: nil, R: []byte{0xFF}},
 				{Addr: 0x70, W: []byte{0x04}, R: []byte{}},
 				{Addr: 0x30, W: []byte{0xAA}, R: []byte{0xBB}},
 			},
@@ -70,6 +87,7 @@ func TestDev_Tx(t *testing.T) {
 			port:    "mux-70-3",
 			address: 0x30,
 			tx: []i2ctest.IO{
+				{Addr: 0x70, W: nil, R: []byte{0xFF}},
 				{Addr: 0x70, W: []byte{0x08}, R: []byte{}},
 				{Addr: 0x30, W: []byte{0xAA}, R: []byte{0xBB}},
 			},
@@ -78,6 +96,7 @@ func TestDev_Tx(t *testing.T) {
 			port:    "mux-70-4",
 			address: 0x30,
 			tx: []i2ctest.IO{
+				{Addr: 0x70, W: nil, R: []byte{0xFF}},
 				{Addr: 0x70, W: []byte{0x10}, R: []byte{}},
 				{Addr: 0x30, W: []byte{0xAA}, R: []byte{0xBB}},
 			},
@@ -86,6 +105,7 @@ func TestDev_Tx(t *testing.T) {
 			port:    "mux-70-5",
 			address: 0x30,
 			tx: []i2ctest.IO{
+				{Addr: 0x70, W: nil, R: []byte{0xFF}},
 				{Addr: 0x70, W: []byte{0x20}, R: []byte{}},
 				{Addr: 0x30, W: []byte{0xAA}, R: []byte{0xBB}},
 			},
@@ -94,6 +114,7 @@ func TestDev_Tx(t *testing.T) {
 			port:    "mux-70-6",
 			address: 0x30,
 			tx: []i2ctest.IO{
+				{Addr: 0x70, W: nil, R: []byte{0xFF}},
 				{Addr: 0x70, W: []byte{0x40}, R: []byte{}},
 				{Addr: 0x30, W: []byte{0xAA}, R: []byte{0xBB}},
 			},
@@ -102,6 +123,7 @@ func TestDev_Tx(t *testing.T) {
 			port:    "mux-70-7",
 			address: 0x30,
 			tx: []i2ctest.IO{
+				{Addr: 0x70, W: nil, R: []byte{0xFF}},
 				{Addr: 0x70, W: []byte{0x80}, R: []byte{}},
 				{Addr: 0x30, W: []byte{0xAA}, R: []byte{0xBB}},
 			},
@@ -109,14 +131,16 @@ func TestDev_Tx(t *testing.T) {
 		{
 			port:    "mux-70-0",
 			address: 0x70,
-			tx:      []i2ctest.IO{},
+			tx: []i2ctest.IO{
+				{Addr: 0x70, W: nil, R: []byte{0xFF}},
+			},
 			wantErr: true,
 		},
 		{
 			port:    "mux-70-0",
 			address: 0x30,
 			tx: []i2ctest.IO{
-				{Addr: 0x70, W: []byte{}, R: []byte{}},
+				{Addr: 0x70, W: nil, R: []byte{0xFF}},
 			},
 			wantErr: true,
 		},
@@ -129,7 +153,7 @@ func TestDev_Tx(t *testing.T) {
 		}
 		host.Init()
 
-		d, err := Register(bus, &DefaultOpts)
+		_, err := Register(bus, &DefaultOpts)
 		if err != nil {
 			t.Errorf("failed to open I²C: %v", err)
 		}
@@ -147,23 +171,24 @@ func TestDev_Tx(t *testing.T) {
 		if err == nil && tt.wantErr {
 			t.Errorf("expected error")
 		}
-		ports := d.ListPortNames()
-		for _, port := range ports {
-			i2creg.Unregister(port)
-		}
-	}
-}
 
-func TestScanList_String(t *testing.T) {
-	var sl ScanList = make(map[string][]uint16)
-	sl["mux-70-1"] = []uint16{0x49}
-
-	expected := "Scan Results:\nPort[mux-70-1] 1 found\n" +
-		"\tDevice at 0x49"
-
-	got := sl.String()
-	if got != expected {
-		t.Errorf("expected: \n%v but got: \n%v", expected, got)
+		// Cleanup
+		i2creg.Unregister("mux-70-0")
+		i2creg.Unregister("mux-70-1")
+		i2creg.Unregister("mux-70-2")
+		i2creg.Unregister("mux-70-3")
+		i2creg.Unregister("mux-70-4")
+		i2creg.Unregister("mux-70-5")
+		i2creg.Unregister("mux-70-6")
+		i2creg.Unregister("mux-70-7")
+		i2creg.Unregister("pca9548-70-0")
+		i2creg.Unregister("pca9548-70-1")
+		i2creg.Unregister("pca9548-70-2")
+		i2creg.Unregister("pca9548-70-3")
+		i2creg.Unregister("pca9548-70-4")
+		i2creg.Unregister("pca9548-70-5")
+		i2creg.Unregister("pca9548-70-6")
+		i2creg.Unregister("pca9548-70-7")
 	}
 }
 
@@ -177,37 +202,4 @@ func Test_port_String(t *testing.T) {
 	if got != expected {
 		t.Errorf("expected: \n%v but got: \n%v", expected, got)
 	}
-}
-
-func TestDev_Scan(t *testing.T) {
-	tx := []i2ctest.IO{
-		{Addr: 0x70, W: []byte{0x01}, R: []byte{}}, // select port
-		{Addr: 0x01, W: []byte{}, R: []byte{0x00}}, // ack
-		{Addr: 0x02, W: []byte{}, R: []byte{0x00}},
-		{Addr: 0x03, W: []byte{}, R: []byte{0x00}},
-		{Addr: 0x04, W: []byte{}, R: []byte{0x00}},
-	}
-	bus := &i2ctest.Playback{
-		Ops:       tx,
-		DontPanic: true,
-	}
-	host.Init()
-
-	d, err := Register(bus, &DefaultOpts)
-	if err != nil {
-		t.Errorf("failed to open I²C: %v", err)
-	}
-
-	sl := d.Scan()
-	fmt.Printf("%+#v", sl)
-
-	if len(sl["mux-70-0"]) == 0 {
-		t.Errorf("expected list not to be empty")
-	}
-
-	ports := d.ListPortNames()
-	for _, port := range ports {
-		i2creg.Unregister(port)
-	}
-
 }
