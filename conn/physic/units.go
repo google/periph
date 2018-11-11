@@ -107,14 +107,14 @@ const (
 type ElectricCurrent int64
 
 // String returns the current formatted as a string in Ampere.
-func (e ElectricCurrent) String() string {
-	return nanoAsString(int64(e)) + "A"
+func (c ElectricCurrent) String() string {
+	return nanoAsString(int64(c)) + "A"
 }
 
 // Set sets the ElectricCurrent to the value represented by s. Units are to
 // be provided in "Amp", "Amps" or "A" with an optional SI prefix: "p", "n",
 // "u", "µ", "m", "k", "M", "G" or "T".
-func (a *ElectricCurrent) Set(s string) error {
+func (c *ElectricCurrent) Set(s string) error {
 	v, n, err := valueOfUnitString(s, nano)
 	if err != nil {
 		if e, ok := err.(*parseError); ok {
@@ -135,7 +135,7 @@ func (a *ElectricCurrent) Set(s string) error {
 
 	switch strings.ToLower(s[n:]) {
 	case "a", "amp", "amps":
-		*a = (ElectricCurrent)(v)
+		*c = (ElectricCurrent)(v)
 	case "":
 		return noUnits("Amp")
 	default:
@@ -168,14 +168,14 @@ const (
 type ElectricPotential int64
 
 // String returns the tension formatted as a string in Volt.
-func (e ElectricPotential) String() string {
-	return nanoAsString(int64(e)) + "V"
+func (p ElectricPotential) String() string {
+	return nanoAsString(int64(p)) + "V"
 }
 
 // Set sets the ElectricPotential to the value represented by s. Units are to
 // be provided in "Volt", "Volts" or "V" with an optional SI prefix: "p", "n",
 // "u", "µ", "m", "k", "M", "G" or "T".
-func (f *ElectricPotential) Set(s string) error {
+func (p *ElectricPotential) Set(s string) error {
 	v, n, err := valueOfUnitString(s, nano)
 	if err != nil {
 		if e, ok := err.(*parseError); ok {
@@ -195,7 +195,7 @@ func (f *ElectricPotential) Set(s string) error {
 	}
 	switch strings.ToLower(s[n:]) {
 	case "volt", "volts", "v":
-		*f = (ElectricPotential)(v)
+		*p = (ElectricPotential)(v)
 	case "":
 		return noUnits("Volt")
 	default:
@@ -228,8 +228,8 @@ const (
 type ElectricResistance int64
 
 // String returns the resistance formatted as a string in Ohm.
-func (e ElectricResistance) String() string {
-	return nanoAsString(int64(e)) + "Ω"
+func (r ElectricResistance) String() string {
+	return nanoAsString(int64(r)) + "Ω"
 }
 
 // Set sets the ElectricResistance to the value represented by s. Units are to
@@ -494,16 +494,16 @@ const (
 type RelativeHumidity int32
 
 // String returns the humidity formatted as a string.
-func (r RelativeHumidity) String() string {
-	r /= MilliRH
-	frac := int(r % 10)
+func (h RelativeHumidity) String() string {
+	h /= MilliRH
+	frac := int(h % 10)
 	if frac == 0 {
-		return strconv.Itoa(int(r)/10) + "%rH"
+		return strconv.Itoa(int(h)/10) + "%rH"
 	}
 	if frac < 0 {
 		frac = -frac
 	}
-	return strconv.Itoa(int(r)/10) + "." + strconv.Itoa(frac) + "%rH"
+	return strconv.Itoa(int(h)/10) + "." + strconv.Itoa(frac) + "%rH"
 }
 
 const (
@@ -586,7 +586,7 @@ func (p Power) String() string {
 // Set sets the Power to the value represented by s. Units are to
 // be provided in "Watt", "Watts" or "W" with an optional SI prefix: "p",
 // "n", "u", "µ", "m", "k", "M", "G" or "T".
-func (w *Power) Set(s string) error {
+func (p *Power) Set(s string) error {
 	v, n, err := valueOfUnitString(s, nano)
 	if err != nil {
 		if e, ok := err.(*parseError); ok {
@@ -607,7 +607,7 @@ func (w *Power) Set(s string) error {
 
 	switch strings.ToLower(s[n:]) {
 	case "w", "watt", "watts":
-		*w = (Power)(v)
+		*p = (Power)(v)
 	case "":
 		return noUnits("Watt")
 	default:
@@ -647,7 +647,7 @@ func (e Energy) String() string {
 // Set sets the Energy to the value represented by s. Units are to
 // be provided in "Joule", "Joules" or "J" with an optional SI prefix: "p",
 // "n", "u", "µ", "m", "k", "M", "G" or "T".
-func (j *Energy) Set(s string) error {
+func (e *Energy) Set(s string) error {
 	v, n, err := valueOfUnitString(s, nano)
 	if err != nil {
 		if e, ok := err.(*parseError); ok {
@@ -668,7 +668,7 @@ func (j *Energy) Set(s string) error {
 
 	switch strings.ToLower(s[n:]) {
 	case "j", "joule", "joules":
-		*j = (Energy)(v)
+		*e = (Energy)(v)
 	case "":
 		return noUnits("Joule")
 	default:
@@ -708,7 +708,7 @@ func (c ElectricalCapacitance) String() string {
 // Set sets the ElectricalCapacitance to the value represented by s. Units are
 // to be provided in "Farad", "Farads" or "F" with an optional SI prefix: "p",
 // "n", "u", "µ", "m", "k", "M", "G" or "T".
-func (f *ElectricalCapacitance) Set(s string) error {
+func (c *ElectricalCapacitance) Set(s string) error {
 	v, n, err := valueOfUnitString(s, pico)
 	if err != nil {
 		if e, ok := err.(*parseError); ok {
@@ -729,7 +729,7 @@ func (f *ElectricalCapacitance) Set(s string) error {
 
 	switch strings.ToLower(s[n:]) {
 	case "f", "farad", "farads":
-		*f = (ElectricalCapacitance)(v)
+		*c = (ElectricalCapacitance)(v)
 	case "":
 		return noUnits("Farad")
 	default:
@@ -769,14 +769,14 @@ const (
 type LuminousIntensity int64
 
 // String returns the energy formatted as a string in Candela.
-func (l LuminousIntensity) String() string {
-	return nanoAsString(int64(l)) + "cd"
+func (i LuminousIntensity) String() string {
+	return nanoAsString(int64(i)) + "cd"
 }
 
 // Set sets the LuminousIntensity to the value represented by s. Units are to
 // be provided in "Candela", "Candelas" or "cd" with an optional SI prefix: "p",
 // "n", "u", "µ", "m", "k", "M", "G" or "T".
-func (c *LuminousIntensity) Set(s string) error {
+func (i *LuminousIntensity) Set(s string) error {
 	v, n, err := valueOfUnitString(s, nano)
 	if err != nil {
 		if e, ok := err.(*parseError); ok {
@@ -797,7 +797,7 @@ func (c *LuminousIntensity) Set(s string) error {
 
 	switch strings.ToLower(s[n:]) {
 	case "cd", "candela", "candelas":
-		*c = (LuminousIntensity)(v)
+		*i = (LuminousIntensity)(v)
 	case "":
 		return noUnits("Candela")
 	default:
@@ -842,7 +842,7 @@ func (f LuminousFlux) String() string {
 // Set sets the LuminousFlux to the value represented by s. Units are to
 // be provided in "Lumen", "Lumens" or "lm" with an optional SI prefix: "p",
 // "n", "u", "µ", "m", "k", "M", "G" or "T".
-func (l *LuminousFlux) Set(s string) error {
+func (f *LuminousFlux) Set(s string) error {
 	v, n, err := valueOfUnitString(s, nano)
 	if err != nil {
 		if e, ok := err.(*parseError); ok {
@@ -863,7 +863,7 @@ func (l *LuminousFlux) Set(s string) error {
 
 	switch strings.ToLower(s[n:]) {
 	case "lm", "lumen", "lumens":
-		*l = (LuminousFlux)(v)
+		*f = (LuminousFlux)(v)
 	case "":
 		return noUnits("Lumen")
 	default:
