@@ -120,7 +120,7 @@ type Dev struct {
 	c         i2c.Dev
 	name      string
 	dataRates map[int]uint16
-	mu        sync.Mutex
+	mu        sync.Mutex // For executePreparedQuery()
 }
 
 // NewADS1015 creates a new driver for the ADS1015 (12-bit ADC).
@@ -387,14 +387,17 @@ var (
 )
 
 type analogPin struct {
+	// Immutable.
 	adc                *Dev
 	c                  Channel
 	query              [3]byte
 	voltageMultiplier  physic.ElectricPotential
 	waitTime           time.Duration
 	requestedFrequency physic.Frequency
-	stop               chan struct{}
-	mu                 sync.Mutex
+
+	// Mutable.
+	mu   sync.Mutex
+	stop chan struct{}
 }
 
 // Range returns the maximum supported range [min, max] of the values.
@@ -422,15 +425,14 @@ func (p *analogPin) ReadContinuous() <-chan analog.Reading {
 	}
 	reading := make(chan analog.Reading, 16)
 	p.stop = make(chan struct{})
+	t := time.NewTicker(p.requestedFrequency.Duration())
 
-	go func() {
-		t := time.NewTicker(p.requestedFrequency.Duration())
+	go func(s <-chan struct{}) {
 		defer t.Stop()
 		defer close(reading)
-
 		for {
 			select {
-			case <-p.stop:
+			case <-s:
 				return
 			case <-t.C:
 				value, err := p.Read()
@@ -441,7 +443,7 @@ func (p *analogPin) ReadContinuous() <-chan analog.Reading {
 				reading <- value
 			}
 		}
-	}()
+	}(p.stop)
 
 	return reading
 }
