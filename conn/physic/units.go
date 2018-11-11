@@ -155,8 +155,8 @@ func (e ElectricResistance) String() string {
 }
 
 // Set sets the ElectricResistance to the value represented by s. Units are to
-// be provided in "Ohm", "Ohms" or "Ω" with an optional SI prefix: "p", "n", "u"
-// , "µ", "m", "k", "M", "G" or "T".
+// be provided in "Ohm", "Ohms" or "Ω" with an optional SI prefix: "p", "n",
+//  "u", "µ", "m", "k", "M", "G" or "T".
 func (f *ElectricResistance) Set(s string) error {
 	v, n, err := valueOfUnitString(s, nano)
 	if err != nil {
