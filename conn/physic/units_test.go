@@ -987,6 +987,136 @@ func TestElectricPotential_Set(t *testing.T) {
 	}
 }
 
+func TestElectricCurrent_Set(t *testing.T) {
+	succeeds := []struct {
+		in       string
+		expected ElectricCurrent
+	}{
+		{"1nAmp", 1 * NanoAmpere},
+		{"10nAmps", 10 * NanoAmpere},
+		{"100nAmps", 100 * NanoAmpere},
+		{"1uAmp", 1 * MicroAmpere},
+		{"10uAmps", 10 * MicroAmpere},
+		{"100uAmps", 100 * MicroAmpere},
+		{"1µAmp", 1 * MicroAmpere},
+		{"10µAmps", 10 * MicroAmpere},
+		{"100µAmps", 100 * MicroAmpere},
+		{"1mAmp", 1 * MilliAmpere},
+		{"10mAmps", 10 * MilliAmpere},
+		{"100mAmps", 100 * MilliAmpere},
+		{"1Amp", 1 * Ampere},
+		{"10Amps", 10 * Ampere},
+		{"100Amps", 100 * Ampere},
+		{"1kAmp", 1 * KiloAmpere},
+		{"10kAmps", 10 * KiloAmpere},
+		{"100kAmps", 100 * KiloAmpere},
+		{"1MAmp", 1 * MegaAmpere},
+		{"10MAmps", 10 * MegaAmpere},
+		{"100MAmps", 100 * MegaAmpere},
+		{"1GAmp", 1 * GigaAmpere},
+		{"12.345Amps", 12345 * MilliAmpere},
+		{"-12.345Amps", -12345 * MilliAmpere},
+		{"9.223372036854775807GAmps", 9223372036854775807 * NanoAmpere},
+		{"-9.223372036854775807GAmps", -9223372036854775807 * NanoAmpere},
+		{"1A", 1 * Ampere},
+	}
+
+	fails := []struct {
+		in  string
+		err string
+	}{
+		{
+			"10TAmp",
+			"exponent exceeds int64",
+		},
+		{
+			"10EAmp",
+			"contains unknown unit prefix \"E\". valid prefixes for \"Amp\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10ExaAmp",
+			"contains unknown unit prefix \"Exa\". valid prefixes for \"Amp\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10eAmpE",
+			"contains unknown unit prefix \"e\". valid prefixes for \"Amp\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10",
+			"no units provided, need Amp",
+		},
+		{
+			"922337203685477580",
+			"maximum value is 9.223GA",
+		},
+		{
+			"-922337203685477580",
+			"minimum value is -9.223GA",
+		},
+		{
+			"9.223372036854775808GAmp",
+			"maximum value is 9.223GA",
+		},
+		{
+			"-9.223372036854775808GAmp",
+			"minimum value is -9.223GA",
+		},
+		{
+			"9.223372036854775808GAmp",
+			"maximum value is 9.223GA",
+		},
+		{
+			"-9.223372036854775808GAmp",
+			"minimum value is -9.223GA",
+		},
+		{
+			"1junk",
+			"\"junk\" is not a valid unit for physic.ElectricCurrent",
+		},
+		{
+			"Amp",
+			"does not contain number",
+		},
+		{
+			"RPM",
+			"does not contain number or unit \"Amp\"",
+		},
+		{
+			"++1Amp",
+			"multiple plus symbols ++1Amp",
+		},
+		{
+			"--1Amp",
+			"multiple minus symbols --1Amp",
+		},
+		{
+			"+-1Amp",
+			"can't contain both plus and minus symbols +-1Amp",
+		},
+		{
+			"1.1.1.1Amp",
+			"multiple decimal points 1.1.1.1Amp",
+		},
+	}
+
+	for _, tt := range succeeds {
+		var got ElectricCurrent
+		if err := got.Set(tt.in); err != nil {
+			t.Errorf("ElectricCurrent.Set(%s) unexpected error: %v", tt.in, err)
+		}
+		if got != tt.expected {
+			t.Errorf("ElectricCurrent.Set(%s) wanted: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+		}
+	}
+
+	for _, tt := range fails {
+		var got ElectricCurrent
+		if err := got.Set(tt.in); err.Error() != tt.err {
+			t.Errorf("ElectricCurrent.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+		}
+	}
+}
+
 func TestElectricResistance_Set(t *testing.T) {
 	succeeds := []struct {
 		in       string
@@ -1054,7 +1184,7 @@ func TestElectricResistance_Set(t *testing.T) {
 			"minimum value is -9.223GΩ",
 		},
 		{
-			"9.223372036854775808TOhm",
+			"9.223372036854775808GOhm",
 			"maximum value is 9.223GΩ",
 		},
 		{
@@ -1242,6 +1372,786 @@ func TestFrequency_Set(t *testing.T) {
 		var got Frequency
 		if err := got.Set(tt.in); err.Error() != tt.err {
 			t.Errorf("Frequency.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+		}
+	}
+}
+
+func TestPressure_Set(t *testing.T) {
+	succeeds := []struct {
+		in       string
+		expected Pressure
+	}{
+		{"1nPascal", 1 * NanoPascal},
+		{"10nPascals", 10 * NanoPascal},
+		{"100nPascals", 100 * NanoPascal},
+		{"1uPascal", 1 * MicroPascal},
+		{"10uPascals", 10 * MicroPascal},
+		{"100uPascals", 100 * MicroPascal},
+		{"1µPascal", 1 * MicroPascal},
+		{"10µPascals", 10 * MicroPascal},
+		{"100µPascals", 100 * MicroPascal},
+		{"1mPascal", 1 * MilliPascal},
+		{"10mPascals", 10 * MilliPascal},
+		{"100mPascals", 100 * MilliPascal},
+		{"1Pascal", 1 * Pascal},
+		{"10Pascals", 10 * Pascal},
+		{"100Pascals", 100 * Pascal},
+		{"1kPascal", 1 * KiloPascal},
+		{"10kPascals", 10 * KiloPascal},
+		{"100kPascals", 100 * KiloPascal},
+		{"1MPascal", 1 * MegaPascal},
+		{"10MPascals", 10 * MegaPascal},
+		{"100MPascals", 100 * MegaPascal},
+		{"1GPascal", 1 * GigaPascal},
+		{"12.345Pascals", 12345 * MilliPascal},
+		{"-12.345Pascals", -12345 * MilliPascal},
+		{"9.223372036854775807GPascals", 9223372036854775807 * NanoPascal},
+		{"-9.223372036854775807GPascals", -9223372036854775807 * NanoPascal},
+		{"1MPa", 1 * MegaPascal},
+	}
+
+	fails := []struct {
+		in  string
+		err string
+	}{
+		{
+			"10TPascal",
+			"exponent exceeds int64",
+		},
+		{
+			"10EPascal",
+			"contains unknown unit prefix \"E\". valid prefixes for \"Pascal\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10ExaPascal",
+			"contains unknown unit prefix \"Exa\". valid prefixes for \"Pascal\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10ePascalE",
+			"contains unknown unit prefix \"e\". valid prefixes for \"Pascal\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10",
+			"no units provided, need Pascal",
+		},
+		{
+			"9223372036854775808",
+			"maximum value is 9.223GPa",
+		},
+		{
+			"-9223372036854775808",
+			"minimum value is -9.223GPa",
+		},
+		{
+			"9.223372036854775808GPascal",
+			"maximum value is 9.223GPa",
+		},
+		{
+			"-9.223372036854775808GPascal",
+			"minimum value is -9.223GPa",
+		},
+		{
+			"9.223372036854775808GPascal",
+			"maximum value is 9.223GPa",
+		},
+		{
+			"-9.223372036854775808GPascal",
+			"minimum value is -9.223GPa",
+		},
+		{
+			"1random",
+			"\"random\" is not a valid unit for physic.Pressure",
+		},
+		{
+			"Pascal",
+			"does not contain number",
+		},
+		{
+			"RPM",
+			"does not contain number or unit \"Pascal\"",
+		},
+		{
+			"++1Pascal",
+			"multiple plus symbols ++1Pascal",
+		},
+		{
+			"--1Pascal",
+			"multiple minus symbols --1Pascal",
+		},
+		{
+			"+-1Pascal",
+			"can't contain both plus and minus symbols +-1Pascal",
+		},
+		{
+			"1.1.1.1Pascal",
+			"multiple decimal points 1.1.1.1Pascal",
+		},
+	}
+
+	for _, tt := range succeeds {
+		var got Pressure
+		if err := got.Set(tt.in); err != nil {
+			t.Errorf("Pressure.Set(%s) got unexpected error: %v", tt.in, err)
+		}
+		if got != tt.expected {
+			t.Errorf("Pressure.Set(%s) expected: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+		}
+	}
+
+	for _, tt := range fails {
+		var got Pressure
+		if err := got.Set(tt.in); err.Error() != tt.err {
+			t.Errorf("Pressure.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+		}
+	}
+}
+
+func TestPower_Set(t *testing.T) {
+	succeeds := []struct {
+		in       string
+		expected Power
+	}{
+		{"1nWatt", 1 * NanoWatt},
+		{"10nWatts", 10 * NanoWatt},
+		{"100nWatts", 100 * NanoWatt},
+		{"1uWatt", 1 * MicroWatt},
+		{"10uWatts", 10 * MicroWatt},
+		{"100uWatts", 100 * MicroWatt},
+		{"1µWatt", 1 * MicroWatt},
+		{"10µWatts", 10 * MicroWatt},
+		{"100µWatts", 100 * MicroWatt},
+		{"1mWatt", 1 * MilliWatt},
+		{"10mWatts", 10 * MilliWatt},
+		{"100mWatts", 100 * MilliWatt},
+		{"1Watt", 1 * Watt},
+		{"10Watts", 10 * Watt},
+		{"100Watts", 100 * Watt},
+		{"1kWatt", 1 * KiloWatt},
+		{"10kWatts", 10 * KiloWatt},
+		{"100kWatts", 100 * KiloWatt},
+		{"1MWatt", 1 * MegaWatt},
+		{"10MWatts", 10 * MegaWatt},
+		{"100MWatts", 100 * MegaWatt},
+		{"1GWatt", 1 * GigaWatt},
+		{"12.345Watts", 12345 * MilliWatt},
+		{"-12.345Watts", -12345 * MilliWatt},
+		{"9.223372036854775807GWatts", 9223372036854775807 * NanoWatt},
+		{"-9.223372036854775807GWatts", -9223372036854775807 * NanoWatt},
+		{"1MW", 1 * MegaWatt},
+	}
+
+	fails := []struct {
+		in  string
+		err string
+	}{
+		{
+			"10TWatt",
+			"exponent exceeds int64",
+		},
+		{
+			"10EWatt",
+			"contains unknown unit prefix \"E\". valid prefixes for \"Watt\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10ExaWatt",
+			"contains unknown unit prefix \"Exa\". valid prefixes for \"Watt\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10eWattE",
+			"contains unknown unit prefix \"e\". valid prefixes for \"Watt\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10",
+			"no units provided, need Watt",
+		},
+		{
+			"9223372036854775808",
+			"maximum value is 9.223GW",
+		},
+		{
+			"-9223372036854775808",
+			"minimum value is -9.223GW",
+		},
+		{
+			"9.223372036854775808GWatt",
+			"maximum value is 9.223GW",
+		},
+		{
+			"-9.223372036854775808GWatt",
+			"minimum value is -9.223GW",
+		},
+		{
+			"9.223372036854775808GWatt",
+			"maximum value is 9.223GW",
+		},
+		{
+			"-9.223372036854775808GWatt",
+			"minimum value is -9.223GW",
+		},
+		{
+			"1random",
+			"\"random\" is not a valid unit for physic.Power",
+		},
+		{
+			"Watt",
+			"does not contain number",
+		},
+		{
+			"RPM",
+			"does not contain number or unit \"Watt\"",
+		},
+		{
+			"++1Watt",
+			"multiple plus symbols ++1Watt",
+		},
+		{
+			"--1Watt",
+			"multiple minus symbols --1Watt",
+		},
+		{
+			"+-1Watt",
+			"can't contain both plus and minus symbols +-1Watt",
+		},
+		{
+			"1.1.1.1Watt",
+			"multiple decimal points 1.1.1.1Watt",
+		},
+	}
+
+	for _, tt := range succeeds {
+		var got Power
+		if err := got.Set(tt.in); err != nil {
+			t.Errorf("Power.Set(%s) got unexpected error: %v", tt.in, err)
+		}
+		if got != tt.expected {
+			t.Errorf("Power.Set(%s) expected: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+		}
+	}
+
+	for _, tt := range fails {
+		var got Power
+		if err := got.Set(tt.in); err.Error() != tt.err {
+			t.Errorf("Power.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+		}
+	}
+}
+
+func TestEnergy_Set(t *testing.T) {
+	succeeds := []struct {
+		in       string
+		expected Energy
+	}{
+		{"1nJoule", 1 * NanoJoule},
+		{"10nJoules", 10 * NanoJoule},
+		{"100nJoules", 100 * NanoJoule},
+		{"1uJoule", 1 * MicroJoule},
+		{"10uJoules", 10 * MicroJoule},
+		{"100uJoules", 100 * MicroJoule},
+		{"1µJoule", 1 * MicroJoule},
+		{"10µJoules", 10 * MicroJoule},
+		{"100µJoules", 100 * MicroJoule},
+		{"1mJoule", 1 * MilliJoule},
+		{"10mJoules", 10 * MilliJoule},
+		{"100mJoules", 100 * MilliJoule},
+		{"1Joule", 1 * Joule},
+		{"10Joules", 10 * Joule},
+		{"100Joules", 100 * Joule},
+		{"1kJoule", 1 * KiloJoule},
+		{"10kJoules", 10 * KiloJoule},
+		{"100kJoules", 100 * KiloJoule},
+		{"1MJoule", 1 * MegaJoule},
+		{"10MJoules", 10 * MegaJoule},
+		{"100MJoules", 100 * MegaJoule},
+		{"1GJoule", 1 * GigaJoule},
+		{"12.345Joules", 12345 * MilliJoule},
+		{"-12.345Joules", -12345 * MilliJoule},
+		{"9.223372036854775807GJoules", 9223372036854775807 * NanoJoule},
+		{"-9.223372036854775807GJoules", -9223372036854775807 * NanoJoule},
+		{"1MJ", 1 * MegaJoule},
+	}
+
+	fails := []struct {
+		in  string
+		err string
+	}{
+		{
+			"10TJoule",
+			"exponent exceeds int64",
+		},
+		{
+			"10EJoule",
+			"contains unknown unit prefix \"E\". valid prefixes for \"Joule\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10ExaJoule",
+			"contains unknown unit prefix \"Exa\". valid prefixes for \"Joule\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10eJouleE",
+			"contains unknown unit prefix \"e\". valid prefixes for \"Joule\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10",
+			"no units provided, need Joule",
+		},
+		{
+			"9223372036854775808",
+			"maximum value is 9.223GJ",
+		},
+		{
+			"-9223372036854775808",
+			"minimum value is -9.223GJ",
+		},
+		{
+			"9.223372036854775808GJoule",
+			"maximum value is 9.223GJ",
+		},
+		{
+			"-9.223372036854775808GJoule",
+			"minimum value is -9.223GJ",
+		},
+		{
+			"9.223372036854775808GJoule",
+			"maximum value is 9.223GJ",
+		},
+		{
+			"-9.223372036854775808GJoule",
+			"minimum value is -9.223GJ",
+		},
+		{
+			"1random",
+			"\"random\" is not a valid unit for physic.Energy",
+		},
+		{
+			"Joule",
+			"does not contain number",
+		},
+		{
+			"RPM",
+			"does not contain number or unit \"Joule\"",
+		},
+		{
+			"++1Joule",
+			"multiple plus symbols ++1Joule",
+		},
+		{
+			"--1Joule",
+			"multiple minus symbols --1Joule",
+		},
+		{
+			"+-1Joule",
+			"can't contain both plus and minus symbols +-1Joule",
+		},
+		{
+			"1.1.1.1Joule",
+			"multiple decimal points 1.1.1.1Joule",
+		},
+	}
+
+	for _, tt := range succeeds {
+		var got Energy
+		if err := got.Set(tt.in); err != nil {
+			t.Errorf("Energy.Set(%s) got unexpected error: %v", tt.in, err)
+		}
+		if got != tt.expected {
+			t.Errorf("Energy.Set(%s) expected: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+		}
+	}
+
+	for _, tt := range fails {
+		var got Energy
+		if err := got.Set(tt.in); err.Error() != tt.err {
+			t.Errorf("Energy.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+		}
+	}
+}
+
+func TestElectricalCapacitance_Set(t *testing.T) {
+	succeeds := []struct {
+		in       string
+		expected ElectricalCapacitance
+	}{
+		{"1pFarad", 1 * PicoFarad},
+		{"10pFarads", 10 * PicoFarad},
+		{"100pFarads", 100 * PicoFarad},
+		{"1nFarad", 1 * NanoFarad},
+		{"10nFarads", 10 * NanoFarad},
+		{"100nFarads", 100 * NanoFarad},
+		{"1uFarad", 1 * MicroFarad},
+		{"10uFarads", 10 * MicroFarad},
+		{"100uFarads", 100 * MicroFarad},
+		{"1µFarad", 1 * MicroFarad},
+		{"10µFarads", 10 * MicroFarad},
+		{"100µFarads", 100 * MicroFarad},
+		{"1mFarad", 1 * MilliFarad},
+		{"10mFarads", 10 * MilliFarad},
+		{"100mFarads", 100 * MilliFarad},
+		{"1Farad", 1 * Farad},
+		{"10Farads", 10 * Farad},
+		{"100Farads", 100 * Farad},
+		{"1kFarad", 1 * KiloFarad},
+		{"10kFarads", 10 * KiloFarad},
+		{"100kFarads", 100 * KiloFarad},
+		{"1MFarad", 1 * MegaFarad},
+		{"12.345Farads", 12345 * MilliFarad},
+		{"-12.345Farads", -12345 * MilliFarad},
+		{"9.223372036854775807MFarads", 9223372036854775807 * PicoFarad},
+		{"-9.223372036854775807MFarads", -9223372036854775807 * PicoFarad},
+		{"1MF", 1 * MegaFarad},
+	}
+
+	fails := []struct {
+		in  string
+		err string
+	}{
+		{
+			"10TFarad",
+			"exponent exceeds int64",
+		},
+		{
+			"10EFarad",
+			"contains unknown unit prefix \"E\". valid prefixes for \"Farad\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10ExaFarad",
+			"contains unknown unit prefix \"Exa\". valid prefixes for \"Farad\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10eFaradE",
+			"contains unknown unit prefix \"e\". valid prefixes for \"Farad\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10",
+			"no units provided, need Farad",
+		},
+		{
+			"9223372036854775808",
+			"maximum value is 9.223MF",
+		},
+		{
+			"-9223372036854775808",
+			"minimum value is -9.223MF",
+		},
+		{
+			"9.223372036854775808MFarad",
+			"maximum value is 9.223MF",
+		},
+		{
+			"-9.223372036854775808MFarad",
+			"minimum value is -9.223MF",
+		},
+		{
+			"9.223372036854775808MFarad",
+			"maximum value is 9.223MF",
+		},
+		{
+			"-9.223372036854775808MFarad",
+			"minimum value is -9.223MF",
+		},
+		{
+			"1random",
+			"\"random\" is not a valid unit for physic.ElectricalCapacitance",
+		},
+		{
+			"Farad",
+			"does not contain number",
+		},
+		{
+			"RPM",
+			"does not contain number or unit \"Farad\"",
+		},
+		{
+			"++1Farad",
+			"multiple plus symbols ++1Farad",
+		},
+		{
+			"--1Farad",
+			"multiple minus symbols --1Farad",
+		},
+		{
+			"+-1Farad",
+			"can't contain both plus and minus symbols +-1Farad",
+		},
+		{
+			"1.1.1.1Farad",
+			"multiple decimal points 1.1.1.1Farad",
+		},
+	}
+
+	for _, tt := range succeeds {
+		var got ElectricalCapacitance
+		if err := got.Set(tt.in); err != nil {
+			t.Errorf("ElectricalCapacitance.Set(%s) got unexpected error: %v", tt.in, err)
+		}
+		if got != tt.expected {
+			t.Errorf("ElectricalCapacitance.Set(%s) expected: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+		}
+	}
+
+	for _, tt := range fails {
+		var got ElectricalCapacitance
+		if err := got.Set(tt.in); err.Error() != tt.err {
+			t.Errorf("ElectricalCapacitance.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+		}
+	}
+}
+
+func TestLuminousIntensity_Set(t *testing.T) {
+	succeeds := []struct {
+		in       string
+		expected LuminousIntensity
+	}{
+		{"1nCandela", 1 * NanoCandela},
+		{"10nCandelas", 10 * NanoCandela},
+		{"100nCandelas", 100 * NanoCandela},
+		{"1uCandela", 1 * MicroCandela},
+		{"10uCandelas", 10 * MicroCandela},
+		{"100uCandelas", 100 * MicroCandela},
+		{"1µCandela", 1 * MicroCandela},
+		{"10µCandelas", 10 * MicroCandela},
+		{"100µCandelas", 100 * MicroCandela},
+		{"1mCandela", 1 * MilliCandela},
+		{"10mCandelas", 10 * MilliCandela},
+		{"100mCandelas", 100 * MilliCandela},
+		{"1Candela", 1 * Candela},
+		{"10Candelas", 10 * Candela},
+		{"100Candelas", 100 * Candela},
+		{"1kCandela", 1 * KiloCandela},
+		{"10kCandelas", 10 * KiloCandela},
+		{"100kCandelas", 100 * KiloCandela},
+		{"1MCandela", 1 * MegaCandela},
+		{"10MCandelas", 10 * MegaCandela},
+		{"100MCandelas", 100 * MegaCandela},
+		{"1GCandela", 1 * GigaCandela},
+		{"12.345Candelas", 12345 * MilliCandela},
+		{"-12.345Candelas", -12345 * MilliCandela},
+		{"9.223372036854775807GCandelas", 9223372036854775807 * NanoCandela},
+		{"-9.223372036854775807GCandelas", -9223372036854775807 * NanoCandela},
+		{"1Mcd", 1 * MegaCandela},
+	}
+
+	fails := []struct {
+		in  string
+		err string
+	}{
+		{
+			"10TCandela",
+			"exponent exceeds int64",
+		},
+		{
+			"10ECandela",
+			"contains unknown unit prefix \"E\". valid prefixes for \"Candela\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10ExaCandela",
+			"contains unknown unit prefix \"Exa\". valid prefixes for \"Candela\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10eCandelaE",
+			"contains unknown unit prefix \"e\". valid prefixes for \"Candela\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10",
+			"no units provided, need Candela",
+		},
+		{
+			"9223372036854775808",
+			"maximum value is 9.223Gcd",
+		},
+		{
+			"-9223372036854775808",
+			"minimum value is -9.223Gcd",
+		},
+		{
+			"9.223372036854775808GCandela",
+			"maximum value is 9.223Gcd",
+		},
+		{
+			"-9.223372036854775808GCandela",
+			"minimum value is -9.223Gcd",
+		},
+		{
+			"9.223372036854775808GCandela",
+			"maximum value is 9.223Gcd",
+		},
+		{
+			"-9.223372036854775808GCandela",
+			"minimum value is -9.223Gcd",
+		},
+		{
+			"1random",
+			"\"random\" is not a valid unit for physic.LuminousIntensity",
+		},
+		{
+			"Candela",
+			"does not contain number",
+		},
+		{
+			"RPM",
+			"does not contain number or unit \"Candela\"",
+		},
+		{
+			"++1Candela",
+			"multiple plus symbols ++1Candela",
+		},
+		{
+			"--1Candela",
+			"multiple minus symbols --1Candela",
+		},
+		{
+			"+-1Candela",
+			"can't contain both plus and minus symbols +-1Candela",
+		},
+		{
+			"1.1.1.1Candela",
+			"multiple decimal points 1.1.1.1Candela",
+		},
+	}
+
+	for _, tt := range succeeds {
+		var got LuminousIntensity
+		if err := got.Set(tt.in); err != nil {
+			t.Errorf("LuminousIntensity.Set(%s) got unexpected error: %v", tt.in, err)
+		}
+		if got != tt.expected {
+			t.Errorf("LuminousIntensity.Set(%s) expected: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+		}
+	}
+
+	for _, tt := range fails {
+		var got LuminousIntensity
+		if err := got.Set(tt.in); err.Error() != tt.err {
+			t.Errorf("LuminousIntensity.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+		}
+	}
+}
+
+func TestLuminousFlux_Set(t *testing.T) {
+	succeeds := []struct {
+		in       string
+		expected LuminousFlux
+	}{
+		{"1nLumen", 1 * NanoLumen},
+		{"10nLumens", 10 * NanoLumen},
+		{"100nLumens", 100 * NanoLumen},
+		{"1uLumen", 1 * MicroLumen},
+		{"10uLumens", 10 * MicroLumen},
+		{"100uLumens", 100 * MicroLumen},
+		{"1µLumen", 1 * MicroLumen},
+		{"10µLumens", 10 * MicroLumen},
+		{"100µLumens", 100 * MicroLumen},
+		{"1mLumen", 1 * MilliLumen},
+		{"10mLumens", 10 * MilliLumen},
+		{"100mLumens", 100 * MilliLumen},
+		{"1Lumen", 1 * Lumen},
+		{"10Lumens", 10 * Lumen},
+		{"100Lumens", 100 * Lumen},
+		{"1kLumen", 1 * KiloLumen},
+		{"10kLumens", 10 * KiloLumen},
+		{"100kLumens", 100 * KiloLumen},
+		{"1MLumen", 1 * MegaLumen},
+		{"10MLumens", 10 * MegaLumen},
+		{"100MLumens", 100 * MegaLumen},
+		{"1GLumen", 1 * GigaLumen},
+		{"12.345Lumens", 12345 * MilliLumen},
+		{"-12.345Lumens", -12345 * MilliLumen},
+		{"9.223372036854775807GLumens", 9223372036854775807 * NanoLumen},
+		{"-9.223372036854775807GLumens", -9223372036854775807 * NanoLumen},
+		{"1Mlm", 1 * MegaLumen},
+	}
+
+	fails := []struct {
+		in  string
+		err string
+	}{
+		{
+			"10TLumen",
+			"exponent exceeds int64",
+		},
+		{
+			"10ELumen",
+			"contains unknown unit prefix \"E\". valid prefixes for \"Lumen\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10ExaLumen",
+			"contains unknown unit prefix \"Exa\". valid prefixes for \"Lumen\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10eLumenE",
+			"contains unknown unit prefix \"e\". valid prefixes for \"Lumen\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10",
+			"no units provided, need Lumen",
+		},
+		{
+			"9223372036854775808",
+			"maximum value is 9.223Glm",
+		},
+		{
+			"-9223372036854775808",
+			"minimum value is -9.223Glm",
+		},
+		{
+			"9.223372036854775808GLumen",
+			"maximum value is 9.223Glm",
+		},
+		{
+			"-9.223372036854775808GLumen",
+			"minimum value is -9.223Glm",
+		},
+		{
+			"9.223372036854775808GLumen",
+			"maximum value is 9.223Glm",
+		},
+		{
+			"-9.223372036854775808GLumen",
+			"minimum value is -9.223Glm",
+		},
+		{
+			"1random",
+			"\"random\" is not a valid unit for physic.LuminousFlux",
+		},
+		{
+			"Lumen",
+			"does not contain number",
+		},
+		{
+			"RPM",
+			"does not contain number or unit \"Lumen\"",
+		},
+		{
+			"++1Lumen",
+			"multiple plus symbols ++1Lumen",
+		},
+		{
+			"--1Lumen",
+			"multiple minus symbols --1Lumen",
+		},
+		{
+			"+-1Lumen",
+			"can't contain both plus and minus symbols +-1Lumen",
+		},
+		{
+			"1.1.1.1Lumen",
+			"multiple decimal points 1.1.1.1Lumen",
+		},
+	}
+
+	for _, tt := range succeeds {
+		var got LuminousFlux
+		if err := got.Set(tt.in); err != nil {
+			t.Errorf("LuminousFlux.Set(%s) got unexpected error: %v", tt.in, err)
+		}
+		if got != tt.expected {
+			t.Errorf("LuminousFlux.Set(%s) expected: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+		}
+	}
+
+	for _, tt := range fails {
+		var got LuminousFlux
+		if err := got.Set(tt.in); err.Error() != tt.err {
+			t.Errorf("LuminousFlux.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
 		}
 	}
 }

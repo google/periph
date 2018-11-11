@@ -107,8 +107,45 @@ const (
 type ElectricCurrent int64
 
 // String returns the current formatted as a string in Ampere.
-func (e ElectricCurrent) String() string {
-	return nanoAsString(int64(e)) + "A"
+func (c ElectricCurrent) String() string {
+	return nanoAsString(int64(c)) + "A"
+}
+
+// Set sets the ElectricCurrent to the value represented by s. Units are to
+// be provided in "Amp", "Amps" or "A" with an optional SI prefix: "p", "n",
+// "u", "µ", "m", "k", "M", "G" or "T".
+func (c *ElectricCurrent) Set(s string) error {
+	v, n, err := valueOfUnitString(s, nano)
+	if err != nil {
+		if e, ok := err.(*parseError); ok {
+			switch e.err {
+			case errOverflowsInt64:
+				return errors.New("maximum value is " + maxElectricCurrent.String())
+			case errOverflowsInt64Negative:
+				return errors.New("minimum value is " + minElectricCurrent.String())
+			case errNotANumber:
+				if found, _ := containsUnitString(s, "Amps", "Amp", "A"); found != "" {
+					return errors.New("does not contain number")
+				}
+				return errors.New("does not contain number or unit \"Amp\"")
+			}
+		}
+		return err
+	}
+
+	switch strings.ToLower(s[n:]) {
+	case "a", "amp", "amps":
+		*c = (ElectricCurrent)(v)
+	case "":
+		return noUnits("Amp")
+	default:
+		if found, extra := containsUnitString(s[n:], "Amps", "Amp", "A"); found != "" {
+			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
+		}
+		return incorrectUnit(s[n:], "physic.ElectricCurrent")
+	}
+
+	return nil
 }
 
 const (
@@ -119,6 +156,9 @@ const (
 	KiloAmpere  ElectricCurrent = 1000 * Ampere
 	MegaAmpere  ElectricCurrent = 1000 * KiloAmpere
 	GigaAmpere  ElectricCurrent = 1000 * MegaAmpere
+
+	maxElectricCurrent = 9223372036854775807 * NanoAmpere
+	minElectricCurrent = -9223372036854775807 * NanoAmpere
 )
 
 // ElectricPotential is a measurement of electric potential stored as an int64
@@ -128,14 +168,14 @@ const (
 type ElectricPotential int64
 
 // String returns the tension formatted as a string in Volt.
-func (e ElectricPotential) String() string {
-	return nanoAsString(int64(e)) + "V"
+func (p ElectricPotential) String() string {
+	return nanoAsString(int64(p)) + "V"
 }
 
 // Set sets the ElectricPotential to the value represented by s. Units are to
 // be provided in "Volt", "Volts" or "V" with an optional SI prefix: "p", "n",
 // "u", "µ", "m", "k", "M", "G" or "T".
-func (f *ElectricPotential) Set(s string) error {
+func (p *ElectricPotential) Set(s string) error {
 	v, n, err := valueOfUnitString(s, nano)
 	if err != nil {
 		if e, ok := err.(*parseError); ok {
@@ -155,7 +195,7 @@ func (f *ElectricPotential) Set(s string) error {
 	}
 	switch strings.ToLower(s[n:]) {
 	case "volt", "volts", "v":
-		*f = (ElectricPotential)(v)
+		*p = (ElectricPotential)(v)
 	case "":
 		return noUnits("Volt")
 	default:
@@ -188,14 +228,14 @@ const (
 type ElectricResistance int64
 
 // String returns the resistance formatted as a string in Ohm.
-func (e ElectricResistance) String() string {
-	return nanoAsString(int64(e)) + "Ω"
+func (r ElectricResistance) String() string {
+	return nanoAsString(int64(r)) + "Ω"
 }
 
 // Set sets the ElectricResistance to the value represented by s. Units are to
 // be provided in "Ohm", "Ohms" or "Ω" with an optional SI prefix: "p", "n",
 // "u", "µ", "m", "k", "M", "G" or "T".
-func (f *ElectricResistance) Set(s string) error {
+func (r *ElectricResistance) Set(s string) error {
 	v, n, err := valueOfUnitString(s, nano)
 	if err != nil {
 		if e, ok := err.(*parseError); ok {
@@ -215,11 +255,11 @@ func (f *ElectricResistance) Set(s string) error {
 	}
 
 	if rest := s[n:]; rest == "Ω" {
-		*f = (ElectricResistance)(v)
+		*r = (ElectricResistance)(v)
 	} else {
 		switch strings.ToLower(rest) {
 		case "ohm", "ohms":
-			*f = (ElectricResistance)(v)
+			*r = (ElectricResistance)(v)
 		case "":
 			return noUnits("Ohm")
 		default:
@@ -396,6 +436,43 @@ func (p Pressure) String() string {
 	return nanoAsString(int64(p)) + "Pa"
 }
 
+// Set sets the Pressure to the value represented by s. Units are to
+// be provided in "Pascal", "Pascals" or "Pa" with an optional SI prefix: "p",
+// "n", "u", "µ", "m", "k", "M", "G" or "T".
+func (p *Pressure) Set(s string) error {
+	v, n, err := valueOfUnitString(s, nano)
+	if err != nil {
+		if e, ok := err.(*parseError); ok {
+			switch e.err {
+			case errOverflowsInt64:
+				return errors.New("maximum value is " + maxPressure.String())
+			case errOverflowsInt64Negative:
+				return errors.New("minimum value is " + minPressure.String())
+			case errNotANumber:
+				if found, _ := containsUnitString(s, "Pascals", "Pascal", "Pa"); found != "" {
+					return errors.New("does not contain number")
+				}
+				return errors.New("does not contain number or unit \"Pascal\"")
+			}
+		}
+		return err
+	}
+
+	switch strings.ToLower(s[n:]) {
+	case "pa", "pascal", "pascals":
+		*p = (Pressure)(v)
+	case "":
+		return noUnits("Pascal")
+	default:
+		if found, extra := containsUnitString(s[n:], "Pascals", "Pascal", "Pa"); found != "" {
+			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
+		}
+		return incorrectUnit(s[n:], "physic.Pressure")
+	}
+
+	return nil
+}
+
 const (
 	// Pascal is N/m², kg/m/s².
 	NanoPascal  Pressure = 1
@@ -405,6 +482,9 @@ const (
 	KiloPascal  Pressure = 1000 * Pascal
 	MegaPascal  Pressure = 1000 * KiloPascal
 	GigaPascal  Pressure = 1000 * MegaPascal
+
+	maxPressure = 9223372036854775807 * NanoPascal
+	minPressure = -9223372036854775807 * NanoPascal
 )
 
 // RelativeHumidity is a humidity level measurement stored as an int32 fixed
@@ -414,16 +494,16 @@ const (
 type RelativeHumidity int32
 
 // String returns the humidity formatted as a string.
-func (r RelativeHumidity) String() string {
-	r /= MilliRH
-	frac := int(r % 10)
+func (h RelativeHumidity) String() string {
+	h /= MilliRH
+	frac := int(h % 10)
 	if frac == 0 {
-		return strconv.Itoa(int(r)/10) + "%rH"
+		return strconv.Itoa(int(h)/10) + "%rH"
 	}
 	if frac < 0 {
 		frac = -frac
 	}
-	return strconv.Itoa(int(r)/10) + "." + strconv.Itoa(frac) + "%rH"
+	return strconv.Itoa(int(h)/10) + "." + strconv.Itoa(frac) + "%rH"
 }
 
 const (
@@ -503,6 +583,43 @@ func (p Power) String() string {
 	return nanoAsString(int64(p)) + "W"
 }
 
+// Set sets the Power to the value represented by s. Units are to
+// be provided in "Watt", "Watts" or "W" with an optional SI prefix: "p",
+// "n", "u", "µ", "m", "k", "M", "G" or "T".
+func (p *Power) Set(s string) error {
+	v, n, err := valueOfUnitString(s, nano)
+	if err != nil {
+		if e, ok := err.(*parseError); ok {
+			switch e.err {
+			case errOverflowsInt64:
+				return errors.New("maximum value is " + maxPower.String())
+			case errOverflowsInt64Negative:
+				return errors.New("minimum value is " + minPower.String())
+			case errNotANumber:
+				if found, _ := containsUnitString(s, "Watts", "Watt", "W"); found != "" {
+					return errors.New("does not contain number")
+				}
+				return errors.New("does not contain number or unit \"Watt\"")
+			}
+		}
+		return err
+	}
+
+	switch strings.ToLower(s[n:]) {
+	case "w", "watt", "watts":
+		*p = (Power)(v)
+	case "":
+		return noUnits("Watt")
+	default:
+		if found, extra := containsUnitString(s[n:], "Watts", "Watt", "W"); found != "" {
+			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
+		}
+		return incorrectUnit(s[n:], "physic.Power")
+	}
+
+	return nil
+}
+
 const (
 	// Watt is unit of power J/s, kg⋅m²⋅s⁻³
 	NanoWatt  Power = 1
@@ -512,6 +629,9 @@ const (
 	KiloWatt  Power = 1000 * Watt
 	MegaWatt  Power = 1000 * KiloWatt
 	GigaWatt  Power = 1000 * MegaWatt
+
+	maxPower = 9223372036854775807 * NanoWatt
+	minPower = -9223372036854775807 * NanoWatt
 )
 
 // Energy is a measurement of work stored as a nano joules.
@@ -524,6 +644,43 @@ func (e Energy) String() string {
 	return nanoAsString(int64(e)) + "J"
 }
 
+// Set sets the Energy to the value represented by s. Units are to
+// be provided in "Joule", "Joules" or "J" with an optional SI prefix: "p",
+// "n", "u", "µ", "m", "k", "M", "G" or "T".
+func (e *Energy) Set(s string) error {
+	v, n, err := valueOfUnitString(s, nano)
+	if err != nil {
+		if e, ok := err.(*parseError); ok {
+			switch e.err {
+			case errOverflowsInt64:
+				return errors.New("maximum value is " + maxEnergy.String())
+			case errOverflowsInt64Negative:
+				return errors.New("minimum value is " + minEnergy.String())
+			case errNotANumber:
+				if found, _ := containsUnitString(s, "Joules", "Joule", "J"); found != "" {
+					return errors.New("does not contain number")
+				}
+				return errors.New("does not contain number or unit \"Joule\"")
+			}
+		}
+		return err
+	}
+
+	switch strings.ToLower(s[n:]) {
+	case "j", "joule", "joules":
+		*e = (Energy)(v)
+	case "":
+		return noUnits("Joule")
+	default:
+		if found, extra := containsUnitString(s[n:], "Joules", "Joule", "J"); found != "" {
+			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
+		}
+		return incorrectUnit(s[n:], "physic.Energy")
+	}
+
+	return nil
+}
+
 const (
 	// Joule is a unit of work. kg⋅m²⋅s⁻²
 	NanoJoule  Energy = 1
@@ -533,6 +690,9 @@ const (
 	KiloJoule  Energy = 1000 * Joule
 	MegaJoule  Energy = 1000 * KiloJoule
 	GigaJoule  Energy = 1000 * MegaJoule
+
+	maxEnergy = 9223372036854775807 * NanoJoule
+	minEnergy = -9223372036854775807 * NanoJoule
 )
 
 // ElectricalCapacitance is a measurement of capacitance stored as a pico farad.
@@ -545,6 +705,43 @@ func (c ElectricalCapacitance) String() string {
 	return picoAsString(int64(c)) + "F"
 }
 
+// Set sets the ElectricalCapacitance to the value represented by s. Units are
+// to be provided in "Farad", "Farads" or "F" with an optional SI prefix: "p",
+// "n", "u", "µ", "m", "k", "M", "G" or "T".
+func (c *ElectricalCapacitance) Set(s string) error {
+	v, n, err := valueOfUnitString(s, pico)
+	if err != nil {
+		if e, ok := err.(*parseError); ok {
+			switch e.err {
+			case errOverflowsInt64:
+				return errors.New("maximum value is " + maxElectricalCapacitance.String())
+			case errOverflowsInt64Negative:
+				return errors.New("minimum value is " + minElectricalCapacitance.String())
+			case errNotANumber:
+				if found, _ := containsUnitString(s, "Farads", "Farad", "F"); found != "" {
+					return errors.New("does not contain number")
+				}
+				return errors.New("does not contain number or unit \"Farad\"")
+			}
+		}
+		return err
+	}
+
+	switch strings.ToLower(s[n:]) {
+	case "f", "farad", "farads":
+		*c = (ElectricalCapacitance)(v)
+	case "":
+		return noUnits("Farad")
+	default:
+		if found, extra := containsUnitString(s[n:], "Farads", "Farad", "F"); found != "" {
+			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
+		}
+		return incorrectUnit(s[n:], "physic.ElectricalCapacitance")
+	}
+
+	return nil
+}
+
 const (
 	// Farad is a unit of capacitance. kg⁻¹⋅m⁻²⋅s⁴A²
 	PicoFarad  ElectricalCapacitance = 1
@@ -554,6 +751,9 @@ const (
 	Farad      ElectricalCapacitance = 1000 * MilliFarad
 	KiloFarad  ElectricalCapacitance = 1000 * Farad
 	MegaFarad  ElectricalCapacitance = 1000 * KiloFarad
+
+	maxElectricalCapacitance = 9223372036854775807 * PicoFarad
+	minElectricalCapacitance = -9223372036854775807 * PicoFarad
 )
 
 // LuminousIntensity is a measurement of the quantity of visible light energy
@@ -569,8 +769,45 @@ const (
 type LuminousIntensity int64
 
 // String returns the energy formatted as a string in Candela.
-func (l LuminousIntensity) String() string {
-	return nanoAsString(int64(l)) + "cd"
+func (i LuminousIntensity) String() string {
+	return nanoAsString(int64(i)) + "cd"
+}
+
+// Set sets the LuminousIntensity to the value represented by s. Units are to
+// be provided in "Candela", "Candelas" or "cd" with an optional SI prefix: "p",
+// "n", "u", "µ", "m", "k", "M", "G" or "T".
+func (i *LuminousIntensity) Set(s string) error {
+	v, n, err := valueOfUnitString(s, nano)
+	if err != nil {
+		if e, ok := err.(*parseError); ok {
+			switch e.err {
+			case errOverflowsInt64:
+				return errors.New("maximum value is " + maxLuminousIntensity.String())
+			case errOverflowsInt64Negative:
+				return errors.New("minimum value is " + minLuminousIntensity.String())
+			case errNotANumber:
+				if found, _ := containsUnitString(s, "Candelas", "Candela", "cd"); found != "" {
+					return errors.New("does not contain number")
+				}
+				return errors.New("does not contain number or unit \"Candela\"")
+			}
+		}
+		return err
+	}
+
+	switch strings.ToLower(s[n:]) {
+	case "cd", "candela", "candelas":
+		*i = (LuminousIntensity)(v)
+	case "":
+		return noUnits("Candela")
+	default:
+		if found, extra := containsUnitString(s[n:], "Candelas", "Candela", "cd"); found != "" {
+			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
+		}
+		return incorrectUnit(s[n:], "physic.LuminousIntensity")
+	}
+
+	return nil
 }
 
 const (
@@ -582,6 +819,9 @@ const (
 	KiloCandela  LuminousIntensity = 1000 * Candela
 	MegaCandela  LuminousIntensity = 1000 * KiloCandela
 	GigaCandela  LuminousIntensity = 1000 * MegaCandela
+
+	maxLuminousIntensity = 9223372036854775807 * NanoCandela
+	minLuminousIntensity = -9223372036854775807 * NanoCandela
 )
 
 // LuminousFlux is a measurement of total quantity of visible light energy
@@ -599,6 +839,43 @@ func (f LuminousFlux) String() string {
 	return nanoAsString(int64(f)) + "lm"
 }
 
+// Set sets the LuminousFlux to the value represented by s. Units are to
+// be provided in "Lumen", "Lumens" or "lm" with an optional SI prefix: "p",
+// "n", "u", "µ", "m", "k", "M", "G" or "T".
+func (f *LuminousFlux) Set(s string) error {
+	v, n, err := valueOfUnitString(s, nano)
+	if err != nil {
+		if e, ok := err.(*parseError); ok {
+			switch e.err {
+			case errOverflowsInt64:
+				return errors.New("maximum value is " + maxLuminousFlux.String())
+			case errOverflowsInt64Negative:
+				return errors.New("minimum value is " + minLuminousFlux.String())
+			case errNotANumber:
+				if found, _ := containsUnitString(s, "Lumens", "Lumen", "lm"); found != "" {
+					return errors.New("does not contain number")
+				}
+				return errors.New("does not contain number or unit \"Lumen\"")
+			}
+		}
+		return err
+	}
+
+	switch strings.ToLower(s[n:]) {
+	case "lm", "lumen", "lumens":
+		*f = (LuminousFlux)(v)
+	case "":
+		return noUnits("Lumen")
+	default:
+		if found, extra := containsUnitString(s[n:], "Lumens", "Lumen", "lm"); found != "" {
+			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
+		}
+		return incorrectUnit(s[n:], "physic.LuminousFlux")
+	}
+
+	return nil
+}
+
 const (
 	// Lumen is a unit of luminous flux. cd⋅sr
 	NanoLumen  LuminousFlux = 1
@@ -608,6 +885,9 @@ const (
 	KiloLumen  LuminousFlux = 1000 * Lumen
 	MegaLumen  LuminousFlux = 1000 * KiloLumen
 	GigaLumen  LuminousFlux = 1000 * MegaLumen
+
+	maxLuminousFlux = 9223372036854775807 * NanoLumen
+	minLuminousFlux = -9223372036854775807 * NanoLumen
 )
 
 //
