@@ -176,20 +176,20 @@ func (f *ElectricResistance) Set(s string) error {
 		return err
 	}
 
-	if s[n:] == "Ω" {
+	if rest := s[n:]; rest == "Ω" {
 		*f = (ElectricResistance)(v)
-		return nil
-	}
-	switch strings.ToLower(s[n:]) {
-	case "ohm", "ohms":
-		*f = (ElectricResistance)(v)
-	case "":
-		return noUnits("Ohm")
-	default:
-		if found, extra := containsUnitString(s[n:], "Ohm", "Ohm", "Ω"); found != "" {
-			return unknownUnitPrefix(found, extra, "n,p,u,µ,m,k,M,G or T")
+	} else {
+		switch strings.ToLower(rest) {
+		case "ohm", "ohms":
+			*f = (ElectricResistance)(v)
+		case "":
+			return noUnits("Ohm")
+		default:
+			if found, extra := containsUnitString(rest, "Ohm", "Ohm", "Ω"); found != "" {
+				return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
+			}
+			return incorrectUnit(rest, "physic.ElectricResistance")
 		}
-		return incorrectUnit(s[n:], "physic.ElectricResistance")
 	}
 	return nil
 }

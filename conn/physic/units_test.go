@@ -901,15 +901,15 @@ func TestElectricResistance_Set(t *testing.T) {
 		},
 		{
 			"10EOhm",
-			"contains unknown unit prefix \"E\". valid prefixes for \"Ohm\" are n,p,u,µ,m,k,M,G or T",
+			"contains unknown unit prefix \"E\". valid prefixes for \"Ohm\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10ExaOhm",
-			"contains unknown unit prefix \"Exa\". valid prefixes for \"Ohm\" are n,p,u,µ,m,k,M,G or T",
+			"contains unknown unit prefix \"Exa\". valid prefixes for \"Ohm\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10eOhmE",
-			"contains unknown unit prefix \"e\". valid prefixes for \"Ohm\" are n,p,u,µ,m,k,M,G or T",
+			"contains unknown unit prefix \"e\". valid prefixes for \"Ohm\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10",
