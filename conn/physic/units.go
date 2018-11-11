@@ -840,7 +840,7 @@ func (f LuminousFlux) String() string {
 }
 
 // Set sets the LuminousFlux to the value represented by s. Units are to
-// be provided in "Lumen", "Lumens" or "cd" with an optional SI prefix: "p",
+// be provided in "Lumen", "Lumens" or "lm" with an optional SI prefix: "p",
 // "n", "u", "µ", "m", "k", "M", "G" or "T".
 func (l *LuminousFlux) Set(s string) error {
 	v, n, err := valueOfUnitString(s, nano)
