@@ -691,6 +691,14 @@ const (
 	MegaJoule  Energy = 1000 * KiloJoule
 	GigaJoule  Energy = 1000 * MegaJoule
 
+	// BTU (British thermal unit) is the heat required to raise the temperature
+	// of one pound of water by one degree Fahrenheit. This is the ISO value.
+	BTU Energy = 1055060 * MilliJoule
+
+	WattSecond   Energy = Joule
+	WattHour     Energy = 3600 * Joule
+	KiloWattHour Energy = 3600 * KiloJoule
+
 	maxEnergy = 9223372036854775807 * NanoJoule
 	minEnergy = -9223372036854775807 * NanoJoule
 )

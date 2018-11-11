@@ -423,8 +423,12 @@ func ExampleLuminousIntensity_flag() {
 
 func ExampleEnergy() {
 	fmt.Println(1 * physic.Joule)
+	fmt.Println(1 * physic.WattSecond)
+	fmt.Println(1 * physic.KiloWattHour)
 	// Output:
 	// 1J
+	// 1J
+	// 3.600MJ
 }
 
 func ExampleEnergy_Set() {
