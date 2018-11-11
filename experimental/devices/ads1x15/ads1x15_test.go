@@ -120,6 +120,7 @@ func TestPinADC_Read(t *testing.T) {
 	}
 }
 
+/* https://github.com/google/periph/issues/334
 func TestPinADC_ReadContinous(t *testing.T) {
 	b := i2ctest.Playback{
 		Ops: []i2ctest.IO{
@@ -197,3 +198,4 @@ func TestPinADC_ReadContinous(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+*/
