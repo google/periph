@@ -52,7 +52,7 @@ func New(clk gpio.PinIO, data gpio.PinIO, f physic.Frequency) (*I2C, error) {
 	i := &I2C{
 		scl:       clk,
 		sda:       data,
-		halfCycle: f.Duration() / 2,
+		halfCycle: f.Period() / 2,
 	}
 	return i, nil
 }
@@ -126,7 +126,7 @@ func (i *I2C) Tx(addr uint16, w, r []byte) error {
 func (i *I2C) SetSpeed(f physic.Frequency) error {
 	i.mu.Lock()
 	defer i.mu.Unlock()
-	i.halfCycle = f.Duration() / 2
+	i.halfCycle = f.Period() / 2
 	return nil
 }
 

@@ -60,7 +60,7 @@ func (b *BitStream) Duration() time.Duration {
 	if b.Freq == 0 {
 		return 0
 	}
-	return b.Freq.Duration() * time.Duration(len(b.Bits)*8)
+	return b.Freq.Period() * time.Duration(len(b.Bits)*8)
 }
 
 // GoString implements fmt.GoStringer.
@@ -102,7 +102,7 @@ func (e *EdgeStream) Duration() time.Duration {
 	for _, edge := range e.Edges {
 		t += int(edge)
 	}
-	return e.Freq.Duration() * time.Duration(t)
+	return e.Freq.Period() * time.Duration(t)
 }
 
 // Program is a loop of streams.

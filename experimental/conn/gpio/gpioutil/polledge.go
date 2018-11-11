@@ -32,7 +32,7 @@ type pollEdge struct {
 // freq must be above 0. A reasonable value is 20Hz reading. High rate
 // essentially means a busy loop.
 func PollEdge(p gpio.PinIO, freq physic.Frequency) gpio.PinIO {
-	return &pollEdge{PinIO: p, period: freq.Duration(), die: make(chan struct{}, 1)}
+	return &pollEdge{PinIO: p, period: freq.Period(), die: make(chan struct{}, 1)}
 }
 
 // In implements gpio.PinIO.

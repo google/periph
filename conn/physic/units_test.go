@@ -79,20 +79,90 @@ func TestForce_String(t *testing.T) {
 }
 
 func TestFrequency_String(t *testing.T) {
-	if s := Hertz.String(); s != "1Hz" {
-		t.Fatalf("%#v", s)
+	data := []struct {
+		in       Frequency
+		expected string
+	}{
+		{minFrequency, "-9.223THz"},
+		{-Hertz, "-1Hz"},
+		{0, "0Hz"},
+		{Hertz, "1Hz"},
+		{1666500 * MicroHertz, "1.666Hz"},
+		{1666501 * MicroHertz, "1.667Hz"},
+		{MegaHertz, "1MHz"},
+		{GigaHertz, "1GHz"},
+		{999999500 * KiloHertz, "999.999GHz"},
+		{999999501 * KiloHertz, "1THz"},
+		{1000500 * MegaHertz, "1THz"},
+		{1000501 * MegaHertz, "1.001THz"},
+		{1001 * GigaHertz, "1.001THz"},
+		{1000 * GigaHertz, "1THz"},
+		{maxFrequency, "9.223THz"},
+	}
+	for i, line := range data {
+		if v := line.in.String(); v != line.expected {
+			t.Fatalf("%d: Frequency(%d).String() = %s != %s", i, line.in, v, line.expected)
+		}
 	}
 }
 
-func TestFrequency_Duration(t *testing.T) {
-	if v := MegaHertz.Duration(); v != time.Microsecond {
-		t.Fatalf("%#v", v)
+func TestFrequency_Period(t *testing.T) {
+	data := []struct {
+		in       Frequency
+		expected time.Duration
+	}{
+		{0, 0},
+		{MicroHertz, 277*time.Hour + 46*time.Minute + 40*time.Second},
+		{MilliHertz, 16*time.Minute + 40*time.Second},
+		{999999 * MicroHertz, 1000001 * time.Microsecond},
+		{Hertz, time.Second},
+		{1000001 * MicroHertz, 999999 * time.Microsecond},
+		{MegaHertz, time.Microsecond},
+		{23 * MegaHertz, 43 * time.Nanosecond},
+		{100 * MegaHertz, 10 * time.Nanosecond},
+		{150 * MegaHertz, 7 * time.Nanosecond},
+		{GigaHertz, time.Nanosecond},
+		{2 * GigaHertz, time.Nanosecond},
+		{20000000 * KiloHertz, 0},
+		{TeraHertz, 0},
+		{maxFrequency, 0},
+	}
+	for i, line := range data {
+		if v := line.in.Period(); v != line.expected {
+			t.Fatalf("%d: Frequency(%d).Period() = %s != %s", i, line.in, v, line.expected)
+		}
+		if v := (-line.in).Period(); v != -line.expected {
+			t.Fatalf("%d: Frequency(%d).Period() = %s != %s", i, -line.in, v, -line.expected)
+		}
 	}
 }
 
 func TestFrequency_PeriodToFrequency(t *testing.T) {
-	if v := PeriodToFrequency(time.Millisecond); v != KiloHertz {
-		t.Fatalf("%#v", v)
+	data := []struct {
+		in       time.Duration
+		expected Frequency
+	}{
+		{0, 0},
+		{time.Nanosecond, GigaHertz},
+		{time.Microsecond, MegaHertz},
+		{time.Millisecond, KiloHertz},
+		{999990000 * time.Nanosecond, 1000010 * MicroHertz},
+		{999999500 * time.Nanosecond, 1000001 * MicroHertz},
+		{999999501 * time.Nanosecond, 1000000 * MicroHertz},
+		{time.Second, Hertz},
+		{1000000000 * time.Nanosecond, Hertz},
+		{1000000500 * time.Nanosecond, Hertz},
+		{1000000501 * time.Nanosecond, 999999 * MicroHertz},
+		{time.Minute, 16667 * MicroHertz},
+		{time.Hour, 278 * MicroHertz},
+	}
+	for i, line := range data {
+		if v := PeriodToFrequency(line.in); v != line.expected {
+			t.Fatalf("%d: PeriodToFrequency(%s) = %d != %d", i, line.in, v, line.expected)
+		}
+		if v := PeriodToFrequency(-line.in); v != -line.expected {
+			t.Fatalf("%d: PeriodToFrequency(%s) = %d != %d", i, -line.in, v, -line.expected)
+		}
 	}
 }
 

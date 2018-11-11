@@ -289,9 +289,9 @@ func ExampleFrequency_flag() {
 	flag.Parse()
 }
 
-func ExampleFrequency_Duration() {
-	fmt.Println(physic.MilliHertz.Duration())
-	fmt.Println(physic.MegaHertz.Duration())
+func ExampleFrequency_Period() {
+	fmt.Println(physic.MilliHertz.Period())
+	fmt.Println(physic.MegaHertz.Period())
 	// Output:
 	// 16m40s
 	// 1µs
@@ -302,7 +302,7 @@ func ExamplePeriodToFrequency() {
 	fmt.Println(physic.PeriodToFrequency(time.Minute))
 	// Output:
 	// 1MHz
-	// 16.666mHz
+	// 16.667mHz
 }
 
 func ExampleMass() {
