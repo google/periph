@@ -132,6 +132,41 @@ func (e ElectricPotential) String() string {
 	return nanoAsString(int64(e)) + "V"
 }
 
+// Set sets the ElectricPotential to the value represented by s. Units are to
+// be provided in "Volt", "Volts" or "V" with an optional SI prefix: "p", "n",
+// "u", "µ", "m", "k", "M", "G" or "T".
+func (f *ElectricPotential) Set(s string) error {
+	v, n, err := valueOfUnitString(s, nano)
+	if err != nil {
+		if e, ok := err.(*parseError); ok {
+			switch e.err {
+			case errOverflowsInt64:
+				return errors.New("maximum value is " + maxElectricPotential.String())
+			case errOverflowsInt64Negative:
+				return errors.New("minimum value is " + minElectricPotential.String())
+			case errNotANumber:
+				if found, _ := containsUnitString(s, "Volt", "Volts", "V"); found != "" {
+					return errors.New("does not contain number")
+				}
+				return errors.New("does not contain number or unit \"Volt\"")
+			}
+		}
+		return err
+	}
+	switch strings.ToLower(s[n:]) {
+	case "volt", "volts", "v":
+		*f = (ElectricPotential)(v)
+	case "":
+		return noUnits("Volt")
+	default:
+		if found, extra := containsUnitString(s[n:], "Volt", "Volts", "V"); found != "" {
+			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
+		}
+		return incorrectUnit(s[n:], "physic.ElectricPotential")
+	}
+	return nil
+}
+
 const (
 	// Volt is W/A, kg⋅m²/s³/A.
 	NanoVolt  ElectricPotential = 1
@@ -141,6 +176,9 @@ const (
 	KiloVolt  ElectricPotential = 1000 * Volt
 	MegaVolt  ElectricPotential = 1000 * KiloVolt
 	GigaVolt  ElectricPotential = 1000 * MegaVolt
+
+	maxElectricPotential = 9223372036854775807 * NanoVolt
+	minElectricPotential = -9223372036854775807 * NanoVolt
 )
 
 // ElectricResistance is a measurement of the difficulty to pass an electric

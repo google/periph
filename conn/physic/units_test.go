@@ -857,6 +857,136 @@ func TestValueOfUnitString(t *testing.T) {
 	}
 }
 
+func TestElectricPotential_Set(t *testing.T) {
+	succeeds := []struct {
+		in       string
+		expected ElectricPotential
+	}{
+		{"1nVolt", 1 * NanoVolt},
+		{"10nVolts", 10 * NanoVolt},
+		{"100nVolts", 100 * NanoVolt},
+		{"1uVolt", 1 * MicroVolt},
+		{"10uVolts", 10 * MicroVolt},
+		{"100uVolts", 100 * MicroVolt},
+		{"1µVolt", 1 * MicroVolt},
+		{"10µVolts", 10 * MicroVolt},
+		{"100µVolts", 100 * MicroVolt},
+		{"1mVolt", 1 * MilliVolt},
+		{"10mVolts", 10 * MilliVolt},
+		{"100mVolts", 100 * MilliVolt},
+		{"1Volt", 1 * Volt},
+		{"10Volts", 10 * Volt},
+		{"100Volts", 100 * Volt},
+		{"1kVolt", 1 * KiloVolt},
+		{"10kVolts", 10 * KiloVolt},
+		{"100kVolts", 100 * KiloVolt},
+		{"1MVolt", 1 * MegaVolt},
+		{"10MVolts", 10 * MegaVolt},
+		{"100MVolts", 100 * MegaVolt},
+		{"1GVolt", 1 * GigaVolt},
+		{"12.345Volts", 12345 * MilliVolt},
+		{"-12.345Volts", -12345 * MilliVolt},
+		{"9.223372036854775807GVolts", 9223372036854775807 * NanoVolt},
+		{"-9.223372036854775807GVolts", -9223372036854775807 * NanoVolt},
+		{"1MV", 1 * MegaVolt},
+	}
+
+	fails := []struct {
+		in  string
+		err string
+	}{
+		{
+			"10TVolt",
+			"exponent exceeds int64",
+		},
+		{
+			"10EVolt",
+			"contains unknown unit prefix \"E\". valid prefixes for \"Volt\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10ExaVolt",
+			"contains unknown unit prefix \"Exa\". valid prefixes for \"Volt\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10eVoltE",
+			"contains unknown unit prefix \"e\". valid prefixes for \"Volt\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10",
+			"no units provided, need Volt",
+		},
+		{
+			"9223372036854775808",
+			"maximum value is 9.223GV",
+		},
+		{
+			"-9223372036854775808",
+			"minimum value is -9.223GV",
+		},
+		{
+			"9.223372036854775808TV",
+			"maximum value is 9.223GV",
+		},
+		{
+			"-9.223372036854775808GV",
+			"minimum value is -9.223GV",
+		},
+		{
+			"9.223372036854775808GV",
+			"maximum value is 9.223GV",
+		},
+		{
+			"-9.223372036854775808GOhm",
+			"minimum value is -9.223GV",
+		},
+		{
+			"1random",
+			"\"random\" is not a valid unit for physic.ElectricPotential",
+		},
+		{
+			"Volt",
+			"does not contain number",
+		},
+		{
+			"RPM",
+			"does not contain number or unit \"Volt\"",
+		},
+		{
+			"++1Volt",
+			"multiple plus symbols ++1Volt",
+		},
+		{
+			"--1Volt",
+			"multiple minus symbols --1Volt",
+		},
+		{
+			"+-1Volt",
+			"can't contain both plus and minus symbols +-1Volt",
+		},
+		{
+			"1.1.1.1Volt",
+			"multiple decimal points 1.1.1.1Volt",
+		},
+	}
+
+	for _, tt := range succeeds {
+		var got ElectricPotential
+		if err := got.Set(tt.in); err != nil {
+			t.Errorf("ElectricPotential.Set(%s) got unexpected error: %v", tt.in, err)
+		}
+		if got != tt.expected {
+			t.Errorf("ElectricPotential.Set(%s) expected: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+		}
+	}
+
+	for _, tt := range fails {
+		var got ElectricPotential
+		if err := got.Set(tt.in); err.Error() != tt.err {
+			t.Errorf("ElectricPotential.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+		}
+	}
+}
+
 func TestElectricResistance_Set(t *testing.T) {
 	succeeds := []struct {
 		in       string
