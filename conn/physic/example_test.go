@@ -53,6 +53,34 @@ func ExampleElectricPotential() {
 	// -10mV
 }
 
+func ExampleElectricPotential_flag() {
+	var v physic.ElectricPotential
+	flag.Var(&v, "cutout", "battery full charge voltage")
+	flag.Parse()
+}
+
+func ExampleElectricPotential_Set() {
+	var v physic.ElectricPotential
+	if err := v.Set("250uV"); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(v)
+
+	if err := v.Set("100kV"); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(v)
+
+	if err := v.Set("12Volts"); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(v)
+	// Output:
+	// 250µV
+	// 100kV
+	// 12V
+}
+
 func ExampleElectricResistance() {
 	fmt.Println(10010 * physic.MilliOhm)
 	fmt.Println(10 * physic.Ohm)
