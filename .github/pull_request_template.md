@@ -1,9 +1,11 @@
-Please prefix the issue with the primary package affected. For example, if you
-fixed something in periph.io/x/periph/host/sysfs, prefix the PR with `sysfs:`.
+Notes
 
-Please add new drivers under `experimental`. Wonder what it takes to promote a
-driver as _stable_? See https://periph.io/project/#driver-lifetime-management. A
-stable driver requires the smallest API surface, good unit test code coverage,
+Please prefix the issue title with the primary package affected. For example, if
+this PR fixes periph.io/x/periph/host/sysfs, prefix the PR title with "sysfs:".
+
+Please add new drivers under "experimental". Wonder what it takes to promote a
+driver as "stable"? See https://periph.io/project/#driver-lifetime-management
+A stable driver requires the smallest API surface, good unit test code coverage,
 good documentation and a page in
 https://github.com/periph/website/tree/master/site/content/device so it can show
 up at https://periph.io/device.
