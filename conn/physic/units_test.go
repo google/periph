@@ -971,12 +971,11 @@ func TestElectricResistance_Set(t *testing.T) {
 
 	for _, tt := range succeeds {
 		var got ElectricResistance
-		err := got.Set(tt.in)
+		if err := got.Set(tt.in); err != nil {
+			t.Errorf("ElectricResistance.Set(%s) got unexpected error: %v", tt.in, err)
+		}
 		if got != tt.expected {
 			t.Errorf("ElectricResistance.Set(%s) expected: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
-		}
-		if err != nil {
-			t.Errorf("ElectricResistance.Set(%s) got unexpected error: %v", tt.in, err)
 		}
 	}
 

@@ -186,8 +186,7 @@ func (f *ElectricResistance) Set(s string) error {
 	case "":
 		return noUnits("Ohm")
 	default:
-		found, extra := containsUnitString(s[n:], "Ohm", "Ohm", "Ω")
-		if found != "" {
+		if found, extra := containsUnitString(s[n:], "Ohm", "Ohm", "Ω"); found != "" {
 			return unknownUnitPrefix(found, extra, "n,p,u,µ,m,k,M,G or T")
 		}
 		return incorrectUnit(s[n:], "physic.ElectricResistance")
