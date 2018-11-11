@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"periph.io/x/periph/conn/i2c/i2ctest"
+	"periph.io/x/periph/conn/physic"
 )
 
 func TestChannel_String(t *testing.T) {
@@ -65,6 +66,133 @@ func TestDev_String(t *testing.T) {
 	if s := d.String(); s != "ADS1115" {
 		t.Fatal(s)
 	}
+	if err := d.Halt(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestPinADC_Read(t *testing.T) {
+	b := i2ctest.Playback{
+		Ops: []i2ctest.IO{
+			{
+				Addr: 0x48,
+				W:    []byte{0x1, 0x91, 0xc3},
+				R:    []byte{},
+			},
+			{
+				Addr: 0x48,
+				W:    []byte{0x0},
+				R:    []byte{0xff, 0x50},
+			},
+		},
+	}
+
+	d, err := NewADS1015(&b, &DefaultOpts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Obtain an analog pin from the ADC
+	pin, err := d.PinForChannel(Channel0Minus3, 5*physic.Volt, 1*physic.Hertz, SaveEnergy)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Read values from ADC.
+	reading, err := pin.Read()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if reading.Raw != -176 {
+		t.Fatalf("Found %d, expected %d", reading.Raw, -176)
+	}
+
+	if reading.V != -33*physic.MilliVolt {
+		t.Fatalf("Found %s, expected %s", reading.V, -33*physic.MilliVolt)
+	}
+
+	if err := pin.Halt(); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := d.Halt(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestPinADC_ReadContinous(t *testing.T) {
+	b := i2ctest.Playback{
+		Ops: []i2ctest.IO{
+			{
+				Addr: 0x48,
+				W:    []byte{0x1, 0x91, 0x3},
+				R:    []byte{},
+			},
+			{
+				Addr: 0x48,
+				W:    []byte{0x0},
+				R:    []byte{0x52, 0xd0},
+			},
+			{
+				Addr: 0x48,
+				W:    []byte{0x1, 0x91, 0x3},
+				R:    []byte{},
+			},
+			{
+				Addr: 0x48,
+				W:    []byte{0x0},
+				R:    []byte{0x52, 0xc0},
+			},
+			// We add one extra exchange, as halting the polling is not instant
+			{
+				Addr: 0x48,
+				W:    []byte{0x1, 0x91, 0x3},
+				R:    []byte{},
+			},
+			{
+				Addr: 0x48,
+				W:    []byte{0x0},
+				R:    []byte{0x52, 0xc0},
+			},
+		},
+	}
+
+	rawValues := []int32{21200, 21184}
+	voltValues := []physic.ElectricPotential{3975 * physic.MilliVolt, 3972 * physic.MilliVolt}
+
+	d, err := NewADS1015(&b, &DefaultOpts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Obtain an analog pin from the ADC
+	pin, err := d.PinForChannel(Channel0Minus3, 5*physic.Volt, 100*physic.Hertz, BestQuality)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Read values from ADC.
+	c := pin.ReadContinuous()
+
+	var i = 0
+	for reading := range c {
+		if reading.Raw != rawValues[i] {
+			t.Fatalf("Found %d, expected %d", reading.Raw, rawValues[i])
+		}
+
+		if reading.V != voltValues[i] {
+			t.Fatalf("Found %s, expected %s", reading.V, voltValues[i])
+		}
+
+		i++
+		if i >= len(rawValues) {
+			break
+		}
+	}
+
+	if err := pin.Halt(); err != nil {
+		t.Fatal(err)
+	}
+
 	if err := d.Halt(); err != nil {
 		t.Fatal(err)
 	}

@@ -90,7 +90,7 @@ type ConversionQuality int
 
 const (
 	// SaveEnergy optimizes the power consumption of the ADC, at the expense of
-	// the quality by converting at the gihest rate possible.
+	// the quality by converting at the highest possible rate.
 	SaveEnergy ConversionQuality = 0
 	// BestQuality will use the lowest suitable data rate to reduce the impact of
 	// the noise on the reading.
@@ -394,6 +394,7 @@ type analogPin struct {
 	waitTime           time.Duration
 	requestedFrequency physic.Frequency
 	stop               chan struct{}
+	mu                 sync.Mutex
 }
 
 // Range returns the maximum supported range [min, max] of the values.
@@ -409,14 +410,22 @@ func (p *analogPin) Read() (analog.Reading, error) {
 }
 
 func (p *analogPin) ReadContinuous() <-chan analog.Reading {
-	p.Halt()
-	reading := make(chan analog.Reading)
+	// We need to lock if there are multiple Halt or ReadContinuous
+	// calls simultaneously.
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	// First release the current continuous reading if there is one
+	if p.stop != nil {
+		p.stop <- struct{}{}
+		p.stop = nil
+	}
+	reading := make(chan analog.Reading, 16)
 	p.stop = make(chan struct{})
 
 	go func() {
 		t := time.NewTicker(p.requestedFrequency.Duration())
 		defer t.Stop()
-		defer p.Halt()
 		defer close(reading)
 
 		for {
@@ -450,8 +459,13 @@ func (p *analogPin) Function() string {
 }
 
 func (p *analogPin) Halt() error {
+	// We need to lock if there are multiple Halt or ReadContinuous
+	// calls simultaneously.
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	if p.stop != nil {
-		close(p.stop)
+		p.stop <- struct{}{}
 		p.stop = nil
 	}
 	return nil
