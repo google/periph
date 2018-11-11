@@ -841,10 +841,10 @@ func TestValueOfUnitString(t *testing.T) {
 			t.Errorf("valueOfUnitString(%s,%d) wanted: %v(%d) but got: %v(%d)", tt.in, tt.uintbase, tt.expected, tt.expected, got, got)
 		}
 		if used != tt.usedChars {
-			t.Errorf("valueOfUnitString(%s,%d) used %d chars but should used: %d chars", tt.in, tt.uintbase, used, tt.usedChars)
+			t.Errorf("valueOfUnitString(%s,%d) used %d chars but should use: %d chars", tt.in, tt.uintbase, used, tt.usedChars)
 		}
 		if err != nil {
-			t.Errorf("valueOfUnitString(%s,%d) got unexpected error: %v", tt.in, tt.uintbase, err)
+			t.Errorf("valueOfUnitString(%s,%d) unexpected error: %v", tt.in, tt.uintbase, err)
 		}
 	}
 
@@ -852,7 +852,7 @@ func TestValueOfUnitString(t *testing.T) {
 		_, _, err := valueOfUnitString(tt.in, tt.prefix)
 
 		if err == nil {
-			t.Errorf("valueOfUnitString(%s,%d) got expected error but got none", tt.in, tt.prefix)
+			t.Errorf("valueOfUnitString(%s,%d) expected an error", tt.in, tt.prefix)
 		}
 	}
 }
@@ -1030,15 +1030,15 @@ func TestFrequency_Set(t *testing.T) {
 		},
 		{
 			"10EHz",
-			"contains unknown unit prefix \"E\". valid prefixes for \"Hz\" are n,p,u,µ,m,k,M,G or T",
+			"contains unknown unit prefix \"E\". valid prefixes for \"Hz\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10ExaHz",
-			"contains unknown unit prefix \"Exa\". valid prefixes for \"Hz\" are n,p,u,µ,m,k,M,G or T",
+			"contains unknown unit prefix \"Exa\". valid prefixes for \"Hz\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10eHzE",
-			"contains unknown unit prefix \"e\". valid prefixes for \"Hz\" are n,p,u,µ,m,k,M,G or T",
+			"contains unknown unit prefix \"e\". valid prefixes for \"Hz\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10",
@@ -1100,22 +1100,17 @@ func TestFrequency_Set(t *testing.T) {
 
 	for _, tt := range succeeds {
 		var got Frequency
-		err := got.Set(tt.in)
-
+		if err := got.Set(tt.in); err != nil {
+			t.Errorf("Frequency.Set(%s) unexpected error: %v", tt.in, err)
+		}
 		if got != tt.expected {
 			t.Errorf("Frequency.Set(%s) wanted: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
-		}
-		if err != nil {
-			t.Errorf("Frequency.Set(%s) got unexpected error: %v", tt.in, err)
 		}
 	}
 
 	for _, tt := range fails {
 		var got Frequency
-
-		err := got.Set(tt.in)
-
-		if err.Error() != tt.err {
+		if err := got.Set(tt.in); err.Error() != tt.err {
 			t.Errorf("Frequency.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
 		}
 	}
