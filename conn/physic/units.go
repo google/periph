@@ -164,7 +164,7 @@ func (f *ElectricResistance) Set(s string) error {
 			switch e.err {
 			case errOverflowsInt64:
 				return errors.New("maximum value is " + maxElectricResistance.String())
-			case errUnderflowsInt64:
+			case errOverflowsInt64Negative:
 				return errors.New("minimum value is " + minElectricResistance.String())
 			case errNotANumber:
 				if found, _ := containsUnitString(s, "Ohm", "Ohms", "Ω"); found != "" {
