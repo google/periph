@@ -165,10 +165,12 @@ func ExampleFrequency() {
 	fmt.Println(10 * physic.MilliHertz)
 	fmt.Println(101010 * physic.MilliHertz)
 	fmt.Println(10 * physic.MegaHertz)
+	fmt.Println(60 * physic.RPM)
 	// Output:
 	// 10mHz
 	// 101.010Hz
 	// 10MHz
+	// 1Hz
 }
 
 func ExampleFrequency_Set() {

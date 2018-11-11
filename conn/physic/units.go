@@ -388,6 +388,9 @@ const (
 	GigaHertz  Frequency = 1000 * MegaHertz
 	TeraHertz  Frequency = 1000 * GigaHertz
 
+	// RPM is revolutions per minute. It is used to quantify angular frequency.
+	RPM Frequency = 16667 * MicroHertz
+
 	maxFrequency = 9223372036854775807 * MicroHertz
 	minFrequency = -9223372036854775807 * MicroHertz
 )
