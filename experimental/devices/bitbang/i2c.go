@@ -33,7 +33,7 @@ const SkipAddr uint16 = 0xFFFF
 // - Special address SkipAddr can be used to skip the address from being
 //   communicated
 // - An arbitrary speed can be used
-func New(clk gpio.PinIO, data gpio.PinIO, speedHz int) (*I2C, error) {
+func New(clk gpio.PinIO, data gpio.PinIO, f physic.Frequency) (*I2C, error) {
 	// Spec calls to idle at high. Page 8, section 3.1.1.
 	// Set SCL as pull-up.
 	if err := clk.In(gpio.PullUp, gpio.NoEdge); err != nil {
@@ -52,7 +52,7 @@ func New(clk gpio.PinIO, data gpio.PinIO, speedHz int) (*I2C, error) {
 	i := &I2C{
 		scl:       clk,
 		sda:       data,
-		halfCycle: time.Second / time.Duration(speedHz) / time.Duration(2),
+		halfCycle: f.Duration() / 2,
 	}
 	return i, nil
 }
