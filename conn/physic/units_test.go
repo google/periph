@@ -857,6 +857,136 @@ func TestValueOfUnitString(t *testing.T) {
 	}
 }
 
+func TestElectricResistance_Set(t *testing.T) {
+	succeeds := []struct {
+		in       string
+		expected ElectricResistance
+	}{
+		{"1nOhm", 1 * NanoOhm},
+		{"10nOhm", 10 * NanoOhm},
+		{"100nOhm", 100 * NanoOhm},
+		{"1uOhm", 1 * MicroOhm},
+		{"10uOhm", 10 * MicroOhm},
+		{"100uOhm", 100 * MicroOhm},
+		{"1µOhm", 1 * MicroOhm},
+		{"10µOhm", 10 * MicroOhm},
+		{"100µOhm", 100 * MicroOhm},
+		{"1mOhm", 1 * MilliOhm},
+		{"10mOhm", 10 * MilliOhm},
+		{"100mOhm", 100 * MilliOhm},
+		{"1Ohm", 1 * Ohm},
+		{"10Ohm", 10 * Ohm},
+		{"100Ohm", 100 * Ohm},
+		{"1kOhm", 1 * KiloOhm},
+		{"10kOhm", 10 * KiloOhm},
+		{"100kOhm", 100 * KiloOhm},
+		{"1MOhm", 1 * MegaOhm},
+		{"10MOhm", 10 * MegaOhm},
+		{"100MOhm", 100 * MegaOhm},
+		{"1GOhm", 1 * GigaOhm},
+		{"12.345Ohm", 12345 * MilliOhm},
+		{"-12.345Ohm", -12345 * MilliOhm},
+		{"9.223372036854775807GOhm", 9223372036854775807 * NanoOhm},
+		{"-9.223372036854775807GOhm", -9223372036854775807 * NanoOhm},
+		{"1MΩ", 1 * MegaOhm},
+	}
+
+	fails := []struct {
+		in  string
+		err string
+	}{
+		{
+			"10TOhm",
+			"exponent exceeds int64",
+		},
+		{
+			"10EOhm",
+			"contains unknown unit prefix \"E\". valid prefixes for \"Ohm\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10ExaOhm",
+			"contains unknown unit prefix \"Exa\". valid prefixes for \"Ohm\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10eOhmE",
+			"contains unknown unit prefix \"e\". valid prefixes for \"Ohm\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10",
+			"no units provided, need Ohm",
+		},
+		{
+			"9223372036854775808",
+			"maximum value is 9.223GΩ",
+		},
+		{
+			"-9223372036854775808",
+			"minimum value is -9.223GΩ",
+		},
+		{
+			"9.223372036854775808TOhm",
+			"maximum value is 9.223GΩ",
+		},
+		{
+			"-9.223372036854775808GOhm",
+			"minimum value is -9.223GΩ",
+		},
+		{
+			"9.223372036854775808GOhm",
+			"maximum value is 9.223GΩ",
+		},
+		{
+			"-9.223372036854775808GOhm",
+			"minimum value is -9.223GΩ",
+		},
+		{
+			"1random",
+			"\"random\" is not a valid unit for physic.ElectricResistance",
+		},
+		{
+			"Ohm",
+			"does not contain number",
+		},
+		{
+			"RPM",
+			"does not contain number or unit \"Ohm\"",
+		},
+		{
+			"++1Ohm",
+			"multiple plus symbols ++1Ohm",
+		},
+		{
+			"--1Ohm",
+			"multiple minus symbols --1Ohm",
+		},
+		{
+			"+-1Ohm",
+			"can't contain both plus and minus symbols +-1Ohm",
+		},
+		{
+			"1.1.1.1Ohm",
+			"multiple decimal points 1.1.1.1Ohm",
+		},
+	}
+
+	for _, tt := range succeeds {
+		var got ElectricResistance
+		if err := got.Set(tt.in); err != nil {
+			t.Errorf("ElectricResistance.Set(%s) got unexpected error: %v", tt.in, err)
+		}
+		if got != tt.expected {
+			t.Errorf("ElectricResistance.Set(%s) expected: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+		}
+	}
+
+	for _, tt := range fails {
+		var got ElectricResistance
+		if err := got.Set(tt.in); err.Error() != tt.err {
+			t.Errorf("ElectricResistance.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+		}
+	}
+}
+
 func TestFrequency_Set(t *testing.T) {
 	succeeds := []struct {
 		in       string

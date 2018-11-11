@@ -63,6 +63,36 @@ func ExampleElectricResistance() {
 	// 24MΩ
 }
 
+func ExampleElectricResistance_Set() {
+	var r physic.ElectricResistance
+
+	if err := r.Set("33.3kOhms"); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(r)
+
+	if err := r.Set("1Ohm"); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(r)
+
+	if err := r.Set("5MOhm"); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(r)
+	// Output:
+	// 33.300kΩ
+	// 1Ω
+	// 5MΩ
+}
+
+func ExampleElectricResistance_flag() {
+	var r physic.ElectricResistance
+
+	flag.Var(&r, "shunt", "shunt resistor value")
+	flag.Parse()
+}
+
 func ExampleForce() {
 	fmt.Println(10 * physic.MilliNewton)
 	fmt.Println(physic.EarthGravity)
