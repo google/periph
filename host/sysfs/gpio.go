@@ -195,7 +195,7 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	// CPU. In this case, the loop below is not sufficient, since the interrupt
 	// will happen afterward "out of the blue".
 	if edge != gpio.NoEdge {
-		p.WaitForEdge(0)
+		p.WaitForEdge(0) //not sure if this works without lseek+read in case epoll_wait returns 1
 	}
 	return nil
 }
@@ -365,9 +365,17 @@ func (p *Pin) haltEdge() error {
 		if err := seekWrite(p.fEdge, bNone); err != nil {
 			return p.wrap(err)
 		}
+
+		// delete epoll event
+		err := p.event.Delete()
+		if err == nil {
+			p.fEdge = nil //indicate deletion of epoll event to force recreate on call to In()
+		}
+
 		p.edge = gpio.NoEdge
 		// This is still important to remove an accumulated edge.
-		p.WaitForEdge(0)
+
+		p.WaitForEdge(0) // not sure if this works without lseek+read in case epoll_wait returns 1
 	}
 	return nil
 }

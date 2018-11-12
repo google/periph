@@ -97,6 +97,10 @@ func (e *Event) Wait(timeoutms int) (int, error) {
 	return e.event.wait(timeoutms)
 }
 
+func (e *Event) Delete() error {
+	return e.event.deleteEvent()
+}
+
 //
 
 var (
