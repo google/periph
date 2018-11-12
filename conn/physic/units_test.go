@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"log"
 	"strconv"
 	"testing"
 	"time"
@@ -2414,7 +2413,7 @@ func BenchmarkElectricCurrentSet(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		err = d.Set("1Foot")
 		if err != nil {
-			log.Fatal(err)
+			b.Fatal(err)
 		}
 	}
 	b.StopTimer()
@@ -2427,7 +2426,7 @@ func BenchmarkDistanceSet(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		err = e.Set("1Amp")
 		if err != nil {
-			log.Fatal(err)
+			b.Fatal(err)
 		}
 	}
 	b.StopTimer()
