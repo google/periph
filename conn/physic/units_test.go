@@ -857,6 +857,197 @@ func TestValueOfUnitString(t *testing.T) {
 	}
 }
 
+func TestDistance_Set(t *testing.T) {
+	succeeds := []struct {
+		in       string
+		expected Distance
+	}{
+		{"1nMetre", 1 * NanoMetre},
+		{"10nMetres", 10 * NanoMetre},
+		{"100nMetres", 100 * NanoMetre},
+		{"1uMetre", 1 * MicroMetre},
+		{"10uMetres", 10 * MicroMetre},
+		{"100uMetres", 100 * MicroMetre},
+		{"1µMetre", 1 * MicroMetre},
+		{"10µMetres", 10 * MicroMetre},
+		{"100µMetres", 100 * MicroMetre},
+		{"1mm", 1 * MilliMetre},
+		{"1mMetre", 1 * MilliMetre},
+		{"10mMetres", 10 * MilliMetre},
+		{"100mMetres", 100 * MilliMetre},
+		{"1Metre", 1 * Metre},
+		{"10Metres", 10 * Metre},
+		{"100Metres", 100 * Metre},
+		{"1kMetre", 1 * KiloMetre},
+		{"10kMetres", 10 * KiloMetre},
+		{"100kMetres", 100 * KiloMetre},
+		{"1MMetre", 1 * MegaMetre},
+		{"1Mm", 1 * MegaMetre},
+		{"10MMetres", 10 * MegaMetre},
+		{"100MMetres", 100 * MegaMetre},
+		{"1GMetre", 1 * GigaMetre},
+		{"12.345Metres", 12345 * MilliMetre},
+		{"-12.345Metres", -12345 * MilliMetre},
+		{"9.223372036854775807GMetres", 9223372036854775807 * NanoMetre},
+		{"-9.223372036854775807GMetres", -9223372036854775807 * NanoMetre},
+		{"1Mm", 1 * MegaMetre},
+		{"5Miles", 8046720000000 * NanoMetre},
+		{"3Feet", 914400000 * NanoMetre},
+		{"10Yards", 9144000000 * NanoMetre},
+		{"5731.137678988Mile", 9223372036853264 * NanoMetre},
+		{"-5731.137678988Mile", -9223372036853264 * NanoMetre},
+		{"1.008680231502051MYards", 922337203685475 * NanoMetre},
+		{"-1008680.231502051Yards", -922337203685475 * NanoMetre},
+		{"3026040.694506158Feet", 922337203685477 * NanoMetre},
+		{"-3.026040694506158MFeet", -922337203685477 * NanoMetre},
+		{"36.312488334073900MInch", 922337203685477 * NanoMetre},
+		{"-36312488.334073900Inch", -922337203685477 * NanoMetre},
+	}
+
+	fails := []struct {
+		in  string
+		err string
+	}{
+		{
+			"10TMetre",
+			"exponent exceeds int64",
+		},
+		{
+			"10EMetre",
+			"contains unknown unit prefix \"E\". valid prefixes for \"Metre\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10ExaMetre",
+			"contains unknown unit prefix \"Exa\". valid prefixes for \"Metre\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10eMetreE",
+			"contains unknown unit prefix \"e\". valid prefixes for \"Metre\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10",
+			"no units provided, need m, Metre, Mile, Inch, Foot or Yard",
+		},
+		{
+			"9223372036854775808",
+			"maximum value is 9.223Gm",
+		},
+		{
+			"-9223372036854775808",
+			"minimum value is -9.223Gm",
+		},
+		{
+			"9.223372036854775808GMetre",
+			"maximum value is 9.223Gm",
+		},
+		{
+			"-9.223372036854775808GMetre",
+			"minimum value is -9.223Gm",
+		},
+		{
+			"9.223372036854775808GMetre",
+			"maximum value is 9.223Gm",
+		},
+		{
+			"-9.223372036854775808GMetre",
+			"minimum value is -9.223Gm",
+		},
+		{
+			"5731.137678989Mile",
+			"maximum value is 5731Miles",
+		},
+		{
+			"-5731.1376789889Mile",
+			"minimum value is -5731Miles",
+		},
+		{
+			"1.008680231502053MYards",
+			"maximum value is 1 Million Yards",
+		},
+		{
+			"-1008680.231502053Yards",
+			"minimum value is -1 Million Yards",
+		},
+		{
+			"3026040.694506159Feet",
+			"maximum value is 3 Million Feet",
+		},
+		{
+			"-3.026040694506159MFeet",
+			"minimum value is 3 Million Feet",
+		},
+		{
+			"36.312488334073901MInch",
+			"maximum value is 36 Million Inches",
+		},
+		{
+			"-36312488.334073901Inch",
+			"minimum value is 36 Million Inches",
+		},
+		{
+			"1random",
+			"contains unknown unit prefix \"rando\". valid prefixes for \"m\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"Metre",
+			"does not contain number",
+		},
+		{
+			"RPM",
+			"does not contain number",
+		},
+		{
+			"CANDELA",
+			"does not contain number or unit \"Metre\"",
+		},
+		{
+			"1Jaunt",
+			"\"Jaunt\" is not a valid unit for physic.Distance",
+		},
+		{
+			"++1Metre",
+			"multiple plus symbols ++1Metre",
+		},
+		{
+			"--1Metre",
+			"multiple minus symbols --1Metre",
+		},
+		{
+			"+-1Metre",
+			"can't contain both plus and minus symbols +-1Metre",
+		},
+		{
+			"1.1.1.1Metre",
+			"multiple decimal points 1.1.1.1Metre",
+		},
+		{
+			string([]byte{0x31, 0x01}),
+			"unexpected end of string",
+		},
+	}
+
+	for _, tt := range succeeds {
+		var got Distance
+		if err := got.Set(tt.in); err != nil {
+			t.Errorf("Distance.Set(%s) got unexpected error: %v", tt.in, err)
+		}
+		if got != tt.expected {
+			t.Errorf("Distance.Set(%s) expected: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+		}
+	}
+
+	for _, tt := range fails {
+		var got Distance
+		if err := got.Set(tt.in); err != nil {
+			if err.Error() != tt.err {
+				t.Errorf("Distance.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+			}
+		} else {
+			t.Errorf("Distance.Set(%s) expected error: %s but got none", tt.in, tt.err)
+		}
+	}
+}
+
 func TestElectricPotential_Set(t *testing.T) {
 	succeeds := []struct {
 		in       string
@@ -2214,4 +2405,30 @@ func BenchmarkString2Decimal2IntNeg(b *testing.B) {
 	}
 	b.StopTimer()
 	_ = fmt.Sprintf("%d %d", v, n)
+}
+
+func BenchmarkElectricCurrentSet(b *testing.B) {
+	var err error
+	var d Distance
+	for i := 0; i < b.N; i++ {
+		err = d.Set("1Foot")
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+	b.StopTimer()
+	_ = fmt.Sprintf("%d", d)
+}
+
+func BenchmarkDistanceSet(b *testing.B) {
+	var err error
+	var e ElectricCurrent
+	for i := 0; i < b.N; i++ {
+		err = e.Set("1Amp")
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+	b.StopTimer()
+	_ = fmt.Sprintf("%d", e)
 }

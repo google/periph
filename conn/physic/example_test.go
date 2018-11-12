@@ -33,6 +33,37 @@ func ExampleDistance() {
 	// 1.609km
 }
 
+func ExampleDistance_Set() {
+	var d physic.Distance
+
+	if err := d.Set("1Foot"); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(d)
+
+	if err := d.Set("1Metre"); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(d)
+
+	if err := d.Set("9Mile"); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(d)
+	// Output:
+	// 304.800mm
+	// 1m
+	// 14.484km
+
+}
+
+func ExampleDistance_flag() {
+	var d physic.Distance
+
+	flag.Var(&d, "distance", "x axis travel length")
+	flag.Parse()
+}
+
 func ExampleElectricCurrent() {
 	fmt.Println(10010 * physic.MilliAmpere)
 	fmt.Println(10 * physic.Ampere)
