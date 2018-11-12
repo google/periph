@@ -13,9 +13,12 @@ import (
 	"periph.io/x/periph/conn/pin"
 )
 
-// Reading is the result of PinADC.Read().
-type Reading struct {
-	// V is the interpreted electrical level.
+// Sample is one analog sample.
+//
+// Raw must be set, but V may or may not be set, depending if the device knows
+// the electrical tension this measurement represents.
+type Sample struct {
+	// V is the interpreted electrical tension.
 	V physic.ElectricPotential
 	// Raw is the raw measurement.
 	Raw int32
@@ -25,9 +28,11 @@ type Reading struct {
 type PinADC interface {
 	pin.Pin
 	// Range returns the maximum supported range [min, max] of the values.
-	Range() (Reading, Reading)
+	//
+	// It is possible for a DAC that the Sample.V value is not set.
+	Range() (Sample, Sample)
 	// Read returns the current pin level.
-	Read() (Reading, error)
+	Read() (Sample, error)
 }
 
 // PinDAC is an digital-to-analog-conversion output.
@@ -35,8 +40,8 @@ type PinDAC interface {
 	pin.Pin
 	// Range returns the maximum supported range [min, max] of the values.
 	//
-	// It is possible for a DAC that the Reading.V value is not set.
-	Range() (Reading, Reading)
+	// It is possible for a DAC that the Sample.V value is not set.
+	Range() (Sample, Sample)
 	// Out sets an analog output value.
 	Out(v int32) error
 }
@@ -73,12 +78,12 @@ func (invalidPin) Halt() error {
 	return errInvalidPin
 }
 
-func (invalidPin) Range() (Reading, Reading) {
-	return Reading{}, Reading{}
+func (invalidPin) Range() (Sample, Sample) {
+	return Sample{}, Sample{}
 }
 
-func (invalidPin) Read() (Reading, error) {
-	return Reading{}, errInvalidPin
+func (invalidPin) Read() (Sample, error) {
+	return Sample{}, errInvalidPin
 }
 
 func (invalidPin) Out(v int32) error {

@@ -112,7 +112,7 @@ type PinADC interface {
 	analog.PinADC
 	// ReadContinuous opens a channel and reads continuously at the frequency the
 	// pin was configured for.
-	ReadContinuous() <-chan analog.Reading
+	ReadContinuous() <-chan analog.Sample
 }
 
 // Dev is an handle to an ADS1015/ADS1115 ADC.
@@ -239,7 +239,7 @@ func (d *Dev) PinForChannel(c Channel, maxVoltage physic.ElectricPotential, f ph
 	}, nil
 }
 
-func (d *Dev) executePreparedQuery(query []byte, waitTime time.Duration, voltageMultiplier physic.ElectricPotential) (analog.Reading, error) {
+func (d *Dev) executePreparedQuery(query []byte, waitTime time.Duration, voltageMultiplier physic.ElectricPotential) (analog.Sample, error) {
 	// Lock the ADC converter to avoid multiple simultaneous readings.
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -247,7 +247,7 @@ func (d *Dev) executePreparedQuery(query []byte, waitTime time.Duration, voltage
 	// Send the config value to start the ADC conversion.
 	// Explicitly break the 16-bit value down to a big endian pair of bytes.
 	if err := d.c.Tx(query, nil); err != nil {
-		return analog.Reading{}, err
+		return analog.Sample{}, err
 	}
 
 	// Wait for the ADC sample to finish.
@@ -256,12 +256,12 @@ func (d *Dev) executePreparedQuery(query []byte, waitTime time.Duration, voltage
 	// Retrieve the result.
 	data := []byte{0, 0}
 	if err := d.c.Tx([]byte{ads1x15PointerConversion}, data); err != nil {
-		return analog.Reading{}, err
+		return analog.Sample{}, err
 	}
 
 	// Convert the raw data into physical value.
 	raw := int16(binary.BigEndian.Uint16(data))
-	return analog.Reading{
+	return analog.Sample{
 		Raw: int32(raw),
 		V:   physic.ElectricPotential(raw) * voltageMultiplier / physic.ElectricPotential(1<<15),
 	}, nil
@@ -400,18 +400,18 @@ type analogPin struct {
 }
 
 // Range returns the maximum supported range [min, max] of the values.
-func (p *analogPin) Range() (analog.Reading, analog.Reading) {
-	max := analog.Reading{Raw: math.MaxInt16, V: p.voltageMultiplier}
-	min := analog.Reading{Raw: -math.MaxInt16, V: -p.voltageMultiplier}
+func (p *analogPin) Range() (analog.Sample, analog.Sample) {
+	max := analog.Sample{Raw: math.MaxInt16, V: p.voltageMultiplier}
+	min := analog.Sample{Raw: -math.MaxInt16, V: -p.voltageMultiplier}
 	return min, max
 }
 
 // Read returns the current pin level.
-func (p *analogPin) Read() (analog.Reading, error) {
+func (p *analogPin) Read() (analog.Sample, error) {
 	return p.adc.executePreparedQuery(p.query[:], p.waitTime, p.voltageMultiplier)
 }
 
-func (p *analogPin) ReadContinuous() <-chan analog.Reading {
+func (p *analogPin) ReadContinuous() <-chan analog.Sample {
 	// We need to lock if there are multiple Halt or ReadContinuous
 	// calls simultaneously.
 	p.mu.Lock()
@@ -422,7 +422,7 @@ func (p *analogPin) ReadContinuous() <-chan analog.Reading {
 		p.stop <- struct{}{}
 		p.stop = nil
 	}
-	reading := make(chan analog.Reading, 16)
+	reading := make(chan analog.Sample, 16)
 	p.stop = make(chan struct{})
 	t := time.NewTicker(p.requestedFrequency.Duration())
 
