@@ -81,6 +81,117 @@ func (d Distance) String() string {
 	return nanoAsString(int64(d)) + "m"
 }
 
+// Set sets the Distance to the value represented by s. Units are to
+// be provided in "Metres", "Metre", "Miles", "Mile", "Yards", "Yard", "Inches"
+// or "Inch" with an optional SI prefix: "p", "n", "u", "µ", "m", "k", "M", "G"
+// or "T".
+func (d *Distance) Set(s string) error {
+	decimal, n, err := atod(s)
+	if err != nil {
+		if e, ok := err.(*parseError); ok {
+			switch e.err {
+			case errNotANumber:
+				if found, _ := containsUnitString(s[n:], "Metre", "Metre", "Inch", "Foot", "Yard", "Mile", "m"); found != "" {
+					return errors.New("does not contain number")
+				}
+				return errors.New("does not contain number or unit \"Metre\"")
+			}
+		}
+		return err
+	}
+	si := prefix(unit)
+	if n != len(s) {
+		r, rsize := utf8.DecodeRuneInString(s[n:])
+		if r <= 1 || rsize == 0 {
+			return &parseError{
+				err: errors.New("unexpected end of string"),
+			}
+		}
+		var siSize int
+		si, siSize = parseSIPrefix(r)
+		if si == milli || si == mega {
+			switch strings.ToLower(s[n:]) {
+			case "mile", "metre", "miles", "metres", "m":
+				si = unit
+			}
+		}
+		if si != unit {
+			n += siSize
+		}
+	}
+	v, err := dtoi(decimal, int(si-nano))
+	if err != nil {
+		if err != nil {
+			if e, ok := err.(*parseError); ok {
+				switch e.err {
+				case errOverflowsInt64:
+					return errors.New("maximum value is " + maxDistance.String())
+				case errOverflowsInt64Negative:
+					return errors.New("minimum value is " + minDistance.String())
+				}
+			}
+
+			return err
+		}
+	}
+	switch strings.ToLower(s[n:]) {
+	case "mile", "miles":
+		switch {
+		case v > maxMiles:
+			return errors.New("maximum value is 5731Miles")
+		case v < minMiles:
+			return errors.New("minimum value is -5731Miles")
+		case v >= 0:
+			*d = (Distance)((v*1609344 + 500) / 1000)
+		default:
+			*d = (Distance)((v*1609344 - 500) / 1000)
+		}
+	case "yard", "yards":
+		switch {
+		case v > maxYards:
+			return errors.New("maximum value is 1 Million Yards")
+		case v < minYards:
+			return errors.New("minimum value is -1 Million Yards")
+		case v >= 0:
+			*d = (Distance)((v*9144 + 5000) / 10000)
+		default:
+			*d = (Distance)((v*9144 - 5000) / 10000)
+		}
+	case "foot", "feet", "ft":
+		switch {
+		case v > maxFeet:
+			return errors.New("maximum value is 3 Million Feet")
+		case v < minFeet:
+			return errors.New("minimum value is 3 Million Feet")
+		case v >= 0:
+			*d = (Distance)((v*3048 + 5000) / 10000)
+		default:
+			*d = (Distance)((v*3048 - 5000) / 10000)
+		}
+	case "in", "inch", "inches":
+		switch {
+		case v > maxInches:
+			return errors.New("maximum value is 36 Million Inches")
+		case v < minInches:
+			return errors.New("minimum value is 36 Million Inches")
+		case v >= 0:
+			*d = (Distance)((v*254 + 5000) / 10000)
+		default:
+			*d = (Distance)((v*254 - 5000) / 10000)
+		}
+	case "m", "metre", "metres":
+		*d = (Distance)(v)
+	case "":
+		return noUnits("m, Metre, Mile, Inch, Foot or Yard")
+	default:
+		if found, extra := containsUnitString(s[n:], "Metre", "Metre", "Inch", "Foot", "Yard", "Mile", "m"); found != "" {
+			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
+		}
+		return incorrectUnit(s[n:], "physic.Distance")
+	}
+	return nil
+}
+
 const (
 	NanoMetre  Distance = 1
 	MicroMetre Distance = 1000 * NanoMetre
@@ -96,6 +207,17 @@ const (
 	Foot Distance = 12 * Inch
 	Yard Distance = 3 * Foot
 	Mile Distance = 1760 * Yard
+
+	maxDistance       = 9223372036854775807 * NanoMetre
+	minDistance       = -9223372036854775807 * NanoMetre
+	maxMiles    int64 = (int64(maxDistance) - 500) / int64((Mile)/1000000) // ~Max/1609344
+	minMiles    int64 = (int64(minDistance) + 500) / int64((Mile)/1000000) // ~Min/1609344
+	maxYards    int64 = (int64(maxDistance) - 5000) / int64((Yard)/100000) // ~Max/9144
+	minYards    int64 = (int64(minDistance) + 5000) / int64((Yard)/100000) // ~Min/9144
+	maxFeet     int64 = (int64(maxDistance) - 5000) / int64((Foot)/100000) // ~Max/3048
+	minFeet     int64 = (int64(minDistance) + 5000) / int64((Foot)/100000) // ~Min/3048
+	maxInches   int64 = (int64(maxDistance) - 5000) / int64((Inch)/100000) // ~Max/254
+	minInches   int64 = (int64(minDistance) + 5000) / int64((Inch)/100000) // ~Min/254
 )
 
 // ElectricCurrent is a measurement of a flow of electric charge stored as an
