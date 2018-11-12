@@ -70,12 +70,12 @@ func mainFunc() error {
 	}
 
 	if *cont {
-		ch := dev.StartContinuousRead()
+		ch := dev.ReadContinuous()
 		for {
 			fmt.Println(<-ch)
 		}
 	} else {
-		value, err := dev.Read(timeout)
+		value, err := dev.ReadTimeout(timeout)
 		if err != nil {
 			return err
 		}
