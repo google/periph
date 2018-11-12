@@ -165,6 +165,7 @@ func TestPinADC_ReadContinous(t *testing.T) {
 				R:    []byte{0x52, 0xc0},
 			},
 		},
+		DontPanic: true,
 	}
 
 	rawValues := []int32{21200, 21184}
