@@ -16,12 +16,6 @@ import (
 	"periph.io/x/periph"
 )
 
-// driverAfter is an optional function.
-// TODO(maruel): Remove in v3.
-type driverAfter interface {
-	After() []string
-}
-
 func printDrivers(drivers []periph.DriverFailure) {
 	if len(drivers) == 0 {
 		fmt.Print("  <none>\n")
@@ -66,10 +60,7 @@ func mainImpl() error {
 		}
 		for _, d := range state.Loaded {
 			p := d.Prerequisites()
-			var a []string
-			if da, ok := d.(driverAfter); ok {
-				a = da.After()
-			}
+			a := d.After()
 			if len(p) == 0 && len(a) == 0 {
 				fmt.Printf("- %s\n", d)
 				continue
