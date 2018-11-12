@@ -76,7 +76,7 @@ func TestPinADC_Read(t *testing.T) {
 		Ops: []i2ctest.IO{
 			{
 				Addr: 0x48,
-				W:    []byte{0x1, 0x91, 0xc3},
+				W:    []byte{0x1, 0x91, 0x3},
 				R:    []byte{},
 			},
 			{
@@ -92,7 +92,7 @@ func TestPinADC_Read(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Obtain an analog pin from the ADC
-	pin, err := d.PinForChannel(Channel0Minus3, 5*physic.Volt, 1*physic.Hertz, SaveEnergy)
+	pin, err := d.PinForChannel(Channel0Minus3, 5*physic.Volt, 1*physic.Hertz, BestQuality)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,13 +120,12 @@ func TestPinADC_Read(t *testing.T) {
 	}
 }
 
-/* https://github.com/google/periph/issues/334
 func TestPinADC_ReadContinous(t *testing.T) {
 	b := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			{
 				Addr: 0x48,
-				W:    []byte{0x1, 0x91, 0x3},
+				W:    []byte{0x1, 0x91, 0xc3},
 				R:    []byte{},
 			},
 			{
@@ -136,7 +135,7 @@ func TestPinADC_ReadContinous(t *testing.T) {
 			},
 			{
 				Addr: 0x48,
-				W:    []byte{0x1, 0x91, 0x3},
+				W:    []byte{0x1, 0x91, 0xc3},
 				R:    []byte{},
 			},
 			{
@@ -144,10 +143,20 @@ func TestPinADC_ReadContinous(t *testing.T) {
 				W:    []byte{0x0},
 				R:    []byte{0x52, 0xc0},
 			},
-			// We add one extra exchange, as halting the polling is not instant
+			// We add 2 extra exchanges, as halting the polling is not instant
 			{
 				Addr: 0x48,
-				W:    []byte{0x1, 0x91, 0x3},
+				W:    []byte{0x1, 0x91, 0xc3},
+				R:    []byte{},
+			},
+			{
+				Addr: 0x48,
+				W:    []byte{0x0},
+				R:    []byte{0x52, 0xc0},
+			},
+			{
+				Addr: 0x48,
+				W:    []byte{0x1, 0x91, 0xc3},
 				R:    []byte{},
 			},
 			{
@@ -156,6 +165,7 @@ func TestPinADC_ReadContinous(t *testing.T) {
 				R:    []byte{0x52, 0xc0},
 			},
 		},
+		DontPanic: true,
 	}
 
 	rawValues := []int32{21200, 21184}
@@ -166,7 +176,7 @@ func TestPinADC_ReadContinous(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Obtain an analog pin from the ADC
-	pin, err := d.PinForChannel(Channel0Minus3, 5*physic.Volt, 100*physic.Hertz, BestQuality)
+	pin, err := d.PinForChannel(Channel0Minus3, 5*physic.Volt, 100*physic.Hertz, SaveEnergy)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -198,4 +208,3 @@ func TestPinADC_ReadContinous(t *testing.T) {
 		t.Fatal(err)
 	}
 }
-*/
