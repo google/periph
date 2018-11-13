@@ -528,8 +528,8 @@ func TestDev16_WriteStruct_uint16(t *testing.T) {
 //
 
 func TestEdgeCases(t *testing.T) {
-	if getSize(reflect.ValueOf(nil)) != 0 {
-		t.FailNow()
+	if s := getSize(reflect.ValueOf(nil)); s != 0 {
+		t.Fatal(s)
 	}
 }
 

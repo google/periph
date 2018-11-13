@@ -231,14 +231,14 @@ func TestWrites(t *testing.T) {
 					t.Logf("(%d) Got:  %#02v\tWant: %#02v\n", i, got[i], tt.want[i])
 				}
 			}
-			t.Fail()
+			t.Fatal("expectation failure")
 		}
 	}
 }
 
 func TestDevColor(t *testing.T) {
-	if (&Dev{}).ColorModel() != color.NRGBAModel {
-		t.Fail()
+	if c := (&Dev{}).ColorModel(); c != color.NRGBAModel {
+		t.Fatal(c)
 	}
 }
 
@@ -342,7 +342,7 @@ func TestDraws(t *testing.T) {
 					t.Logf("(%d) Got:  %#02v\tWant: %#02v\n", i, got[i], tt.want[i])
 				}
 			}
-			t.Fail()
+			t.Fatal("expectation failure")
 		}
 	}
 }

@@ -9,8 +9,8 @@ import (
 )
 
 func TestInvalid(t *testing.T) {
-	if INVALID.String() != "INVALID" {
-		t.Fail()
+	if s := INVALID.String(); s != "INVALID" {
+		t.Fatal(s)
 	}
 }
 

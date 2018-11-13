@@ -13,7 +13,7 @@ import (
 
 func TestLEDByName(t *testing.T) {
 	if _, err := LEDByName("FOO"); err == nil {
-		t.Fail()
+		t.Fatal("expected error")
 	}
 }
 

@@ -13,29 +13,44 @@ import (
 )
 
 func TestPullUp(t *testing.T) {
-	if WeakPullup.String() != "Weak" || StrongPullup.String() != "Strong" {
-		t.FailNow()
+	if s := WeakPullup.String(); s != "Weak" {
+		t.Fatal(s)
+	}
+	if s := StrongPullup.String(); s != "Strong" {
+		t.Fatal(s)
 	}
 }
 
 func TestNoDevicesError(t *testing.T) {
 	e := noDevicesError("no")
-	if !e.NoDevices() || e.Error() != "no" {
-		t.FailNow()
+	if !e.NoDevices() {
+		t.Fatal("expected NoDevices")
+	}
+	if s := e.Error(); s != "no" {
+		t.Fatal(s)
 	}
 }
 
 func TestShortedBusError(t *testing.T) {
 	e := shortedBusError("no")
-	if !e.IsShorted() || !e.BusError() || e.Error() != "no" {
-		t.FailNow()
+	if !e.IsShorted() {
+		t.Fatal("expected IsShorted")
+	}
+	if !e.BusError() {
+		t.Fatal("expected BusError")
+	}
+	if s := e.Error(); s != "no" {
+		t.Fatal(s)
 	}
 }
 
 func TestBusError(t *testing.T) {
 	e := busError("no")
-	if !e.BusError() || e.Error() != "no" {
-		t.FailNow()
+	if !e.BusError() {
+		t.Fatal("expected BusError")
+	}
+	if s := e.Error(); s != "no" {
+		t.Fatal(s)
 	}
 }
 

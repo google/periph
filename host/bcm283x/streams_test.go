@@ -21,7 +21,7 @@ func TestRaster32Bits(t *testing.T) {
 	d32Clear := make([]uint32, 8*2)
 	d32Set := make([]uint32, 8*2)
 	if err := raster32Bits(&b, 1, d32Clear, d32Set, 2); err != nil {
-		t.FailNow()
+		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(d32Set, []uint32{2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0}) {
 		t.Errorf("unexpected d32Set %v", d32Set)

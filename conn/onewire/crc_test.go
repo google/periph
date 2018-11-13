@@ -15,13 +15,13 @@ func TestCheckCRC(t *testing.T) {
 	b := append([]byte{}, a...)
 	b = append(b, c)
 	if !CheckCRC(b) {
-		t.FailNow()
+		t.Fatal("expected good crc")
 	}
 	b[len(b)-1]++
 	if CheckCRC(b) {
-		t.FailNow()
+		t.Fatal("expected bad crc")
 	}
 	if CheckCRC(nil) {
-		t.FailNow()
+		t.Fatal("expected bad crc")
 	}
 }

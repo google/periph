@@ -17,11 +17,14 @@ func TestBit(t *testing.T) {
 	if r, g, b, a := Off.RGBA(); r != 0 || g != r || b != r || a != 65535 {
 		t.Fatal(r, g, b, a)
 	}
-	if On.String() != "On" || Off.String() != "Off" {
-		t.Fail()
+	if s := On.String(); s != "On" {
+		t.Fatal(s)
 	}
-	if On != convertBit(On) {
-		t.Fail()
+	if s := Off.String(); s != "Off" {
+		t.Fatal(s)
+	}
+	if b := convertBit(On); b != On {
+		t.Fatal(b)
 	}
 }
 

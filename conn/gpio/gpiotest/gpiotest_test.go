@@ -80,20 +80,20 @@ func TestPin_edge(t *testing.T) {
 	p := &Pin{N: "GPIO1", Num: 1, Fn: "I2C1_SDA", EdgesChan: make(chan gpio.Level, 1)}
 	p.EdgesChan <- gpio.High
 	if !p.WaitForEdge(-1) {
-		t.Fail()
+		t.Fatal("expected edge")
 	}
-	if p.Read() != gpio.High {
-		t.Fail()
+	if l := p.Read(); l != gpio.High {
+		t.Fatalf("unexpected %s", l)
 	}
 	if p.WaitForEdge(time.Millisecond) {
-		t.Fail()
+		t.Fatal("unexpected edge")
 	}
 	p.EdgesChan <- gpio.Low
 	if !p.WaitForEdge(time.Minute) {
-		t.Fail()
+		t.Fatal("expected edge")
 	}
-	if p.Read() != gpio.Low {
-		t.Fail()
+	if l := p.Read(); l != gpio.Low {
+		t.Fatalf("unexpected %s", l)
 	}
 }
 
@@ -141,7 +141,7 @@ func TestLogPinIO(t *testing.T) {
 
 func TestAll(t *testing.T) {
 	if 2 != len(gpioreg.All()) {
-		t.Fail()
+		t.Fatal("expected two pins registered for test")
 	}
 }
 

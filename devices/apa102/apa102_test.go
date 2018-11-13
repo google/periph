@@ -289,18 +289,21 @@ func TestRamp(t *testing.T) {
 		}
 	}
 	for i, line := range data {
-		if i != int(line.input) || line.expected != ramp(line.input, maxOut) {
-			t.Fail()
+		if i != int(line.input) {
+			t.Fatalf("expected ordered inputs; %d != %d", i, line.input)
+		}
+		if actual := ramp(line.input, maxOut); actual != line.expected {
+			t.Fatalf("%d: %v != %v", i, line.expected, actual)
 		}
 	}
-	if 0x00 != ramp(0x00, 0xFF) {
-		t.Fail()
+	if v := ramp(0x00, 0xFF); v != 0x00 {
+		t.Fatal(v)
 	}
-	if 0x21 != ramp(0x7F, 0xFF) {
-		t.Fail()
+	if v := ramp(0x7F, 0xFF); v != 0x21 {
+		t.Fatal(v)
 	}
-	if 0xFF != ramp(0xFF, 0xFF) {
-		t.Fail()
+	if v := ramp(0xFF, 0xFF); v != 0xFF {
+		t.Fatal(v)
 	}
 }
 
@@ -567,8 +570,8 @@ func TestWrites(t *testing.T) {
 }
 
 func TestDevColor(t *testing.T) {
-	if (&Dev{}).ColorModel() != color.NRGBAModel {
-		t.Fail()
+	if c := (&Dev{}).ColorModel(); c != color.NRGBAModel {
+		t.Fatal(c)
 	}
 }
 

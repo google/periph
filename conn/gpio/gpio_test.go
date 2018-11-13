@@ -105,23 +105,44 @@ func TestParseDuty(t *testing.T) {
 
 func TestInvalid(t *testing.T) {
 	// conn.Resource
-	if INVALID.String() != "INVALID" {
-		t.Fail()
+	if s := INVALID.String(); s != "INVALID" {
+		t.Fatal(s)
 	}
 	if err := INVALID.Halt(); err != nil {
 		t.Fatal(err)
 	}
 	// pin.Pin
-	if INVALID.Name() != "INVALID" || INVALID.Number() != -1 || INVALID.Function() != "" {
-		t.Fail()
+	if s := INVALID.Name(); s != "INVALID" {
+		t.Fatal(s)
+	}
+	if n := INVALID.Number(); n != -1 {
+		t.Fatal(n)
+	}
+	if s := INVALID.Function(); s != "" {
+		t.Fatal(s)
 	}
 	// gpio.PinIn
-	if INVALID.In(Float, NoEdge) != errInvalidPin || INVALID.Read() != Low || INVALID.WaitForEdge(time.Minute) || INVALID.Pull() != PullNoChange || INVALID.DefaultPull() != PullNoChange {
-		t.Fail()
+	if err := INVALID.In(Float, NoEdge); err != errInvalidPin {
+		t.Fatal(err)
+	}
+	if l := INVALID.Read(); l != Low {
+		t.Fatal(l)
+	}
+	if INVALID.WaitForEdge(time.Minute) {
+		t.Fatal("unexpected edge")
+	}
+	if p := INVALID.Pull(); p != PullNoChange {
+		t.Fatal(p)
+	}
+	if p := INVALID.DefaultPull(); p != PullNoChange {
+		t.Fatal(p)
 	}
 	// gpio.PinOut
-	if INVALID.Out(Low) != errInvalidPin || INVALID.PWM(DutyMax, physic.Hertz) != errInvalidPin {
-		t.Fail()
+	if err := INVALID.Out(Low); err != errInvalidPin {
+		t.Fatal(err)
+	}
+	if err := INVALID.PWM(DutyMax, physic.Hertz); err != errInvalidPin {
+		t.Fatal(err)
 	}
 	// pin.PinFunc
 	if f := INVALID.(pin.PinFunc).Func(); f != pin.FuncNone {

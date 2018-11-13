@@ -16,8 +16,11 @@ func TestIntensity14(t *testing.T) {
 	if r, g, b, a := Intensity14(0).RGBA(); r != 0 || g != r || b != r || a != 65535 {
 		t.Fatal(r, g, b, a)
 	}
-	if Intensity14(16383).String() != "Intensity14(16383)" || Intensity14(0).String() != "Intensity14(0)" {
-		t.Fail()
+	if s := Intensity14(16383).String(); s != "Intensity14(16383)" {
+		t.Fatal(s)
+	}
+	if s := Intensity14(0).String(); s != "Intensity14(0)" {
+		t.Fatal(s)
 	}
 	if Intensity14(8192) != convertIntensity14(Intensity14(8192)) {
 		t.Fatal("failed to convert Intensity14 correctly")
