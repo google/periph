@@ -663,8 +663,6 @@ func TestDoti(t *testing.T) {
 	}{
 		{"max+1", decimal{9223372036854775808, 0, positive}, 9223372036854775807},
 		{"-max-1", decimal{9223372036854775808, 0, negative}, -9223372036854775807},
-		// {"non digit in decimal.igit)", decimal{1a", 0, positive}, 0},
-		// {"non digit in decimal.igit)", decimal{2.7b", 0, negative}, 0},
 		{"exponet too large for int64", decimal{123, 20, positive}, 0},
 		{"exponet too small for int64", decimal{123, -20, positive}, 0},
 		{"max*10^1", decimal{9223372036854775807, 1, positive}, 9223372036854775807},
