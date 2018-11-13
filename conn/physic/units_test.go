@@ -2427,7 +2427,7 @@ func BenchmarkString2Decimal2IntNeg(b *testing.B) {
 	_ = fmt.Sprintf("%d %d", v, n)
 }
 
-func BenchmarkElectricCurrentSet(b *testing.B) {
+func BenchmarkDistanceSet(b *testing.B) {
 	var err error
 	var d Distance
 	for i := 0; i < b.N; i++ {
@@ -2440,7 +2440,7 @@ func BenchmarkElectricCurrentSet(b *testing.B) {
 	_ = fmt.Sprintf("%d", d)
 }
 
-func BenchmarkDistanceSet(b *testing.B) {
+func BenchmarkElectricCurrentSet(b *testing.B) {
 	var err error
 	var e ElectricCurrent
 	for i := 0; i < b.N; i++ {
