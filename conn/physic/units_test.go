@@ -549,35 +549,35 @@ func TestAtod(t *testing.T) {
 		expected decimal
 		n        int
 	}{
-		{"123456789", decimal{"123456789", 0, positive}, 9},
-		{"1nM", decimal{"1", 0, positive}, 1},
-		{"2.2nM", decimal{"22", -1, positive}, 3},
-		{"12.5mA", decimal{"125", -1, positive}, 4},
-		{"-12.5mA", decimal{"125", -1, negative}, 5},
-		{"1ma1", decimal{"1", 0, positive}, 1},
-		{"+1ma1", decimal{"1", 0, positive}, 2},
-		{"-1ma1", decimal{"1", 0, negative}, 2},
-		{"-0.00001%rH", decimal{"1", -5, negative}, 8},
-		{"0.00001%rH", decimal{"1", -5, positive}, 7},
-		{"1.0", decimal{"1", 0, positive}, 3},
-		{"0.10001", decimal{"10001", -5, positive}, 7},
-		{"+0.10001", decimal{"10001", -5, positive}, 8},
-		{"-0.10001", decimal{"10001", -5, negative}, 8},
-		{"1n", decimal{"1", 0, positive}, 1},
-		{"1.n", decimal{"1", 0, positive}, 2},
-		{"-1.n", decimal{"1", 0, negative}, 3},
-		{"200n", decimal{"2", 2, positive}, 3},
-		{".01", decimal{"1", -2, positive}, 3},
-		{"+.01", decimal{"1", -2, positive}, 4},
-		{"-.01", decimal{"1", -2, negative}, 4},
-		{"1-2", decimal{"1", 0, positive}, 1},
-		{"1+2", decimal{"1", 0, positive}, 1},
-		{"-1-2", decimal{"1", 0, negative}, 2},
-		{"-1+2", decimal{"1", 0, negative}, 2},
-		{"+1-2", decimal{"1", 0, positive}, 2},
-		{"+1+2", decimal{"1", 0, positive}, 2},
-		{"010", decimal{"1", 1, positive}, 3},
-		{"001", decimal{"1", 0, positive}, 3},
+		{"123456789", decimal{123456789, 0, positive}, 9},
+		{"1nM", decimal{1, 0, positive}, 1},
+		{"2.2", decimal{22, -1, positive}, 3},
+		{"12.5mA", decimal{125, -1, positive}, 4},
+		{"-12.5mA", decimal{125, -1, negative}, 5},
+		{"1ma1", decimal{1, 0, positive}, 1},
+		{"+1ma1", decimal{1, 0, positive}, 2},
+		{"-1ma1", decimal{1, 0, negative}, 2},
+		{"-0.00001%rH", decimal{1, -5, negative}, 8},
+		{"0.00001%rH", decimal{1, -5, positive}, 7},
+		{"1.0", decimal{1, 0, positive}, 3},
+		{"0.10001", decimal{10001, -5, positive}, 7},
+		{"+0.10001", decimal{10001, -5, positive}, 8},
+		{"-0.10001", decimal{10001, -5, negative}, 8},
+		{"1n", decimal{1, 0, positive}, 1},
+		{"1.n", decimal{1, 0, positive}, 2},
+		{"-1.n", decimal{1, 0, negative}, 3},
+		{"200n", decimal{2, 2, positive}, 3},
+		{".01", decimal{1, -2, positive}, 3},
+		{"+.01", decimal{1, -2, positive}, 4},
+		{"-.01", decimal{1, -2, negative}, 4},
+		{"1-2", decimal{1, 0, positive}, 1},
+		{"1+2", decimal{1, 0, positive}, 1},
+		{"-1-2", decimal{1, 0, negative}, 2},
+		{"-1+2", decimal{1, 0, negative}, 2},
+		{"+1-2", decimal{1, 0, positive}, 2},
+		{"+1+2", decimal{1, 0, positive}, 2},
+		{"010", decimal{1, 1, positive}, 3},
+		{"001", decimal{1, 0, positive}, 3},
 	}
 
 	fails := []struct {
@@ -586,6 +586,7 @@ func TestAtod(t *testing.T) {
 		n        int
 	}{
 		{"1.1.1", decimal{}, 0},
+		{"1a2b3a", decimal{}, 0},
 		{"aba", decimal{}, 0},
 		{"%-0.10001", decimal{}, 0},
 		{"--100ma", decimal{}, 0},
@@ -633,26 +634,26 @@ func TestDoti(t *testing.T) {
 		in       decimal
 		expected int64
 	}{
-		{"123", decimal{"123", 0, positive}, 123},
-		{"-123", decimal{"123", 0, negative}, -123},
-		{"1230", decimal{"123", 1, positive}, 1230},
-		{"-1230", decimal{"123", 1, negative}, -1230},
-		{"12.3", decimal{"123", -1, positive}, 12},
-		{"-12.3", decimal{"123", -1, negative}, -12},
-		{"123n", decimal{"123", 0, positive}, 123},
-		{"max", decimal{"9223372036854775807", 0, positive}, 9223372036854775807},
-		{"rounding(5.6)", decimal{"56", -1, positive}, 6},
-		{"rounding(5.5)", decimal{"55", -1, positive}, 6},
-		{"rounding(5.4)", decimal{"54", -1, positive}, 5},
-		{"rounding(-5.6)", decimal{"56", -1, negative}, -6},
-		{"rounding(-5.5)", decimal{"55", -1, negative}, -6},
-		{"rounding(-5.4)", decimal{"54", -1, negative}, -5},
-		{"rounding(0.6)", decimal{"6", -1, positive}, 1},
-		{"rounding(0.5)", decimal{"5", -1, positive}, 1},
-		{"rounding(0.4)", decimal{"4", -1, positive}, 0},
-		{"rounding(-0.6)", decimal{"6", -1, negative}, -1},
-		{"rounding(-0.5)", decimal{"5", -1, negative}, -1},
-		{"rounding(-0.4)", decimal{"4", -1, negative}, -0},
+		{"123", decimal{123, 0, positive}, 123},
+		{"-123", decimal{123, 0, negative}, -123},
+		{"1230", decimal{123, 1, positive}, 1230},
+		{"-1230", decimal{123, 1, negative}, -1230},
+		{"12.3", decimal{123, -1, positive}, 12},
+		{"-12.3", decimal{123, -1, negative}, -12},
+		{"123n", decimal{123, 0, positive}, 123},
+		{"max", decimal{9223372036854775807, 0, positive}, 9223372036854775807},
+		{"rounding(5.6)", decimal{56, -1, positive}, 6},
+		{"rounding(5.5)", decimal{55, -1, positive}, 6},
+		{"rounding(5.4)", decimal{54, -1, positive}, 5},
+		{"rounding(-5.6)", decimal{56, -1, negative}, -6},
+		{"rounding(-5.5)", decimal{55, -1, negative}, -6},
+		{"rounding(-5.4)", decimal{54, -1, negative}, -5},
+		{"rounding(0.6)", decimal{6, -1, positive}, 1},
+		{"rounding(0.5)", decimal{5, -1, positive}, 1},
+		{"rounding(0.4)", decimal{4, -1, positive}, 0},
+		{"rounding(-0.6)", decimal{6, -1, negative}, -1},
+		{"rounding(-0.5)", decimal{5, -1, negative}, -1},
+		{"rounding(-0.4)", decimal{4, -1, negative}, -0},
 	}
 
 	fails := []struct {
@@ -660,14 +661,14 @@ func TestDoti(t *testing.T) {
 		in       decimal
 		expected int64
 	}{
-		{"max+1", decimal{"9223372036854775808", 0, positive}, 9223372036854775807},
-		{"-max-1", decimal{"9223372036854775808", 0, negative}, -9223372036854775807},
-		{"non digit in decimal.digit)", decimal{"1a", 0, positive}, 0},
-		{"non digit in decimal.digit)", decimal{"2.7b", 0, negative}, 0},
-		{"exponet too large for int64", decimal{"123", 20, positive}, 0},
-		{"exponet too small for int64", decimal{"123", -20, positive}, 0},
-		{"max*10^1", decimal{"9223372036854775807", 1, positive}, 9223372036854775807},
-		{"-max*10^1", decimal{"9223372036854775807", 1, negative}, -9223372036854775807},
+		{"max+1", decimal{9223372036854775808, 0, positive}, 9223372036854775807},
+		{"-max-1", decimal{9223372036854775808, 0, negative}, -9223372036854775807},
+		// {"non digit in decimal.igit)", decimal{1a", 0, positive}, 0},
+		// {"non digit in decimal.igit)", decimal{2.7b", 0, negative}, 0},
+		{"exponet too large for int64", decimal{123, 20, positive}, 0},
+		{"exponet too small for int64", decimal{123, -20, positive}, 0},
+		{"max*10^1", decimal{9223372036854775807, 1, positive}, 9223372036854775807},
+		{"-max*10^1", decimal{9223372036854775807, 1, negative}, -9223372036854775807},
 	}
 
 	for _, tt := range succeeds {
@@ -927,6 +928,14 @@ func TestDistance_Set(t *testing.T) {
 		{
 			"10",
 			"no units provided, need m, Metre, Mile, Inch, Foot or Yard",
+		},
+		{
+			"9.3Gm",
+			"maximum value is 9.223Gm",
+		},
+		{
+			"-9.3Gm",
+			"minimum value is -9.223Gm",
 		},
 		{
 			"9223372036854775808",
@@ -2358,6 +2367,19 @@ func BenchmarkDecimal(b *testing.B) {
 	}
 	b.StopTimer()
 	_ = fmt.Sprintf("%v %d", d, n)
+}
+
+func BenchmarkDecimal2Int(b *testing.B) {
+	d := decimal{1234, 5, false}
+	var err error
+	var v int64
+	for i := 0; i < b.N; i++ {
+		if v, err = dtoi(d, 0); err != nil {
+			b.Fatal(err)
+		}
+	}
+	b.StopTimer()
+	_ = fmt.Sprintf("%d", v)
 }
 
 func BenchmarkString2Decimal2Int(b *testing.B) {
