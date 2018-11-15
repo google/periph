@@ -1479,14 +1479,13 @@ func atod(s string) (decimal, int, error) {
 	}
 
 	for i := start; i < end; i++ {
-
+		c := s[i]
 		// Check that is is a digit.
-		if s[i] >= '0' && s[i] <= '9' {
-			// '0' = 0x30 '1' = 0x31 ...etc.
-			digit := s[i] - '0'
+		if c >= '0' && c <= '9' {
 			// *10 is decimal shift left.
 			d.base *= 10
-			check := d.base + uint64(digit)
+			// Convert ascii digit into number.
+			check := d.base + uint64(c-'0')
 			// Check should always be larger than u unless we have overflowed.
 			// Similarly if check > max it will overflow when converted to int64.
 			if check < d.base || check > maxInt64 {
@@ -1502,21 +1501,23 @@ func atod(s string) (decimal, int, error) {
 				}
 			}
 			d.base = check
-		} else {
-			if s[i] != '.' {
-				return decimal{}, 0, &parseError{err: errNotANumber}
-			}
+		} else if c != '.' {
+			return decimal{}, 0, &parseError{err: errNotANumber}
 		}
 	}
 	if !isPoint {
 		d.exp = exp
 	} else {
 		if dp > start && dp < end {
+			// Decimal Point is in the middle of a number.
 			end--
 		}
-		d.exp = (dp - start) - (end - start) + 1
-		if (dp - start) > 0 {
-			d.exp--
+		// Find the exponet based on decimal point distance from left and the
+		// length of the number.
+		d.exp = (dp - start) - (end - start)
+		if (dp - start) <= 0 {
+			// Account for numbers of the form 1 > n < -1 eg 0.0001.
+			d.exp++
 		}
 	}
 	return d, last, nil
