@@ -1515,7 +1515,7 @@ func atod(s string) (decimal, int, error) {
 		// Find the exponet based on decimal point distance from left and the
 		// length of the number.
 		d.exp = (dp - start) - (end - start)
-		if (dp - start) <= 0 {
+		if dp <= start {
 			// Account for numbers of the form 1 > n < -1 eg 0.0001.
 			d.exp++
 		}
