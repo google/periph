@@ -95,6 +95,11 @@ func (d *Distance) Set(s string) error {
 					return errors.New("does not contain number")
 				}
 				return errors.New("does not contain number or unit \"Metre\"")
+			case errOverflowsInt64:
+				return errors.New("maximum value is " + maxDistance.String())
+			case errOverflowsInt64Negative:
+				return errors.New("minimum value is " + minDistance.String())
+
 			}
 		}
 		return err
@@ -1270,10 +1275,10 @@ func picoAsString(v int64) string {
 	return sign + strconv.Itoa(base) + "." + prefixZeros(3, frac) + unit
 }
 
-// Decimal is the exact representation of decimal number.
+// Decimal is the representation of decimal number.
 type decimal struct {
-	// digits hold the string representation of the significant decimal digits.
-	digits string
+	// base hold the significant digits.
+	base uint64
 	// exponent is the left or right decimal shift. (powers of ten).
 	exp int
 	// neg it true if the number is negative.
@@ -1312,54 +1317,24 @@ var (
 	errOverflowsInt64         = errors.New("exceeds maximum")
 	errOverflowsInt64Negative = errors.New("exceeds minimum")
 	errNotANumber             = errors.New("not a number")
+	errExponentOverflow       = errors.New("exponent exceeds int64")
 )
 
-// Converts from decimal to int64, using the decimal.digits character values and
-// converting to a intermediate unit64.
+// Converts from decimal to int64.
 // Scale is combined with the decimal exponent to maximise the resolution and is
 // in powers of ten.
 func dtoi(d decimal, scale int) (int64, error) {
-	// Use uint till the last as it allows checks for overflows.
-	var u uint64
-	for i := 0; i < len(d.digits); i++ {
-		// Check that is is a digit.
-		if d.digits[i] >= '0' && d.digits[i] <= '9' {
-			// '0' = 0x30 '1' = 0x31 ...etc.
-			digit := d.digits[i] - '0'
-			// *10 is decimal shift left.
-			u *= 10
-			check := u + uint64(digit)
-			// Check should always be larger than u unless we have overflowed.
-			// Similarly if check > max it will overflow when converted to int64.
-			if check < u || check > maxInt64 {
-				if d.neg {
-					return -maxInt64, &parseError{
-						msg: "-" + maxUint64Str,
-						err: errOverflowsInt64Negative,
-					}
-				}
-				return maxInt64, &parseError{
-					msg: maxUint64Str,
-					err: errOverflowsInt64,
-				}
-			}
-			u = check
-		} else {
-			// Should not get here if used atod to generate the decimal.
-			return 0, &parseError{err: errNotANumber}
-		}
-	}
-
 	// Get the total magnitude of the number.
 	// a^x * b^y = a*b^(x+y) since scale is of the order unity this becomes
 	// 1^x * b^y = b^(x+y).
 	// mag must be positive to use as index in to powerOf10 array.
+	u := d.base
 	mag := d.exp + scale
 	if mag < 0 {
 		mag = -mag
 	}
 	if mag > 18 {
-		return 0, errors.New("exponent exceeds int64")
+		return 0, errExponentOverflow
 	}
 	// Divide is = 10^(-mag)
 	if d.exp+scale < 0 {
@@ -1389,10 +1364,11 @@ func dtoi(d decimal, scale int) (int64, error) {
 }
 
 // Converts a string to a decimal form. The return int is how many bytes of the
-// string are numeric. The string may contain +-0 prefixes and arbitrary
-// suffixes as trailing non number characters are ignored.
-// Significant digits are stored without leading or trailing zeros, rather an
-// exponent is used.
+// string are considered numeric. The string may contain +-0 prefixes and
+// arbitrary suffixes as trailing non number characters are ignored.
+// Significant digits are stored without leading or trailing zeros, rather a
+// base and exponent is used. Significant digits are stored as uint64, max size
+// of significant digits is int64
 func atod(s string) (decimal, int, error) {
 	var d decimal
 	start := 0
@@ -1502,21 +1478,46 @@ func atod(s string) (decimal, int, error) {
 		}
 	}
 
-	if dp > start && dp < end {
-		// Concatenate with out decimal point.
-		d.digits = s[start:dp] + s[dp+1:end]
-	} else {
-		d.digits = s[start:end]
+	for i := start; i < end; i++ {
+		c := s[i]
+		// Check that is is a digit.
+		if c >= '0' && c <= '9' {
+			// *10 is decimal shift left.
+			d.base *= 10
+			// Convert ascii digit into number.
+			check := d.base + uint64(c-'0')
+			// Check should always be larger than u unless we have overflowed.
+			// Similarly if check > max it will overflow when converted to int64.
+			if check < d.base || check > maxInt64 {
+				if d.neg {
+					return decimal{}, 0, &parseError{
+						msg: "-" + maxUint64Str,
+						err: errOverflowsInt64Negative,
+					}
+				}
+				return decimal{}, 0, &parseError{
+					msg: maxUint64Str,
+					err: errOverflowsInt64,
+				}
+			}
+			d.base = check
+		} else if c != '.' {
+			return decimal{}, 0, &parseError{err: errNotANumber}
+		}
 	}
 	if !isPoint {
 		d.exp = exp
 	} else {
-		ttl := dp - start
-		length := len(d.digits)
-		if ttl > 0 {
-			d.exp = ttl - length
-		} else {
-			d.exp = ttl - length + 1
+		if dp > start && dp < end {
+			// Decimal Point is in the middle of a number.
+			end--
+		}
+		// Find the exponent based on decimal point distance from left and the
+		// length of the number.
+		d.exp = (dp - start) - (end - start)
+		if dp <= start {
+			// Account for numbers of the form 1 > n < -1 eg 0.0001.
+			d.exp++
 		}
 	}
 	return d, last, nil
