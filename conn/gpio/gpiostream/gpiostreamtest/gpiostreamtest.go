@@ -53,6 +53,21 @@ func (p *PinIn) String() string {
 	return p.N
 }
 
+// Name implements pin.Pin.
+func (p *PinIn) Name() string {
+	return p.N
+}
+
+// Number implements pin.Pin.
+func (p *PinIn) Number() int {
+	return -1
+}
+
+// Function implements pin.Pin.
+func (p *PinIn) Function() string {
+	return "StreamIn"
+}
+
 // Halt implements conn.Resource.
 func (p *PinIn) Halt() error {
 	return nil
@@ -115,6 +130,21 @@ func (p *PinOutPlayback) String() string {
 	return p.N
 }
 
+// Name implements pin.Pin.
+func (p *PinOutPlayback) Name() string {
+	return p.N
+}
+
+// Number implements pin.Pin.
+func (p *PinOutPlayback) Number() int {
+	return -1
+}
+
+// Function implements pin.Pin.
+func (p *PinOutPlayback) Function() string {
+	return "StreamOutPlayback"
+}
+
 // Halt implements conn.Resource.
 func (p *PinOutPlayback) Halt() error {
 	return nil
@@ -150,6 +180,21 @@ type PinOutRecord struct {
 // String implements conn.Resource.
 func (p *PinOutRecord) String() string {
 	return p.N
+}
+
+// Name implements pin.Pin.
+func (p *PinOutRecord) Name() string {
+	return p.N
+}
+
+// Number implements pin.Pin.
+func (p *PinOutRecord) Number() int {
+	return -1
+}
+
+// Function implements pin.Pin.
+func (p *PinOutRecord) Function() string {
+	return "StreamOutRecord"
 }
 
 // Halt implements conn.Resource.

@@ -15,6 +15,7 @@ import (
 
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/physic"
+	"periph.io/x/periph/conn/pin"
 )
 
 // Stream is the interface to define a generic stream.
@@ -164,6 +165,7 @@ func (p *Program) Duration() time.Duration {
 // synchronized way or reading in a continuous uninterrupted way. As such, it
 // should be considered experimental.
 type PinIn interface {
+	pin.Pin
 	// StreamIn reads for the pin at the specified resolution to fill the
 	// provided buffer.
 	//
@@ -183,6 +185,7 @@ type PinIn interface {
 // synchronized way or reading in a continuous uninterrupted way. As such, it
 // should be considered experimental.
 type PinOut interface {
+	pin.Pin
 	StreamOut(s Stream) error
 }
 

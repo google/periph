@@ -28,6 +28,15 @@ func TestPinIn(t *testing.T) {
 	if s := p.String(); s != "Yo" {
 		t.Fatal(s)
 	}
+	if s := p.Name(); s != "Yo" {
+		t.Fatal(s)
+	}
+	if n := p.Number(); n != -1 {
+		t.Fatal(n)
+	}
+	if s := p.Function(); s != "StreamIn" {
+		t.Fatal(s)
+	}
 	if err := p.Halt(); err != nil {
 		t.Fatal(err)
 	}
@@ -139,6 +148,15 @@ func TestPinOutPlayback(t *testing.T) {
 	if s := p.String(); s != "Yo" {
 		t.Fatal(s)
 	}
+	if s := p.Name(); s != "Yo" {
+		t.Fatal(s)
+	}
+	if n := p.Number(); n != -1 {
+		t.Fatal(n)
+	}
+	if s := p.Function(); s != "StreamOutPlayback" {
+		t.Fatal(s)
+	}
 	if err := p.Halt(); err != nil {
 		t.Fatal(err)
 	}
@@ -183,6 +201,15 @@ func TestPinOutRecord(t *testing.T) {
 		}
 	}
 	if s := p.String(); s != "Yo" {
+		t.Fatal(s)
+	}
+	if s := p.Name(); s != "Yo" {
+		t.Fatal(s)
+	}
+	if n := p.Number(); n != -1 {
+		t.Fatal(n)
+	}
+	if s := p.Function(); s != "StreamOutRecord" {
 		t.Fatal(s)
 	}
 	if err := p.Halt(); err != nil {
