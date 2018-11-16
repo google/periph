@@ -1512,7 +1512,7 @@ func atod(s string) (decimal, int, error) {
 			// Decimal Point is in the middle of a number.
 			end--
 		}
-		// Find the exponet based on decimal point distance from left and the
+		// Find the exponent based on decimal point distance from left and the
 		// length of the number.
 		d.exp = (dp - start) - (end - start)
 		if dp <= start {
