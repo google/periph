@@ -91,7 +91,7 @@ func (d *Distance) Set(s string) error {
 		if e, ok := err.(*parseError); ok {
 			switch e.err {
 			case errNotANumber:
-				if found, _ := containsUnitString(s[n:], "Metre", "Metre", "Inch", "Foot", "Yard", "Mile", "m"); found != "" {
+				if found, _ := containsUnitString(s[n:], "Metre", "Inch", "Foot", "Yard", "Mile", "m"); found != "" {
 					return errors.New("does not contain number")
 				}
 				return errors.New("does not contain number or unit \"Metre\"")
@@ -115,8 +115,8 @@ func (d *Distance) Set(s string) error {
 		var siSize int
 		si, siSize = parseSIPrefix(r)
 		if si == milli || si == mega {
-			switch strings.ToLower(s[n:]) {
-			case "mile", "metre", "miles", "metres", "m":
+			switch s[n:] {
+			case "mile", "metre", "miles", "metres", "m", "Mile", "Metre", "Miles", "Metres":
 				si = unit
 			}
 		}
@@ -139,8 +139,8 @@ func (d *Distance) Set(s string) error {
 			return err
 		}
 	}
-	switch strings.ToLower(s[n:]) {
-	case "mile", "miles":
+	switch s[n:] {
+	case "mile", "miles", "Mile", "Miles":
 		switch {
 		case v > maxMiles:
 			return errors.New("maximum value is 5731Miles")
@@ -151,7 +151,7 @@ func (d *Distance) Set(s string) error {
 		default:
 			*d = (Distance)((v*1609344 - 500) / 1000)
 		}
-	case "yard", "yards":
+	case "yard", "yards", "Yard", "Yards":
 		switch {
 		case v > maxYards:
 			return errors.New("maximum value is 1 Million Yards")
@@ -162,7 +162,7 @@ func (d *Distance) Set(s string) error {
 		default:
 			*d = (Distance)((v*9144 - 5000) / 10000)
 		}
-	case "foot", "feet", "ft":
+	case "foot", "feet", "ft", "Foot", "Feet", "Ft":
 		switch {
 		case v > maxFeet:
 			return errors.New("maximum value is 3 Million Feet")
@@ -173,7 +173,7 @@ func (d *Distance) Set(s string) error {
 		default:
 			*d = (Distance)((v*3048 - 5000) / 10000)
 		}
-	case "in", "inch", "inches":
+	case "in", "inch", "inches", "In", "Inch", "Inches":
 		switch {
 		case v > maxInches:
 			return errors.New("maximum value is 36 Million Inches")
@@ -184,7 +184,7 @@ func (d *Distance) Set(s string) error {
 		default:
 			*d = (Distance)((v*254 - 5000) / 10000)
 		}
-	case "m", "metre", "metres":
+	case "m", "metre", "metres", "Metre", "Metres":
 		*d = (Distance)(v)
 	case "":
 		return noUnits("m, Metre, Mile, Inch, Foot or Yard")
@@ -260,8 +260,8 @@ func (c *ElectricCurrent) Set(s string) error {
 		return err
 	}
 
-	switch strings.ToLower(s[n:]) {
-	case "a", "amp", "amps":
+	switch s[n:] {
+	case "a", "amp", "amps", "A", "Amp", "Amps":
 		*c = (ElectricCurrent)(v)
 	case "":
 		return noUnits("Amp")
@@ -320,8 +320,8 @@ func (p *ElectricPotential) Set(s string) error {
 		}
 		return err
 	}
-	switch strings.ToLower(s[n:]) {
-	case "volt", "volts", "v":
+	switch s[n:] {
+	case "volt", "volts", "v", "Volt", "Volts", "V":
 		*p = (ElectricPotential)(v)
 	case "":
 		return noUnits("Volt")
@@ -381,20 +381,16 @@ func (r *ElectricResistance) Set(s string) error {
 		return err
 	}
 
-	if rest := s[n:]; rest == "Ω" {
+	switch s[n:] {
+	case "ohm", "ohms", "Ohm", "Ohms", "Ω":
 		*r = (ElectricResistance)(v)
-	} else {
-		switch strings.ToLower(rest) {
-		case "ohm", "ohms":
-			*r = (ElectricResistance)(v)
-		case "":
-			return noUnits("Ohm")
-		default:
-			if found, extra := containsUnitString(rest, "Ohm", "Ohm", "Ω"); found != "" {
-				return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
-			}
-			return incorrectUnit(rest, "physic.ElectricResistance")
+	case "":
+		return noUnits("Ohm")
+	default:
+		if found, extra := containsUnitString(s[n:], "Ohm", "Ohm", "Ω"); found != "" {
+			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
 		}
+		return incorrectUnit(s[n:], "physic.ElectricResistance")
 	}
 	return nil
 }
@@ -479,8 +475,8 @@ func (f *Frequency) Set(s string) error {
 		return err
 	}
 
-	switch strings.ToLower(s[n:]) {
-	case "hz", "hertz":
+	switch s[n:] {
+	case "hz", "hertz", "Hz", "Hertz":
 		*f = (Frequency)(v)
 	case "":
 		return noUnits("Hz")
@@ -588,8 +584,8 @@ func (p *Pressure) Set(s string) error {
 		return err
 	}
 
-	switch strings.ToLower(s[n:]) {
-	case "pa", "pascal", "pascals":
+	switch s[n:] {
+	case "pa", "pascal", "pascals", "Pa", "Pascal", "Pascals":
 		*p = (Pressure)(v)
 	case "":
 		return noUnits("Pascal")
@@ -735,8 +731,8 @@ func (p *Power) Set(s string) error {
 		return err
 	}
 
-	switch strings.ToLower(s[n:]) {
-	case "w", "watt", "watts":
+	switch s[n:] {
+	case "w", "watt", "watts", "W", "Watt", "Watts":
 		*p = (Power)(v)
 	case "":
 		return noUnits("Watt")
@@ -796,8 +792,8 @@ func (e *Energy) Set(s string) error {
 		return err
 	}
 
-	switch strings.ToLower(s[n:]) {
-	case "j", "joule", "joules":
+	switch s[n:] {
+	case "j", "joule", "joules", "J", "Joule", "Joules":
 		*e = (Energy)(v)
 	case "":
 		return noUnits("Joule")
@@ -865,8 +861,8 @@ func (c *ElectricalCapacitance) Set(s string) error {
 		return err
 	}
 
-	switch strings.ToLower(s[n:]) {
-	case "f", "farad", "farads":
+	switch s[n:] {
+	case "f", "farad", "farads", "F", "Farad", "Farads":
 		*c = (ElectricalCapacitance)(v)
 	case "":
 		return noUnits("Farad")
@@ -933,8 +929,8 @@ func (i *LuminousIntensity) Set(s string) error {
 		return err
 	}
 
-	switch strings.ToLower(s[n:]) {
-	case "cd", "candela", "candelas":
+	switch s[n:] {
+	case "cd", "candela", "candelas", "Candela", "Candelas":
 		*i = (LuminousIntensity)(v)
 	case "":
 		return noUnits("Candela")
@@ -999,8 +995,8 @@ func (f *LuminousFlux) Set(s string) error {
 		return err
 	}
 
-	switch strings.ToLower(s[n:]) {
-	case "lm", "lumen", "lumens":
+	switch s[n:] {
+	case "lm", "lumen", "lumens", "Lumen", "Lumens":
 		*f = (LuminousFlux)(v)
 	case "":
 		return noUnits("Lumen")
