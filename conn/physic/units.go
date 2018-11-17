@@ -1341,7 +1341,7 @@ func dtoi(d decimal, scale int) (int64, error) {
 		u = (u + powerOf10[mag]/2) / powerOf10[mag]
 	} else {
 		check := u * powerOf10[mag]
-		if check < u || check > maxInt64 {
+		if check/powerOf10[mag] != u || check > maxInt64 {
 			if d.neg {
 				return -maxInt64, &parseError{
 					msg: "-" + maxUint64Str,
