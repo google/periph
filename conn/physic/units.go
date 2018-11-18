@@ -59,6 +59,7 @@ func (a Angle) String() string {
 		v := (a + Degree/2) / Degree
 		return prefix + strconv.FormatInt(int64(v), 10) + "°"
 	}
+}
 
 // Set sets the Angle to the value represented by s. Units are to be provided in
 // "Radian", "Radians", "Rad" "Degree", "Degrees", "Deg" or "°" with an optional
