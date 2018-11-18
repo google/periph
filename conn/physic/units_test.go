@@ -693,6 +693,72 @@ func TestDoti(t *testing.T) {
 	}
 }
 
+func Test_decimalMulScale(t *testing.T) {
+	const (
+		negative = true
+		positive = false
+	)
+	succeeds := []struct {
+		d    uint
+		a, b decimal
+
+		expect decimal
+	}{
+		{
+			0,
+			decimal{123, 0, positive},
+			decimal{123, 0, positive},
+			decimal{15129, 0, positive},
+		},
+		{
+			0,
+			decimal{123, 0, negative},
+			decimal{123, 0, positive},
+			decimal{15129, 0, negative},
+		},
+		{
+			0,
+			decimal{123, 0, positive},
+			decimal{123, 0, negative},
+			decimal{15129, 0, negative},
+		},
+		{
+			0,
+			decimal{123, 0, negative},
+			decimal{123, 0, negative},
+			decimal{15129, 0, positive},
+		},
+		{
+			0,
+			decimal{1000000001, 0, positive},
+			decimal{1000000001, 0, positive},
+			decimal{1000000002000000001, 0, positive},
+		},
+		{
+			2,
+			decimal{10000000001, 0, positive},
+			decimal{10000000001, 0, positive},
+			decimal{10000000001, 10, positive},
+		},
+		{
+			2,
+			decimal{10000000011, 0, positive},
+			decimal{10000000001, 0, positive},
+			decimal{1000000001, 11, positive},
+		},
+	}
+	for _, tt := range succeeds {
+		got, err := decimalMulScale(tt.a, tt.b, tt.d)
+		if err != nil {
+			t.Errorf("decimalMulScale(%v,%v,%v) unexpected error: %v", tt.a, tt.b, tt.d, err)
+		}
+		if got != tt.expect {
+			t.Errorf("decimalMulScale(%v,%v,%v) got: %v expected: %v", tt.a, tt.b, tt.d, got, tt.expect)
+
+		}
+	}
+}
+
 func TestPrefix(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -853,6 +919,170 @@ func TestValueOfUnitString(t *testing.T) {
 
 		if err == nil {
 			t.Errorf("valueOfUnitString(%s,%d) expected an error", tt.in, tt.prefix)
+		}
+	}
+}
+
+func TestAngleSet(t *testing.T) {
+	succeeds := []struct {
+		in       string
+		expected Angle
+	}{
+		{"1nRadian", 1 * NanoRadian},
+		{"10nRadian", 10 * NanoRadian},
+		{"100nRadian", 100 * NanoRadian},
+		{"1uRadian", 1 * MicroRadian},
+		{"10uRadian", 10 * MicroRadian},
+		{"100uRadian", 100 * MicroRadian},
+		{"1µRadian", 1 * MicroRadian},
+		{"10µRadian", 10 * MicroRadian},
+		{"100µRadian", 100 * MicroRadian},
+		{"1mRadian", 1 * MilliRadian},
+		{"10mRadian", 10 * MilliRadian},
+		{"100mRadian", 100 * MilliRadian},
+		{"1Radian", 1 * Radian},
+		{"10Radian", 10 * Radian},
+		{"100Radian", 100 * Radian},
+		{"1kRadian", 1000 * Radian},
+		{"10kRadian", 10000 * Radian},
+		{"100kRadian", 100000 * Radian},
+		{"1MRadian", 1000000 * Radian},
+		{"10MRadian", 10000000 * Radian},
+		{"100MRadian", 100000000 * Radian},
+		{"1GRadian", 1000000000 * Radian},
+		{"12.345Radian", 12345 * MilliRadian},
+		{"-12.345Radian", -12345 * MilliRadian},
+		{"9.223372036854775807GRadian", 9223372036854775807 * NanoRadian},
+		{"-9.223372036854775807GRadian", -9223372036854775807 * NanoRadian},
+		{"1Degree", 1 * Degree},
+		{"1MDegree", 1000000 * Degree},
+		{"100GDegree", 100000000000 * Degree},
+		{"500GDegree", 500000000000 * Degree},
+		{"528460276055Deg", 528460276055 * Degree},
+		{"1mDeg", Degree / 1000},
+		{"1uDeg", Degree / 1000000},
+	}
+
+	fails := []struct {
+		in  string
+		err string
+	}{
+		{
+			"10000000000TDegree",
+			"exponent exceeds int64",
+		},
+		{
+			"10TRadian",
+			"exponent exceeds int64",
+		},
+		{
+			"10ERadian",
+			"contains unknown unit prefix \"E\". valid prefixes for \"Radian\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10ExaRadian",
+			"contains unknown unit prefix \"Exa\". valid prefixes for \"Radian\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10eRadianE",
+			"contains unknown unit prefix \"e\". valid prefixes for \"Radian\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10",
+			"no units provided, need Radian",
+		},
+		{
+			"9223372036854775808Radian",
+			"maximum value is 528460276055°",
+		},
+		{
+			"-9223372036854775808Radian",
+			"minimum value is -528460276055°",
+		},
+		{
+			"528460276056Deg",
+			"maximum value is 528460276055°",
+		},
+		{
+			"-528460276056Deg",
+			"minimum value is -528460276055°",
+		},
+		{
+			"-9.223372036854775808GRadian",
+			"minimum value is -528460276055°",
+		},
+		{
+			"9.223372036854775808GRadian",
+			"maximum value is 528460276055°",
+		},
+		{
+			"9.224GRadian",
+			"maximum value is 528460276055°",
+		},
+		{
+			"-9.224GRadian",
+			"minimum value is -528460276055°",
+		},
+		{
+			"-9.224GRadian",
+			"minimum value is -528460276055°",
+		},
+		{
+			"428460276053.55555589Degree",
+			"converting to nano Radian would overflow, consider using nRad for maximum precision",
+		},
+		{
+			"1cup",
+			"\"cup\" is not a valid unit for physic.Angle",
+		},
+		{
+			"Radian",
+			"does not contain number",
+		},
+		{
+			"RPM",
+			"does not contain number or unit \"Radian\"",
+		},
+		{
+			"++1Radian",
+			"multiple plus symbols ++1Radian",
+		},
+		{
+			"--1Radian",
+			"multiple minus symbols --1Radian",
+		},
+		{
+			"+-1Radian",
+			"can't contain both plus and minus symbols +-1Radian",
+		},
+		{
+			"1.1.1.1Radian",
+			"multiple decimal points 1.1.1.1Radian",
+		},
+		{
+			string([]byte{0x33, 0x01}),
+			"unexpected end of string",
+		},
+	}
+
+	for _, tt := range succeeds {
+		var got Angle
+		if err := got.Set(tt.in); err != nil {
+			t.Errorf("Angle.Set(%s) got unexpected error: %v", tt.in, err)
+		}
+		if got != tt.expected {
+			t.Errorf("Angle.Set(%s) expected: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+		}
+	}
+
+	for _, tt := range fails {
+		var got Angle
+		if err := got.Set(tt.in); err != nil {
+			if err.Error() != tt.err {
+				t.Errorf("Distance.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+			}
+		} else {
+			t.Errorf("Distance.Set(%s) expected error: %s but got none", tt.in, tt.err)
 		}
 	}
 }
@@ -1434,6 +1664,181 @@ func TestElectricResistance_Set(t *testing.T) {
 		var got ElectricResistance
 		if err := got.Set(tt.in); err.Error() != tt.err {
 			t.Errorf("ElectricResistance.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+		}
+	}
+}
+
+func TestForceSet(t *testing.T) {
+	succeeds := []struct {
+		in       string
+		expected Force
+	}{
+		{"1nNewton", 1 * NanoNewton},
+		{"10nNewton", 10 * NanoNewton},
+		{"100nNewton", 100 * NanoNewton},
+		{"1uNewton", 1 * MicroNewton},
+		{"10uNewton", 10 * MicroNewton},
+		{"100uNewton", 100 * MicroNewton},
+		{"1µNewton", 1 * MicroNewton},
+		{"10µNewton", 10 * MicroNewton},
+		{"100µNewton", 100 * MicroNewton},
+		{"1mNewton", 1 * MilliNewton},
+		{"10mNewton", 10 * MilliNewton},
+		{"100mNewton", 100 * MilliNewton},
+		{"1Newton", 1 * Newton},
+		{"10Newton", 10 * Newton},
+		{"100Newton", 100 * Newton},
+		{"1kNewton", 1 * KiloNewton},
+		{"10kNewton", 10 * KiloNewton},
+		{"100kNewton", 100 * KiloNewton},
+		{"1MNewton", 1 * MegaNewton},
+		{"10MNewton", 10 * MegaNewton},
+		{"100MNewton", 100 * MegaNewton},
+		{"1GNewton", 1 * GigaNewton},
+		{"12.345Newton", 12345 * MilliNewton},
+		{"-12.345Newton", -12345 * MilliNewton},
+		{"9.223372036854775807GNewton", 9223372036854775807 * NanoNewton},
+		{"-9.223372036854775807GNewton", -9223372036854775807 * NanoNewton},
+		{"1MN", 1 * MegaNewton},
+		{"1nN", 1 * NanoNewton},
+		{"1mlbf", 1 * (PoundForce / 1000)},
+		{"1lbf", 1 * PoundForce},
+		{"1klbf", 1000 * PoundForce},
+		{"1Mlbf", 1000000 * PoundForce},
+		{"2Mlbf", 2000000 * PoundForce},
+		{"2073496lbf", 2073496 * PoundForce},
+		{"2.073lbf", 2073 * PoundForce / 1000},
+		{"1.0000000000101lbf", 4448221615300 * NanoNewton}, // 4448221615306nN without precision loss.
+	}
+
+	fails := []struct {
+		in  string
+		err string
+	}{
+		{
+			"2073497lbf",
+			"maximum value is 2.073496Mlbf",
+		},
+		{
+			"-2073497lbf",
+			"minimum value is -2.073496Mlbf",
+		},
+		{
+			"1234567.890123456789lbf",
+			"converting to nano Newton would overflow, consider using nN for maximum precision",
+		},
+		{
+			"10000000000000000Tlbf",
+			"exponent exceeds int64",
+		},
+		{
+			"10TNewton",
+			"exponent exceeds int64",
+		},
+		{
+			"10ENewton",
+			"contains unknown unit prefix \"E\". valid prefixes for \"Newton\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10ExaNewton",
+			"contains unknown unit prefix \"Exa\". valid prefixes for \"Newton\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10eNewtonE",
+			"contains unknown unit prefix \"e\". valid prefixes for \"Newton\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10",
+			"no units provided, need Newton",
+		},
+		{
+			"9223372036854775808",
+			"maximum value is 9.223GN",
+		},
+		{
+			"-9223372036854775808",
+			"minimum value is -9.223GN",
+		},
+		{
+			"9.223372036854775808GNewton",
+			"maximum value is 9.223GN",
+		},
+		{
+			"-9.223372036854775808GNewton",
+			"minimum value is -9.223GN",
+		},
+		{
+			"9.223372036854775808GNewton",
+			"maximum value is 9.223GN",
+		},
+		{
+			"-9.223372036854775808GNewton",
+			"minimum value is -9.223GN",
+		},
+		{
+			"9.3GN",
+			"maximum value is 9.223GN",
+		},
+		{
+			"-9.3GN",
+			"minimum value is -9.223GN",
+		},
+		{
+			"1random",
+			"contains unknown unit prefix \"ra\". valid prefixes for \"N\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"1cup",
+			"\"cup\" is not a valid unit for physic.Force",
+		},
+		{
+			"Newton",
+			"does not contain number",
+		},
+		{
+			"RPM",
+			"does not contain number or unit \"Newton\"",
+		},
+		{
+			"++1Newton",
+			"multiple plus symbols ++1Newton",
+		},
+		{
+			"--1Newton",
+			"multiple minus symbols --1Newton",
+		},
+		{
+			"+-1Newton",
+			"can't contain both plus and minus symbols +-1Newton",
+		},
+		{
+			"1.1.1.1Newton",
+			"multiple decimal points 1.1.1.1Newton",
+		},
+		{
+			string([]byte{0x33, 0x01}),
+			"unexpected end of string",
+		},
+	}
+
+	for _, tt := range succeeds {
+		var got Force
+		if err := got.Set(tt.in); err != nil {
+			t.Errorf("Force.Set(%s) got unexpected error: %v", tt.in, err)
+		}
+		if got != tt.expected {
+			t.Errorf("Force.Set(%s) expected: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+		}
+	}
+
+	for _, tt := range fails {
+		var got Force
+		if err := got.Set(tt.in); err != nil {
+			if err.Error() != tt.err {
+				t.Errorf("Distance.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+			}
+		} else {
+			t.Errorf("Distance.Set(%s) expected error: %s but got none", tt.in, tt.err)
 		}
 	}
 }
@@ -2444,4 +2849,82 @@ func BenchmarkElectricCurrentSet(b *testing.B) {
 	}
 	b.StopTimer()
 	_ = fmt.Sprintf("%d", e)
+}
+
+func BenchmarkForceSetMetric(b *testing.B) {
+	var err error
+	var f Force
+	for i := 0; i < b.N; i++ {
+		err = f.Set("123N")
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+	b.StopTimer()
+	_ = fmt.Sprintf("%d", f)
+}
+
+func BenchmarkForceSetImperial(b *testing.B) {
+	var err error
+	var f Force
+	for i := 0; i < b.N; i++ {
+		err = f.Set("1.23Mlbf")
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+	b.StopTimer()
+	_ = fmt.Sprintf("%d", f)
+}
+
+func BenchmarkForceSetImperialWorstCase(b *testing.B) {
+	var err error
+	var f Force
+	for i := 0; i < b.N; i++ {
+		err = f.Set("1.0000000000101lbf")
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+	b.StopTimer()
+	_ = fmt.Sprintf("%d", f)
+}
+
+func BenchmarkAngleSetRadian(b *testing.B) {
+	var err error
+	var a Angle
+	for i := 0; i < b.N; i++ {
+		err = a.Set("1Rad")
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+	b.StopTimer()
+	_ = fmt.Sprintf("%d", a)
+}
+
+func BenchmarkAngleSet1Degree(b *testing.B) {
+	var err error
+	var a Angle
+	for i := 0; i < b.N; i++ {
+		err = a.Set("1Deg")
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+	b.StopTimer()
+	_ = fmt.Sprintf("%d", a)
+}
+
+func BenchmarkAngleSet2Degree(b *testing.B) {
+	var err error
+	var a Angle
+	for i := 0; i < b.N; i++ {
+		err = a.Set("2Deg")
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+	b.StopTimer()
+	_ = fmt.Sprintf("%d", a)
 }
