@@ -84,7 +84,7 @@ func ExamplePinOut() {
 	}
 }
 
-func ExamplePinOut_PWM() {
+func ExamplePinOut_pWM() {
 	// Make sure periph is initialized.
 	if _, err := host.Init(); err != nil {
 		log.Fatal(err)
