@@ -132,7 +132,7 @@ func ExampleElectricPotential_Set() {
 	}
 	fmt.Println(v)
 
-	if err := v.Set("12Volts"); err != nil {
+	if err := v.Set("12V"); err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println(v)

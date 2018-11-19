@@ -238,8 +238,8 @@ func (c ElectricCurrent) String() string {
 }
 
 // Set sets the ElectricCurrent to the value represented by s. Units are to
-// be provided in "Amp", "Amps" or "A" with an optional SI prefix: "p", "n",
-// "u", "µ", "m", "k", "M", "G" or "T".
+// be provided in "A" with an optional SI prefix: "p", "n", "u", "µ", "m", "k",
+// "M", "G" or "T".
 func (c *ElectricCurrent) Set(s string) error {
 	v, n, err := valueOfUnitString(s, nano)
 	if err != nil {
@@ -299,8 +299,8 @@ func (p ElectricPotential) String() string {
 }
 
 // Set sets the ElectricPotential to the value represented by s. Units are to
-// be provided in "Volt", "Volts" or "V" with an optional SI prefix: "p", "n",
-// "u", "µ", "m", "k", "M", "G" or "T".
+// be provided in "V" with an optional SI prefix: "p", "n", "u", "µ", "m", "k",
+// "M", "G" or "T".
 func (p *ElectricPotential) Set(s string) error {
 	v, n, err := valueOfUnitString(s, nano)
 	if err != nil {
@@ -311,21 +311,21 @@ func (p *ElectricPotential) Set(s string) error {
 			case errOverflowsInt64Negative:
 				return errors.New("minimum value is " + minElectricPotential.String())
 			case errNotANumber:
-				if found, _ := containsUnitString(s, "Volt", "Volts", "V"); found != "" {
+				if found, _ := containsUnitString(s, "V"); found != "" {
 					return errors.New("does not contain number")
 				}
-				return errors.New("does not contain number or unit \"Volt\"")
+				return errors.New("does not contain number or unit \"V\"")
 			}
 		}
 		return err
 	}
 	switch s[n:] {
-	case "volt", "volts", "v", "Volt", "Volts", "V":
+	case "v", "V":
 		*p = (ElectricPotential)(v)
 	case "":
-		return noUnits("Volt")
+		return noUnits("V")
 	default:
-		if found, extra := containsUnitString(s[n:], "Volt", "Volts", "V"); found != "" {
+		if found, extra := containsUnitString(s[n:], "V"); found != "" {
 			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
 		}
 		return incorrectUnit(s[n:], "physic.ElectricPotential")
