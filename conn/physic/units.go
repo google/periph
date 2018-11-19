@@ -115,7 +115,7 @@ func (d *Distance) Set(s string) error {
 		si, siSize = parseSIPrefix(r)
 		if si == milli || si == mega {
 			switch s[n:] {
-			case "mile", "m", "Mile":
+			case "m", "Mile", "mile":
 				si = unit
 			}
 		}
@@ -139,6 +139,8 @@ func (d *Distance) Set(s string) error {
 		}
 	}
 	switch s[n:] {
+	case "m":
+		*d = (Distance)(v)
 	case "mile", "Mile":
 		switch {
 		case v > maxMiles:
@@ -183,8 +185,6 @@ func (d *Distance) Set(s string) error {
 		default:
 			*d = (Distance)((v*254 - 5000) / 10000)
 		}
-	case "m":
-		*d = (Distance)(v)
 	case "":
 		return noUnits("m, Mile, in, ft or Yard")
 	default:
