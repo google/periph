@@ -51,6 +51,10 @@ func (a Angle) String() string {
 		i := v / 1000
 		v = v - i*1000
 		return prefix + strconv.FormatInt(int64(i), 10) + "." + prefixZeros(1, int(v)) + "°"
+	case a > (9223372036854775807 - 17453293):
+		u := (uint64(a) + uint64(Degree)/2) / uint64(Degree)
+		v := int64(u)
+		return prefix + strconv.FormatInt(int64(v), 10) + "°"
 	default:
 		v := (a + Degree/2) / Degree
 		return prefix + strconv.FormatInt(int64(v), 10) + "°"
