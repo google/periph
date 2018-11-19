@@ -973,8 +973,8 @@ func (f LuminousFlux) String() string {
 }
 
 // Set sets the LuminousFlux to the value represented by s. Units are to
-// be provided in "Lumen", "Lumens" or "lm" with an optional SI prefix: "p",
-// "n", "u", "µ", "m", "k", "M", "G" or "T".
+// be provided in lm" with an optional SI prefix: "p", "n", "u", "µ", "m", "k",
+// "M", "G" or "T".
 func (f *LuminousFlux) Set(s string) error {
 	v, n, err := valueOfUnitString(s, nano)
 	if err != nil {
@@ -985,22 +985,22 @@ func (f *LuminousFlux) Set(s string) error {
 			case errOverflowsInt64Negative:
 				return errors.New("minimum value is " + minLuminousFlux.String())
 			case errNotANumber:
-				if found, _ := containsUnitString(s, "Lumens", "Lumen", "lm"); found != "" {
+				if found, _ := containsUnitString(s, "lm"); found != "" {
 					return errors.New("does not contain number")
 				}
-				return errors.New("does not contain number or unit \"Lumen\"")
+				return errors.New("does not contain number or unit \"lm\"")
 			}
 		}
 		return err
 	}
 
 	switch s[n:] {
-	case "lm", "lumen", "lumens", "Lumen", "Lumens":
+	case "lm":
 		*f = (LuminousFlux)(v)
 	case "":
-		return noUnits("Lumen")
+		return noUnits("lm")
 	default:
-		if found, extra := containsUnitString(s[n:], "Lumens", "Lumen", "lm"); found != "" {
+		if found, extra := containsUnitString(s[n:], "lm"); found != "" {
 			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
 		}
 		return incorrectUnit(s[n:], "physic.LuminousFlux")
