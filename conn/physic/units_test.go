@@ -699,7 +699,7 @@ func Test_decimalMulScale(t *testing.T) {
 		positive = false
 	)
 	succeeds := []struct {
-		d    uint
+		loss uint
 		a, b decimal
 
 		expect decimal
@@ -735,7 +735,7 @@ func Test_decimalMulScale(t *testing.T) {
 			decimal{1000000002000000001, 0, positive},
 		},
 		{
-			2,
+			1,
 			decimal{10000000001, 0, positive},
 			decimal{10000000001, 0, positive},
 			decimal{10000000001, 10, positive},
@@ -746,15 +746,111 @@ func Test_decimalMulScale(t *testing.T) {
 			decimal{10000000001, 0, positive},
 			decimal{1000000001, 11, positive},
 		},
+		{
+			2,
+			decimal{10000000011, 0, positive},
+			decimal{10000000011, 0, positive},
+			decimal{1000000002000000001, 2, positive},
+		},
+		{
+			4,
+			decimal{100000000111, 0, positive},
+			decimal{100000000111, 0, positive},
+			decimal{1000000002000000001, 4, positive},
+		},
+		{
+			6,
+			decimal{1000000001111, 0, positive},
+			decimal{1000000001111, 0, positive},
+			decimal{1000000002000000001, 6, positive},
+		},
+		{
+			8,
+			decimal{10000000011111, 0, positive},
+			decimal{10000000011111, 0, positive},
+			decimal{1000000002000000001, 8, positive},
+		},
+		{
+			10,
+			decimal{100000000111111, 0, positive},
+			decimal{100000000111111, 0, positive},
+			decimal{1000000002000000001, 10, false},
+		},
+		{
+			12,
+			decimal{1000000001111111, 0, positive},
+			decimal{1000000001111111, 0, positive},
+			decimal{1000000002000000001, 12, false},
+		},
+		{
+			14,
+			decimal{10000000011111111, 0, positive},
+			decimal{10000000011111111, 0, positive},
+			decimal{1000000002000000001, 14, false},
+		},
+		{
+			16,
+			decimal{100000000111111111, 0, positive},
+			decimal{100000000111111111, 0, positive},
+			decimal{1000000002000000001, 16, false},
+		},
+		{
+			18,
+			decimal{1000000001111111111, 0, positive},
+			decimal{1000000001111111111, 0, positive},
+			decimal{1000000002000000001, 18, false},
+		},
+		{
+			20,
+			decimal{10000000011111111111, 0, positive},
+			decimal{10000000011111111111, 0, positive},
+			decimal{1000000002000000001, 20, false},
+		},
+		{
+			19,
+			decimal{9223372036854775807, 0, positive},
+			decimal{9223372036854775807, 0, positive},
+			decimal{8507059176058364548, 19, false},
+		},
+		{
+			18,
+			decimal{18446744073709551609, 0, positive},
+			decimal{18446744073709551609, 0, positive},
+			decimal{3402823667840801649, 20, false},
+		},
 	}
+
+	fails := []struct {
+		loss uint
+		a, b decimal
+
+		expect decimal
+	}{
+		{
+			21,
+			decimal{18446744073709551610, 0, positive},
+			decimal{18446744073709551610, 0, positive},
+			decimal{},
+		},
+	}
+
 	for _, tt := range succeeds {
-		got, err := decimalMulScale(tt.a, tt.b, tt.d)
-		if err != nil {
-			t.Errorf("decimalMulScale(%v,%v,%v) unexpected error: %v", tt.a, tt.b, tt.d, err)
+		got, loss := decimalMulScale(tt.a, tt.b)
+		if loss != tt.loss {
+			t.Errorf("decimalMulScale(%v,%v) expected %d loss but got %d", tt.a, tt.b, tt.loss, loss)
 		}
 		if got != tt.expect {
-			t.Errorf("decimalMulScale(%v,%v,%v) got: %v expected: %v", tt.a, tt.b, tt.d, got, tt.expect)
+			t.Errorf("decimalMulScale(%v,%v) got: %v expected: %v", tt.a, tt.b, got, tt.expect)
+		}
+	}
 
+	for _, tt := range fails {
+		got, loss := decimalMulScale(tt.a, tt.b)
+		if loss != tt.loss {
+			t.Errorf("decimalMulScale(%v,%v) expected %d loss but got %d", tt.a, tt.b, tt.loss, loss)
+		}
+		if got != tt.expect {
+			t.Errorf("decimalMulScale(%v,%v) got: %v expected: %v", tt.a, tt.b, got, tt.expect)
 		}
 	}
 }
@@ -928,39 +1024,39 @@ func TestAngleSet(t *testing.T) {
 		in       string
 		expected Angle
 	}{
-		{"1nRadian", 1 * NanoRadian},
-		{"10nRadian", 10 * NanoRadian},
-		{"100nRadian", 100 * NanoRadian},
-		{"1uRadian", 1 * MicroRadian},
-		{"10uRadian", 10 * MicroRadian},
-		{"100uRadian", 100 * MicroRadian},
-		{"1µRadian", 1 * MicroRadian},
-		{"10µRadian", 10 * MicroRadian},
-		{"100µRadian", 100 * MicroRadian},
-		{"1mRadian", 1 * MilliRadian},
-		{"10mRadian", 10 * MilliRadian},
-		{"100mRadian", 100 * MilliRadian},
-		{"1Radian", 1 * Radian},
-		{"10Radian", 10 * Radian},
-		{"100Radian", 100 * Radian},
-		{"1kRadian", 1000 * Radian},
-		{"10kRadian", 10000 * Radian},
-		{"100kRadian", 100000 * Radian},
-		{"1MRadian", 1000000 * Radian},
-		{"10MRadian", 10000000 * Radian},
-		{"100MRadian", 100000000 * Radian},
-		{"1GRadian", 1000000000 * Radian},
-		{"12.345Radian", 12345 * MilliRadian},
-		{"-12.345Radian", -12345 * MilliRadian},
-		{"9.223372036854775807GRadian", 9223372036854775807 * NanoRadian},
-		{"-9.223372036854775807GRadian", -9223372036854775807 * NanoRadian},
-		{"1Degree", 1 * Degree},
-		{"1MDegree", 1000000 * Degree},
-		{"100GDegree", 100000000000 * Degree},
-		{"500GDegree", 500000000000 * Degree},
-		{"528460276055Deg", 528460276055 * Degree},
-		{"1mDeg", Degree / 1000},
-		{"1uDeg", Degree / 1000000},
+		{"1nrad", 1 * NanoRadian},
+		{"10nrad", 10 * NanoRadian},
+		{"100nrad", 100 * NanoRadian},
+		{"1urad", 1 * MicroRadian},
+		{"10urad", 10 * MicroRadian},
+		{"100urad", 100 * MicroRadian},
+		{"1µrad", 1 * MicroRadian},
+		{"10µrad", 10 * MicroRadian},
+		{"100µrad", 100 * MicroRadian},
+		{"1mrad", 1 * MilliRadian},
+		{"10mrad", 10 * MilliRadian},
+		{"100mrad", 100 * MilliRadian},
+		{"1rad", 1 * Radian},
+		{"10rad", 10 * Radian},
+		{"100rad", 100 * Radian},
+		{"1krad", 1000 * Radian},
+		{"10krad", 10000 * Radian},
+		{"100krad", 100000 * Radian},
+		{"1Mrad", 1000000 * Radian},
+		{"10Mrad", 10000000 * Radian},
+		{"100Mrad", 100000000 * Radian},
+		{"1Grad", 1000000000 * Radian},
+		{"12.345rad", 12345 * MilliRadian},
+		{"-12.345rad", -12345 * MilliRadian},
+		{"9.223372036854775807Grad", 9223372036854775807 * NanoRadian},
+		{"-9.223372036854775807Grad", -9223372036854775807 * NanoRadian},
+		{"1deg", 1 * Degree},
+		{"1Mdeg", 1000000 * Degree},
+		{"100Gdeg", 100000000000 * Degree},
+		{"500Gdeg", 500000000000 * Degree},
+		{"528460276055deg", 528460276055 * Degree},
+		{"1mdeg", Degree / 1000},
+		{"1udeg", Degree / 1000000},
 	}
 
 	fails := []struct {
@@ -968,96 +1064,92 @@ func TestAngleSet(t *testing.T) {
 		err string
 	}{
 		{
-			"10000000000TDegree",
+			"10000000000Tdeg",
 			"exponent exceeds int64",
 		},
 		{
-			"10TRadian",
+			"10Trad",
 			"exponent exceeds int64",
 		},
 		{
-			"10ERadian",
-			"contains unknown unit prefix \"E\". valid prefixes for \"Radian\" are p,n,u,µ,m,k,M,G or T",
+			"10Erad",
+			"contains unknown unit prefix \"E\". valid prefixes for \"Rad\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
-			"10ExaRadian",
-			"contains unknown unit prefix \"Exa\". valid prefixes for \"Radian\" are p,n,u,µ,m,k,M,G or T",
+			"10Exarad",
+			"contains unknown unit prefix \"Exa\". valid prefixes for \"Rad\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10eRadianE",
-			"contains unknown unit prefix \"e\". valid prefixes for \"Radian\" are p,n,u,µ,m,k,M,G or T",
+			"contains unknown unit prefix \"e\". valid prefixes for \"Rad\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10",
-			"no units provided, need Radian",
+			"no units provided, need Rad",
 		},
 		{
-			"9223372036854775808Radian",
+			"9223372036854775808rad",
 			"maximum value is 528460276055°",
 		},
 		{
-			"-9223372036854775808Radian",
+			"-9223372036854775808rad",
 			"minimum value is -528460276055°",
 		},
 		{
-			"528460276056Deg",
+			"528460276056deg",
 			"maximum value is 528460276055°",
 		},
 		{
-			"-528460276056Deg",
+			"-528460276056deg",
 			"minimum value is -528460276055°",
 		},
 		{
-			"-9.223372036854775808GRadian",
+			"-9.223372036854775808Grad",
 			"minimum value is -528460276055°",
 		},
 		{
-			"9.223372036854775808GRadian",
+			"9.223372036854775808Grad",
 			"maximum value is 528460276055°",
 		},
 		{
-			"9.224GRadian",
+			"9.224Grad",
 			"maximum value is 528460276055°",
 		},
 		{
-			"-9.224GRadian",
+			"-9.224Grad",
 			"minimum value is -528460276055°",
 		},
 		{
-			"-9.224GRadian",
+			"-9.224Grad",
 			"minimum value is -528460276055°",
-		},
-		{
-			"428460276053.55555589Degree",
-			"converting to nano Radian would overflow, consider using nRad for maximum precision",
 		},
 		{
 			"1cup",
 			"\"cup\" is not a valid unit for physic.Angle",
 		},
 		{
-			"Radian",
+			"rad",
 			"does not contain number",
 		},
 		{
 			"RPM",
-			"does not contain number or unit \"Radian\"",
+			"does not contain number or unit \"Rad\"",
 		},
 		{
-			"++1Radian",
-			"multiple plus symbols ++1Radian",
+			"++1rad",
+			"multiple plus symbols ++1rad",
 		},
 		{
-			"--1Radian",
-			"multiple minus symbols --1Radian",
+			"--1rad",
+			"multiple minus symbols --1rad",
 		},
 		{
-			"+-1Radian",
-			"can't contain both plus and minus symbols +-1Radian",
+			"+-1rad",
+			"can't contain both plus and minus symbols +-1rad",
 		},
 		{
-			"1.1.1.1Radian",
-			"multiple decimal points 1.1.1.1Radian",
+			"1.1.1.1rad",
+			"multiple decimal points 1.1.1.1rad",
 		},
 		{
 			string([]byte{0x33, 0x01}),
@@ -1079,10 +1171,10 @@ func TestAngleSet(t *testing.T) {
 		var got Angle
 		if err := got.Set(tt.in); err != nil {
 			if err.Error() != tt.err {
-				t.Errorf("Distance.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+				t.Errorf("Angle.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
 			}
 		} else {
-			t.Errorf("Distance.Set(%s) expected error: %s but got none", tt.in, tt.err)
+			t.Errorf("Angle.Set(%s) expected error: %s but got none", tt.in, tt.err)
 		}
 	}
 }
@@ -1673,32 +1765,32 @@ func TestForceSet(t *testing.T) {
 		in       string
 		expected Force
 	}{
-		{"1nNewton", 1 * NanoNewton},
-		{"10nNewton", 10 * NanoNewton},
-		{"100nNewton", 100 * NanoNewton},
-		{"1uNewton", 1 * MicroNewton},
-		{"10uNewton", 10 * MicroNewton},
-		{"100uNewton", 100 * MicroNewton},
-		{"1µNewton", 1 * MicroNewton},
-		{"10µNewton", 10 * MicroNewton},
-		{"100µNewton", 100 * MicroNewton},
-		{"1mNewton", 1 * MilliNewton},
-		{"10mNewton", 10 * MilliNewton},
-		{"100mNewton", 100 * MilliNewton},
-		{"1Newton", 1 * Newton},
-		{"10Newton", 10 * Newton},
-		{"100Newton", 100 * Newton},
-		{"1kNewton", 1 * KiloNewton},
-		{"10kNewton", 10 * KiloNewton},
-		{"100kNewton", 100 * KiloNewton},
-		{"1MNewton", 1 * MegaNewton},
-		{"10MNewton", 10 * MegaNewton},
-		{"100MNewton", 100 * MegaNewton},
-		{"1GNewton", 1 * GigaNewton},
-		{"12.345Newton", 12345 * MilliNewton},
-		{"-12.345Newton", -12345 * MilliNewton},
-		{"9.223372036854775807GNewton", 9223372036854775807 * NanoNewton},
-		{"-9.223372036854775807GNewton", -9223372036854775807 * NanoNewton},
+		{"1nN", 1 * NanoNewton},
+		{"10nN", 10 * NanoNewton},
+		{"100nN", 100 * NanoNewton},
+		{"1uN", 1 * MicroNewton},
+		{"10uN", 10 * MicroNewton},
+		{"100uN", 100 * MicroNewton},
+		{"1µN", 1 * MicroNewton},
+		{"10µN", 10 * MicroNewton},
+		{"100µN", 100 * MicroNewton},
+		{"1mN", 1 * MilliNewton},
+		{"10mN", 10 * MilliNewton},
+		{"100mN", 100 * MilliNewton},
+		{"1N", 1 * Newton},
+		{"10N", 10 * Newton},
+		{"100N", 100 * Newton},
+		{"1kN", 1 * KiloNewton},
+		{"10kN", 10 * KiloNewton},
+		{"100kN", 100 * KiloNewton},
+		{"1MN", 1 * MegaNewton},
+		{"10MN", 10 * MegaNewton},
+		{"100MN", 100 * MegaNewton},
+		{"1GN", 1 * GigaNewton},
+		{"12.345N", 12345 * MilliNewton},
+		{"-12.345N", -12345 * MilliNewton},
+		{"9.223372036854775807GN", 9223372036854775807 * NanoNewton},
+		{"-9.223372036854775807GN", -9223372036854775807 * NanoNewton},
 		{"1MN", 1 * MegaNewton},
 		{"1nN", 1 * NanoNewton},
 		{"1mlbf", 1 * (PoundForce / 1000)},
@@ -1725,31 +1817,31 @@ func TestForceSet(t *testing.T) {
 		},
 		{
 			"1234567.890123456789lbf",
-			"converting to nano Newton would overflow, consider using nN for maximum precision",
+			"converting to nano Newtons would overflow, consider using nN for maximum precision",
 		},
 		{
 			"10000000000000000Tlbf",
 			"exponent exceeds int64",
 		},
 		{
-			"10TNewton",
+			"10TN",
 			"exponent exceeds int64",
 		},
 		{
-			"10ENewton",
-			"contains unknown unit prefix \"E\". valid prefixes for \"Newton\" are p,n,u,µ,m,k,M,G or T",
+			"10EN",
+			"contains unknown unit prefix \"E\". valid prefixes for \"N\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
-			"10ExaNewton",
-			"contains unknown unit prefix \"Exa\". valid prefixes for \"Newton\" are p,n,u,µ,m,k,M,G or T",
+			"10ExaN",
+			"contains unknown unit prefix \"Exa\". valid prefixes for \"N\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10eNewtonE",
-			"contains unknown unit prefix \"e\". valid prefixes for \"Newton\" are p,n,u,µ,m,k,M,G or T",
+			"contains unknown unit prefix \"e\". valid prefixes for \"N\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10",
-			"no units provided, need Newton",
+			"no units provided, need N",
 		},
 		{
 			"9223372036854775808",
@@ -1760,19 +1852,19 @@ func TestForceSet(t *testing.T) {
 			"minimum value is -9.223GN",
 		},
 		{
-			"9.223372036854775808GNewton",
+			"9.223372036854775808GN",
 			"maximum value is 9.223GN",
 		},
 		{
-			"-9.223372036854775808GNewton",
+			"-9.223372036854775808GN",
 			"minimum value is -9.223GN",
 		},
 		{
-			"9.223372036854775808GNewton",
+			"9.223372036854775808GN",
 			"maximum value is 9.223GN",
 		},
 		{
-			"-9.223372036854775808GNewton",
+			"-9.223372036854775808GN",
 			"minimum value is -9.223GN",
 		},
 		{
@@ -1792,28 +1884,28 @@ func TestForceSet(t *testing.T) {
 			"\"cup\" is not a valid unit for physic.Force",
 		},
 		{
-			"Newton",
+			"N",
 			"does not contain number",
 		},
 		{
 			"RPM",
-			"does not contain number or unit \"Newton\"",
+			"does not contain number or unit \"N\" or \"lbf\"",
 		},
 		{
-			"++1Newton",
-			"multiple plus symbols ++1Newton",
+			"++1N",
+			"multiple plus symbols ++1N",
 		},
 		{
-			"--1Newton",
-			"multiple minus symbols --1Newton",
+			"--1N",
+			"multiple minus symbols --1N",
 		},
 		{
-			"+-1Newton",
-			"can't contain both plus and minus symbols +-1Newton",
+			"+-1N",
+			"can't contain both plus and minus symbols +-1N",
 		},
 		{
-			"1.1.1.1Newton",
-			"multiple decimal points 1.1.1.1Newton",
+			"1.1.1.1N",
+			"multiple decimal points 1.1.1.1N",
 		},
 		{
 			string([]byte{0x33, 0x01}),
@@ -1835,10 +1927,10 @@ func TestForceSet(t *testing.T) {
 		var got Force
 		if err := got.Set(tt.in); err != nil {
 			if err.Error() != tt.err {
-				t.Errorf("Distance.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+				t.Errorf("Force.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
 			}
 		} else {
-			t.Errorf("Distance.Set(%s) expected error: %s but got none", tt.in, tt.err)
+			t.Errorf("Force.Set(%s) expected error: %s but got none", tt.in, tt.err)
 		}
 	}
 }
@@ -2894,7 +2986,7 @@ func BenchmarkAngleSetRadian(b *testing.B) {
 	var err error
 	var a Angle
 	for i := 0; i < b.N; i++ {
-		err = a.Set("1Rad")
+		err = a.Set("1rad")
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -2907,7 +2999,7 @@ func BenchmarkAngleSet1Degree(b *testing.B) {
 	var err error
 	var a Angle
 	for i := 0; i < b.N; i++ {
-		err = a.Set("1Deg")
+		err = a.Set("1deg")
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -2920,7 +3012,7 @@ func BenchmarkAngleSet2Degree(b *testing.B) {
 	var err error
 	var a Angle
 	for i := 0; i < b.N; i++ {
-		err = a.Set("2Deg")
+		err = a.Set("2deg")
 		if err != nil {
 			b.Fatal(err)
 		}

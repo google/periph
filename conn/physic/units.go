@@ -62,18 +62,18 @@ func (a Angle) String() string {
 }
 
 // Set sets the Angle to the value represented by s. Units are to be provided in
-// "Radian", "Radians", "Rad" "Degree", "Degrees", "Deg" or "°" with an optional
-// SI prefix: "p", "n", "u", "µ", "m", "k", "M", "G" or "T".
+// "rad", "deg" or "°" with an optional SI prefix: "p", "n", "u", "µ", "m", "k",
+// "M", "G" or "T".
 func (f *Angle) Set(s string) error {
 	d, n, err := atod(s)
 	if err != nil {
 		if e, ok := err.(*parseError); ok {
 			switch e.err {
 			case errNotANumber:
-				if found, _ := containsUnitString(s[n:], "Radian", "Degree", "Rad", "Deg", "°"); found != "" {
+				if found, _ := containsUnitString(s[n:], "rad", "deg", "°"); found != "" {
 					return errors.New("does not contain number")
 				}
-				return errors.New("does not contain number or unit \"Radian\"")
+				return errors.New("does not contain number or unit \"Rad\"")
 			case errOverflowsInt64:
 				return errors.New("maximum value is " + maxAngle.String())
 			case errOverflowsInt64Negative:
@@ -97,16 +97,15 @@ func (f *Angle) Set(s string) error {
 	}
 
 	switch s[n:] {
-	case "degree", "degrees", "deg", "Degree", "Degrees", "Deg", "°":
+	case "deg", "°", "Deg":
 		degreePerRadian := decimal{
 			base: 17453293,
 			exp:  0,
 			neg:  false,
 		}
-		lbf, err := decimalMulScale(d, degreePerRadian, 7)
-		if err != nil {
-			return errors.New("converting to nano Radian would overflow, consider using nRad for maximum precision")
-		}
+		lbf, _ := decimalMulScale(d, degreePerRadian)
+		// Impossible for precision loss to exceed 9 since the number of
+		// significant figures in degrees per radian is only 8.
 		v, err := dtoi(lbf, int(si))
 		if err != nil {
 			if err != nil {
@@ -122,7 +121,7 @@ func (f *Angle) Set(s string) error {
 			}
 		}
 		*f = (Angle)(v)
-	case "radian", "radians", "rad", "Radian", "Radians", "Rad":
+	case "rad", "Rad":
 		v, err := dtoi(d, int(si-nano))
 		if err != nil {
 			if err != nil {
@@ -139,9 +138,9 @@ func (f *Angle) Set(s string) error {
 		}
 		*f = (Angle)(v)
 	case "":
-		return noUnits("Radian")
+		return noUnits("Rad")
 	default:
-		if found, extra := containsUnitString(s[n:], "Radian", "Degree", "Rad", "Deg", "°"); found != "" {
+		if found, extra := containsUnitString(s[n:], "Rad", "Deg", "°"); found != "" {
 			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
 		}
 		return incorrectUnit(s[n:], "physic.Angle")
@@ -519,18 +518,18 @@ func (f Force) String() string {
 }
 
 // Set sets the Force to the value represented by s. Units are to
-// be provided in "Newtons", "Newton", "N", or "lbf" (Pound force) with an
-// optional SI prefix: "p", "n", "u", "µ", "m", "k", "M", "G" or "T".
+// be provided in "N", or "lbf" (Pound force) with an optional SI prefix: "p",
+// "n", "u", "µ", "m", "k", "M", "G" or "T".
 func (f *Force) Set(s string) error {
 	d, n, err := atod(s)
 	if err != nil {
 		if e, ok := err.(*parseError); ok {
 			switch e.err {
 			case errNotANumber:
-				if found, _ := containsUnitString(s[n:], "N"); found != "" {
+				if found, _ := containsUnitString(s[n:], "N", "lbf"); found != "" {
 					return errors.New("does not contain number")
 				}
-				return errors.New("does not contain number or unit \"Newton\"")
+				return errors.New("does not contain number or unit \"N\" or \"lbf\"")
 			case errOverflowsInt64:
 				return errors.New("maximum value is " + maxForce.String())
 			case errOverflowsInt64Negative:
@@ -562,9 +561,9 @@ func (f *Force) Set(s string) error {
 			exp:  0,
 			neg:  false,
 		}
-		lbf, err := decimalMulScale(d, poundForce, 9)
-		if err != nil {
-			return errors.New("converting to nano Newton would overflow, consider using nN for maximum precision")
+		lbf, loss := decimalMulScale(d, poundForce)
+		if loss > 9 {
+			return errors.New("converting to nano Newtons would overflow, consider using nN for maximum precision")
 		}
 		v, err := dtoi(lbf, int(si))
 		if err != nil {
@@ -581,7 +580,7 @@ func (f *Force) Set(s string) error {
 			}
 		}
 		*f = (Force)(v)
-	case "Newton", "newton", "Newtons", "newtons", "N":
+	case "N":
 		v, err := dtoi(d, int(si-nano))
 		if err != nil {
 			if err != nil {
@@ -598,9 +597,9 @@ func (f *Force) Set(s string) error {
 		}
 		*f = (Force)(v)
 	case "":
-		return noUnits("Newton")
+		return noUnits("N")
 	default:
-		if found, extra := containsUnitString(s[n:], "Newtons", "Newton", "N"); found != "" {
+		if found, extra := containsUnitString(s[n:], "N"); found != "" {
 			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
 		}
 		return incorrectUnit(s[n:], "physic.Force")
@@ -1741,49 +1740,43 @@ func valueOfUnitString(s string, base prefix) (int64, int, error) {
 // degrade number of least significant figures. This function is to aid in the
 // multiplication of numbers that combined have more than 18 significant figures
 // each. The minimum limit of significant figures is 9 figures.
-func decimalMulScale(a, b decimal, degrade uint) (decimal, error) {
-	// fmt.Println("degrade ", degrade)
+func decimalMulScale(a, b decimal) (decimal, uint) {
+	if a.base > 18446744073709551609 || b.base > 18446744073709551609 {
+		return decimal{}, 21
+	}
 	exp := a.exp + b.exp
 	neg := a.neg != b.neg
 	ab := a.base
 	bb := b.base
-	for i := uint(0); i < degrade+1; i++ {
+	for i := uint(0); i < 21; i++ {
 		if ab <= 1 || bb <= 1 {
-			// This will always fit inside uint64
-			return decimal{ab * bb, exp, neg}, nil
+			// This will always fit inside uint64.
+			return decimal{ab * bb, exp, neg}, i
 		}
-		// fmt.Println(i, sa, sb)
-		base := ab * bb
-		if (base/ab == bb) && base < maxInt64 {
-			// return it product is did not overflow or exceed int64
-			return decimal{base, exp, neg}, nil
+		if base := ab * bb; (base/ab == bb) && base < maxInt64 {
+			// Return if product did not overflow or exceed int64.
+			return decimal{base, exp, neg}, i
 		}
 		// Truncate least significant digit in product.
 		if bb > ab {
 			bb = (bb + 5) / 10
-			// compact trailing zeros if any
-			for bb%10 == 0 {
+			// Compact trailing zeros if any.
+			for bb > 0 && bb%10 == 0 {
 				bb /= 10
 				exp++
 			}
 		} else {
 			ab = (ab + 5) / 10
-			// compact trailing zeros if any
-			for ab%10 == 0 {
+			// Compact trailing zeros if any.
+			for ab > 0 && ab%10 == 0 {
 				ab /= 10
 				exp++
 			}
 		}
-		// fmt.Println(sa, sb)
 		exp++
 	}
-	// Exceeded the limit of precision degradation
-	return decimal{}, errBaseOverflow
+	return decimal{}, 21
 }
-
-var (
-	errBaseOverflow = errors.New("multiplication would overflow base")
-)
 
 // For units with short and or plural variations order units with longest first.
 // eg Degrees, Degree, Deg.
