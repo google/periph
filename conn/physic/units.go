@@ -839,8 +839,8 @@ func (c ElectricalCapacitance) String() string {
 }
 
 // Set sets the ElectricalCapacitance to the value represented by s. Units are
-// to be provided in "Farad", "Farads" or "F" with an optional SI prefix: "p",
-// "n", "u", "µ", "m", "k", "M", "G" or "T".
+// to be provided in F" with an optional SI prefix: "p", "n", "u", "µ", "m",
+// "k", "M", "G" or "T".
 func (c *ElectricalCapacitance) Set(s string) error {
 	v, n, err := valueOfUnitString(s, pico)
 	if err != nil {
@@ -851,22 +851,22 @@ func (c *ElectricalCapacitance) Set(s string) error {
 			case errOverflowsInt64Negative:
 				return errors.New("minimum value is " + minElectricalCapacitance.String())
 			case errNotANumber:
-				if found, _ := containsUnitString(s, "Farads", "Farad", "F"); found != "" {
+				if found, _ := containsUnitString(s, "F"); found != "" {
 					return errors.New("does not contain number")
 				}
-				return errors.New("does not contain number or unit \"Farad\"")
+				return errors.New("does not contain number or unit \"F\"")
 			}
 		}
 		return err
 	}
 
 	switch s[n:] {
-	case "f", "farad", "farads", "F", "Farad", "Farads":
+	case "f", "F":
 		*c = (ElectricalCapacitance)(v)
 	case "":
-		return noUnits("Farad")
+		return noUnits("F")
 	default:
-		if found, extra := containsUnitString(s[n:], "Farads", "Farad", "F"); found != "" {
+		if found, extra := containsUnitString(s[n:], "F"); found != "" {
 			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
 		}
 		return incorrectUnit(s[n:], "physic.ElectricalCapacitance")

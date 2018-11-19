@@ -1961,32 +1961,32 @@ func TestElectricalCapacitance_Set(t *testing.T) {
 		in       string
 		expected ElectricalCapacitance
 	}{
-		{"1pFarad", 1 * PicoFarad},
-		{"10pFarads", 10 * PicoFarad},
-		{"100pFarads", 100 * PicoFarad},
-		{"1nFarad", 1 * NanoFarad},
-		{"10nFarads", 10 * NanoFarad},
-		{"100nFarads", 100 * NanoFarad},
-		{"1uFarad", 1 * MicroFarad},
-		{"10uFarads", 10 * MicroFarad},
-		{"100uFarads", 100 * MicroFarad},
-		{"1µFarad", 1 * MicroFarad},
-		{"10µFarads", 10 * MicroFarad},
-		{"100µFarads", 100 * MicroFarad},
-		{"1mFarad", 1 * MilliFarad},
-		{"10mFarads", 10 * MilliFarad},
-		{"100mFarads", 100 * MilliFarad},
-		{"1Farad", 1 * Farad},
-		{"10Farads", 10 * Farad},
-		{"100Farads", 100 * Farad},
-		{"1kFarad", 1 * KiloFarad},
-		{"10kFarads", 10 * KiloFarad},
-		{"100kFarads", 100 * KiloFarad},
-		{"1MFarad", 1 * MegaFarad},
-		{"12.345Farads", 12345 * MilliFarad},
-		{"-12.345Farads", -12345 * MilliFarad},
-		{"9.223372036854775807MFarads", 9223372036854775807 * PicoFarad},
-		{"-9.223372036854775807MFarads", -9223372036854775807 * PicoFarad},
+		{"1pF", 1 * PicoFarad},
+		{"10pF", 10 * PicoFarad},
+		{"100pF", 100 * PicoFarad},
+		{"1nF", 1 * NanoFarad},
+		{"10nF", 10 * NanoFarad},
+		{"100nF", 100 * NanoFarad},
+		{"1uF", 1 * MicroFarad},
+		{"10uF", 10 * MicroFarad},
+		{"100uF", 100 * MicroFarad},
+		{"1µF", 1 * MicroFarad},
+		{"10µF", 10 * MicroFarad},
+		{"100µF", 100 * MicroFarad},
+		{"1mF", 1 * MilliFarad},
+		{"10mF", 10 * MilliFarad},
+		{"100mF", 100 * MilliFarad},
+		{"1F", 1 * Farad},
+		{"10F", 10 * Farad},
+		{"100F", 100 * Farad},
+		{"1kF", 1 * KiloFarad},
+		{"10kF", 10 * KiloFarad},
+		{"100kF", 100 * KiloFarad},
+		{"1MF", 1 * MegaFarad},
+		{"12.345F", 12345 * MilliFarad},
+		{"-12.345F", -12345 * MilliFarad},
+		{"9.223372036854775807MF", 9223372036854775807 * PicoFarad},
+		{"-9.223372036854775807MF", -9223372036854775807 * PicoFarad},
 		{"1MF", 1 * MegaFarad},
 	}
 
@@ -1995,24 +1995,24 @@ func TestElectricalCapacitance_Set(t *testing.T) {
 		err string
 	}{
 		{
-			"10TFarad",
+			"10TF",
 			"exponent exceeds int64",
 		},
 		{
-			"10EFarad",
-			"contains unknown unit prefix \"E\". valid prefixes for \"Farad\" are p,n,u,µ,m,k,M,G or T",
+			"10EF",
+			"contains unknown unit prefix \"E\". valid prefixes for \"F\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
-			"10ExaFarad",
-			"contains unknown unit prefix \"Exa\". valid prefixes for \"Farad\" are p,n,u,µ,m,k,M,G or T",
+			"10ExaF",
+			"contains unknown unit prefix \"Exa\". valid prefixes for \"F\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10eFaradE",
-			"contains unknown unit prefix \"e\". valid prefixes for \"Farad\" are p,n,u,µ,m,k,M,G or T",
+			"contains unknown unit prefix \"e\". valid prefixes for \"F\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10",
-			"no units provided, need Farad",
+			"no units provided, need F",
 		},
 		{
 			"9223372036854775808",
@@ -2023,19 +2023,19 @@ func TestElectricalCapacitance_Set(t *testing.T) {
 			"minimum value is -9.223MF",
 		},
 		{
-			"9.223372036854775808MFarad",
+			"9.223372036854775808MF",
 			"maximum value is 9.223MF",
 		},
 		{
-			"-9.223372036854775808MFarad",
+			"-9.223372036854775808MF",
 			"minimum value is -9.223MF",
 		},
 		{
-			"9.223372036854775808MFarad",
+			"9.223372036854775808MF",
 			"maximum value is 9.223MF",
 		},
 		{
-			"-9.223372036854775808MFarad",
+			"-9.223372036854775808MF",
 			"minimum value is -9.223MF",
 		},
 		{
@@ -2043,28 +2043,28 @@ func TestElectricalCapacitance_Set(t *testing.T) {
 			"\"random\" is not a valid unit for physic.ElectricalCapacitance",
 		},
 		{
-			"Farad",
+			"F",
 			"does not contain number",
 		},
 		{
 			"RPM",
-			"does not contain number or unit \"Farad\"",
+			"does not contain number or unit \"F\"",
 		},
 		{
-			"++1Farad",
-			"multiple plus symbols ++1Farad",
+			"++1F",
+			"multiple plus symbols ++1F",
 		},
 		{
-			"--1Farad",
-			"multiple minus symbols --1Farad",
+			"--1F",
+			"multiple minus symbols --1F",
 		},
 		{
-			"+-1Farad",
-			"can't contain both plus and minus symbols +-1Farad",
+			"+-1F",
+			"can't contain both plus and minus symbols +-1F",
 		},
 		{
-			"1.1.1.1Farad",
-			"multiple decimal points 1.1.1.1Farad",
+			"1.1.1.1F",
+			"multiple decimal points 1.1.1.1F",
 		},
 	}
 
