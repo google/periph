@@ -21,7 +21,8 @@ var DefaultOpts = Opts{Address: 0x70}
 // Opts is the pca9548 configuration.
 type Opts struct {
 	// Address pca9548 I²C Address. Valid addresses for the NXP pca9548 are 0x70
-	// to 0x77.
+	// to 0x77. The address is set by pulling A0~A2 low or high. Please refer
+	// to the datasheet.
 	Address int
 }
 
@@ -108,8 +109,7 @@ func (d *Dev) tx(port uint8, address uint16, w, r []byte) error {
 	defer d.mu.Unlock()
 	// Change active port if needed.
 	if port != d.activePort {
-		err := d.c.Tx(d.address, []byte{1 << port}, nil)
-		if err != nil {
+		if err := d.c.Tx(d.address, []byte{1 << port}, nil); err != nil {
 			return errors.New("failed to change active port on multiplexer: " + err.Error())
 		}
 		d.activePort = port
@@ -117,7 +117,7 @@ func (d *Dev) tx(port uint8, address uint16, w, r []byte) error {
 	return d.c.Tx(address, w, r)
 }
 
-// Port is a i2c.Bus on the multiplexer.
+// port is a i2c.BusCloser.
 type port struct {
 	// Immutable.
 	name   string
@@ -149,8 +149,8 @@ func (p *port) Tx(addr uint16, w, r []byte) error {
 // Close closes a port.
 func (p *port) Close() error {
 	p.mu.Lock()
-	defer p.mu.Unlock()
 	p.mux = nil
+	p.mu.Unlock()
 	return nil
 }
 
