@@ -155,7 +155,7 @@ func ExampleElectricResistance() {
 func ExampleElectricResistance_Set() {
 	var r physic.ElectricResistance
 
-	if err := r.Set("33.3kOhms"); err != nil {
+	if err := r.Set("33.3kOhm"); err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println(r)

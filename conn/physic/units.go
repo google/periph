@@ -359,8 +359,8 @@ func (r ElectricResistance) String() string {
 }
 
 // Set sets the ElectricResistance to the value represented by s. Units are to
-// be provided in "Ohm", "Ohms" or "Ω" with an optional SI prefix: "p", "n",
-// "u", "µ", "m", "k", "M", "G" or "T".
+// be provided in "Ohm", or "Ω" with an optional SI prefix: "p", "n", "u", "µ",
+// "m", "k", "M", "G" or "T".
 func (r *ElectricResistance) Set(s string) error {
 	v, n, err := valueOfUnitString(s, nano)
 	if err != nil {
@@ -371,7 +371,7 @@ func (r *ElectricResistance) Set(s string) error {
 			case errOverflowsInt64Negative:
 				return errors.New("minimum value is " + minElectricResistance.String())
 			case errNotANumber:
-				if found, _ := containsUnitString(s, "Ohm", "Ohms", "Ω"); found != "" {
+				if found, _ := containsUnitString(s, "Ohm", "Ω"); found != "" {
 					return errors.New("does not contain number")
 				}
 				return errors.New("does not contain number or unit \"Ohm\"")
@@ -381,12 +381,12 @@ func (r *ElectricResistance) Set(s string) error {
 	}
 
 	switch s[n:] {
-	case "ohm", "ohms", "Ohm", "Ohms", "Ω":
+	case "ohm", "Ohm", "Ω":
 		*r = (ElectricResistance)(v)
 	case "":
 		return noUnits("Ohm")
 	default:
-		if found, extra := containsUnitString(s[n:], "Ohm", "Ohm", "Ω"); found != "" {
+		if found, extra := containsUnitString(s[n:], "Ohm", "Ω"); found != "" {
 			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
 		}
 		return incorrectUnit(s[n:], "physic.ElectricResistance")
