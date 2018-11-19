@@ -82,19 +82,18 @@ func (d Distance) String() string {
 }
 
 // Set sets the Distance to the value represented by s. Units are to
-// be provided in "Metres", "Metre", "Miles", "Mile", "Yards", "Yard", "Inches"
-// or "Inch" with an optional SI prefix: "p", "n", "u", "µ", "m", "k", "M", "G"
-// or "T".
+// be provided in "m", "Mile", "Yard", "in", or "ft" with an optional SI
+// prefix: "p", "n", "u", "µ", "m", "k", "M", "G" or "T".
 func (d *Distance) Set(s string) error {
 	decimal, n, err := atod(s)
 	if err != nil {
 		if e, ok := err.(*parseError); ok {
 			switch e.err {
 			case errNotANumber:
-				if found, _ := containsUnitString(s[n:], "Metre", "Inch", "Foot", "Yard", "Mile", "m"); found != "" {
+				if found, _ := containsUnitString(s[n:], "in", "ft", "Yard", "Mile", "m"); found != "" {
 					return errors.New("does not contain number")
 				}
-				return errors.New("does not contain number or unit \"Metre\"")
+				return errors.New("does not contain number or unit \"m\"")
 			case errOverflowsInt64:
 				return errors.New("maximum value is " + maxDistance.String())
 			case errOverflowsInt64Negative:
@@ -116,7 +115,7 @@ func (d *Distance) Set(s string) error {
 		si, siSize = parseSIPrefix(r)
 		if si == milli || si == mega {
 			switch s[n:] {
-			case "mile", "metre", "miles", "metres", "m", "Mile", "Metre", "Miles", "Metres":
+			case "mile", "m", "Mile":
 				si = unit
 			}
 		}
@@ -140,56 +139,56 @@ func (d *Distance) Set(s string) error {
 		}
 	}
 	switch s[n:] {
-	case "mile", "miles", "Mile", "Miles":
+	case "mile", "Mile":
 		switch {
 		case v > maxMiles:
-			return errors.New("maximum value is 5731Miles")
+			return errors.New("maximum value is 5731Mile")
 		case v < minMiles:
-			return errors.New("minimum value is -5731Miles")
+			return errors.New("minimum value is -5731Mile")
 		case v >= 0:
 			*d = (Distance)((v*1609344 + 500) / 1000)
 		default:
 			*d = (Distance)((v*1609344 - 500) / 1000)
 		}
-	case "yard", "yards", "Yard", "Yards":
+	case "yard", "Yard":
 		switch {
 		case v > maxYards:
-			return errors.New("maximum value is 1 Million Yards")
+			return errors.New("maximum value is 1 Million Yard")
 		case v < minYards:
-			return errors.New("minimum value is -1 Million Yards")
+			return errors.New("minimum value is -1 Million Yard")
 		case v >= 0:
 			*d = (Distance)((v*9144 + 5000) / 10000)
 		default:
 			*d = (Distance)((v*9144 - 5000) / 10000)
 		}
-	case "foot", "feet", "ft", "Foot", "Feet", "Ft":
+	case "ft":
 		switch {
 		case v > maxFeet:
-			return errors.New("maximum value is 3 Million Feet")
+			return errors.New("maximum value is 3 Million ft")
 		case v < minFeet:
-			return errors.New("minimum value is 3 Million Feet")
+			return errors.New("minimum value is 3 Million ft")
 		case v >= 0:
 			*d = (Distance)((v*3048 + 5000) / 10000)
 		default:
 			*d = (Distance)((v*3048 - 5000) / 10000)
 		}
-	case "in", "inch", "inches", "In", "Inch", "Inches":
+	case "in":
 		switch {
 		case v > maxInches:
-			return errors.New("maximum value is 36 Million Inches")
+			return errors.New("maximum value is 36 Million inch")
 		case v < minInches:
-			return errors.New("minimum value is 36 Million Inches")
+			return errors.New("minimum value is 36 Million inch")
 		case v >= 0:
 			*d = (Distance)((v*254 + 5000) / 10000)
 		default:
 			*d = (Distance)((v*254 - 5000) / 10000)
 		}
-	case "m", "metre", "metres", "Metre", "Metres":
+	case "m":
 		*d = (Distance)(v)
 	case "":
-		return noUnits("m, Metre, Mile, Inch, Foot or Yard")
+		return noUnits("m, Mile, in, ft or Yard")
 	default:
-		if found, extra := containsUnitString(s[n:], "Metre", "Metre", "Inch", "Foot", "Yard", "Mile", "m"); found != "" {
+		if found, extra := containsUnitString(s[n:], "in", "ft", "Yard", "Mile", "m"); found != "" {
 			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
 		}
 		return incorrectUnit(s[n:], "physic.Distance")

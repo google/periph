@@ -36,12 +36,12 @@ func ExampleDistance() {
 func ExampleDistance_Set() {
 	var d physic.Distance
 
-	if err := d.Set("1Foot"); err != nil {
+	if err := d.Set("1ft"); err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println(d)
 
-	if err := d.Set("1Metre"); err != nil {
+	if err := d.Set("1m"); err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println(d)
