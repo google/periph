@@ -453,8 +453,8 @@ func (f Frequency) String() string {
 }
 
 // Set sets the Frequency to the value represented by s. Units are to
-// be provided in "Hertz" or "Hz" with an optional SI prefix: "p", "n", "u",
-// "µ", "m", "k", "M", "G" or "T".
+// be provided in "Hz" with an optional SI prefix: "p", "n", "u", "µ", "m", "k",
+// "M", "G" or "T".
 func (f *Frequency) Set(s string) error {
 	v, n, err := valueOfUnitString(s, micro)
 	if err != nil {
@@ -465,7 +465,7 @@ func (f *Frequency) Set(s string) error {
 			case errOverflowsInt64Negative:
 				return errors.New("minimum value is " + minFrequency.String())
 			case errNotANumber:
-				if found, _ := containsUnitString(s, "Hertz", "Hz"); found != "" {
+				if found, _ := containsUnitString(s, "Hz"); found != "" {
 					return errors.New("does not contain number")
 				}
 				return errors.New("does not contain number or unit \"Hz\"")
@@ -475,12 +475,12 @@ func (f *Frequency) Set(s string) error {
 	}
 
 	switch s[n:] {
-	case "hz", "hertz", "Hz", "Hertz":
+	case "hz", "Hz":
 		*f = (Frequency)(v)
 	case "":
 		return noUnits("Hz")
 	default:
-		if found, extra := containsUnitString(s[n:], "Hertz", "Hz"); found != "" {
+		if found, extra := containsUnitString(s[n:], "Hz"); found != "" {
 			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
 		}
 		return incorrectUnit(s[n:], "physic.Frequency")
