@@ -103,7 +103,7 @@ func (f *Angle) Set(s string) error {
 			exp:  0,
 			neg:  false,
 		}
-		lbf, _ := decimalMulScale(d, degreePerRadian)
+		lbf, _ := decimalMul(d, degreePerRadian)
 		// Impossible for precision loss to exceed 9 since the number of
 		// significant figures in degrees per radian is only 8.
 		v, err := dtoi(lbf, int(si))
@@ -561,7 +561,7 @@ func (f *Force) Set(s string) error {
 			exp:  0,
 			neg:  false,
 		}
-		lbf, loss := decimalMulScale(d, poundForce)
+		lbf, loss := decimalMul(d, poundForce)
 		if loss > 9 {
 			return errors.New("converting to nano Newtons would overflow, consider using nN for maximum precision")
 		}
@@ -1740,7 +1740,7 @@ func valueOfUnitString(s string, base prefix) (int64, int, error) {
 // degrade number of least significant figures. This function is to aid in the
 // multiplication of numbers that combined have more than 18 significant figures
 // each. The minimum limit of significant figures is 9 figures.
-func decimalMulScale(a, b decimal) (decimal, uint) {
+func decimalMul(a, b decimal) (decimal, uint) {
 	if a.base > 18446744073709551609 || b.base > 18446744073709551609 {
 		return decimal{}, 21
 	}

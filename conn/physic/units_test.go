@@ -835,7 +835,7 @@ func Test_decimalMulScale(t *testing.T) {
 	}
 
 	for _, tt := range succeeds {
-		got, loss := decimalMulScale(tt.a, tt.b)
+		got, loss := decimalMul(tt.a, tt.b)
 		if loss != tt.loss {
 			t.Errorf("decimalMulScale(%v,%v) expected %d loss but got %d", tt.a, tt.b, tt.loss, loss)
 		}
@@ -845,7 +845,7 @@ func Test_decimalMulScale(t *testing.T) {
 	}
 
 	for _, tt := range fails {
-		got, loss := decimalMulScale(tt.a, tt.b)
+		got, loss := decimalMul(tt.a, tt.b)
 		if loss != tt.loss {
 			t.Errorf("decimalMulScale(%v,%v) expected %d loss but got %d", tt.a, tt.b, tt.loss, loss)
 		}
