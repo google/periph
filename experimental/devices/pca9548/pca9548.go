@@ -78,17 +78,6 @@ func (d *Dev) RegisterPorts(alias string) error {
 	return nil
 }
 
-// newOpener is a helper for creating an opener func.
-func newOpener(d *Dev, portNumber uint8, alias string, name string) i2creg.Opener {
-	return func() (i2c.BusCloser, error) {
-		return &port{
-			name:   name + "(" + alias + ")",
-			mux:    d,
-			number: portNumber,
-		}, nil
-	}
-}
-
 // Halt does nothing.
 func (d *Dev) Halt() error {
 	return nil
@@ -115,6 +104,17 @@ func (d *Dev) tx(port uint8, address uint16, w, r []byte) error {
 		d.activePort = port
 	}
 	return d.c.Tx(address, w, r)
+}
+
+// newOpener is a helper for creating an opener func.
+func newOpener(d *Dev, portNumber uint8, alias string, name string) i2creg.Opener {
+	return func() (i2c.BusCloser, error) {
+		return &port{
+			name:   name + "(" + alias + ")",
+			mux:    d,
+			number: portNumber,
+		}, nil
+	}
 }
 
 // port is a i2c.BusCloser.
