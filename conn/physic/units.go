@@ -574,22 +574,22 @@ func (p *Pressure) Set(s string) error {
 			case errOverflowsInt64Negative:
 				return errors.New("minimum value is " + minPressure.String())
 			case errNotANumber:
-				if found, _ := containsUnitString(s, "Pascals", "Pascal", "Pa"); found != "" {
+				if found, _ := containsUnitString(s, "Pa"); found != "" {
 					return errors.New("does not contain number")
 				}
-				return errors.New("does not contain number or unit \"Pascal\"")
+				return errors.New("does not contain number or unit \"Pa\"")
 			}
 		}
 		return err
 	}
 
 	switch s[n:] {
-	case "pa", "pascal", "pascals", "Pa", "Pascal", "Pascals":
+	case "pa", "Pa":
 		*p = (Pressure)(v)
 	case "":
-		return noUnits("Pascal")
+		return noUnits("Pa")
 	default:
-		if found, extra := containsUnitString(s[n:], "Pascals", "Pascal", "Pa"); found != "" {
+		if found, extra := containsUnitString(s[n:], "Pa"); found != "" {
 			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
 		}
 		return incorrectUnit(s[n:], "physic.Pressure")

@@ -278,7 +278,7 @@ func ExamplePressure_Set() {
 	}
 	fmt.Println(p)
 
-	if err := p.Set("16MPascal"); err != nil {
+	if err := p.Set("16MPa"); err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println(p)

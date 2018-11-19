@@ -1571,32 +1571,32 @@ func TestPressure_Set(t *testing.T) {
 		in       string
 		expected Pressure
 	}{
-		{"1nPascal", 1 * NanoPascal},
-		{"10nPascals", 10 * NanoPascal},
-		{"100nPascals", 100 * NanoPascal},
-		{"1uPascal", 1 * MicroPascal},
-		{"10uPascals", 10 * MicroPascal},
-		{"100uPascals", 100 * MicroPascal},
-		{"1µPascal", 1 * MicroPascal},
-		{"10µPascals", 10 * MicroPascal},
-		{"100µPascals", 100 * MicroPascal},
-		{"1mPascal", 1 * MilliPascal},
-		{"10mPascals", 10 * MilliPascal},
-		{"100mPascals", 100 * MilliPascal},
-		{"1Pascal", 1 * Pascal},
-		{"10Pascals", 10 * Pascal},
-		{"100Pascals", 100 * Pascal},
-		{"1kPascal", 1 * KiloPascal},
-		{"10kPascals", 10 * KiloPascal},
-		{"100kPascals", 100 * KiloPascal},
-		{"1MPascal", 1 * MegaPascal},
-		{"10MPascals", 10 * MegaPascal},
-		{"100MPascals", 100 * MegaPascal},
-		{"1GPascal", 1 * GigaPascal},
-		{"12.345Pascals", 12345 * MilliPascal},
-		{"-12.345Pascals", -12345 * MilliPascal},
-		{"9.223372036854775807GPascals", 9223372036854775807 * NanoPascal},
-		{"-9.223372036854775807GPascals", -9223372036854775807 * NanoPascal},
+		{"1nPa", 1 * NanoPascal},
+		{"10nPa", 10 * NanoPascal},
+		{"100nPa", 100 * NanoPascal},
+		{"1uPa", 1 * MicroPascal},
+		{"10uPa", 10 * MicroPascal},
+		{"100uPa", 100 * MicroPascal},
+		{"1µPa", 1 * MicroPascal},
+		{"10µPa", 10 * MicroPascal},
+		{"100µPa", 100 * MicroPascal},
+		{"1mPa", 1 * MilliPascal},
+		{"10mPa", 10 * MilliPascal},
+		{"100mPa", 100 * MilliPascal},
+		{"1Pa", 1 * Pascal},
+		{"10Pa", 10 * Pascal},
+		{"100Pa", 100 * Pascal},
+		{"1kPa", 1 * KiloPascal},
+		{"10kPa", 10 * KiloPascal},
+		{"100kPa", 100 * KiloPascal},
+		{"1MPa", 1 * MegaPascal},
+		{"10MPa", 10 * MegaPascal},
+		{"100MPa", 100 * MegaPascal},
+		{"1GPa", 1 * GigaPascal},
+		{"12.345Pa", 12345 * MilliPascal},
+		{"-12.345Pa", -12345 * MilliPascal},
+		{"9.223372036854775807GPa", 9223372036854775807 * NanoPascal},
+		{"-9.223372036854775807GPa", -9223372036854775807 * NanoPascal},
 		{"1MPa", 1 * MegaPascal},
 	}
 
@@ -1605,24 +1605,24 @@ func TestPressure_Set(t *testing.T) {
 		err string
 	}{
 		{
-			"10TPascal",
+			"10TPa",
 			"exponent exceeds int64",
 		},
 		{
-			"10EPascal",
-			"contains unknown unit prefix \"E\". valid prefixes for \"Pascal\" are p,n,u,µ,m,k,M,G or T",
+			"10EPa",
+			"contains unknown unit prefix \"E\". valid prefixes for \"Pa\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
-			"10ExaPascal",
-			"contains unknown unit prefix \"Exa\". valid prefixes for \"Pascal\" are p,n,u,µ,m,k,M,G or T",
+			"10ExaPa",
+			"contains unknown unit prefix \"Exa\". valid prefixes for \"Pa\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10ePascalE",
-			"contains unknown unit prefix \"e\". valid prefixes for \"Pascal\" are p,n,u,µ,m,k,M,G or T",
+			"contains unknown unit prefix \"e\". valid prefixes for \"Pa\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10",
-			"no units provided, need Pascal",
+			"no units provided, need Pa",
 		},
 		{
 			"9223372036854775808",
@@ -1633,19 +1633,19 @@ func TestPressure_Set(t *testing.T) {
 			"minimum value is -9.223GPa",
 		},
 		{
-			"9.223372036854775808GPascal",
+			"9.223372036854775808GPa",
 			"maximum value is 9.223GPa",
 		},
 		{
-			"-9.223372036854775808GPascal",
+			"-9.223372036854775808GPa",
 			"minimum value is -9.223GPa",
 		},
 		{
-			"9.223372036854775808GPascal",
+			"9.223372036854775808GPa",
 			"maximum value is 9.223GPa",
 		},
 		{
-			"-9.223372036854775808GPascal",
+			"-9.223372036854775808GPa",
 			"minimum value is -9.223GPa",
 		},
 		{
@@ -1653,28 +1653,28 @@ func TestPressure_Set(t *testing.T) {
 			"\"random\" is not a valid unit for physic.Pressure",
 		},
 		{
-			"Pascal",
+			"Pa",
 			"does not contain number",
 		},
 		{
 			"RPM",
-			"does not contain number or unit \"Pascal\"",
+			"does not contain number or unit \"Pa\"",
 		},
 		{
-			"++1Pascal",
-			"multiple plus symbols ++1Pascal",
+			"++1Pa",
+			"multiple plus symbols ++1Pa",
 		},
 		{
-			"--1Pascal",
-			"multiple minus symbols --1Pascal",
+			"--1Pa",
+			"multiple minus symbols --1Pa",
 		},
 		{
-			"+-1Pascal",
-			"can't contain both plus and minus symbols +-1Pascal",
+			"+-1Pa",
+			"can't contain both plus and minus symbols +-1Pa",
 		},
 		{
-			"1.1.1.1Pascal",
-			"multiple decimal points 1.1.1.1Pascal",
+			"1.1.1.1Pa",
+			"multiple decimal points 1.1.1.1Pa",
 		},
 	}
 
