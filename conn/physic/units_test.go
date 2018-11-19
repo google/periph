@@ -2423,7 +2423,7 @@ func BenchmarkDistanceSet(b *testing.B) {
 	var err error
 	var d Distance
 	for i := 0; i < b.N; i++ {
-		err = d.Set("1Foot")
+		err = d.Set("1ft")
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -2436,7 +2436,7 @@ func BenchmarkElectricCurrentSet(b *testing.B) {
 	var err error
 	var e ElectricCurrent
 	for i := 0; i < b.N; i++ {
-		err = e.Set("1Amp")
+		err = e.Set("1A")
 		if err != nil {
 			b.Fatal(err)
 		}
