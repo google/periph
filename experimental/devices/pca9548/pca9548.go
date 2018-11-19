@@ -28,56 +28,74 @@ type Opts struct {
 // Dev is handle to a pca9548 I²C Multiplexer.
 type Dev struct {
 	// Immutable.
-	c       i2c.Bus
-	address uint16
+	c        i2c.Bus
+	address  uint16
+	name     string
+	numPorts uint8
 
 	// Mutable.
-	mu       sync.Mutex
-	port     uint8
-	numPorts uint8
+	mu         sync.Mutex
+	activePort uint8
 }
 
 // New creates a new handle to a pca9548 I²C multiplexer.
 func New(bus i2c.Bus, opts *Opts) (*Dev, error) {
+	if opts.Address < 0x70 || opts.Address > 0x77 {
+		return nil, errors.New("Address outside valid range of 0x70-0x77")
+	}
 	d := &Dev{
-		c:       bus,
-		port:    0xFF,
-		address: uint16(opts.Address),
-		// TODO(NeuralSpaz): Make number of ports safely settable after New()
-		numPorts: 8,
+		c:          bus,
+		activePort: 0xFF,
+		address:    uint16(opts.Address),
+		numPorts:   8,
+		name:       "pca9548-" + strconv.FormatUint(uint64(opts.Address), 16),
 	}
 	r := make([]byte, 1)
 	err := bus.Tx(uint16(opts.Address), nil, r)
 	if err != nil {
-		return nil, errors.New("could not communicate with multiplexer: " + err.Error())
+		return nil, errors.New("could not establish communicate with multiplexer: " + err.Error())
 	}
 	return d, nil
 }
 
-// Register registers port number and port name with the host. These ports can
-// then be used as any other i2c.Bus. Alias bus name that needs to be unique.
-func (d *Dev) Register(port int, alias string) error {
-	if port >= int(d.numPorts) || port < 0 {
-		return errors.New("port number must be between 0 and 7")
+// RegisterPorts registers multiplexer ports with the host. These ports can
+// then be used as any other i2c.Bus. Busses will be named "alias0", "alias1"
+// etc. If using more than one multiplexer note that the alias must be unique.
+func (d *Dev) RegisterPorts(alias string) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	for i := uint8(0); i < d.numPorts; i++ {
+		portStr := strconv.Itoa(int(i))
+		addrStr := strconv.FormatUint(uint64(d.address), 16)
+		portName := d.c.String() + "-pca9548-" + addrStr + "-" + portStr
+		opener := newOpener(d, i, alias+portStr, portName)
+		err := i2creg.Register(portName, []string{alias + portStr}, -1, opener)
+		if err != nil {
+			return err
+		}
 	}
+	return nil
+}
 
-	portID := strconv.Itoa(int(port))
-	addrStr := strconv.FormatUint(uint64(d.address), 16)
-	name := d.c.String() + "-pca9548-" + addrStr + "-" + portID
-
-	opener := newOpener(d, uint8(port), alias)
-	return i2creg.Register(name, []string{alias}, int(d.address)*10+port, opener)
+// newOpener is a helper for creating an opener func.
+func newOpener(d *Dev, portNumber uint8, alias string, name string) i2creg.Opener {
+	return func() (i2c.BusCloser, error) {
+		return &port{
+			name:   name + "(" + alias + ")",
+			mux:    d,
+			number: portNumber,
+		}, nil
+	}
 }
 
 // Halt does nothing.
 func (d *Dev) Halt() error {
-	// TODO(NeuralSpaz): Find a good way to halt that also can resume.
 	return nil
 }
 
 // String returns the bus base name for multiplexer ports.
 func (d *Dev) String() string {
-	return "pca9548-" + strconv.FormatUint(uint64(d.address), 16)
+	return d.name
 }
 
 // tx wraps the master bus tx, maintains which port that each bus is registered
@@ -89,12 +107,12 @@ func (d *Dev) tx(port uint8, address uint16, w, r []byte) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	// Change active port if needed.
-	if port != d.port {
-		err := d.c.Tx(d.address, []byte{uint8(1 << port)}, nil)
+	if port != d.activePort {
+		err := d.c.Tx(d.address, []byte{1 << port}, nil)
 		if err != nil {
 			return errors.New("failed to change active port on multiplexer: " + err.Error())
 		}
-		d.port = port
+		d.activePort = port
 	}
 	return d.c.Tx(address, w, r)
 }
@@ -111,38 +129,29 @@ type port struct {
 }
 
 // String gets the port number of the bus on the multiplexer.
-func (p *port) String() string { return "Port:" + p.name + " " + strconv.Itoa(int(p.number)) }
+func (p *port) String() string { return "Port:" + p.name }
 
 // SetSpeed is no implemented as the port slaves the master port clock.
-func (p *port) SetSpeed(f physic.Frequency) error { return nil }
+func (p *port) SetSpeed(f physic.Frequency) error {
+	return errors.New("SetSpeed is not impelmented on a port by port basis")
+}
 
 // Tx does a transaction on the multiplexer port it is register to.
 func (p *port) Tx(addr uint16, w, r []byte) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if p.mux == nil {
-		return errors.New("port " + strconv.Itoa(int(p.number)) + " has been closed")
+		return errors.New(p.String() + " has been closed")
 	}
 	return p.mux.tx(p.number, addr, w, r)
 }
 
-// Close closes a port, no futher communication can take place on that port.
+// Close closes a port.
 func (p *port) Close() error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.mux = nil
 	return nil
-}
-
-// newOpener is a helper for creating an opener func.
-func newOpener(d *Dev, portNumber uint8, alias string) i2creg.Opener {
-	return func() (i2c.BusCloser, error) {
-		return &port{
-			name:   alias,
-			mux:    d,
-			number: portNumber,
-		}, nil
-	}
 }
 
 var _ conn.Resource = &Dev{}

@@ -10,7 +10,7 @@
 // Adjusting the Bus CLK
 //
 // The bus clock is slaved to the master bus clock, different clock for each
-// port is currently not supported.
+// port is currently not supported. The Maximum clock for this device is 400kHz.
 //
 //
 // Datasheet
