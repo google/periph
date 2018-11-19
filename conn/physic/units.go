@@ -562,8 +562,8 @@ func (p Pressure) String() string {
 }
 
 // Set sets the Pressure to the value represented by s. Units are to
-// be provided in "Pascal", "Pascals" or "Pa" with an optional SI prefix: "p",
-// "n", "u", "µ", "m", "k", "M", "G" or "T".
+// be provided in "Pa" with an optional SI prefix: "p", "n", "u", "µ", "m", "k",
+// "M", "G" or "T".
 func (p *Pressure) Set(s string) error {
 	v, n, err := valueOfUnitString(s, nano)
 	if err != nil {
@@ -709,8 +709,8 @@ func (p Power) String() string {
 }
 
 // Set sets the Power to the value represented by s. Units are to
-// be provided in "Watt", "Watts" or "W" with an optional SI prefix: "p",
-// "n", "u", "µ", "m", "k", "M", "G" or "T".
+// be provided in "W" with an optional SI prefix: "p", "n", "u", "µ", "m", "k",
+// "M", "G" or "T".
 func (p *Power) Set(s string) error {
 	v, n, err := valueOfUnitString(s, nano)
 	if err != nil {
@@ -770,8 +770,8 @@ func (e Energy) String() string {
 }
 
 // Set sets the Energy to the value represented by s. Units are to
-// be provided in "Joule", "Joules" or "J" with an optional SI prefix: "p",
-// "n", "u", "µ", "m", "k", "M", "G" or "T".
+// be provided in "J" with an optional SI prefix: "p", "n", "u", "µ", "m", "k",
+// "M", "G" or "T".
 func (e *Energy) Set(s string) error {
 	v, n, err := valueOfUnitString(s, nano)
 	if err != nil {
@@ -782,22 +782,22 @@ func (e *Energy) Set(s string) error {
 			case errOverflowsInt64Negative:
 				return errors.New("minimum value is " + minEnergy.String())
 			case errNotANumber:
-				if found, _ := containsUnitString(s, "Joules", "Joule", "J"); found != "" {
+				if found, _ := containsUnitString(s, "J"); found != "" {
 					return errors.New("does not contain number")
 				}
-				return errors.New("does not contain number or unit \"Joule\"")
+				return errors.New("does not contain number or unit \"J\"")
 			}
 		}
 		return err
 	}
 
 	switch s[n:] {
-	case "j", "joule", "joules", "J", "Joule", "Joules":
+	case "j", "J":
 		*e = (Energy)(v)
 	case "":
-		return noUnits("Joule")
+		return noUnits("J")
 	default:
-		if found, extra := containsUnitString(s[n:], "Joules", "Joule", "J"); found != "" {
+		if found, extra := containsUnitString(s[n:], "J"); found != "" {
 			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
 		}
 		return incorrectUnit(s[n:], "physic.Energy")

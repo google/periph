@@ -1831,32 +1831,32 @@ func TestEnergy_Set(t *testing.T) {
 		in       string
 		expected Energy
 	}{
-		{"1nJoule", 1 * NanoJoule},
-		{"10nJoules", 10 * NanoJoule},
-		{"100nJoules", 100 * NanoJoule},
-		{"1uJoule", 1 * MicroJoule},
-		{"10uJoules", 10 * MicroJoule},
-		{"100uJoules", 100 * MicroJoule},
-		{"1µJoule", 1 * MicroJoule},
-		{"10µJoules", 10 * MicroJoule},
-		{"100µJoules", 100 * MicroJoule},
-		{"1mJoule", 1 * MilliJoule},
-		{"10mJoules", 10 * MilliJoule},
-		{"100mJoules", 100 * MilliJoule},
-		{"1Joule", 1 * Joule},
-		{"10Joules", 10 * Joule},
-		{"100Joules", 100 * Joule},
-		{"1kJoule", 1 * KiloJoule},
-		{"10kJoules", 10 * KiloJoule},
-		{"100kJoules", 100 * KiloJoule},
-		{"1MJoule", 1 * MegaJoule},
-		{"10MJoules", 10 * MegaJoule},
-		{"100MJoules", 100 * MegaJoule},
-		{"1GJoule", 1 * GigaJoule},
-		{"12.345Joules", 12345 * MilliJoule},
-		{"-12.345Joules", -12345 * MilliJoule},
-		{"9.223372036854775807GJoules", 9223372036854775807 * NanoJoule},
-		{"-9.223372036854775807GJoules", -9223372036854775807 * NanoJoule},
+		{"1nJ", 1 * NanoJoule},
+		{"10nJ", 10 * NanoJoule},
+		{"100nJ", 100 * NanoJoule},
+		{"1uJ", 1 * MicroJoule},
+		{"10uJ", 10 * MicroJoule},
+		{"100uJ", 100 * MicroJoule},
+		{"1µJ", 1 * MicroJoule},
+		{"10µJ", 10 * MicroJoule},
+		{"100µJ", 100 * MicroJoule},
+		{"1mJ", 1 * MilliJoule},
+		{"10mJ", 10 * MilliJoule},
+		{"100mJ", 100 * MilliJoule},
+		{"1J", 1 * Joule},
+		{"10J", 10 * Joule},
+		{"100J", 100 * Joule},
+		{"1kJ", 1 * KiloJoule},
+		{"10kJ", 10 * KiloJoule},
+		{"100kJ", 100 * KiloJoule},
+		{"1MJ", 1 * MegaJoule},
+		{"10MJ", 10 * MegaJoule},
+		{"100MJ", 100 * MegaJoule},
+		{"1GJ", 1 * GigaJoule},
+		{"12.345J", 12345 * MilliJoule},
+		{"-12.345J", -12345 * MilliJoule},
+		{"9.223372036854775807GJ", 9223372036854775807 * NanoJoule},
+		{"-9.223372036854775807GJ", -9223372036854775807 * NanoJoule},
 		{"1MJ", 1 * MegaJoule},
 	}
 
@@ -1865,24 +1865,24 @@ func TestEnergy_Set(t *testing.T) {
 		err string
 	}{
 		{
-			"10TJoule",
+			"10TJ",
 			"exponent exceeds int64",
 		},
 		{
-			"10EJoule",
-			"contains unknown unit prefix \"E\". valid prefixes for \"Joule\" are p,n,u,µ,m,k,M,G or T",
+			"10EJ",
+			"contains unknown unit prefix \"E\". valid prefixes for \"J\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
-			"10ExaJoule",
-			"contains unknown unit prefix \"Exa\". valid prefixes for \"Joule\" are p,n,u,µ,m,k,M,G or T",
+			"10ExaJ",
+			"contains unknown unit prefix \"Exa\". valid prefixes for \"J\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10eJouleE",
-			"contains unknown unit prefix \"e\". valid prefixes for \"Joule\" are p,n,u,µ,m,k,M,G or T",
+			"contains unknown unit prefix \"e\". valid prefixes for \"J\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10",
-			"no units provided, need Joule",
+			"no units provided, need J",
 		},
 		{
 			"9223372036854775808",
@@ -1893,19 +1893,19 @@ func TestEnergy_Set(t *testing.T) {
 			"minimum value is -9.223GJ",
 		},
 		{
-			"9.223372036854775808GJoule",
+			"9.223372036854775808GJ",
 			"maximum value is 9.223GJ",
 		},
 		{
-			"-9.223372036854775808GJoule",
+			"-9.223372036854775808GJ",
 			"minimum value is -9.223GJ",
 		},
 		{
-			"9.223372036854775808GJoule",
+			"9.223372036854775808GJ",
 			"maximum value is 9.223GJ",
 		},
 		{
-			"-9.223372036854775808GJoule",
+			"-9.223372036854775808GJ",
 			"minimum value is -9.223GJ",
 		},
 		{
@@ -1913,28 +1913,28 @@ func TestEnergy_Set(t *testing.T) {
 			"\"random\" is not a valid unit for physic.Energy",
 		},
 		{
-			"Joule",
+			"J",
 			"does not contain number",
 		},
 		{
 			"RPM",
-			"does not contain number or unit \"Joule\"",
+			"does not contain number or unit \"J\"",
 		},
 		{
-			"++1Joule",
-			"multiple plus symbols ++1Joule",
+			"++1J",
+			"multiple plus symbols ++1J",
 		},
 		{
-			"--1Joule",
-			"multiple minus symbols --1Joule",
+			"--1J",
+			"multiple minus symbols --1J",
 		},
 		{
-			"+-1Joule",
-			"can't contain both plus and minus symbols +-1Joule",
+			"+-1J",
+			"can't contain both plus and minus symbols +-1J",
 		},
 		{
-			"1.1.1.1Joule",
-			"multiple decimal points 1.1.1.1Joule",
+			"1.1.1.1J",
+			"multiple decimal points 1.1.1.1J",
 		},
 	}
 
