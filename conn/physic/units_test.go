@@ -667,6 +667,7 @@ func TestDoti(t *testing.T) {
 		{"exponet too small for int64", decimal{123, -20, positive}, 0},
 		{"max*10^1", decimal{9223372036854775807, 1, positive}, 9223372036854775807},
 		{"-max*10^1", decimal{9223372036854775807, 1, negative}, -9223372036854775807},
+		{"overflow", decimal{7588728005190, 9, positive}, 9223372036854775807},
 	}
 
 	for _, tt := range succeeds {
