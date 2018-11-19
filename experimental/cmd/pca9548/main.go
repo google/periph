@@ -40,23 +40,18 @@ func mainImpl() error {
 		return fmt.Errorf("failed to load new mux: %v", err)
 	}
 
-	// Register all 8 ports.
-	busz := make(map[int]string)
-	for i := 0; i < 8; i++ {
-		name := "mux" + strconv.Itoa(i)
-		err = mux.Register(i, name)
-		if err != nil {
-			return err
-		}
-		busz[i] = name
+	if err := mux.RegisterPorts("mux"); err != nil {
+		return fmt.Errorf("failed to register ports: %v", err.Error())
 	}
 
 	// Create a place to store the results from the scan.
 	results := make(map[string][]uint16)
 	fmt.Println("Starting Scan")
+
 	// Loop through each bus scanning all addresses for a response.
 	for i := 0; i < 8; i++ {
-		m, err := i2creg.Open(busz[i])
+		// Open multiplexer port with alias mux0-mux7.
+		m, err := i2creg.Open("mux" + strconv.Itoa(i))
 		if err != nil {
 			return err
 		}
@@ -65,7 +60,7 @@ func mainImpl() error {
 		rx := []byte{0x00}
 		for addr := uint16(1); addr < 0x77; addr++ {
 			if err := m.Tx(addr, nil, rx); err == nil {
-				results[busz[i]] = append(results[busz[i]], addr)
+				results[m.String()] = append(results[m.String()], addr)
 			}
 		}
 	}
