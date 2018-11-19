@@ -839,7 +839,7 @@ func (c ElectricalCapacitance) String() string {
 }
 
 // Set sets the ElectricalCapacitance to the value represented by s. Units are
-// to be provided in F" with an optional SI prefix: "p", "n", "u", "µ", "m",
+// to be provided in "F" with an optional SI prefix: "p", "n", "u", "µ", "m",
 // "k", "M", "G" or "T".
 func (c *ElectricalCapacitance) Set(s string) error {
 	v, n, err := valueOfUnitString(s, pico)
@@ -973,7 +973,7 @@ func (f LuminousFlux) String() string {
 }
 
 // Set sets the LuminousFlux to the value represented by s. Units are to
-// be provided in lm" with an optional SI prefix: "p", "n", "u", "µ", "m", "k",
+// be provided in "lm" with an optional SI prefix: "p", "n", "u", "µ", "m", "k",
 // "M", "G" or "T".
 func (f *LuminousFlux) Set(s string) error {
 	v, n, err := valueOfUnitString(s, nano)
