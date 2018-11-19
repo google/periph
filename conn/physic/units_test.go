@@ -1190,32 +1190,32 @@ func TestElectricCurrent_Set(t *testing.T) {
 		in       string
 		expected ElectricCurrent
 	}{
-		{"1nAmp", 1 * NanoAmpere},
-		{"10nAmps", 10 * NanoAmpere},
-		{"100nAmps", 100 * NanoAmpere},
-		{"1uAmp", 1 * MicroAmpere},
-		{"10uAmps", 10 * MicroAmpere},
-		{"100uAmps", 100 * MicroAmpere},
-		{"1µAmp", 1 * MicroAmpere},
-		{"10µAmps", 10 * MicroAmpere},
-		{"100µAmps", 100 * MicroAmpere},
-		{"1mAmp", 1 * MilliAmpere},
-		{"10mAmps", 10 * MilliAmpere},
-		{"100mAmps", 100 * MilliAmpere},
-		{"1Amp", 1 * Ampere},
-		{"10Amps", 10 * Ampere},
-		{"100Amps", 100 * Ampere},
-		{"1kAmp", 1 * KiloAmpere},
-		{"10kAmps", 10 * KiloAmpere},
-		{"100kAmps", 100 * KiloAmpere},
-		{"1MAmp", 1 * MegaAmpere},
-		{"10MAmps", 10 * MegaAmpere},
-		{"100MAmps", 100 * MegaAmpere},
-		{"1GAmp", 1 * GigaAmpere},
-		{"12.345Amps", 12345 * MilliAmpere},
-		{"-12.345Amps", -12345 * MilliAmpere},
-		{"9.223372036854775807GAmps", 9223372036854775807 * NanoAmpere},
-		{"-9.223372036854775807GAmps", -9223372036854775807 * NanoAmpere},
+		{"1nA", 1 * NanoAmpere},
+		{"10nA", 10 * NanoAmpere},
+		{"100nA", 100 * NanoAmpere},
+		{"1uA", 1 * MicroAmpere},
+		{"10uA", 10 * MicroAmpere},
+		{"100uA", 100 * MicroAmpere},
+		{"1µA", 1 * MicroAmpere},
+		{"10µA", 10 * MicroAmpere},
+		{"100µA", 100 * MicroAmpere},
+		{"1mA", 1 * MilliAmpere},
+		{"10mA", 10 * MilliAmpere},
+		{"100mA", 100 * MilliAmpere},
+		{"1A", 1 * Ampere},
+		{"10A", 10 * Ampere},
+		{"100A", 100 * Ampere},
+		{"1kA", 1 * KiloAmpere},
+		{"10kA", 10 * KiloAmpere},
+		{"100kA", 100 * KiloAmpere},
+		{"1MA", 1 * MegaAmpere},
+		{"10MA", 10 * MegaAmpere},
+		{"100MA", 100 * MegaAmpere},
+		{"1GA", 1 * GigaAmpere},
+		{"12.345A", 12345 * MilliAmpere},
+		{"-12.345A", -12345 * MilliAmpere},
+		{"9.223372036854775807GA", 9223372036854775807 * NanoAmpere},
+		{"-9.223372036854775807GA", -9223372036854775807 * NanoAmpere},
 		{"1A", 1 * Ampere},
 	}
 
@@ -1224,24 +1224,20 @@ func TestElectricCurrent_Set(t *testing.T) {
 		err string
 	}{
 		{
-			"10TAmp",
+			"10TA",
 			"exponent exceeds int64",
 		},
 		{
-			"10EAmp",
-			"contains unknown unit prefix \"E\". valid prefixes for \"Amp\" are p,n,u,µ,m,k,M,G or T",
-		},
-		{
-			"10ExaAmp",
-			"contains unknown unit prefix \"Exa\". valid prefixes for \"Amp\" are p,n,u,µ,m,k,M,G or T",
+			"10EA",
+			"contains unknown unit prefix \"E\". valid prefixes for \"A\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10eAmpE",
-			"contains unknown unit prefix \"e\". valid prefixes for \"Amp\" are p,n,u,µ,m,k,M,G or T",
+			"contains unknown unit prefix \"e\". valid prefixes for \"A\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10",
-			"no units provided, need Amp",
+			"no units provided, need A",
 		},
 		{
 			"922337203685477580",
@@ -1252,19 +1248,19 @@ func TestElectricCurrent_Set(t *testing.T) {
 			"minimum value is -9.223GA",
 		},
 		{
-			"9.223372036854775808GAmp",
+			"9.223372036854775808GA",
 			"maximum value is 9.223GA",
 		},
 		{
-			"-9.223372036854775808GAmp",
+			"-9.223372036854775808GA",
 			"minimum value is -9.223GA",
 		},
 		{
-			"9.223372036854775808GAmp",
+			"9.223372036854775808GA",
 			"maximum value is 9.223GA",
 		},
 		{
-			"-9.223372036854775808GAmp",
+			"-9.223372036854775808GA",
 			"minimum value is -9.223GA",
 		},
 		{
@@ -1272,28 +1268,28 @@ func TestElectricCurrent_Set(t *testing.T) {
 			"\"junk\" is not a valid unit for physic.ElectricCurrent",
 		},
 		{
-			"Amp",
+			"A",
 			"does not contain number",
 		},
 		{
 			"RPM",
-			"does not contain number or unit \"Amp\"",
+			"does not contain number or unit \"A\"",
 		},
 		{
-			"++1Amp",
-			"multiple plus symbols ++1Amp",
+			"++1A",
+			"multiple plus symbols ++1A",
 		},
 		{
-			"--1Amp",
-			"multiple minus symbols --1Amp",
+			"--1A",
+			"multiple minus symbols --1A",
 		},
 		{
-			"+-1Amp",
-			"can't contain both plus and minus symbols +-1Amp",
+			"+-1A",
+			"can't contain both plus and minus symbols +-1A",
 		},
 		{
-			"1.1.1.1Amp",
-			"multiple decimal points 1.1.1.1Amp",
+			"1.1.1.1A",
+			"multiple decimal points 1.1.1.1A",
 		},
 	}
 

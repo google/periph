@@ -87,7 +87,7 @@ func ExampleElectricCurrent_Set() {
 	}
 	fmt.Println(e)
 
-	if err := e.Set("2Amps"); err != nil {
+	if err := e.Set("2A"); err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println(e)

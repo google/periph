@@ -250,22 +250,22 @@ func (c *ElectricCurrent) Set(s string) error {
 			case errOverflowsInt64Negative:
 				return errors.New("minimum value is " + minElectricCurrent.String())
 			case errNotANumber:
-				if found, _ := containsUnitString(s, "Amps", "Amp", "A"); found != "" {
+				if found, _ := containsUnitString(s, "A"); found != "" {
 					return errors.New("does not contain number")
 				}
-				return errors.New("does not contain number or unit \"Amp\"")
+				return errors.New("does not contain number or unit \"A\"")
 			}
 		}
 		return err
 	}
 
 	switch s[n:] {
-	case "a", "amp", "amps", "A", "Amp", "Amps":
+	case "a", "A":
 		*c = (ElectricCurrent)(v)
 	case "":
-		return noUnits("Amp")
+		return noUnits("A")
 	default:
-		if found, extra := containsUnitString(s[n:], "Amps", "Amp", "A"); found != "" {
+		if found, extra := containsUnitString(s[n:], "A"); found != "" {
 			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
 		}
 		return incorrectUnit(s[n:], "physic.ElectricCurrent")
