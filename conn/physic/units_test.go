@@ -1701,32 +1701,32 @@ func TestPower_Set(t *testing.T) {
 		in       string
 		expected Power
 	}{
-		{"1nWatt", 1 * NanoWatt},
-		{"10nWatts", 10 * NanoWatt},
-		{"100nWatts", 100 * NanoWatt},
-		{"1uWatt", 1 * MicroWatt},
-		{"10uWatts", 10 * MicroWatt},
-		{"100uWatts", 100 * MicroWatt},
-		{"1µWatt", 1 * MicroWatt},
-		{"10µWatts", 10 * MicroWatt},
-		{"100µWatts", 100 * MicroWatt},
-		{"1mWatt", 1 * MilliWatt},
-		{"10mWatts", 10 * MilliWatt},
-		{"100mWatts", 100 * MilliWatt},
-		{"1Watt", 1 * Watt},
-		{"10Watts", 10 * Watt},
-		{"100Watts", 100 * Watt},
-		{"1kWatt", 1 * KiloWatt},
-		{"10kWatts", 10 * KiloWatt},
-		{"100kWatts", 100 * KiloWatt},
-		{"1MWatt", 1 * MegaWatt},
-		{"10MWatts", 10 * MegaWatt},
-		{"100MWatts", 100 * MegaWatt},
-		{"1GWatt", 1 * GigaWatt},
-		{"12.345Watts", 12345 * MilliWatt},
-		{"-12.345Watts", -12345 * MilliWatt},
-		{"9.223372036854775807GWatts", 9223372036854775807 * NanoWatt},
-		{"-9.223372036854775807GWatts", -9223372036854775807 * NanoWatt},
+		{"1nW", 1 * NanoWatt},
+		{"10nW", 10 * NanoWatt},
+		{"100nW", 100 * NanoWatt},
+		{"1uW", 1 * MicroWatt},
+		{"10uW", 10 * MicroWatt},
+		{"100uW", 100 * MicroWatt},
+		{"1µW", 1 * MicroWatt},
+		{"10µW", 10 * MicroWatt},
+		{"100µW", 100 * MicroWatt},
+		{"1mW", 1 * MilliWatt},
+		{"10mW", 10 * MilliWatt},
+		{"100mW", 100 * MilliWatt},
+		{"1W", 1 * Watt},
+		{"10W", 10 * Watt},
+		{"100W", 100 * Watt},
+		{"1kW", 1 * KiloWatt},
+		{"10kW", 10 * KiloWatt},
+		{"100kW", 100 * KiloWatt},
+		{"1MW", 1 * MegaWatt},
+		{"10MW", 10 * MegaWatt},
+		{"100MW", 100 * MegaWatt},
+		{"1GW", 1 * GigaWatt},
+		{"12.345W", 12345 * MilliWatt},
+		{"-12.345W", -12345 * MilliWatt},
+		{"9.223372036854775807GW", 9223372036854775807 * NanoWatt},
+		{"-9.223372036854775807GW", -9223372036854775807 * NanoWatt},
 		{"1MW", 1 * MegaWatt},
 	}
 
@@ -1735,24 +1735,24 @@ func TestPower_Set(t *testing.T) {
 		err string
 	}{
 		{
-			"10TWatt",
+			"10TW",
 			"exponent exceeds int64",
 		},
 		{
-			"10EWatt",
-			"contains unknown unit prefix \"E\". valid prefixes for \"Watt\" are p,n,u,µ,m,k,M,G or T",
+			"10EW",
+			"contains unknown unit prefix \"E\". valid prefixes for \"W\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
-			"10ExaWatt",
-			"contains unknown unit prefix \"Exa\". valid prefixes for \"Watt\" are p,n,u,µ,m,k,M,G or T",
+			"10ExaW",
+			"contains unknown unit prefix \"Exa\". valid prefixes for \"W\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10eWattE",
-			"contains unknown unit prefix \"e\". valid prefixes for \"Watt\" are p,n,u,µ,m,k,M,G or T",
+			"contains unknown unit prefix \"e\". valid prefixes for \"W\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10",
-			"no units provided, need Watt",
+			"no units provided, need W",
 		},
 		{
 			"9223372036854775808",
@@ -1763,19 +1763,19 @@ func TestPower_Set(t *testing.T) {
 			"minimum value is -9.223GW",
 		},
 		{
-			"9.223372036854775808GWatt",
+			"9.223372036854775808GW",
 			"maximum value is 9.223GW",
 		},
 		{
-			"-9.223372036854775808GWatt",
+			"-9.223372036854775808GW",
 			"minimum value is -9.223GW",
 		},
 		{
-			"9.223372036854775808GWatt",
+			"9.223372036854775808GW",
 			"maximum value is 9.223GW",
 		},
 		{
-			"-9.223372036854775808GWatt",
+			"-9.223372036854775808GW",
 			"minimum value is -9.223GW",
 		},
 		{
@@ -1783,28 +1783,28 @@ func TestPower_Set(t *testing.T) {
 			"\"random\" is not a valid unit for physic.Power",
 		},
 		{
-			"Watt",
+			"W",
 			"does not contain number",
 		},
 		{
 			"RPM",
-			"does not contain number or unit \"Watt\"",
+			"does not contain number or unit \"W\"",
 		},
 		{
-			"++1Watt",
-			"multiple plus symbols ++1Watt",
+			"++1W",
+			"multiple plus symbols ++1W",
 		},
 		{
-			"--1Watt",
-			"multiple minus symbols --1Watt",
+			"--1W",
+			"multiple minus symbols --1W",
 		},
 		{
-			"+-1Watt",
-			"can't contain both plus and minus symbols +-1Watt",
+			"+-1W",
+			"can't contain both plus and minus symbols +-1W",
 		},
 		{
-			"1.1.1.1Watt",
-			"multiple decimal points 1.1.1.1Watt",
+			"1.1.1.1W",
+			"multiple decimal points 1.1.1.1W",
 		},
 	}
 

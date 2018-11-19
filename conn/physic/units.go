@@ -721,22 +721,22 @@ func (p *Power) Set(s string) error {
 			case errOverflowsInt64Negative:
 				return errors.New("minimum value is " + minPower.String())
 			case errNotANumber:
-				if found, _ := containsUnitString(s, "Watts", "Watt", "W"); found != "" {
+				if found, _ := containsUnitString(s, "W"); found != "" {
 					return errors.New("does not contain number")
 				}
-				return errors.New("does not contain number or unit \"Watt\"")
+				return errors.New("does not contain number or unit \"W\"")
 			}
 		}
 		return err
 	}
 
 	switch s[n:] {
-	case "w", "watt", "watts", "W", "Watt", "Watts":
+	case "w", "W":
 		*p = (Power)(v)
 	case "":
-		return noUnits("Watt")
+		return noUnits("W")
 	default:
-		if found, extra := containsUnitString(s[n:], "Watts", "Watt", "W"); found != "" {
+		if found, extra := containsUnitString(s[n:], "W"); found != "" {
 			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
 		}
 		return incorrectUnit(s[n:], "physic.Power")
