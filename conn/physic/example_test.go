@@ -36,12 +36,12 @@ func ExampleDistance() {
 func ExampleDistance_Set() {
 	var d physic.Distance
 
-	if err := d.Set("1Foot"); err != nil {
+	if err := d.Set("1ft"); err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println(d)
 
-	if err := d.Set("1Metre"); err != nil {
+	if err := d.Set("1m"); err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println(d)
@@ -87,7 +87,7 @@ func ExampleElectricCurrent_Set() {
 	}
 	fmt.Println(e)
 
-	if err := e.Set("2Amps"); err != nil {
+	if err := e.Set("2A"); err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println(e)
@@ -132,7 +132,7 @@ func ExampleElectricPotential_Set() {
 	}
 	fmt.Println(v)
 
-	if err := v.Set("12Volts"); err != nil {
+	if err := v.Set("12V"); err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println(v)
@@ -155,7 +155,7 @@ func ExampleElectricResistance() {
 func ExampleElectricResistance_Set() {
 	var r physic.ElectricResistance
 
-	if err := r.Set("33.3kOhms"); err != nil {
+	if err := r.Set("33.3kOhm"); err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println(r)
@@ -278,7 +278,7 @@ func ExamplePressure_Set() {
 	}
 	fmt.Println(p)
 
-	if err := p.Set("16MPascal"); err != nil {
+	if err := p.Set("16MPa"); err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println(p)

@@ -86,19 +86,18 @@ func (d Distance) String() string {
 }
 
 // Set sets the Distance to the value represented by s. Units are to
-// be provided in "Metres", "Metre", "Miles", "Mile", "Yards", "Yard", "Inches"
-// or "Inch" with an optional SI prefix: "p", "n", "u", "µ", "m", "k", "M", "G"
-// or "T".
+// be provided in "m", "Mile", "Yard", "in", or "ft" with an optional SI
+// prefix: "p", "n", "u", "µ", "m", "k", "M", "G" or "T".
 func (d *Distance) Set(s string) error {
 	decimal, n, err := atod(s)
 	if err != nil {
 		if e, ok := err.(*parseError); ok {
 			switch e.err {
 			case errNotANumber:
-				if found, _ := containsUnitString(s[n:], "Metre", "Metre", "Inch", "Foot", "Yard", "Mile", "m"); found != "" {
+				if found, _ := containsUnitString(s[n:], "in", "ft", "Yard", "Mile", "m"); found != "" {
 					return errors.New("does not contain number")
 				}
-				return errors.New("does not contain number or unit \"Metre\"")
+				return errors.New("does not contain number or unit \"m\"")
 			case errOverflowsInt64:
 				return errors.New("maximum value is " + maxDistance.String())
 			case errOverflowsInt64Negative:
@@ -119,8 +118,8 @@ func (d *Distance) Set(s string) error {
 		var siSize int
 		si, siSize = parseSIPrefix(r)
 		if si == milli || si == mega {
-			switch strings.ToLower(s[n:]) {
-			case "mile", "metre", "miles", "metres", "m":
+			switch s[n:] {
+			case "m", "Mile", "mile":
 				si = unit
 			}
 		}
@@ -143,57 +142,57 @@ func (d *Distance) Set(s string) error {
 			return err
 		}
 	}
-	switch strings.ToLower(s[n:]) {
-	case "mile", "miles":
+	switch s[n:] {
+	case "m":
+		*d = (Distance)(v)
+	case "mile", "Mile":
 		switch {
 		case v > maxMiles:
-			return errors.New("maximum value is 5731Miles")
+			return errors.New("maximum value is 5731Mile")
 		case v < minMiles:
-			return errors.New("minimum value is -5731Miles")
+			return errors.New("minimum value is -5731Mile")
 		case v >= 0:
 			*d = (Distance)((v*1609344 + 500) / 1000)
 		default:
 			*d = (Distance)((v*1609344 - 500) / 1000)
 		}
-	case "yard", "yards":
+	case "yard", "Yard":
 		switch {
 		case v > maxYards:
-			return errors.New("maximum value is 1 Million Yards")
+			return errors.New("maximum value is 1 Million Yard")
 		case v < minYards:
-			return errors.New("minimum value is -1 Million Yards")
+			return errors.New("minimum value is -1 Million Yard")
 		case v >= 0:
 			*d = (Distance)((v*9144 + 5000) / 10000)
 		default:
 			*d = (Distance)((v*9144 - 5000) / 10000)
 		}
-	case "foot", "feet", "ft":
+	case "ft":
 		switch {
 		case v > maxFeet:
-			return errors.New("maximum value is 3 Million Feet")
+			return errors.New("maximum value is 3 Million ft")
 		case v < minFeet:
-			return errors.New("minimum value is 3 Million Feet")
+			return errors.New("minimum value is 3 Million ft")
 		case v >= 0:
 			*d = (Distance)((v*3048 + 5000) / 10000)
 		default:
 			*d = (Distance)((v*3048 - 5000) / 10000)
 		}
-	case "in", "inch", "inches":
+	case "in":
 		switch {
 		case v > maxInches:
-			return errors.New("maximum value is 36 Million Inches")
+			return errors.New("maximum value is 36 Million inch")
 		case v < minInches:
-			return errors.New("minimum value is 36 Million Inches")
+			return errors.New("minimum value is 36 Million inch")
 		case v >= 0:
 			*d = (Distance)((v*254 + 5000) / 10000)
 		default:
 			*d = (Distance)((v*254 - 5000) / 10000)
 		}
-	case "m", "metre", "metres":
-		*d = (Distance)(v)
 	case "":
-		return noUnits("m, Metre, Mile, Inch, Foot or Yard")
+		return noUnits("m, Mile, in, ft or Yard")
 	default:
-		if found, extra := containsUnitString(s[n:], "Metre", "Metre", "Inch", "Foot", "Yard", "Mile", "m"); found != "" {
+		if found, extra := containsUnitString(s[n:], "in", "ft", "Yard", "Mile", "m"); found != "" {
 			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
 		}
 		return incorrectUnit(s[n:], "physic.Distance")
@@ -243,8 +242,8 @@ func (c ElectricCurrent) String() string {
 }
 
 // Set sets the ElectricCurrent to the value represented by s. Units are to
-// be provided in "Amp", "Amps" or "A" with an optional SI prefix: "p", "n",
-// "u", "µ", "m", "k", "M", "G" or "T".
+// be provided in "A" with an optional SI prefix: "p", "n", "u", "µ", "m", "k",
+// "M", "G" or "T".
 func (c *ElectricCurrent) Set(s string) error {
 	v, n, err := valueOfUnitString(s, nano)
 	if err != nil {
@@ -255,22 +254,22 @@ func (c *ElectricCurrent) Set(s string) error {
 			case errOverflowsInt64Negative:
 				return errors.New("minimum value is " + minElectricCurrent.String())
 			case errNotANumber:
-				if found, _ := containsUnitString(s, "Amps", "Amp", "A"); found != "" {
+				if found, _ := containsUnitString(s, "A"); found != "" {
 					return errors.New("does not contain number")
 				}
-				return errors.New("does not contain number or unit \"Amp\"")
+				return errors.New("does not contain number or unit \"A\"")
 			}
 		}
 		return err
 	}
 
-	switch strings.ToLower(s[n:]) {
-	case "a", "amp", "amps":
+	switch s[n:] {
+	case "a", "A":
 		*c = (ElectricCurrent)(v)
 	case "":
-		return noUnits("Amp")
+		return noUnits("A")
 	default:
-		if found, extra := containsUnitString(s[n:], "Amps", "Amp", "A"); found != "" {
+		if found, extra := containsUnitString(s[n:], "A"); found != "" {
 			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
 		}
 		return incorrectUnit(s[n:], "physic.ElectricCurrent")
@@ -304,8 +303,8 @@ func (p ElectricPotential) String() string {
 }
 
 // Set sets the ElectricPotential to the value represented by s. Units are to
-// be provided in "Volt", "Volts" or "V" with an optional SI prefix: "p", "n",
-// "u", "µ", "m", "k", "M", "G" or "T".
+// be provided in "V" with an optional SI prefix: "p", "n", "u", "µ", "m", "k",
+// "M", "G" or "T".
 func (p *ElectricPotential) Set(s string) error {
 	v, n, err := valueOfUnitString(s, nano)
 	if err != nil {
@@ -316,21 +315,21 @@ func (p *ElectricPotential) Set(s string) error {
 			case errOverflowsInt64Negative:
 				return errors.New("minimum value is " + minElectricPotential.String())
 			case errNotANumber:
-				if found, _ := containsUnitString(s, "Volt", "Volts", "V"); found != "" {
+				if found, _ := containsUnitString(s, "V"); found != "" {
 					return errors.New("does not contain number")
 				}
-				return errors.New("does not contain number or unit \"Volt\"")
+				return errors.New("does not contain number or unit \"V\"")
 			}
 		}
 		return err
 	}
-	switch strings.ToLower(s[n:]) {
-	case "volt", "volts", "v":
+	switch s[n:] {
+	case "v", "V":
 		*p = (ElectricPotential)(v)
 	case "":
-		return noUnits("Volt")
+		return noUnits("V")
 	default:
-		if found, extra := containsUnitString(s[n:], "Volt", "Volts", "V"); found != "" {
+		if found, extra := containsUnitString(s[n:], "V"); found != "" {
 			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
 		}
 		return incorrectUnit(s[n:], "physic.ElectricPotential")
@@ -364,8 +363,8 @@ func (r ElectricResistance) String() string {
 }
 
 // Set sets the ElectricResistance to the value represented by s. Units are to
-// be provided in "Ohm", "Ohms" or "Ω" with an optional SI prefix: "p", "n",
-// "u", "µ", "m", "k", "M", "G" or "T".
+// be provided in "Ohm", or "Ω" with an optional SI prefix: "p", "n", "u", "µ",
+// "m", "k", "M", "G" or "T".
 func (r *ElectricResistance) Set(s string) error {
 	v, n, err := valueOfUnitString(s, nano)
 	if err != nil {
@@ -376,7 +375,7 @@ func (r *ElectricResistance) Set(s string) error {
 			case errOverflowsInt64Negative:
 				return errors.New("minimum value is " + minElectricResistance.String())
 			case errNotANumber:
-				if found, _ := containsUnitString(s, "Ohm", "Ohms", "Ω"); found != "" {
+				if found, _ := containsUnitString(s, "Ohm", "Ω"); found != "" {
 					return errors.New("does not contain number")
 				}
 				return errors.New("does not contain number or unit \"Ohm\"")
@@ -385,20 +384,16 @@ func (r *ElectricResistance) Set(s string) error {
 		return err
 	}
 
-	if rest := s[n:]; rest == "Ω" {
+	switch s[n:] {
+	case "ohm", "Ohm", "Ω":
 		*r = (ElectricResistance)(v)
-	} else {
-		switch strings.ToLower(rest) {
-		case "ohm", "ohms":
-			*r = (ElectricResistance)(v)
-		case "":
-			return noUnits("Ohm")
-		default:
-			if found, extra := containsUnitString(rest, "Ohm", "Ohm", "Ω"); found != "" {
-				return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
-			}
-			return incorrectUnit(rest, "physic.ElectricResistance")
+	case "":
+		return noUnits("Ohm")
+	default:
+		if found, extra := containsUnitString(s[n:], "Ohm", "Ω"); found != "" {
+			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
 		}
+		return incorrectUnit(s[n:], "physic.ElectricResistance")
 	}
 	return nil
 }
@@ -462,8 +457,8 @@ func (f Frequency) String() string {
 }
 
 // Set sets the Frequency to the value represented by s. Units are to
-// be provided in "Hertz" or "Hz" with an optional SI prefix: "p", "n", "u",
-// "µ", "m", "k", "M", "G" or "T".
+// be provided in "Hz" with an optional SI prefix: "p", "n", "u", "µ", "m", "k",
+// "M", "G" or "T".
 func (f *Frequency) Set(s string) error {
 	v, n, err := valueOfUnitString(s, micro)
 	if err != nil {
@@ -474,7 +469,7 @@ func (f *Frequency) Set(s string) error {
 			case errOverflowsInt64Negative:
 				return errors.New("minimum value is " + minFrequency.String())
 			case errNotANumber:
-				if found, _ := containsUnitString(s, "Hertz", "Hz"); found != "" {
+				if found, _ := containsUnitString(s, "Hz"); found != "" {
 					return errors.New("does not contain number")
 				}
 				return errors.New("does not contain number or unit \"Hz\"")
@@ -483,13 +478,13 @@ func (f *Frequency) Set(s string) error {
 		return err
 	}
 
-	switch strings.ToLower(s[n:]) {
-	case "hz", "hertz":
+	switch s[n:] {
+	case "hz", "Hz":
 		*f = (Frequency)(v)
 	case "":
 		return noUnits("Hz")
 	default:
-		if found, extra := containsUnitString(s[n:], "Hertz", "Hz"); found != "" {
+		if found, extra := containsUnitString(s[n:], "Hz"); found != "" {
 			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
 		}
 		return incorrectUnit(s[n:], "physic.Frequency")
@@ -571,8 +566,8 @@ func (p Pressure) String() string {
 }
 
 // Set sets the Pressure to the value represented by s. Units are to
-// be provided in "Pascal", "Pascals" or "Pa" with an optional SI prefix: "p",
-// "n", "u", "µ", "m", "k", "M", "G" or "T".
+// be provided in "Pa" with an optional SI prefix: "p", "n", "u", "µ", "m", "k",
+// "M", "G" or "T".
 func (p *Pressure) Set(s string) error {
 	v, n, err := valueOfUnitString(s, nano)
 	if err != nil {
@@ -583,22 +578,22 @@ func (p *Pressure) Set(s string) error {
 			case errOverflowsInt64Negative:
 				return errors.New("minimum value is " + minPressure.String())
 			case errNotANumber:
-				if found, _ := containsUnitString(s, "Pascals", "Pascal", "Pa"); found != "" {
+				if found, _ := containsUnitString(s, "Pa"); found != "" {
 					return errors.New("does not contain number")
 				}
-				return errors.New("does not contain number or unit \"Pascal\"")
+				return errors.New("does not contain number or unit \"Pa\"")
 			}
 		}
 		return err
 	}
 
-	switch strings.ToLower(s[n:]) {
-	case "pa", "pascal", "pascals":
+	switch s[n:] {
+	case "pa", "Pa":
 		*p = (Pressure)(v)
 	case "":
-		return noUnits("Pascal")
+		return noUnits("Pa")
 	default:
-		if found, extra := containsUnitString(s[n:], "Pascals", "Pascal", "Pa"); found != "" {
+		if found, extra := containsUnitString(s[n:], "Pa"); found != "" {
 			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
 		}
 		return incorrectUnit(s[n:], "physic.Pressure")
@@ -718,8 +713,8 @@ func (p Power) String() string {
 }
 
 // Set sets the Power to the value represented by s. Units are to
-// be provided in "Watt", "Watts" or "W" with an optional SI prefix: "p",
-// "n", "u", "µ", "m", "k", "M", "G" or "T".
+// be provided in "W" with an optional SI prefix: "p", "n", "u", "µ", "m", "k",
+// "M", "G" or "T".
 func (p *Power) Set(s string) error {
 	v, n, err := valueOfUnitString(s, nano)
 	if err != nil {
@@ -730,22 +725,22 @@ func (p *Power) Set(s string) error {
 			case errOverflowsInt64Negative:
 				return errors.New("minimum value is " + minPower.String())
 			case errNotANumber:
-				if found, _ := containsUnitString(s, "Watts", "Watt", "W"); found != "" {
+				if found, _ := containsUnitString(s, "W"); found != "" {
 					return errors.New("does not contain number")
 				}
-				return errors.New("does not contain number or unit \"Watt\"")
+				return errors.New("does not contain number or unit \"W\"")
 			}
 		}
 		return err
 	}
 
-	switch strings.ToLower(s[n:]) {
-	case "w", "watt", "watts":
+	switch s[n:] {
+	case "w", "W":
 		*p = (Power)(v)
 	case "":
-		return noUnits("Watt")
+		return noUnits("W")
 	default:
-		if found, extra := containsUnitString(s[n:], "Watts", "Watt", "W"); found != "" {
+		if found, extra := containsUnitString(s[n:], "W"); found != "" {
 			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
 		}
 		return incorrectUnit(s[n:], "physic.Power")
@@ -779,8 +774,8 @@ func (e Energy) String() string {
 }
 
 // Set sets the Energy to the value represented by s. Units are to
-// be provided in "Joule", "Joules" or "J" with an optional SI prefix: "p",
-// "n", "u", "µ", "m", "k", "M", "G" or "T".
+// be provided in "J" with an optional SI prefix: "p", "n", "u", "µ", "m", "k",
+// "M", "G" or "T".
 func (e *Energy) Set(s string) error {
 	v, n, err := valueOfUnitString(s, nano)
 	if err != nil {
@@ -791,22 +786,22 @@ func (e *Energy) Set(s string) error {
 			case errOverflowsInt64Negative:
 				return errors.New("minimum value is " + minEnergy.String())
 			case errNotANumber:
-				if found, _ := containsUnitString(s, "Joules", "Joule", "J"); found != "" {
+				if found, _ := containsUnitString(s, "J"); found != "" {
 					return errors.New("does not contain number")
 				}
-				return errors.New("does not contain number or unit \"Joule\"")
+				return errors.New("does not contain number or unit \"J\"")
 			}
 		}
 		return err
 	}
 
-	switch strings.ToLower(s[n:]) {
-	case "j", "joule", "joules":
+	switch s[n:] {
+	case "j", "J":
 		*e = (Energy)(v)
 	case "":
-		return noUnits("Joule")
+		return noUnits("J")
 	default:
-		if found, extra := containsUnitString(s[n:], "Joules", "Joule", "J"); found != "" {
+		if found, extra := containsUnitString(s[n:], "J"); found != "" {
 			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
 		}
 		return incorrectUnit(s[n:], "physic.Energy")
@@ -848,8 +843,8 @@ func (c ElectricalCapacitance) String() string {
 }
 
 // Set sets the ElectricalCapacitance to the value represented by s. Units are
-// to be provided in "Farad", "Farads" or "F" with an optional SI prefix: "p",
-// "n", "u", "µ", "m", "k", "M", "G" or "T".
+// to be provided in "F" with an optional SI prefix: "p", "n", "u", "µ", "m",
+// "k", "M", "G" or "T".
 func (c *ElectricalCapacitance) Set(s string) error {
 	v, n, err := valueOfUnitString(s, pico)
 	if err != nil {
@@ -860,22 +855,22 @@ func (c *ElectricalCapacitance) Set(s string) error {
 			case errOverflowsInt64Negative:
 				return errors.New("minimum value is " + minElectricalCapacitance.String())
 			case errNotANumber:
-				if found, _ := containsUnitString(s, "Farads", "Farad", "F"); found != "" {
+				if found, _ := containsUnitString(s, "F"); found != "" {
 					return errors.New("does not contain number")
 				}
-				return errors.New("does not contain number or unit \"Farad\"")
+				return errors.New("does not contain number or unit \"F\"")
 			}
 		}
 		return err
 	}
 
-	switch strings.ToLower(s[n:]) {
-	case "f", "farad", "farads":
+	switch s[n:] {
+	case "f", "F":
 		*c = (ElectricalCapacitance)(v)
 	case "":
-		return noUnits("Farad")
+		return noUnits("F")
 	default:
-		if found, extra := containsUnitString(s[n:], "Farads", "Farad", "F"); found != "" {
+		if found, extra := containsUnitString(s[n:], "F"); found != "" {
 			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
 		}
 		return incorrectUnit(s[n:], "physic.ElectricalCapacitance")
@@ -916,8 +911,8 @@ func (i LuminousIntensity) String() string {
 }
 
 // Set sets the LuminousIntensity to the value represented by s. Units are to
-// be provided in "Candela", "Candelas" or "cd" with an optional SI prefix: "p",
-// "n", "u", "µ", "m", "k", "M", "G" or "T".
+// be provided in "cd" with an optional SI prefix: "p", "n", "u", "µ", "m", "k",
+// "M", "G" or "T".
 func (i *LuminousIntensity) Set(s string) error {
 	v, n, err := valueOfUnitString(s, nano)
 	if err != nil {
@@ -928,22 +923,22 @@ func (i *LuminousIntensity) Set(s string) error {
 			case errOverflowsInt64Negative:
 				return errors.New("minimum value is " + minLuminousIntensity.String())
 			case errNotANumber:
-				if found, _ := containsUnitString(s, "Candelas", "Candela", "cd"); found != "" {
+				if found, _ := containsUnitString(s, "cd"); found != "" {
 					return errors.New("does not contain number")
 				}
-				return errors.New("does not contain number or unit \"Candela\"")
+				return errors.New("does not contain number or unit \"cd\"")
 			}
 		}
 		return err
 	}
 
-	switch strings.ToLower(s[n:]) {
-	case "cd", "candela", "candelas":
+	switch s[n:] {
+	case "cd":
 		*i = (LuminousIntensity)(v)
 	case "":
-		return noUnits("Candela")
+		return noUnits("cd")
 	default:
-		if found, extra := containsUnitString(s[n:], "Candelas", "Candela", "cd"); found != "" {
+		if found, extra := containsUnitString(s[n:], "cd"); found != "" {
 			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
 		}
 		return incorrectUnit(s[n:], "physic.LuminousIntensity")
@@ -982,8 +977,8 @@ func (f LuminousFlux) String() string {
 }
 
 // Set sets the LuminousFlux to the value represented by s. Units are to
-// be provided in "Lumen", "Lumens" or "lm" with an optional SI prefix: "p",
-// "n", "u", "µ", "m", "k", "M", "G" or "T".
+// be provided in "lm" with an optional SI prefix: "p", "n", "u", "µ", "m", "k",
+// "M", "G" or "T".
 func (f *LuminousFlux) Set(s string) error {
 	v, n, err := valueOfUnitString(s, nano)
 	if err != nil {
@@ -994,22 +989,22 @@ func (f *LuminousFlux) Set(s string) error {
 			case errOverflowsInt64Negative:
 				return errors.New("minimum value is " + minLuminousFlux.String())
 			case errNotANumber:
-				if found, _ := containsUnitString(s, "Lumens", "Lumen", "lm"); found != "" {
+				if found, _ := containsUnitString(s, "lm"); found != "" {
 					return errors.New("does not contain number")
 				}
-				return errors.New("does not contain number or unit \"Lumen\"")
+				return errors.New("does not contain number or unit \"lm\"")
 			}
 		}
 		return err
 	}
 
-	switch strings.ToLower(s[n:]) {
-	case "lm", "lumen", "lumens":
+	switch s[n:] {
+	case "lm":
 		*f = (LuminousFlux)(v)
 	case "":
-		return noUnits("Lumen")
+		return noUnits("lm")
 	default:
-		if found, extra := containsUnitString(s[n:], "Lumens", "Lumen", "lm"); found != "" {
+		if found, extra := containsUnitString(s[n:], "lm"); found != "" {
 			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
 		}
 		return incorrectUnit(s[n:], "physic.LuminousFlux")

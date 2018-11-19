@@ -862,46 +862,46 @@ func TestDistance_Set(t *testing.T) {
 		in       string
 		expected Distance
 	}{
-		{"1nMetre", 1 * NanoMetre},
-		{"10nMetres", 10 * NanoMetre},
-		{"100nMetres", 100 * NanoMetre},
-		{"1uMetre", 1 * MicroMetre},
-		{"10uMetres", 10 * MicroMetre},
-		{"100uMetres", 100 * MicroMetre},
-		{"1µMetre", 1 * MicroMetre},
-		{"10µMetres", 10 * MicroMetre},
-		{"100µMetres", 100 * MicroMetre},
+		{"1nm", 1 * NanoMetre},
+		{"10nm", 10 * NanoMetre},
+		{"100nm", 100 * NanoMetre},
+		{"1um", 1 * MicroMetre},
+		{"10um", 10 * MicroMetre},
+		{"100um", 100 * MicroMetre},
+		{"1µm", 1 * MicroMetre},
+		{"10µm", 10 * MicroMetre},
+		{"100µm", 100 * MicroMetre},
 		{"1mm", 1 * MilliMetre},
-		{"1mMetre", 1 * MilliMetre},
-		{"10mMetres", 10 * MilliMetre},
-		{"100mMetres", 100 * MilliMetre},
-		{"1Metre", 1 * Metre},
-		{"10Metres", 10 * Metre},
-		{"100Metres", 100 * Metre},
-		{"1kMetre", 1 * KiloMetre},
-		{"10kMetres", 10 * KiloMetre},
-		{"100kMetres", 100 * KiloMetre},
-		{"1MMetre", 1 * MegaMetre},
+		{"1mm", 1 * MilliMetre},
+		{"10mm", 10 * MilliMetre},
+		{"100mm", 100 * MilliMetre},
+		{"1m", 1 * Metre},
+		{"10m", 10 * Metre},
+		{"100m", 100 * Metre},
+		{"1km", 1 * KiloMetre},
+		{"10km", 10 * KiloMetre},
+		{"100km", 100 * KiloMetre},
 		{"1Mm", 1 * MegaMetre},
-		{"10MMetres", 10 * MegaMetre},
-		{"100MMetres", 100 * MegaMetre},
-		{"1GMetre", 1 * GigaMetre},
-		{"12.345Metres", 12345 * MilliMetre},
-		{"-12.345Metres", -12345 * MilliMetre},
-		{"9.223372036854775807GMetres", 9223372036854775807 * NanoMetre},
-		{"-9.223372036854775807GMetres", -9223372036854775807 * NanoMetre},
 		{"1Mm", 1 * MegaMetre},
-		{"5Miles", 8046720000000 * NanoMetre},
-		{"3Feet", 914400000 * NanoMetre},
-		{"10Yards", 9144000000 * NanoMetre},
+		{"10Mm", 10 * MegaMetre},
+		{"100Mm", 100 * MegaMetre},
+		{"1Gm", 1 * GigaMetre},
+		{"12.345m", 12345 * MilliMetre},
+		{"-12.345m", -12345 * MilliMetre},
+		{"9.223372036854775807Gm", 9223372036854775807 * NanoMetre},
+		{"-9.223372036854775807Gm", -9223372036854775807 * NanoMetre},
+		{"1Mm", 1 * MegaMetre},
+		{"5Mile", 8046720000000 * NanoMetre},
+		{"3ft", 914400000 * NanoMetre},
+		{"10Yard", 9144000000 * NanoMetre},
 		{"5731.137678988Mile", 9223372036853264 * NanoMetre},
 		{"-5731.137678988Mile", -9223372036853264 * NanoMetre},
-		{"1.008680231502051MYards", 922337203685475 * NanoMetre},
-		{"-1008680.231502051Yards", -922337203685475 * NanoMetre},
-		{"3026040.694506158Feet", 922337203685477 * NanoMetre},
-		{"-3.026040694506158MFeet", -922337203685477 * NanoMetre},
-		{"36.312488334073900MInch", 922337203685477 * NanoMetre},
-		{"-36312488.334073900Inch", -922337203685477 * NanoMetre},
+		{"1.008680231502051MYard", 922337203685475 * NanoMetre},
+		{"-1008680.231502051Yard", -922337203685475 * NanoMetre},
+		{"3026040.694506158ft", 922337203685477 * NanoMetre},
+		{"-3.026040694506158Mft", -922337203685477 * NanoMetre},
+		{"36.312488334073900Min", 922337203685477 * NanoMetre},
+		{"-36312488.334073900in", -922337203685477 * NanoMetre},
 	}
 
 	fails := []struct {
@@ -909,24 +909,24 @@ func TestDistance_Set(t *testing.T) {
 		err string
 	}{
 		{
-			"10TMetre",
+			"10Tm",
 			"exponent exceeds int64",
 		},
 		{
-			"10EMetre",
-			"contains unknown unit prefix \"E\". valid prefixes for \"Metre\" are p,n,u,µ,m,k,M,G or T",
+			"10Em",
+			"contains unknown unit prefix \"E\". valid prefixes for \"m\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
-			"10ExaMetre",
-			"contains unknown unit prefix \"Exa\". valid prefixes for \"Metre\" are p,n,u,µ,m,k,M,G or T",
+			"10Exam",
+			"contains unknown unit prefix \"Exa\". valid prefixes for \"m\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10eMetreE",
-			"contains unknown unit prefix \"e\". valid prefixes for \"Metre\" are p,n,u,µ,m,k,M,G or T",
+			"contains unknown unit prefix \"e\". valid prefixes for \"m\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10",
-			"no units provided, need m, Metre, Mile, Inch, Foot or Yard",
+			"no units provided, need m, Mile, in, ft or Yard",
 		},
 		{
 			"9.3Gm",
@@ -945,59 +945,59 @@ func TestDistance_Set(t *testing.T) {
 			"minimum value is -9.223Gm",
 		},
 		{
-			"9.223372036854775808GMetre",
+			"9.223372036854775808Gm",
 			"maximum value is 9.223Gm",
 		},
 		{
-			"-9.223372036854775808GMetre",
+			"-9.223372036854775808Gm",
 			"minimum value is -9.223Gm",
 		},
 		{
-			"9.223372036854775808GMetre",
+			"9.223372036854775808Gm",
 			"maximum value is 9.223Gm",
 		},
 		{
-			"-9.223372036854775808GMetre",
+			"-9.223372036854775808Gm",
 			"minimum value is -9.223Gm",
 		},
 		{
 			"5731.137678989Mile",
-			"maximum value is 5731Miles",
+			"maximum value is 5731Mile",
 		},
 		{
 			"-5731.1376789889Mile",
-			"minimum value is -5731Miles",
+			"minimum value is -5731Mile",
 		},
 		{
-			"1.008680231502053MYards",
-			"maximum value is 1 Million Yards",
+			"1.008680231502053MYard",
+			"maximum value is 1 Million Yard",
 		},
 		{
-			"-1008680.231502053Yards",
-			"minimum value is -1 Million Yards",
+			"-1008680.231502053Yard",
+			"minimum value is -1 Million Yard",
 		},
 		{
-			"3026040.694506159Feet",
-			"maximum value is 3 Million Feet",
+			"3026040.694506159ft",
+			"maximum value is 3 Million ft",
 		},
 		{
-			"-3.026040694506159MFeet",
-			"minimum value is 3 Million Feet",
+			"-3.026040694506159Mft",
+			"minimum value is 3 Million ft",
 		},
 		{
-			"36.312488334073901MInch",
-			"maximum value is 36 Million Inches",
+			"36.312488334073901Min",
+			"maximum value is 36 Million inch",
 		},
 		{
-			"-36312488.334073901Inch",
-			"minimum value is 36 Million Inches",
+			"-36312488.334073901in",
+			"minimum value is 36 Million inch",
 		},
 		{
 			"1random",
 			"contains unknown unit prefix \"rando\". valid prefixes for \"m\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
-			"Metre",
+			"m",
 			"does not contain number",
 		},
 		{
@@ -1005,28 +1005,28 @@ func TestDistance_Set(t *testing.T) {
 			"does not contain number",
 		},
 		{
-			"CANDELA",
-			"does not contain number or unit \"Metre\"",
+			"cd",
+			"does not contain number or unit \"m\"",
 		},
 		{
 			"1Jaunt",
 			"\"Jaunt\" is not a valid unit for physic.Distance",
 		},
 		{
-			"++1Metre",
-			"multiple plus symbols ++1Metre",
+			"++1m",
+			"multiple plus symbols ++1m",
 		},
 		{
-			"--1Metre",
-			"multiple minus symbols --1Metre",
+			"--1m",
+			"multiple minus symbols --1m",
 		},
 		{
-			"+-1Metre",
-			"can't contain both plus and minus symbols +-1Metre",
+			"+-1m",
+			"can't contain both plus and minus symbols +-1m",
 		},
 		{
-			"1.1.1.1Metre",
-			"multiple decimal points 1.1.1.1Metre",
+			"1.1.1.1m",
+			"multiple decimal points 1.1.1.1m",
 		},
 		{
 			string([]byte{0x31, 0x01}),
@@ -1061,32 +1061,32 @@ func TestElectricPotential_Set(t *testing.T) {
 		in       string
 		expected ElectricPotential
 	}{
-		{"1nVolt", 1 * NanoVolt},
-		{"10nVolts", 10 * NanoVolt},
-		{"100nVolts", 100 * NanoVolt},
-		{"1uVolt", 1 * MicroVolt},
-		{"10uVolts", 10 * MicroVolt},
-		{"100uVolts", 100 * MicroVolt},
-		{"1µVolt", 1 * MicroVolt},
-		{"10µVolts", 10 * MicroVolt},
-		{"100µVolts", 100 * MicroVolt},
-		{"1mVolt", 1 * MilliVolt},
-		{"10mVolts", 10 * MilliVolt},
-		{"100mVolts", 100 * MilliVolt},
-		{"1Volt", 1 * Volt},
-		{"10Volts", 10 * Volt},
-		{"100Volts", 100 * Volt},
-		{"1kVolt", 1 * KiloVolt},
-		{"10kVolts", 10 * KiloVolt},
-		{"100kVolts", 100 * KiloVolt},
-		{"1MVolt", 1 * MegaVolt},
-		{"10MVolts", 10 * MegaVolt},
-		{"100MVolts", 100 * MegaVolt},
-		{"1GVolt", 1 * GigaVolt},
-		{"12.345Volts", 12345 * MilliVolt},
-		{"-12.345Volts", -12345 * MilliVolt},
-		{"9.223372036854775807GVolts", 9223372036854775807 * NanoVolt},
-		{"-9.223372036854775807GVolts", -9223372036854775807 * NanoVolt},
+		{"1nV", 1 * NanoVolt},
+		{"10nV", 10 * NanoVolt},
+		{"100nV", 100 * NanoVolt},
+		{"1uV", 1 * MicroVolt},
+		{"10uV", 10 * MicroVolt},
+		{"100uV", 100 * MicroVolt},
+		{"1µV", 1 * MicroVolt},
+		{"10µV", 10 * MicroVolt},
+		{"100µV", 100 * MicroVolt},
+		{"1mV", 1 * MilliVolt},
+		{"10mV", 10 * MilliVolt},
+		{"100mV", 100 * MilliVolt},
+		{"1V", 1 * Volt},
+		{"10V", 10 * Volt},
+		{"100V", 100 * Volt},
+		{"1kV", 1 * KiloVolt},
+		{"10kV", 10 * KiloVolt},
+		{"100kV", 100 * KiloVolt},
+		{"1MV", 1 * MegaVolt},
+		{"10MV", 10 * MegaVolt},
+		{"100MV", 100 * MegaVolt},
+		{"1GV", 1 * GigaVolt},
+		{"12.345V", 12345 * MilliVolt},
+		{"-12.345V", -12345 * MilliVolt},
+		{"9.223372036854775807GV", 9223372036854775807 * NanoVolt},
+		{"-9.223372036854775807GV", -9223372036854775807 * NanoVolt},
 		{"1MV", 1 * MegaVolt},
 	}
 
@@ -1095,24 +1095,20 @@ func TestElectricPotential_Set(t *testing.T) {
 		err string
 	}{
 		{
-			"10TVolt",
+			"10TV",
 			"exponent exceeds int64",
 		},
 		{
-			"10EVolt",
-			"contains unknown unit prefix \"E\". valid prefixes for \"Volt\" are p,n,u,µ,m,k,M,G or T",
-		},
-		{
-			"10ExaVolt",
-			"contains unknown unit prefix \"Exa\". valid prefixes for \"Volt\" are p,n,u,µ,m,k,M,G or T",
+			"10EV",
+			"contains unknown unit prefix \"E\". valid prefixes for \"V\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10eVoltE",
-			"contains unknown unit prefix \"e\". valid prefixes for \"Volt\" are p,n,u,µ,m,k,M,G or T",
+			"contains unknown unit prefix \"e\". valid prefixes for \"V\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10",
-			"no units provided, need Volt",
+			"no units provided, need V",
 		},
 		{
 			"9223372036854775808",
@@ -1143,28 +1139,28 @@ func TestElectricPotential_Set(t *testing.T) {
 			"\"random\" is not a valid unit for physic.ElectricPotential",
 		},
 		{
-			"Volt",
+			"V",
 			"does not contain number",
 		},
 		{
 			"RPM",
-			"does not contain number or unit \"Volt\"",
+			"does not contain number or unit \"V\"",
 		},
 		{
-			"++1Volt",
-			"multiple plus symbols ++1Volt",
+			"++1V",
+			"multiple plus symbols ++1V",
 		},
 		{
-			"--1Volt",
-			"multiple minus symbols --1Volt",
+			"--1V",
+			"multiple minus symbols --1V",
 		},
 		{
-			"+-1Volt",
-			"can't contain both plus and minus symbols +-1Volt",
+			"+-1V",
+			"can't contain both plus and minus symbols +-1V",
 		},
 		{
-			"1.1.1.1Volt",
-			"multiple decimal points 1.1.1.1Volt",
+			"1.1.1.1V",
+			"multiple decimal points 1.1.1.1V",
 		},
 	}
 
@@ -1191,32 +1187,32 @@ func TestElectricCurrent_Set(t *testing.T) {
 		in       string
 		expected ElectricCurrent
 	}{
-		{"1nAmp", 1 * NanoAmpere},
-		{"10nAmps", 10 * NanoAmpere},
-		{"100nAmps", 100 * NanoAmpere},
-		{"1uAmp", 1 * MicroAmpere},
-		{"10uAmps", 10 * MicroAmpere},
-		{"100uAmps", 100 * MicroAmpere},
-		{"1µAmp", 1 * MicroAmpere},
-		{"10µAmps", 10 * MicroAmpere},
-		{"100µAmps", 100 * MicroAmpere},
-		{"1mAmp", 1 * MilliAmpere},
-		{"10mAmps", 10 * MilliAmpere},
-		{"100mAmps", 100 * MilliAmpere},
-		{"1Amp", 1 * Ampere},
-		{"10Amps", 10 * Ampere},
-		{"100Amps", 100 * Ampere},
-		{"1kAmp", 1 * KiloAmpere},
-		{"10kAmps", 10 * KiloAmpere},
-		{"100kAmps", 100 * KiloAmpere},
-		{"1MAmp", 1 * MegaAmpere},
-		{"10MAmps", 10 * MegaAmpere},
-		{"100MAmps", 100 * MegaAmpere},
-		{"1GAmp", 1 * GigaAmpere},
-		{"12.345Amps", 12345 * MilliAmpere},
-		{"-12.345Amps", -12345 * MilliAmpere},
-		{"9.223372036854775807GAmps", 9223372036854775807 * NanoAmpere},
-		{"-9.223372036854775807GAmps", -9223372036854775807 * NanoAmpere},
+		{"1nA", 1 * NanoAmpere},
+		{"10nA", 10 * NanoAmpere},
+		{"100nA", 100 * NanoAmpere},
+		{"1uA", 1 * MicroAmpere},
+		{"10uA", 10 * MicroAmpere},
+		{"100uA", 100 * MicroAmpere},
+		{"1µA", 1 * MicroAmpere},
+		{"10µA", 10 * MicroAmpere},
+		{"100µA", 100 * MicroAmpere},
+		{"1mA", 1 * MilliAmpere},
+		{"10mA", 10 * MilliAmpere},
+		{"100mA", 100 * MilliAmpere},
+		{"1A", 1 * Ampere},
+		{"10A", 10 * Ampere},
+		{"100A", 100 * Ampere},
+		{"1kA", 1 * KiloAmpere},
+		{"10kA", 10 * KiloAmpere},
+		{"100kA", 100 * KiloAmpere},
+		{"1MA", 1 * MegaAmpere},
+		{"10MA", 10 * MegaAmpere},
+		{"100MA", 100 * MegaAmpere},
+		{"1GA", 1 * GigaAmpere},
+		{"12.345A", 12345 * MilliAmpere},
+		{"-12.345A", -12345 * MilliAmpere},
+		{"9.223372036854775807GA", 9223372036854775807 * NanoAmpere},
+		{"-9.223372036854775807GA", -9223372036854775807 * NanoAmpere},
 		{"1A", 1 * Ampere},
 	}
 
@@ -1225,24 +1221,20 @@ func TestElectricCurrent_Set(t *testing.T) {
 		err string
 	}{
 		{
-			"10TAmp",
+			"10TA",
 			"exponent exceeds int64",
 		},
 		{
-			"10EAmp",
-			"contains unknown unit prefix \"E\". valid prefixes for \"Amp\" are p,n,u,µ,m,k,M,G or T",
-		},
-		{
-			"10ExaAmp",
-			"contains unknown unit prefix \"Exa\". valid prefixes for \"Amp\" are p,n,u,µ,m,k,M,G or T",
+			"10EA",
+			"contains unknown unit prefix \"E\". valid prefixes for \"A\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10eAmpE",
-			"contains unknown unit prefix \"e\". valid prefixes for \"Amp\" are p,n,u,µ,m,k,M,G or T",
+			"contains unknown unit prefix \"e\". valid prefixes for \"A\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10",
-			"no units provided, need Amp",
+			"no units provided, need A",
 		},
 		{
 			"922337203685477580",
@@ -1253,19 +1245,19 @@ func TestElectricCurrent_Set(t *testing.T) {
 			"minimum value is -9.223GA",
 		},
 		{
-			"9.223372036854775808GAmp",
+			"9.223372036854775808GA",
 			"maximum value is 9.223GA",
 		},
 		{
-			"-9.223372036854775808GAmp",
+			"-9.223372036854775808GA",
 			"minimum value is -9.223GA",
 		},
 		{
-			"9.223372036854775808GAmp",
+			"9.223372036854775808GA",
 			"maximum value is 9.223GA",
 		},
 		{
-			"-9.223372036854775808GAmp",
+			"-9.223372036854775808GA",
 			"minimum value is -9.223GA",
 		},
 		{
@@ -1273,28 +1265,28 @@ func TestElectricCurrent_Set(t *testing.T) {
 			"\"junk\" is not a valid unit for physic.ElectricCurrent",
 		},
 		{
-			"Amp",
+			"A",
 			"does not contain number",
 		},
 		{
 			"RPM",
-			"does not contain number or unit \"Amp\"",
+			"does not contain number or unit \"A\"",
 		},
 		{
-			"++1Amp",
-			"multiple plus symbols ++1Amp",
+			"++1A",
+			"multiple plus symbols ++1A",
 		},
 		{
-			"--1Amp",
-			"multiple minus symbols --1Amp",
+			"--1A",
+			"multiple minus symbols --1A",
 		},
 		{
-			"+-1Amp",
-			"can't contain both plus and minus symbols +-1Amp",
+			"+-1A",
+			"can't contain both plus and minus symbols +-1A",
 		},
 		{
-			"1.1.1.1Amp",
-			"multiple decimal points 1.1.1.1Amp",
+			"1.1.1.1A",
+			"multiple decimal points 1.1.1.1A",
 		},
 	}
 
@@ -1580,32 +1572,32 @@ func TestPressure_Set(t *testing.T) {
 		in       string
 		expected Pressure
 	}{
-		{"1nPascal", 1 * NanoPascal},
-		{"10nPascals", 10 * NanoPascal},
-		{"100nPascals", 100 * NanoPascal},
-		{"1uPascal", 1 * MicroPascal},
-		{"10uPascals", 10 * MicroPascal},
-		{"100uPascals", 100 * MicroPascal},
-		{"1µPascal", 1 * MicroPascal},
-		{"10µPascals", 10 * MicroPascal},
-		{"100µPascals", 100 * MicroPascal},
-		{"1mPascal", 1 * MilliPascal},
-		{"10mPascals", 10 * MilliPascal},
-		{"100mPascals", 100 * MilliPascal},
-		{"1Pascal", 1 * Pascal},
-		{"10Pascals", 10 * Pascal},
-		{"100Pascals", 100 * Pascal},
-		{"1kPascal", 1 * KiloPascal},
-		{"10kPascals", 10 * KiloPascal},
-		{"100kPascals", 100 * KiloPascal},
-		{"1MPascal", 1 * MegaPascal},
-		{"10MPascals", 10 * MegaPascal},
-		{"100MPascals", 100 * MegaPascal},
-		{"1GPascal", 1 * GigaPascal},
-		{"12.345Pascals", 12345 * MilliPascal},
-		{"-12.345Pascals", -12345 * MilliPascal},
-		{"9.223372036854775807GPascals", 9223372036854775807 * NanoPascal},
-		{"-9.223372036854775807GPascals", -9223372036854775807 * NanoPascal},
+		{"1nPa", 1 * NanoPascal},
+		{"10nPa", 10 * NanoPascal},
+		{"100nPa", 100 * NanoPascal},
+		{"1uPa", 1 * MicroPascal},
+		{"10uPa", 10 * MicroPascal},
+		{"100uPa", 100 * MicroPascal},
+		{"1µPa", 1 * MicroPascal},
+		{"10µPa", 10 * MicroPascal},
+		{"100µPa", 100 * MicroPascal},
+		{"1mPa", 1 * MilliPascal},
+		{"10mPa", 10 * MilliPascal},
+		{"100mPa", 100 * MilliPascal},
+		{"1Pa", 1 * Pascal},
+		{"10Pa", 10 * Pascal},
+		{"100Pa", 100 * Pascal},
+		{"1kPa", 1 * KiloPascal},
+		{"10kPa", 10 * KiloPascal},
+		{"100kPa", 100 * KiloPascal},
+		{"1MPa", 1 * MegaPascal},
+		{"10MPa", 10 * MegaPascal},
+		{"100MPa", 100 * MegaPascal},
+		{"1GPa", 1 * GigaPascal},
+		{"12.345Pa", 12345 * MilliPascal},
+		{"-12.345Pa", -12345 * MilliPascal},
+		{"9.223372036854775807GPa", 9223372036854775807 * NanoPascal},
+		{"-9.223372036854775807GPa", -9223372036854775807 * NanoPascal},
 		{"1MPa", 1 * MegaPascal},
 	}
 
@@ -1614,24 +1606,24 @@ func TestPressure_Set(t *testing.T) {
 		err string
 	}{
 		{
-			"10TPascal",
+			"10TPa",
 			"exponent exceeds int64",
 		},
 		{
-			"10EPascal",
-			"contains unknown unit prefix \"E\". valid prefixes for \"Pascal\" are p,n,u,µ,m,k,M,G or T",
+			"10EPa",
+			"contains unknown unit prefix \"E\". valid prefixes for \"Pa\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
-			"10ExaPascal",
-			"contains unknown unit prefix \"Exa\". valid prefixes for \"Pascal\" are p,n,u,µ,m,k,M,G or T",
+			"10ExaPa",
+			"contains unknown unit prefix \"Exa\". valid prefixes for \"Pa\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10ePascalE",
-			"contains unknown unit prefix \"e\". valid prefixes for \"Pascal\" are p,n,u,µ,m,k,M,G or T",
+			"contains unknown unit prefix \"e\". valid prefixes for \"Pa\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10",
-			"no units provided, need Pascal",
+			"no units provided, need Pa",
 		},
 		{
 			"9223372036854775808",
@@ -1642,19 +1634,19 @@ func TestPressure_Set(t *testing.T) {
 			"minimum value is -9.223GPa",
 		},
 		{
-			"9.223372036854775808GPascal",
+			"9.223372036854775808GPa",
 			"maximum value is 9.223GPa",
 		},
 		{
-			"-9.223372036854775808GPascal",
+			"-9.223372036854775808GPa",
 			"minimum value is -9.223GPa",
 		},
 		{
-			"9.223372036854775808GPascal",
+			"9.223372036854775808GPa",
 			"maximum value is 9.223GPa",
 		},
 		{
-			"-9.223372036854775808GPascal",
+			"-9.223372036854775808GPa",
 			"minimum value is -9.223GPa",
 		},
 		{
@@ -1662,28 +1654,28 @@ func TestPressure_Set(t *testing.T) {
 			"\"random\" is not a valid unit for physic.Pressure",
 		},
 		{
-			"Pascal",
+			"Pa",
 			"does not contain number",
 		},
 		{
 			"RPM",
-			"does not contain number or unit \"Pascal\"",
+			"does not contain number or unit \"Pa\"",
 		},
 		{
-			"++1Pascal",
-			"multiple plus symbols ++1Pascal",
+			"++1Pa",
+			"multiple plus symbols ++1Pa",
 		},
 		{
-			"--1Pascal",
-			"multiple minus symbols --1Pascal",
+			"--1Pa",
+			"multiple minus symbols --1Pa",
 		},
 		{
-			"+-1Pascal",
-			"can't contain both plus and minus symbols +-1Pascal",
+			"+-1Pa",
+			"can't contain both plus and minus symbols +-1Pa",
 		},
 		{
-			"1.1.1.1Pascal",
-			"multiple decimal points 1.1.1.1Pascal",
+			"1.1.1.1Pa",
+			"multiple decimal points 1.1.1.1Pa",
 		},
 	}
 
@@ -1710,32 +1702,32 @@ func TestPower_Set(t *testing.T) {
 		in       string
 		expected Power
 	}{
-		{"1nWatt", 1 * NanoWatt},
-		{"10nWatts", 10 * NanoWatt},
-		{"100nWatts", 100 * NanoWatt},
-		{"1uWatt", 1 * MicroWatt},
-		{"10uWatts", 10 * MicroWatt},
-		{"100uWatts", 100 * MicroWatt},
-		{"1µWatt", 1 * MicroWatt},
-		{"10µWatts", 10 * MicroWatt},
-		{"100µWatts", 100 * MicroWatt},
-		{"1mWatt", 1 * MilliWatt},
-		{"10mWatts", 10 * MilliWatt},
-		{"100mWatts", 100 * MilliWatt},
-		{"1Watt", 1 * Watt},
-		{"10Watts", 10 * Watt},
-		{"100Watts", 100 * Watt},
-		{"1kWatt", 1 * KiloWatt},
-		{"10kWatts", 10 * KiloWatt},
-		{"100kWatts", 100 * KiloWatt},
-		{"1MWatt", 1 * MegaWatt},
-		{"10MWatts", 10 * MegaWatt},
-		{"100MWatts", 100 * MegaWatt},
-		{"1GWatt", 1 * GigaWatt},
-		{"12.345Watts", 12345 * MilliWatt},
-		{"-12.345Watts", -12345 * MilliWatt},
-		{"9.223372036854775807GWatts", 9223372036854775807 * NanoWatt},
-		{"-9.223372036854775807GWatts", -9223372036854775807 * NanoWatt},
+		{"1nW", 1 * NanoWatt},
+		{"10nW", 10 * NanoWatt},
+		{"100nW", 100 * NanoWatt},
+		{"1uW", 1 * MicroWatt},
+		{"10uW", 10 * MicroWatt},
+		{"100uW", 100 * MicroWatt},
+		{"1µW", 1 * MicroWatt},
+		{"10µW", 10 * MicroWatt},
+		{"100µW", 100 * MicroWatt},
+		{"1mW", 1 * MilliWatt},
+		{"10mW", 10 * MilliWatt},
+		{"100mW", 100 * MilliWatt},
+		{"1W", 1 * Watt},
+		{"10W", 10 * Watt},
+		{"100W", 100 * Watt},
+		{"1kW", 1 * KiloWatt},
+		{"10kW", 10 * KiloWatt},
+		{"100kW", 100 * KiloWatt},
+		{"1MW", 1 * MegaWatt},
+		{"10MW", 10 * MegaWatt},
+		{"100MW", 100 * MegaWatt},
+		{"1GW", 1 * GigaWatt},
+		{"12.345W", 12345 * MilliWatt},
+		{"-12.345W", -12345 * MilliWatt},
+		{"9.223372036854775807GW", 9223372036854775807 * NanoWatt},
+		{"-9.223372036854775807GW", -9223372036854775807 * NanoWatt},
 		{"1MW", 1 * MegaWatt},
 	}
 
@@ -1744,24 +1736,24 @@ func TestPower_Set(t *testing.T) {
 		err string
 	}{
 		{
-			"10TWatt",
+			"10TW",
 			"exponent exceeds int64",
 		},
 		{
-			"10EWatt",
-			"contains unknown unit prefix \"E\". valid prefixes for \"Watt\" are p,n,u,µ,m,k,M,G or T",
+			"10EW",
+			"contains unknown unit prefix \"E\". valid prefixes for \"W\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
-			"10ExaWatt",
-			"contains unknown unit prefix \"Exa\". valid prefixes for \"Watt\" are p,n,u,µ,m,k,M,G or T",
+			"10ExaW",
+			"contains unknown unit prefix \"Exa\". valid prefixes for \"W\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10eWattE",
-			"contains unknown unit prefix \"e\". valid prefixes for \"Watt\" are p,n,u,µ,m,k,M,G or T",
+			"contains unknown unit prefix \"e\". valid prefixes for \"W\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10",
-			"no units provided, need Watt",
+			"no units provided, need W",
 		},
 		{
 			"9223372036854775808",
@@ -1772,19 +1764,19 @@ func TestPower_Set(t *testing.T) {
 			"minimum value is -9.223GW",
 		},
 		{
-			"9.223372036854775808GWatt",
+			"9.223372036854775808GW",
 			"maximum value is 9.223GW",
 		},
 		{
-			"-9.223372036854775808GWatt",
+			"-9.223372036854775808GW",
 			"minimum value is -9.223GW",
 		},
 		{
-			"9.223372036854775808GWatt",
+			"9.223372036854775808GW",
 			"maximum value is 9.223GW",
 		},
 		{
-			"-9.223372036854775808GWatt",
+			"-9.223372036854775808GW",
 			"minimum value is -9.223GW",
 		},
 		{
@@ -1792,28 +1784,28 @@ func TestPower_Set(t *testing.T) {
 			"\"random\" is not a valid unit for physic.Power",
 		},
 		{
-			"Watt",
+			"W",
 			"does not contain number",
 		},
 		{
 			"RPM",
-			"does not contain number or unit \"Watt\"",
+			"does not contain number or unit \"W\"",
 		},
 		{
-			"++1Watt",
-			"multiple plus symbols ++1Watt",
+			"++1W",
+			"multiple plus symbols ++1W",
 		},
 		{
-			"--1Watt",
-			"multiple minus symbols --1Watt",
+			"--1W",
+			"multiple minus symbols --1W",
 		},
 		{
-			"+-1Watt",
-			"can't contain both plus and minus symbols +-1Watt",
+			"+-1W",
+			"can't contain both plus and minus symbols +-1W",
 		},
 		{
-			"1.1.1.1Watt",
-			"multiple decimal points 1.1.1.1Watt",
+			"1.1.1.1W",
+			"multiple decimal points 1.1.1.1W",
 		},
 	}
 
@@ -1840,32 +1832,32 @@ func TestEnergy_Set(t *testing.T) {
 		in       string
 		expected Energy
 	}{
-		{"1nJoule", 1 * NanoJoule},
-		{"10nJoules", 10 * NanoJoule},
-		{"100nJoules", 100 * NanoJoule},
-		{"1uJoule", 1 * MicroJoule},
-		{"10uJoules", 10 * MicroJoule},
-		{"100uJoules", 100 * MicroJoule},
-		{"1µJoule", 1 * MicroJoule},
-		{"10µJoules", 10 * MicroJoule},
-		{"100µJoules", 100 * MicroJoule},
-		{"1mJoule", 1 * MilliJoule},
-		{"10mJoules", 10 * MilliJoule},
-		{"100mJoules", 100 * MilliJoule},
-		{"1Joule", 1 * Joule},
-		{"10Joules", 10 * Joule},
-		{"100Joules", 100 * Joule},
-		{"1kJoule", 1 * KiloJoule},
-		{"10kJoules", 10 * KiloJoule},
-		{"100kJoules", 100 * KiloJoule},
-		{"1MJoule", 1 * MegaJoule},
-		{"10MJoules", 10 * MegaJoule},
-		{"100MJoules", 100 * MegaJoule},
-		{"1GJoule", 1 * GigaJoule},
-		{"12.345Joules", 12345 * MilliJoule},
-		{"-12.345Joules", -12345 * MilliJoule},
-		{"9.223372036854775807GJoules", 9223372036854775807 * NanoJoule},
-		{"-9.223372036854775807GJoules", -9223372036854775807 * NanoJoule},
+		{"1nJ", 1 * NanoJoule},
+		{"10nJ", 10 * NanoJoule},
+		{"100nJ", 100 * NanoJoule},
+		{"1uJ", 1 * MicroJoule},
+		{"10uJ", 10 * MicroJoule},
+		{"100uJ", 100 * MicroJoule},
+		{"1µJ", 1 * MicroJoule},
+		{"10µJ", 10 * MicroJoule},
+		{"100µJ", 100 * MicroJoule},
+		{"1mJ", 1 * MilliJoule},
+		{"10mJ", 10 * MilliJoule},
+		{"100mJ", 100 * MilliJoule},
+		{"1J", 1 * Joule},
+		{"10J", 10 * Joule},
+		{"100J", 100 * Joule},
+		{"1kJ", 1 * KiloJoule},
+		{"10kJ", 10 * KiloJoule},
+		{"100kJ", 100 * KiloJoule},
+		{"1MJ", 1 * MegaJoule},
+		{"10MJ", 10 * MegaJoule},
+		{"100MJ", 100 * MegaJoule},
+		{"1GJ", 1 * GigaJoule},
+		{"12.345J", 12345 * MilliJoule},
+		{"-12.345J", -12345 * MilliJoule},
+		{"9.223372036854775807GJ", 9223372036854775807 * NanoJoule},
+		{"-9.223372036854775807GJ", -9223372036854775807 * NanoJoule},
 		{"1MJ", 1 * MegaJoule},
 	}
 
@@ -1874,24 +1866,24 @@ func TestEnergy_Set(t *testing.T) {
 		err string
 	}{
 		{
-			"10TJoule",
+			"10TJ",
 			"exponent exceeds int64",
 		},
 		{
-			"10EJoule",
-			"contains unknown unit prefix \"E\". valid prefixes for \"Joule\" are p,n,u,µ,m,k,M,G or T",
+			"10EJ",
+			"contains unknown unit prefix \"E\". valid prefixes for \"J\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
-			"10ExaJoule",
-			"contains unknown unit prefix \"Exa\". valid prefixes for \"Joule\" are p,n,u,µ,m,k,M,G or T",
+			"10ExaJ",
+			"contains unknown unit prefix \"Exa\". valid prefixes for \"J\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10eJouleE",
-			"contains unknown unit prefix \"e\". valid prefixes for \"Joule\" are p,n,u,µ,m,k,M,G or T",
+			"contains unknown unit prefix \"e\". valid prefixes for \"J\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10",
-			"no units provided, need Joule",
+			"no units provided, need J",
 		},
 		{
 			"9223372036854775808",
@@ -1902,19 +1894,19 @@ func TestEnergy_Set(t *testing.T) {
 			"minimum value is -9.223GJ",
 		},
 		{
-			"9.223372036854775808GJoule",
+			"9.223372036854775808GJ",
 			"maximum value is 9.223GJ",
 		},
 		{
-			"-9.223372036854775808GJoule",
+			"-9.223372036854775808GJ",
 			"minimum value is -9.223GJ",
 		},
 		{
-			"9.223372036854775808GJoule",
+			"9.223372036854775808GJ",
 			"maximum value is 9.223GJ",
 		},
 		{
-			"-9.223372036854775808GJoule",
+			"-9.223372036854775808GJ",
 			"minimum value is -9.223GJ",
 		},
 		{
@@ -1922,28 +1914,28 @@ func TestEnergy_Set(t *testing.T) {
 			"\"random\" is not a valid unit for physic.Energy",
 		},
 		{
-			"Joule",
+			"J",
 			"does not contain number",
 		},
 		{
 			"RPM",
-			"does not contain number or unit \"Joule\"",
+			"does not contain number or unit \"J\"",
 		},
 		{
-			"++1Joule",
-			"multiple plus symbols ++1Joule",
+			"++1J",
+			"multiple plus symbols ++1J",
 		},
 		{
-			"--1Joule",
-			"multiple minus symbols --1Joule",
+			"--1J",
+			"multiple minus symbols --1J",
 		},
 		{
-			"+-1Joule",
-			"can't contain both plus and minus symbols +-1Joule",
+			"+-1J",
+			"can't contain both plus and minus symbols +-1J",
 		},
 		{
-			"1.1.1.1Joule",
-			"multiple decimal points 1.1.1.1Joule",
+			"1.1.1.1J",
+			"multiple decimal points 1.1.1.1J",
 		},
 	}
 
@@ -1970,32 +1962,32 @@ func TestElectricalCapacitance_Set(t *testing.T) {
 		in       string
 		expected ElectricalCapacitance
 	}{
-		{"1pFarad", 1 * PicoFarad},
-		{"10pFarads", 10 * PicoFarad},
-		{"100pFarads", 100 * PicoFarad},
-		{"1nFarad", 1 * NanoFarad},
-		{"10nFarads", 10 * NanoFarad},
-		{"100nFarads", 100 * NanoFarad},
-		{"1uFarad", 1 * MicroFarad},
-		{"10uFarads", 10 * MicroFarad},
-		{"100uFarads", 100 * MicroFarad},
-		{"1µFarad", 1 * MicroFarad},
-		{"10µFarads", 10 * MicroFarad},
-		{"100µFarads", 100 * MicroFarad},
-		{"1mFarad", 1 * MilliFarad},
-		{"10mFarads", 10 * MilliFarad},
-		{"100mFarads", 100 * MilliFarad},
-		{"1Farad", 1 * Farad},
-		{"10Farads", 10 * Farad},
-		{"100Farads", 100 * Farad},
-		{"1kFarad", 1 * KiloFarad},
-		{"10kFarads", 10 * KiloFarad},
-		{"100kFarads", 100 * KiloFarad},
-		{"1MFarad", 1 * MegaFarad},
-		{"12.345Farads", 12345 * MilliFarad},
-		{"-12.345Farads", -12345 * MilliFarad},
-		{"9.223372036854775807MFarads", 9223372036854775807 * PicoFarad},
-		{"-9.223372036854775807MFarads", -9223372036854775807 * PicoFarad},
+		{"1pF", 1 * PicoFarad},
+		{"10pF", 10 * PicoFarad},
+		{"100pF", 100 * PicoFarad},
+		{"1nF", 1 * NanoFarad},
+		{"10nF", 10 * NanoFarad},
+		{"100nF", 100 * NanoFarad},
+		{"1uF", 1 * MicroFarad},
+		{"10uF", 10 * MicroFarad},
+		{"100uF", 100 * MicroFarad},
+		{"1µF", 1 * MicroFarad},
+		{"10µF", 10 * MicroFarad},
+		{"100µF", 100 * MicroFarad},
+		{"1mF", 1 * MilliFarad},
+		{"10mF", 10 * MilliFarad},
+		{"100mF", 100 * MilliFarad},
+		{"1F", 1 * Farad},
+		{"10F", 10 * Farad},
+		{"100F", 100 * Farad},
+		{"1kF", 1 * KiloFarad},
+		{"10kF", 10 * KiloFarad},
+		{"100kF", 100 * KiloFarad},
+		{"1MF", 1 * MegaFarad},
+		{"12.345F", 12345 * MilliFarad},
+		{"-12.345F", -12345 * MilliFarad},
+		{"9.223372036854775807MF", 9223372036854775807 * PicoFarad},
+		{"-9.223372036854775807MF", -9223372036854775807 * PicoFarad},
 		{"1MF", 1 * MegaFarad},
 	}
 
@@ -2004,24 +1996,24 @@ func TestElectricalCapacitance_Set(t *testing.T) {
 		err string
 	}{
 		{
-			"10TFarad",
+			"10TF",
 			"exponent exceeds int64",
 		},
 		{
-			"10EFarad",
-			"contains unknown unit prefix \"E\". valid prefixes for \"Farad\" are p,n,u,µ,m,k,M,G or T",
+			"10EF",
+			"contains unknown unit prefix \"E\". valid prefixes for \"F\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
-			"10ExaFarad",
-			"contains unknown unit prefix \"Exa\". valid prefixes for \"Farad\" are p,n,u,µ,m,k,M,G or T",
+			"10ExaF",
+			"contains unknown unit prefix \"Exa\". valid prefixes for \"F\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10eFaradE",
-			"contains unknown unit prefix \"e\". valid prefixes for \"Farad\" are p,n,u,µ,m,k,M,G or T",
+			"contains unknown unit prefix \"e\". valid prefixes for \"F\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10",
-			"no units provided, need Farad",
+			"no units provided, need F",
 		},
 		{
 			"9223372036854775808",
@@ -2032,19 +2024,19 @@ func TestElectricalCapacitance_Set(t *testing.T) {
 			"minimum value is -9.223MF",
 		},
 		{
-			"9.223372036854775808MFarad",
+			"9.223372036854775808MF",
 			"maximum value is 9.223MF",
 		},
 		{
-			"-9.223372036854775808MFarad",
+			"-9.223372036854775808MF",
 			"minimum value is -9.223MF",
 		},
 		{
-			"9.223372036854775808MFarad",
+			"9.223372036854775808MF",
 			"maximum value is 9.223MF",
 		},
 		{
-			"-9.223372036854775808MFarad",
+			"-9.223372036854775808MF",
 			"minimum value is -9.223MF",
 		},
 		{
@@ -2052,28 +2044,28 @@ func TestElectricalCapacitance_Set(t *testing.T) {
 			"\"random\" is not a valid unit for physic.ElectricalCapacitance",
 		},
 		{
-			"Farad",
+			"F",
 			"does not contain number",
 		},
 		{
 			"RPM",
-			"does not contain number or unit \"Farad\"",
+			"does not contain number or unit \"F\"",
 		},
 		{
-			"++1Farad",
-			"multiple plus symbols ++1Farad",
+			"++1F",
+			"multiple plus symbols ++1F",
 		},
 		{
-			"--1Farad",
-			"multiple minus symbols --1Farad",
+			"--1F",
+			"multiple minus symbols --1F",
 		},
 		{
-			"+-1Farad",
-			"can't contain both plus and minus symbols +-1Farad",
+			"+-1F",
+			"can't contain both plus and minus symbols +-1F",
 		},
 		{
-			"1.1.1.1Farad",
-			"multiple decimal points 1.1.1.1Farad",
+			"1.1.1.1F",
+			"multiple decimal points 1.1.1.1F",
 		},
 	}
 
@@ -2100,32 +2092,32 @@ func TestLuminousIntensity_Set(t *testing.T) {
 		in       string
 		expected LuminousIntensity
 	}{
-		{"1nCandela", 1 * NanoCandela},
-		{"10nCandelas", 10 * NanoCandela},
-		{"100nCandelas", 100 * NanoCandela},
-		{"1uCandela", 1 * MicroCandela},
-		{"10uCandelas", 10 * MicroCandela},
-		{"100uCandelas", 100 * MicroCandela},
-		{"1µCandela", 1 * MicroCandela},
-		{"10µCandelas", 10 * MicroCandela},
-		{"100µCandelas", 100 * MicroCandela},
-		{"1mCandela", 1 * MilliCandela},
-		{"10mCandelas", 10 * MilliCandela},
-		{"100mCandelas", 100 * MilliCandela},
-		{"1Candela", 1 * Candela},
-		{"10Candelas", 10 * Candela},
-		{"100Candelas", 100 * Candela},
-		{"1kCandela", 1 * KiloCandela},
-		{"10kCandelas", 10 * KiloCandela},
-		{"100kCandelas", 100 * KiloCandela},
-		{"1MCandela", 1 * MegaCandela},
-		{"10MCandelas", 10 * MegaCandela},
-		{"100MCandelas", 100 * MegaCandela},
-		{"1GCandela", 1 * GigaCandela},
-		{"12.345Candelas", 12345 * MilliCandela},
-		{"-12.345Candelas", -12345 * MilliCandela},
-		{"9.223372036854775807GCandelas", 9223372036854775807 * NanoCandela},
-		{"-9.223372036854775807GCandelas", -9223372036854775807 * NanoCandela},
+		{"1ncd", 1 * NanoCandela},
+		{"10ncd", 10 * NanoCandela},
+		{"100ncd", 100 * NanoCandela},
+		{"1ucd", 1 * MicroCandela},
+		{"10ucd", 10 * MicroCandela},
+		{"100ucd", 100 * MicroCandela},
+		{"1µcd", 1 * MicroCandela},
+		{"10µcd", 10 * MicroCandela},
+		{"100µcd", 100 * MicroCandela},
+		{"1mcd", 1 * MilliCandela},
+		{"10mcd", 10 * MilliCandela},
+		{"100mcd", 100 * MilliCandela},
+		{"1cd", 1 * Candela},
+		{"10cd", 10 * Candela},
+		{"100cd", 100 * Candela},
+		{"1kcd", 1 * KiloCandela},
+		{"10kcd", 10 * KiloCandela},
+		{"100kcd", 100 * KiloCandela},
+		{"1Mcd", 1 * MegaCandela},
+		{"10Mcd", 10 * MegaCandela},
+		{"100Mcd", 100 * MegaCandela},
+		{"1Gcd", 1 * GigaCandela},
+		{"12.345cd", 12345 * MilliCandela},
+		{"-12.345cd", -12345 * MilliCandela},
+		{"9.223372036854775807Gcd", 9223372036854775807 * NanoCandela},
+		{"-9.223372036854775807Gcd", -9223372036854775807 * NanoCandela},
 		{"1Mcd", 1 * MegaCandela},
 	}
 
@@ -2134,24 +2126,24 @@ func TestLuminousIntensity_Set(t *testing.T) {
 		err string
 	}{
 		{
-			"10TCandela",
+			"10Tcd",
 			"exponent exceeds int64",
 		},
 		{
-			"10ECandela",
-			"contains unknown unit prefix \"E\". valid prefixes for \"Candela\" are p,n,u,µ,m,k,M,G or T",
+			"10Ecd",
+			"contains unknown unit prefix \"E\". valid prefixes for \"cd\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
-			"10ExaCandela",
-			"contains unknown unit prefix \"Exa\". valid prefixes for \"Candela\" are p,n,u,µ,m,k,M,G or T",
+			"10Exacd",
+			"contains unknown unit prefix \"Exa\". valid prefixes for \"cd\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
-			"10eCandelaE",
-			"contains unknown unit prefix \"e\". valid prefixes for \"Candela\" are p,n,u,µ,m,k,M,G or T",
+			"10ecdE",
+			"contains unknown unit prefix \"e\". valid prefixes for \"cd\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10",
-			"no units provided, need Candela",
+			"no units provided, need cd",
 		},
 		{
 			"9223372036854775808",
@@ -2162,19 +2154,19 @@ func TestLuminousIntensity_Set(t *testing.T) {
 			"minimum value is -9.223Gcd",
 		},
 		{
-			"9.223372036854775808GCandela",
+			"9.223372036854775808Gcd",
 			"maximum value is 9.223Gcd",
 		},
 		{
-			"-9.223372036854775808GCandela",
+			"-9.223372036854775808Gcd",
 			"minimum value is -9.223Gcd",
 		},
 		{
-			"9.223372036854775808GCandela",
+			"9.223372036854775808Gcd",
 			"maximum value is 9.223Gcd",
 		},
 		{
-			"-9.223372036854775808GCandela",
+			"-9.223372036854775808Gcd",
 			"minimum value is -9.223Gcd",
 		},
 		{
@@ -2182,28 +2174,28 @@ func TestLuminousIntensity_Set(t *testing.T) {
 			"\"random\" is not a valid unit for physic.LuminousIntensity",
 		},
 		{
-			"Candela",
+			"cd",
 			"does not contain number",
 		},
 		{
 			"RPM",
-			"does not contain number or unit \"Candela\"",
+			"does not contain number or unit \"cd\"",
 		},
 		{
-			"++1Candela",
-			"multiple plus symbols ++1Candela",
+			"++1cd",
+			"multiple plus symbols ++1cd",
 		},
 		{
-			"--1Candela",
-			"multiple minus symbols --1Candela",
+			"--1cd",
+			"multiple minus symbols --1cd",
 		},
 		{
-			"+-1Candela",
-			"can't contain both plus and minus symbols +-1Candela",
+			"+-1cd",
+			"can't contain both plus and minus symbols +-1cd",
 		},
 		{
-			"1.1.1.1Candela",
-			"multiple decimal points 1.1.1.1Candela",
+			"1.1.1.1cd",
+			"multiple decimal points 1.1.1.1cd",
 		},
 	}
 
@@ -2230,32 +2222,32 @@ func TestLuminousFlux_Set(t *testing.T) {
 		in       string
 		expected LuminousFlux
 	}{
-		{"1nLumen", 1 * NanoLumen},
-		{"10nLumens", 10 * NanoLumen},
-		{"100nLumens", 100 * NanoLumen},
-		{"1uLumen", 1 * MicroLumen},
-		{"10uLumens", 10 * MicroLumen},
-		{"100uLumens", 100 * MicroLumen},
-		{"1µLumen", 1 * MicroLumen},
-		{"10µLumens", 10 * MicroLumen},
-		{"100µLumens", 100 * MicroLumen},
-		{"1mLumen", 1 * MilliLumen},
-		{"10mLumens", 10 * MilliLumen},
-		{"100mLumens", 100 * MilliLumen},
-		{"1Lumen", 1 * Lumen},
-		{"10Lumens", 10 * Lumen},
-		{"100Lumens", 100 * Lumen},
-		{"1kLumen", 1 * KiloLumen},
-		{"10kLumens", 10 * KiloLumen},
-		{"100kLumens", 100 * KiloLumen},
-		{"1MLumen", 1 * MegaLumen},
-		{"10MLumens", 10 * MegaLumen},
-		{"100MLumens", 100 * MegaLumen},
-		{"1GLumen", 1 * GigaLumen},
-		{"12.345Lumens", 12345 * MilliLumen},
-		{"-12.345Lumens", -12345 * MilliLumen},
-		{"9.223372036854775807GLumens", 9223372036854775807 * NanoLumen},
-		{"-9.223372036854775807GLumens", -9223372036854775807 * NanoLumen},
+		{"1nlm", 1 * NanoLumen},
+		{"10nlm", 10 * NanoLumen},
+		{"100nlm", 100 * NanoLumen},
+		{"1ulm", 1 * MicroLumen},
+		{"10ulm", 10 * MicroLumen},
+		{"100ulm", 100 * MicroLumen},
+		{"1µlm", 1 * MicroLumen},
+		{"10µlm", 10 * MicroLumen},
+		{"100µlm", 100 * MicroLumen},
+		{"1mlm", 1 * MilliLumen},
+		{"10mlm", 10 * MilliLumen},
+		{"100mlm", 100 * MilliLumen},
+		{"1lm", 1 * Lumen},
+		{"10lm", 10 * Lumen},
+		{"100lm", 100 * Lumen},
+		{"1klm", 1 * KiloLumen},
+		{"10klm", 10 * KiloLumen},
+		{"100klm", 100 * KiloLumen},
+		{"1Mlm", 1 * MegaLumen},
+		{"10Mlm", 10 * MegaLumen},
+		{"100Mlm", 100 * MegaLumen},
+		{"1Glm", 1 * GigaLumen},
+		{"12.345lm", 12345 * MilliLumen},
+		{"-12.345lm", -12345 * MilliLumen},
+		{"9.223372036854775807Glm", 9223372036854775807 * NanoLumen},
+		{"-9.223372036854775807Glm", -9223372036854775807 * NanoLumen},
 		{"1Mlm", 1 * MegaLumen},
 	}
 
@@ -2264,24 +2256,24 @@ func TestLuminousFlux_Set(t *testing.T) {
 		err string
 	}{
 		{
-			"10TLumen",
+			"10Tlm",
 			"exponent exceeds int64",
 		},
 		{
-			"10ELumen",
-			"contains unknown unit prefix \"E\". valid prefixes for \"Lumen\" are p,n,u,µ,m,k,M,G or T",
+			"10Elm",
+			"contains unknown unit prefix \"E\". valid prefixes for \"lm\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
-			"10ExaLumen",
-			"contains unknown unit prefix \"Exa\". valid prefixes for \"Lumen\" are p,n,u,µ,m,k,M,G or T",
+			"10Exalm",
+			"contains unknown unit prefix \"Exa\". valid prefixes for \"lm\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
-			"10eLumenE",
-			"contains unknown unit prefix \"e\". valid prefixes for \"Lumen\" are p,n,u,µ,m,k,M,G or T",
+			"10elmE",
+			"contains unknown unit prefix \"e\". valid prefixes for \"lm\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10",
-			"no units provided, need Lumen",
+			"no units provided, need lm",
 		},
 		{
 			"9223372036854775808",
@@ -2292,19 +2284,19 @@ func TestLuminousFlux_Set(t *testing.T) {
 			"minimum value is -9.223Glm",
 		},
 		{
-			"9.223372036854775808GLumen",
+			"9.223372036854775808Glm",
 			"maximum value is 9.223Glm",
 		},
 		{
-			"-9.223372036854775808GLumen",
+			"-9.223372036854775808Glm",
 			"minimum value is -9.223Glm",
 		},
 		{
-			"9.223372036854775808GLumen",
+			"9.223372036854775808Glm",
 			"maximum value is 9.223Glm",
 		},
 		{
-			"-9.223372036854775808GLumen",
+			"-9.223372036854775808Glm",
 			"minimum value is -9.223Glm",
 		},
 		{
@@ -2312,28 +2304,28 @@ func TestLuminousFlux_Set(t *testing.T) {
 			"\"random\" is not a valid unit for physic.LuminousFlux",
 		},
 		{
-			"Lumen",
+			"lm",
 			"does not contain number",
 		},
 		{
 			"RPM",
-			"does not contain number or unit \"Lumen\"",
+			"does not contain number or unit \"lm\"",
 		},
 		{
-			"++1Lumen",
-			"multiple plus symbols ++1Lumen",
+			"++1lm",
+			"multiple plus symbols ++1lm",
 		},
 		{
-			"--1Lumen",
-			"multiple minus symbols --1Lumen",
+			"--1lm",
+			"multiple minus symbols --1lm",
 		},
 		{
-			"+-1Lumen",
-			"can't contain both plus and minus symbols +-1Lumen",
+			"+-1lm",
+			"can't contain both plus and minus symbols +-1lm",
 		},
 		{
-			"1.1.1.1Lumen",
-			"multiple decimal points 1.1.1.1Lumen",
+			"1.1.1.1lm",
+			"multiple decimal points 1.1.1.1lm",
 		},
 	}
 
@@ -2432,7 +2424,7 @@ func BenchmarkDistanceSet(b *testing.B) {
 	var err error
 	var d Distance
 	for i := 0; i < b.N; i++ {
-		err = d.Set("1Foot")
+		err = d.Set("1ft")
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -2445,7 +2437,7 @@ func BenchmarkElectricCurrentSet(b *testing.B) {
 	var err error
 	var e ElectricCurrent
 	for i := 0; i < b.N; i++ {
-		err = e.Set("1Amp")
+		err = e.Set("1A")
 		if err != nil {
 			b.Fatal(err)
 		}
