@@ -35,8 +35,8 @@ func TestAngle_String(t *testing.T) {
 		{-1000 * Degree, "-1000°"},
 		{100000000000 * Degree, "100000000000°"},
 		{-100000000000 * Degree, "-100000000000°"},
-		{(9223372036854775807) * NanoRadian, "528460276055°"},
-		{(-9223372036854775807) * NanoRadian, "-528460276055°"},
+		{maxAngle * NanoRadian, "528460276055°"},
+		{minAngle * NanoRadian, "-528460276055°"},
 		{Pi, "180.0°"},
 		{Theta, "360.0°"},
 		{Radian, "57.296°"},
@@ -1820,7 +1820,7 @@ func TestForceSet(t *testing.T) {
 			"converting to nano Newtons would overflow, consider using nN for maximum precision",
 		},
 		{
-			"10000000000000000Tlbf",
+			"100000000Tlbf",
 			"exponent exceeds int64",
 		},
 		{

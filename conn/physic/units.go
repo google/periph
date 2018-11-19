@@ -51,7 +51,7 @@ func (a Angle) String() string {
 		i := v / 1000
 		v = v - i*1000
 		return prefix + strconv.FormatInt(int64(i), 10) + "." + prefixZeros(1, int(v)) + "°"
-	case a > (9223372036854775807 - 17453293):
+	case a > maxAngle-Degree:
 		u := (uint64(a) + uint64(Degree)/2) / uint64(Degree)
 		v := int64(u)
 		return prefix + strconv.FormatInt(int64(v), 10) + "°"
@@ -108,33 +108,29 @@ func (f *Angle) Set(s string) error {
 		// significant figures in degrees per radian is only 8.
 		v, err := dtoi(lbf, int(si))
 		if err != nil {
-			if err != nil {
-				if e, ok := err.(*parseError); ok {
-					switch e.err {
-					case errOverflowsInt64:
-						return errors.New("maximum value is " + maxAngle.String())
-					case errOverflowsInt64Negative:
-						return errors.New("minimum value is " + minAngle.String())
-					}
+			if e, ok := err.(*parseError); ok {
+				switch e.err {
+				case errOverflowsInt64:
+					return errors.New("maximum value is " + maxAngle.String())
+				case errOverflowsInt64Negative:
+					return errors.New("minimum value is " + minAngle.String())
 				}
-				return err
 			}
+			return err
 		}
 		*f = (Angle)(v)
 	case "rad", "Rad":
 		v, err := dtoi(d, int(si-nano))
 		if err != nil {
-			if err != nil {
-				if e, ok := err.(*parseError); ok {
-					switch e.err {
-					case errOverflowsInt64:
-						return errors.New("maximum value is " + maxAngle.String())
-					case errOverflowsInt64Negative:
-						return errors.New("minimum value is " + minAngle.String())
-					}
+			if e, ok := err.(*parseError); ok {
+				switch e.err {
+				case errOverflowsInt64:
+					return errors.New("maximum value is " + maxAngle.String())
+				case errOverflowsInt64Negative:
+					return errors.New("minimum value is " + minAngle.String())
 				}
-				return err
 			}
+			return err
 		}
 		*f = (Angle)(v)
 	case "":
@@ -159,8 +155,8 @@ const (
 	Pi     Angle = 3141592653 * NanoRadian
 	Degree Angle = 17453293 * NanoRadian
 
-	maxAngle = 9223372036854775807 * NanoRadian
-	minAngle = -9223372036854775807 * NanoRadian
+	maxAngle = (1<<63 - 1) * NanoRadian
+	minAngle = -(1<<63 - 1) * NanoRadian
 )
 
 // Distance is a measurement of length stored as an int64 nano metre.
@@ -228,7 +224,6 @@ func (d *Distance) Set(s string) error {
 					return errors.New("minimum value is " + minDistance.String())
 				}
 			}
-
 			return err
 		}
 	}
@@ -534,7 +529,6 @@ func (f *Force) Set(s string) error {
 				return errors.New("maximum value is " + maxForce.String())
 			case errOverflowsInt64Negative:
 				return errors.New("minimum value is " + minForce.String())
-
 			}
 		}
 		return err
@@ -567,33 +561,29 @@ func (f *Force) Set(s string) error {
 		}
 		v, err := dtoi(lbf, int(si))
 		if err != nil {
-			if err != nil {
-				if e, ok := err.(*parseError); ok {
-					switch e.err {
-					case errOverflowsInt64:
-						return errors.New("maximum value is 2.073496Mlbf")
-					case errOverflowsInt64Negative:
-						return errors.New("minimum value is -2.073496Mlbf")
-					}
+			if e, ok := err.(*parseError); ok {
+				switch e.err {
+				case errOverflowsInt64:
+					return errors.New("maximum value is 2.073496Mlbf")
+				case errOverflowsInt64Negative:
+					return errors.New("minimum value is -2.073496Mlbf")
 				}
-				return err
 			}
+			return err
 		}
 		*f = (Force)(v)
 	case "N":
 		v, err := dtoi(d, int(si-nano))
 		if err != nil {
-			if err != nil {
-				if e, ok := err.(*parseError); ok {
-					switch e.err {
-					case errOverflowsInt64:
-						return errors.New("maximum value is " + maxForce.String())
-					case errOverflowsInt64Negative:
-						return errors.New("minimum value is " + minForce.String())
-					}
+			if e, ok := err.(*parseError); ok {
+				switch e.err {
+				case errOverflowsInt64:
+					return errors.New("maximum value is " + maxForce.String())
+				case errOverflowsInt64Negative:
+					return errors.New("minimum value is " + minForce.String())
 				}
-				return err
 			}
+			return err
 		}
 		*f = (Force)(v)
 	case "":
@@ -1734,14 +1724,14 @@ func valueOfUnitString(s string, base prefix) (int64, int, error) {
 	return v, n, nil
 }
 
-// Calcululates the product of two decimals; a and b, keeping the base less than
-// maxInt64. Degrade controls the maximum limit of the precision loss in the
-// product. Returns an error if the product base exceeds an int64 after losing a
-// degrade number of least significant figures. This function is to aid in the
-// multiplication of numbers that combined have more than 18 significant figures
-// each. The minimum limit of significant figures is 9 figures.
+// decimalMul calcululates the product of two decimals; a and b, keeping the
+// base less than maxInt64. Returns the number of times a figure was trimmed
+// from either base coefficients. This function is to aid in the multiplication
+// of numbers whose product have more than 18 significant figures. The minimum
+// accuracy of the end product that has been truncated is 9 significant figures.
 func decimalMul(a, b decimal) (decimal, uint) {
 	if a.base > 18446744073709551609 || b.base > 18446744073709551609 {
+		// Prevent infinite loop when > (1<<64)-5.
 		return decimal{}, 21
 	}
 	exp := a.exp + b.exp
@@ -1775,6 +1765,8 @@ func decimalMul(a, b decimal) (decimal, uint) {
 		}
 		exp++
 	}
+	// Should never get here. Since with uint64 the maximum number of truncates
+	// required is 20.
 	return decimal{}, 21
 }
 
