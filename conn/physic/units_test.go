@@ -1004,7 +1004,7 @@ func TestDistance_Set(t *testing.T) {
 			"does not contain number",
 		},
 		{
-			"CANDELA",
+			"cd",
 			"does not contain number or unit \"m\"",
 		},
 		{
@@ -2091,32 +2091,32 @@ func TestLuminousIntensity_Set(t *testing.T) {
 		in       string
 		expected LuminousIntensity
 	}{
-		{"1nCandela", 1 * NanoCandela},
-		{"10nCandelas", 10 * NanoCandela},
-		{"100nCandelas", 100 * NanoCandela},
-		{"1uCandela", 1 * MicroCandela},
-		{"10uCandelas", 10 * MicroCandela},
-		{"100uCandelas", 100 * MicroCandela},
-		{"1µCandela", 1 * MicroCandela},
-		{"10µCandelas", 10 * MicroCandela},
-		{"100µCandelas", 100 * MicroCandela},
-		{"1mCandela", 1 * MilliCandela},
-		{"10mCandelas", 10 * MilliCandela},
-		{"100mCandelas", 100 * MilliCandela},
-		{"1Candela", 1 * Candela},
-		{"10Candelas", 10 * Candela},
-		{"100Candelas", 100 * Candela},
-		{"1kCandela", 1 * KiloCandela},
-		{"10kCandelas", 10 * KiloCandela},
-		{"100kCandelas", 100 * KiloCandela},
-		{"1MCandela", 1 * MegaCandela},
-		{"10MCandelas", 10 * MegaCandela},
-		{"100MCandelas", 100 * MegaCandela},
-		{"1GCandela", 1 * GigaCandela},
-		{"12.345Candelas", 12345 * MilliCandela},
-		{"-12.345Candelas", -12345 * MilliCandela},
-		{"9.223372036854775807GCandelas", 9223372036854775807 * NanoCandela},
-		{"-9.223372036854775807GCandelas", -9223372036854775807 * NanoCandela},
+		{"1ncd", 1 * NanoCandela},
+		{"10ncd", 10 * NanoCandela},
+		{"100ncd", 100 * NanoCandela},
+		{"1ucd", 1 * MicroCandela},
+		{"10ucd", 10 * MicroCandela},
+		{"100ucd", 100 * MicroCandela},
+		{"1µcd", 1 * MicroCandela},
+		{"10µcd", 10 * MicroCandela},
+		{"100µcd", 100 * MicroCandela},
+		{"1mcd", 1 * MilliCandela},
+		{"10mcd", 10 * MilliCandela},
+		{"100mcd", 100 * MilliCandela},
+		{"1cd", 1 * Candela},
+		{"10cd", 10 * Candela},
+		{"100cd", 100 * Candela},
+		{"1kcd", 1 * KiloCandela},
+		{"10kcd", 10 * KiloCandela},
+		{"100kcd", 100 * KiloCandela},
+		{"1Mcd", 1 * MegaCandela},
+		{"10Mcd", 10 * MegaCandela},
+		{"100Mcd", 100 * MegaCandela},
+		{"1Gcd", 1 * GigaCandela},
+		{"12.345cd", 12345 * MilliCandela},
+		{"-12.345cd", -12345 * MilliCandela},
+		{"9.223372036854775807Gcd", 9223372036854775807 * NanoCandela},
+		{"-9.223372036854775807Gcd", -9223372036854775807 * NanoCandela},
 		{"1Mcd", 1 * MegaCandela},
 	}
 
@@ -2125,24 +2125,24 @@ func TestLuminousIntensity_Set(t *testing.T) {
 		err string
 	}{
 		{
-			"10TCandela",
+			"10Tcd",
 			"exponent exceeds int64",
 		},
 		{
-			"10ECandela",
-			"contains unknown unit prefix \"E\". valid prefixes for \"Candela\" are p,n,u,µ,m,k,M,G or T",
+			"10Ecd",
+			"contains unknown unit prefix \"E\". valid prefixes for \"cd\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
-			"10ExaCandela",
-			"contains unknown unit prefix \"Exa\". valid prefixes for \"Candela\" are p,n,u,µ,m,k,M,G or T",
+			"10Exacd",
+			"contains unknown unit prefix \"Exa\". valid prefixes for \"cd\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
-			"10eCandelaE",
-			"contains unknown unit prefix \"e\". valid prefixes for \"Candela\" are p,n,u,µ,m,k,M,G or T",
+			"10ecdE",
+			"contains unknown unit prefix \"e\". valid prefixes for \"cd\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10",
-			"no units provided, need Candela",
+			"no units provided, need cd",
 		},
 		{
 			"9223372036854775808",
@@ -2153,19 +2153,19 @@ func TestLuminousIntensity_Set(t *testing.T) {
 			"minimum value is -9.223Gcd",
 		},
 		{
-			"9.223372036854775808GCandela",
+			"9.223372036854775808Gcd",
 			"maximum value is 9.223Gcd",
 		},
 		{
-			"-9.223372036854775808GCandela",
+			"-9.223372036854775808Gcd",
 			"minimum value is -9.223Gcd",
 		},
 		{
-			"9.223372036854775808GCandela",
+			"9.223372036854775808Gcd",
 			"maximum value is 9.223Gcd",
 		},
 		{
-			"-9.223372036854775808GCandela",
+			"-9.223372036854775808Gcd",
 			"minimum value is -9.223Gcd",
 		},
 		{
@@ -2173,28 +2173,28 @@ func TestLuminousIntensity_Set(t *testing.T) {
 			"\"random\" is not a valid unit for physic.LuminousIntensity",
 		},
 		{
-			"Candela",
+			"cd",
 			"does not contain number",
 		},
 		{
 			"RPM",
-			"does not contain number or unit \"Candela\"",
+			"does not contain number or unit \"cd\"",
 		},
 		{
-			"++1Candela",
-			"multiple plus symbols ++1Candela",
+			"++1cd",
+			"multiple plus symbols ++1cd",
 		},
 		{
-			"--1Candela",
-			"multiple minus symbols --1Candela",
+			"--1cd",
+			"multiple minus symbols --1cd",
 		},
 		{
-			"+-1Candela",
-			"can't contain both plus and minus symbols +-1Candela",
+			"+-1cd",
+			"can't contain both plus and minus symbols +-1cd",
 		},
 		{
-			"1.1.1.1Candela",
-			"multiple decimal points 1.1.1.1Candela",
+			"1.1.1.1cd",
+			"multiple decimal points 1.1.1.1cd",
 		},
 	}
 

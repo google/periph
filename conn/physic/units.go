@@ -907,8 +907,8 @@ func (i LuminousIntensity) String() string {
 }
 
 // Set sets the LuminousIntensity to the value represented by s. Units are to
-// be provided in "Candela", "Candelas" or "cd" with an optional SI prefix: "p",
-// "n", "u", "µ", "m", "k", "M", "G" or "T".
+// be provided in "cd" with an optional SI prefix: "p", "n", "u", "µ", "m", "k",
+// "M", "G" or "T".
 func (i *LuminousIntensity) Set(s string) error {
 	v, n, err := valueOfUnitString(s, nano)
 	if err != nil {
@@ -919,22 +919,22 @@ func (i *LuminousIntensity) Set(s string) error {
 			case errOverflowsInt64Negative:
 				return errors.New("minimum value is " + minLuminousIntensity.String())
 			case errNotANumber:
-				if found, _ := containsUnitString(s, "Candelas", "Candela", "cd"); found != "" {
+				if found, _ := containsUnitString(s, "cd"); found != "" {
 					return errors.New("does not contain number")
 				}
-				return errors.New("does not contain number or unit \"Candela\"")
+				return errors.New("does not contain number or unit \"cd\"")
 			}
 		}
 		return err
 	}
 
 	switch s[n:] {
-	case "cd", "candela", "candelas", "Candela", "Candelas":
+	case "cd":
 		*i = (LuminousIntensity)(v)
 	case "":
-		return noUnits("Candela")
+		return noUnits("cd")
 	default:
-		if found, extra := containsUnitString(s[n:], "Candelas", "Candela", "cd"); found != "" {
+		if found, extra := containsUnitString(s[n:], "cd"); found != "" {
 			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
 		}
 		return incorrectUnit(s[n:], "physic.LuminousIntensity")
