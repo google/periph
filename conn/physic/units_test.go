@@ -1058,6 +1058,7 @@ func TestAngleSet(t *testing.T) {
 		{"100Gdeg", 100000000000 * Degree},
 		{"500Gdeg", 500000000000 * Degree},
 		{maxAngle.String(), 528460276055 * Degree},
+		{minAngle.String(), -528460276055 * Degree},
 		{"1mdeg", Degree / 1000},
 		{"1udeg", Degree / 1000000},
 	}
@@ -1095,7 +1096,7 @@ func TestAngleSet(t *testing.T) {
 			"maximum value is 528460276055°",
 		},
 		{
-			"-9223372036854775808rad",
+			fmt.Sprintf("-%dnrad", uint64(maxAngle)+1),
 			"minimum value is -528460276055°",
 		},
 		{
@@ -1117,10 +1118,6 @@ func TestAngleSet(t *testing.T) {
 		{
 			"9.224Grad",
 			"maximum value is 528460276055°",
-		},
-		{
-			"-9.224Grad",
-			"minimum value is -528460276055°",
 		},
 		{
 			"-9.224Grad",
@@ -1796,14 +1793,15 @@ func TestForceSet(t *testing.T) {
 		{"-9.223372036854775807GN", -9223372036854775807 * NanoNewton},
 		{"1MN", 1 * MegaNewton},
 		{"1nN", 1 * NanoNewton},
-		{"1mlbf", 1 * (PoundForce / 1000)},
+		{"1mlbf", 4448222 * NanoNewton},
 		{"1lbf", 1 * PoundForce},
-		{"1klbf", 1000 * PoundForce},
-		{"1Mlbf", 1000000 * PoundForce},
-		{"2Mlbf", 2000000 * PoundForce},
-		{"2073496lbf", 2073496 * PoundForce},
-		{"2.073lbf", 2073 * PoundForce / 1000},
-		{"1.0000000000101lbf", 4448221615300 * NanoNewton}, // 4448221615306nN without precision loss.
+		{"1lbf", 4448221615 * NanoNewton},
+		{"20lbf", 88964432305 * NanoNewton},
+		{"1klbf", 4448221615261 * NanoNewton},
+		{"1Mlbf", 4448221615261000 * NanoNewton},
+		{"2Mlbf", 8896443230522000 * NanoNewton},
+		{"2073496519lbf", 9223372034443058185 * NanoNewton},
+		{"1.0000000000101lbf", 4448221615 * NanoNewton},
 	}
 
 	fails := []struct {
@@ -1811,19 +1809,19 @@ func TestForceSet(t *testing.T) {
 		err string
 	}{
 		{
-			"2073497lbf",
-			"maximum value is 2.073496Mlbf",
+			"2073496520lbf",
+			"maximum value is 2.073496519Glbf",
 		},
 		{
-			"-2073497lbf",
-			"minimum value is -2.073496Mlbf",
+			"-2073496520lbf",
+			"minimum value is -2.073496519Glbf",
 		},
 		{
 			"1234567.890123456789lbf",
 			"converting to nano Newtons would overflow, consider using nN for maximum precision",
 		},
 		{
-			"100000000Tlbf",
+			"100000000000Tlbf",
 			"exponent exceeds int64",
 		},
 		{

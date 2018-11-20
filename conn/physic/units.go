@@ -552,7 +552,7 @@ func (f *Force) Set(s string) error {
 	case "lbf":
 		poundForce := decimal{
 			base: 4448221615261,
-			exp:  0,
+			exp:  -3,
 			neg:  false,
 		}
 		lbf, loss := decimalMul(d, poundForce)
@@ -564,9 +564,9 @@ func (f *Force) Set(s string) error {
 			if e, ok := err.(*parseError); ok {
 				switch e.err {
 				case errOverflowsInt64:
-					return errors.New("maximum value is 2.073496Mlbf")
+					return errors.New("maximum value is 2.073496519Glbf")
 				case errOverflowsInt64Negative:
-					return errors.New("minimum value is -2.073496Mlbf")
+					return errors.New("minimum value is -2.073496519Glbf")
 				}
 			}
 			return err
@@ -612,7 +612,7 @@ const (
 	// Conversion between Newton and imperial units.
 	// Pound is both a unit of mass and weight (force). The suffix Force is added
 	// to disambiguate the measurement it represents.
-	PoundForce Force = 4448221615261 * NanoNewton
+	PoundForce Force = 4448221615 * NanoNewton
 
 	maxForce Force = (1 << 63) - 1
 	minForce Force = -((1 << 63) - 1)
@@ -1536,7 +1536,6 @@ func dtoi(d decimal, scale int) (int64, error) {
 					err: errOverflowsInt64Negative,
 				}
 			}
-			// fmt.Println(u)
 			return maxInt64, &parseError{
 				msg: maxInt64Str,
 				err: errOverflowsInt64,

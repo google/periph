@@ -23,6 +23,36 @@ func ExampleAngle() {
 	// 360.0°
 }
 
+func ExampleAngle_Set() {
+	var a physic.Angle
+
+	if err := a.Set("2°"); err != nil {
+		log.Fatal(a)
+	}
+	fmt.Println(a)
+
+	if err := a.Set("90deg"); err != nil {
+		log.Fatal(a)
+	}
+	fmt.Println(a)
+
+	if err := a.Set("1rad"); err != nil {
+		log.Fatal(a)
+	}
+	fmt.Println(a)
+	// Output:
+	// 2.000°
+	// 90.00°
+	// 57.296°
+}
+
+func ExampleAngle_flag() {
+	var a physic.Angle
+
+	flag.Var(&a, "angle", "angle to set the servo to")
+	flag.Parse()
+}
+
 func ExampleDistance() {
 	fmt.Println(physic.Inch)
 	fmt.Println(physic.Foot)
@@ -189,7 +219,32 @@ func ExampleForce() {
 	// Output:
 	// 10mN
 	// 9.807N
-	// 4.448kN
+	// 4.448N
+}
+
+func ExampleForce_Set() {
+	var f physic.Force
+
+	if err := f.Set("9.8N"); err != nil {
+		log.Fatal(f)
+	}
+	fmt.Println(f)
+
+	if err := f.Set("20lbf"); err != nil {
+		log.Fatal(f)
+	}
+	fmt.Println(f)
+
+	// Output:
+	// 9.800N
+	// 88.964N
+}
+
+func ExampleForce_flag() {
+	var f physic.Force
+
+	flag.Var(&f, "force", "load cell wakeup force")
+	flag.Parse()
 }
 
 func ExampleFrequency() {
