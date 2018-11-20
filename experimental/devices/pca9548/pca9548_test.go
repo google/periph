@@ -85,11 +85,14 @@ func TestRegisterPorts(t *testing.T) {
 			t.Fatalf("failed to create I²C mux: %v", err)
 		}
 
-		if err := mux.RegisterPorts(tt.alias); err != nil {
+		portNames, err := mux.RegisterPorts(tt.alias)
+		if err != nil {
 			t.Fatalf("failed to create I²C mux: %v", err)
 		}
 		for i, port := range tt.expect {
-			if err := i2creg.Unregister(port); err != nil {
+			if portNames[i] != port {
+				t.Errorf("expected port name %v but got %v", portNames[i], port)
+			} else if err := i2creg.Unregister(port); err != nil {
 				t.Errorf("failed to Unregister port %d: %v", i, err)
 			}
 		}
@@ -109,10 +112,10 @@ func TestRegisterPorts(t *testing.T) {
 			t.Fatalf("failed to create I²C mux: %v", err)
 		}
 
-		if err := mux.RegisterPorts(tt.alias); err != nil {
+		if _, err := mux.RegisterPorts(tt.alias); err != nil {
 			t.Fatalf("failed to create I²C mux: %v", err)
 		}
-		if err := mux.RegisterPorts(tt.alias); err == nil {
+		if _, err := mux.RegisterPorts(tt.alias); err == nil {
 			t.Fatal("expected second registraion to fail", err)
 		}
 		for i, port := range tt.expect {
@@ -218,10 +221,11 @@ func TestDev_Tx(t *testing.T) {
 			t.Fatalf("failed to open I²C: %v", err)
 		}
 
-		err = mux.RegisterPorts(tt.alias)
+		_, err = mux.RegisterPorts(tt.alias)
 		if err != nil {
 			t.Fatalf("failed to open I²C: %v", err)
 		}
+
 		muxbus, err := i2creg.Open(tt.openPort)
 		if err != nil {
 			t.Fatalf("failed to open I²C: %v", err)
@@ -297,7 +301,7 @@ func Test_port_String(t *testing.T) {
 		t.Fatalf("failed to open I²C: %v", err)
 	}
 
-	err = mux.RegisterPorts("mux")
+	_, err = mux.RegisterPorts("mux")
 	if err != nil {
 		t.Fatalf("failed to open I²C: %v", err)
 	}

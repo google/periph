@@ -9,7 +9,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strconv"
 
 	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/experimental/devices/pca9548"
@@ -40,7 +39,8 @@ func mainImpl() error {
 		return fmt.Errorf("failed to load new mux: %v", err)
 	}
 
-	if err := mux.RegisterPorts("mux"); err != nil {
+	portNames, err := mux.RegisterPorts("mux")
+	if err != nil {
 		return fmt.Errorf("failed to register ports: %v", err.Error())
 	}
 
@@ -49,13 +49,12 @@ func mainImpl() error {
 	fmt.Println("Starting Scan")
 
 	// Loop through each bus scanning all addresses for a response.
-	for i := 0; i < 8; i++ {
-		// Open multiplexer port with alias mux0-mux7.
-		m, err := i2creg.Open("mux" + strconv.Itoa(i))
+	for i := 0; i < len(portNames); i++ {
+		// Open multiplexer port
+		m, err := i2creg.Open(portNames[i])
 		if err != nil {
 			return err
 		}
-		defer m.Close()
 
 		rx := []byte{0x00}
 		for addr := uint16(1); addr < 0x77; addr++ {
@@ -63,6 +62,7 @@ func mainImpl() error {
 				results[m.String()] = append(results[m.String()], addr)
 			}
 		}
+		m.Close()
 	}
 
 	fmt.Println("Scan Results:")

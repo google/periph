@@ -62,20 +62,20 @@ func New(bus i2c.Bus, opts *Opts) (*Dev, error) {
 // RegisterPorts registers multiplexer ports with the host. These ports can
 // then be used as any other i2c.Bus. Busses will be named "alias0", "alias1"
 // etc. If using more than one multiplexer note that the alias must be unique.
-func (d *Dev) RegisterPorts(alias string) error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
+// Returns slice of ports names registered and error.
+func (d *Dev) RegisterPorts(alias string) ([]string, error) {
+	var portNames []string
 	for i := uint8(0); i < d.numPorts; i++ {
 		portStr := strconv.Itoa(int(i))
 		addrStr := strconv.FormatUint(uint64(d.address), 16)
 		portName := d.c.String() + "-pca9548-" + addrStr + "-" + portStr
 		opener := newOpener(d, i, alias+portStr, portName)
-		err := i2creg.Register(portName, []string{alias + portStr}, -1, opener)
-		if err != nil {
-			return err
+		if err := i2creg.Register(portName, []string{alias + portStr}, -1, opener); err != nil {
+			return portNames, err
 		}
+		portNames = append(portNames, portName)
 	}
-	return nil
+	return portNames, nil
 }
 
 // Halt does nothing.
