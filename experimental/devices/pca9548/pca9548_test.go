@@ -251,15 +251,15 @@ func TestDev_Tx(t *testing.T) {
 
 func Test_port_Tx(t *testing.T) {
 	tests := []struct {
-		p       port
+		p       *port
 		wantErr bool
 	}{
 		{
-			p:       port{number: 6},
+			p:       &port{number: 6},
 			wantErr: true,
 		},
 		{
-			p: port{number: 0x6, mux: &Dev{address: 0x70, activePort: 6,
+			p: &port{number: 0x6, mux: &Dev{address: 0x70, activePort: 6,
 				c: &i2ctest.Playback{
 					Ops: []i2ctest.IO{{Addr: 0x1, W: nil, R: nil}},
 				},
@@ -268,6 +268,7 @@ func Test_port_Tx(t *testing.T) {
 			wantErr: false,
 		},
 	}
+
 	for _, tt := range tests {
 		err := tt.p.Tx(0x01, nil, nil)
 
@@ -280,11 +281,15 @@ func Test_port_Tx(t *testing.T) {
 		}
 	}
 
-	for _, tt := range tests {
-		tt.p.Close()
-		if err := tt.p.Tx(0x01, nil, nil); err == nil {
-			t.Errorf("expected error but got none")
-		}
+}
+
+func Test_port_Close(t *testing.T) {
+
+	p := &port{number: 6}
+
+	p.Close()
+	if err := p.Tx(0x01, nil, nil); err == nil {
+		t.Errorf("expected error but got none")
 	}
 
 }
