@@ -16,14 +16,14 @@ import (
 )
 
 // DefaultOpts is the recommended default options.
-var DefaultOpts = Opts{Address: 0x70}
+var DefaultOpts = Opts{Addr: 0x70}
 
 // Opts is the pca9548 configuration.
 type Opts struct {
-	// Address pca9548 I²C Address. Valid addresses for the NXP pca9548 are 0x70
-	// to 0x77. The address is set by pulling A0~A2 low or high. Please refer
-	// to the datasheet.
-	Address int
+	// Addr is the pca9548 I²C Address. Valid addresses for the NXP pca9548 are
+	// 0x70 to 0x77. The address is set by pulling A0~A2 low or high. Please
+	// refer to the datasheet.
+	Addr int
 }
 
 // Dev is handle to a pca9548 I²C Multiplexer.
@@ -41,18 +41,18 @@ type Dev struct {
 
 // New creates a new handle to a pca9548 I²C multiplexer.
 func New(bus i2c.Bus, opts *Opts) (*Dev, error) {
-	if opts.Address < 0x70 || opts.Address > 0x77 {
+	if opts.Addr < 0x70 || opts.Addr > 0x77 {
 		return nil, errors.New("Address outside valid range of 0x70-0x77")
 	}
 	d := &Dev{
 		c:          bus,
 		activePort: 0xFF,
-		address:    uint16(opts.Address),
+		address:    uint16(opts.Addr),
 		numPorts:   8,
-		name:       "pca9548-" + strconv.FormatUint(uint64(opts.Address), 16),
+		name:       "pca9548-" + strconv.FormatUint(uint64(opts.Addr), 16),
 	}
 	r := make([]byte, 1)
-	err := bus.Tx(uint16(opts.Address), nil, r)
+	err := bus.Tx(uint16(opts.Addr), nil, r)
 	if err != nil {
 		return nil, errors.New("could not establish communicate with multiplexer: " + err.Error())
 	}

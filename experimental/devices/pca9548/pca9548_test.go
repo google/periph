@@ -39,7 +39,7 @@ func TestNew(t *testing.T) {
 
 	for _, tt := range tests {
 		bus := &i2ctest.Playback{Ops: tt.tx, DontPanic: true}
-		_, err := New(bus, &Opts{Address: tt.address})
+		_, err := New(bus, &Opts{Addr: tt.address})
 
 		if err != nil && !tt.wantErr {
 			t.Errorf("got unexpected error %v", err)
@@ -154,7 +154,7 @@ func TestDev_String(t *testing.T) {
 		}
 		host.Init()
 
-		mux, err := New(bus, &Opts{Address: int(tt.address)})
+		mux, err := New(bus, &Opts{Addr: int(tt.address)})
 		if err != nil {
 			t.Fatalf("failed to create I²C mux: %v", err)
 		}

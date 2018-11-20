@@ -34,7 +34,7 @@ func mainImpl() error {
 
 	// Creates a multiplexer with 8 ports at address 0x70 if no other address
 	// supplied with command line option.
-	mux, err := pca9548.New(bus, &pca9548.Opts{Address: *address})
+	mux, err := pca9548.New(bus, &pca9548.Opts{Addr: *address})
 	if err != nil {
 		return fmt.Errorf("failed to load new mux: %v", err)
 	}
