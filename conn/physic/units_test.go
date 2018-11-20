@@ -35,8 +35,8 @@ func TestAngle_String(t *testing.T) {
 		{-1000 * Degree, "-1000°"},
 		{100000000000 * Degree, "100000000000°"},
 		{-100000000000 * Degree, "-100000000000°"},
-		{maxAngle * NanoRadian, "528460276055°"},
-		{minAngle * NanoRadian, "-528460276055°"},
+		{maxAngle, "528460276055°"},
+		{minAngle, "-528460276055°"},
 		{Pi, "180.0°"},
 		{Theta, "360.0°"},
 		{Radian, "57.296°"},
@@ -699,9 +699,8 @@ func Test_decimalMulScale(t *testing.T) {
 		positive = false
 	)
 	succeeds := []struct {
-		loss uint
-		a, b decimal
-
+		loss   uint
+		a, b   decimal
 		expect decimal
 	}{
 		{
@@ -774,62 +773,67 @@ func Test_decimalMulScale(t *testing.T) {
 			10,
 			decimal{100000000111111, 0, positive},
 			decimal{100000000111111, 0, positive},
-			decimal{1000000002000000001, 10, false},
+			decimal{1000000002000000001, 10, positive},
 		},
 		{
 			12,
 			decimal{1000000001111111, 0, positive},
 			decimal{1000000001111111, 0, positive},
-			decimal{1000000002000000001, 12, false},
+			decimal{1000000002000000001, 12, positive},
 		},
 		{
 			14,
 			decimal{10000000011111111, 0, positive},
 			decimal{10000000011111111, 0, positive},
-			decimal{1000000002000000001, 14, false},
+			decimal{1000000002000000001, 14, positive},
 		},
 		{
 			16,
 			decimal{100000000111111111, 0, positive},
 			decimal{100000000111111111, 0, positive},
-			decimal{1000000002000000001, 16, false},
+			decimal{1000000002000000001, 16, positive},
 		},
 		{
 			18,
 			decimal{1000000001111111111, 0, positive},
 			decimal{1000000001111111111, 0, positive},
-			decimal{1000000002000000001, 18, false},
+			decimal{1000000002000000001, 18, positive},
 		},
 		{
 			20,
 			decimal{10000000011111111111, 0, positive},
 			decimal{10000000011111111111, 0, positive},
-			decimal{1000000002000000001, 20, false},
+			decimal{1000000002000000001, 20, positive},
 		},
 		{
 			19,
-			decimal{9223372036854775807, 0, positive},
-			decimal{9223372036854775807, 0, positive},
-			decimal{8507059176058364548, 19, false},
+			decimal{maxInt64, 0, positive},
+			decimal{maxInt64, 0, positive},
+			decimal{8507059176058364548, 19, positive},
 		},
 		{
 			18,
-			decimal{18446744073709551609, 0, positive},
-			decimal{18446744073709551609, 0, positive},
-			decimal{3402823667840801649, 20, false},
+			decimal{(1 << 64) - 6, 0, positive},
+			decimal{(1 << 64) - 6, 0, positive},
+			decimal{3402823667840801649, 20, positive},
+		},
+		{
+			0,
+			decimal{(1 << 64) - 6, 100, positive},
+			decimal{0, 0, positive},
+			decimal{0, 0, positive},
 		},
 	}
 
 	fails := []struct {
-		loss uint
-		a, b decimal
-
+		loss   uint
+		a, b   decimal
 		expect decimal
 	}{
 		{
 			21,
-			decimal{18446744073709551610, 0, positive},
-			decimal{18446744073709551610, 0, positive},
+			decimal{(1 << 64) - 5, 0, positive},
+			decimal{(1 << 64) - 5, 0, positive},
 			decimal{},
 		},
 	}
@@ -902,7 +906,7 @@ func TestParseError(t *testing.T) {
 }
 
 func TestMaxInt64(t *testing.T) {
-	if strconv.FormatUint(maxInt64, 10) != maxUint64Str {
+	if strconv.FormatUint(maxInt64, 10) != maxInt64Str {
 		t.Fatal("unexpected text representation of max")
 	}
 }
@@ -1024,7 +1028,7 @@ func TestAngleSet(t *testing.T) {
 		in       string
 		expected Angle
 	}{
-		{"1nrad", 1 * NanoRadian},
+		{"1nrad", NanoRadian},
 		{"10nrad", 10 * NanoRadian},
 		{"100nrad", 100 * NanoRadian},
 		{"1urad", 1 * MicroRadian},
@@ -1048,13 +1052,12 @@ func TestAngleSet(t *testing.T) {
 		{"1Grad", 1000000000 * Radian},
 		{"12.345rad", 12345 * MilliRadian},
 		{"-12.345rad", -12345 * MilliRadian},
-		{"9.223372036854775807Grad", 9223372036854775807 * NanoRadian},
-		{"-9.223372036854775807Grad", -9223372036854775807 * NanoRadian},
+		{fmt.Sprintf("%dnrad", maxAngle), maxAngle},
 		{"1deg", 1 * Degree},
 		{"1Mdeg", 1000000 * Degree},
 		{"100Gdeg", 100000000000 * Degree},
 		{"500Gdeg", 500000000000 * Degree},
-		{"528460276055deg", 528460276055 * Degree},
+		{maxAngle.String(), 528460276055 * Degree},
 		{"1mdeg", Degree / 1000},
 		{"1udeg", Degree / 1000000},
 	}
@@ -1088,7 +1091,7 @@ func TestAngleSet(t *testing.T) {
 			"no units provided, need Rad",
 		},
 		{
-			"9223372036854775808rad",
+			fmt.Sprintf("%dnrad", uint64(maxAngle)+1),
 			"maximum value is 528460276055°",
 		},
 		{
@@ -2921,8 +2924,7 @@ func BenchmarkDistanceSet(b *testing.B) {
 	var err error
 	var d Distance
 	for i := 0; i < b.N; i++ {
-		err = d.Set("1ft")
-		if err != nil {
+		if err = d.Set("1ft"); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -2934,8 +2936,7 @@ func BenchmarkElectricCurrentSet(b *testing.B) {
 	var err error
 	var e ElectricCurrent
 	for i := 0; i < b.N; i++ {
-		err = e.Set("1A")
-		if err != nil {
+		if err = e.Set("1A"); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -2947,8 +2948,7 @@ func BenchmarkForceSetMetric(b *testing.B) {
 	var err error
 	var f Force
 	for i := 0; i < b.N; i++ {
-		err = f.Set("123N")
-		if err != nil {
+		if err = f.Set("123N"); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -2960,8 +2960,7 @@ func BenchmarkForceSetImperial(b *testing.B) {
 	var err error
 	var f Force
 	for i := 0; i < b.N; i++ {
-		err = f.Set("1.23Mlbf")
-		if err != nil {
+		if err = f.Set("1.23Mlbf"); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -2973,8 +2972,7 @@ func BenchmarkForceSetImperialWorstCase(b *testing.B) {
 	var err error
 	var f Force
 	for i := 0; i < b.N; i++ {
-		err = f.Set("1.0000000000101lbf")
-		if err != nil {
+		if err = f.Set("1.0000000000101lbf"); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -2986,8 +2984,7 @@ func BenchmarkAngleSetRadian(b *testing.B) {
 	var err error
 	var a Angle
 	for i := 0; i < b.N; i++ {
-		err = a.Set("1rad")
-		if err != nil {
+		if err = a.Set("1rad"); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -2999,8 +2996,7 @@ func BenchmarkAngleSet1Degree(b *testing.B) {
 	var err error
 	var a Angle
 	for i := 0; i < b.N; i++ {
-		err = a.Set("1deg")
-		if err != nil {
+		if err = a.Set("1deg"); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -3012,8 +3008,7 @@ func BenchmarkAngleSet2Degree(b *testing.B) {
 	var err error
 	var a Angle
 	for i := 0; i < b.N; i++ {
-		err = a.Set("2deg")
-		if err != nil {
+		if err = a.Set("2deg"); err != nil {
 			b.Fatal(err)
 		}
 	}
