@@ -51,7 +51,7 @@ func (a Angle) String() string {
 		i := v / 1000
 		v = v - i*1000
 		return prefix + strconv.FormatInt(int64(i), 10) + "." + prefixZeros(1, int(v)) + "°"
-	case a > (9223372036854775807 - 17453293):
+	case a > maxAngle-Degree:
 		u := (uint64(a) + uint64(Degree)/2) / uint64(Degree)
 		v := int64(u)
 		return prefix + strconv.FormatInt(int64(v), 10) + "°"
@@ -59,6 +59,89 @@ func (a Angle) String() string {
 		v := (a + Degree/2) / Degree
 		return prefix + strconv.FormatInt(int64(v), 10) + "°"
 	}
+}
+
+// Set sets the Angle to the value represented by s. Units are to be provided in
+// "rad", "deg" or "°" with an optional SI prefix: "p", "n", "u", "µ", "m", "k",
+// "M", "G" or "T".
+func (a *Angle) Set(s string) error {
+	d, n, err := atod(s)
+	if err != nil {
+		if e, ok := err.(*parseError); ok {
+			switch e.err {
+			case errNotANumber:
+				if found, _ := containsUnitString(s[n:], "rad", "deg", "°"); found != "" {
+					return errors.New("does not contain number")
+				}
+				return errors.New("does not contain number or unit \"Rad\"")
+			case errOverflowsInt64:
+				return errors.New("maximum value is " + maxAngle.String())
+			case errOverflowsInt64Negative:
+				return errors.New("minimum value is " + minAngle.String())
+			}
+		}
+		return err
+	}
+
+	var si prefix
+	if n != len(s) {
+		r, rsize := utf8.DecodeRuneInString(s[n:])
+		if r <= 1 || rsize == 0 {
+			return &parseError{
+				err: errors.New("unexpected end of string"),
+			}
+		}
+		var siSize int
+		si, siSize = parseSIPrefix(r)
+		n += siSize
+	}
+
+	switch s[n:] {
+	case "deg", "°", "Deg":
+		degreePerRadian := decimal{
+			base: 17453293,
+			exp:  0,
+			neg:  false,
+		}
+		lbf, _ := decimalMul(d, degreePerRadian)
+		// Impossible for precision loss to exceed 9 since the number of
+		// significant figures in degrees per radian is only 8.
+		v, err := dtoi(lbf, int(si))
+		if err != nil {
+			if e, ok := err.(*parseError); ok {
+				switch e.err {
+				case errOverflowsInt64:
+					return errors.New("maximum value is " + maxAngle.String())
+				case errOverflowsInt64Negative:
+					return errors.New("minimum value is " + minAngle.String())
+				}
+			}
+			return err
+		}
+		*a = (Angle)(v)
+	case "rad", "Rad":
+		v, err := dtoi(d, int(si-nano))
+		if err != nil {
+			if e, ok := err.(*parseError); ok {
+				switch e.err {
+				case errOverflowsInt64:
+					return errors.New("maximum value is " + maxAngle.String())
+				case errOverflowsInt64Negative:
+					return errors.New("minimum value is " + minAngle.String())
+				}
+			}
+			return err
+		}
+		*a = (Angle)(v)
+	case "":
+		return noUnits("Rad")
+	default:
+		if found, extra := containsUnitString(s[n:], "Rad", "Deg", "°"); found != "" {
+			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
+		}
+		return incorrectUnit(s[n:], "physic.Angle")
+	}
+	return nil
 }
 
 const (
@@ -71,6 +154,9 @@ const (
 	Theta  Angle = 6283185307 * NanoRadian
 	Pi     Angle = 3141592653 * NanoRadian
 	Degree Angle = 17453293 * NanoRadian
+
+	maxAngle Angle = 9223372036854775807
+	minAngle Angle = -9223372036854775807
 )
 
 // Distance is a measurement of length stored as an int64 nano metre.
@@ -138,7 +224,6 @@ func (d *Distance) Set(s string) error {
 					return errors.New("minimum value is " + minDistance.String())
 				}
 			}
-
 			return err
 		}
 	}
@@ -427,6 +512,91 @@ func (f Force) String() string {
 	return nanoAsString(int64(f)) + "N"
 }
 
+// Set sets the Force to the value represented by s. Units are to
+// be provided in "N", or "lbf" (Pound force) with an optional SI prefix: "p",
+// "n", "u", "µ", "m", "k", "M", "G" or "T".
+func (f *Force) Set(s string) error {
+	d, n, err := atod(s)
+	if err != nil {
+		if e, ok := err.(*parseError); ok {
+			switch e.err {
+			case errNotANumber:
+				if found, _ := containsUnitString(s[n:], "N", "lbf"); found != "" {
+					return errors.New("does not contain number")
+				}
+				return errors.New("does not contain number or unit \"N\" or \"lbf\"")
+			case errOverflowsInt64:
+				return errors.New("maximum value is " + maxForce.String())
+			case errOverflowsInt64Negative:
+				return errors.New("minimum value is " + minForce.String())
+			}
+		}
+		return err
+	}
+
+	var si prefix
+	if n != len(s) {
+		r, rsize := utf8.DecodeRuneInString(s[n:])
+		if r <= 1 || rsize == 0 {
+			return &parseError{
+				err: errors.New("unexpected end of string"),
+			}
+		}
+		var siSize int
+		si, siSize = parseSIPrefix(r)
+
+		n += siSize
+	}
+
+	switch s[n:] {
+	case "lbf":
+		poundForce := decimal{
+			base: 4448221615261,
+			exp:  -3,
+			neg:  false,
+		}
+		lbf, loss := decimalMul(d, poundForce)
+		if loss > 9 {
+			return errors.New("converting to nano Newtons would overflow, consider using nN for maximum precision")
+		}
+		v, err := dtoi(lbf, int(si))
+		if err != nil {
+			if e, ok := err.(*parseError); ok {
+				switch e.err {
+				case errOverflowsInt64:
+					return errors.New("maximum value is 2.073496519Glbf")
+				case errOverflowsInt64Negative:
+					return errors.New("minimum value is -2.073496519Glbf")
+				}
+			}
+			return err
+		}
+		*f = (Force)(v)
+	case "N":
+		v, err := dtoi(d, int(si-nano))
+		if err != nil {
+			if e, ok := err.(*parseError); ok {
+				switch e.err {
+				case errOverflowsInt64:
+					return errors.New("maximum value is " + maxForce.String())
+				case errOverflowsInt64Negative:
+					return errors.New("minimum value is " + minForce.String())
+				}
+			}
+			return err
+		}
+		*f = (Force)(v)
+	case "":
+		return noUnits("N")
+	default:
+		if found, extra := containsUnitString(s[n:], "N"); found != "" {
+			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
+		}
+		return incorrectUnit(s[n:], "physic.Force")
+	}
+	return nil
+}
+
 const (
 	// Newton is kg⋅m/s².
 	NanoNewton  Force = 1
@@ -442,7 +612,10 @@ const (
 	// Conversion between Newton and imperial units.
 	// Pound is both a unit of mass and weight (force). The suffix Force is added
 	// to disambiguate the measurement it represents.
-	PoundForce Force = 4448221615261 * NanoNewton
+	PoundForce Force = 4448221615 * NanoNewton
+
+	maxForce Force = (1 << 63) - 1
+	minForce Force = -((1 << 63) - 1)
 )
 
 // Frequency is a measurement of cycle per second, stored as an int32 micro
@@ -1308,9 +1481,9 @@ var powerOf10 = [...]uint64{
 }
 
 // Maximum value for a int64.
-const maxInt64 = (1<<63 - 1)
+const maxInt64 = (1 << 63) - 1
 
-var maxUint64Str = "9223372036854775807"
+var maxInt64Str = "9223372036854775807"
 
 var (
 	errOverflowsInt64         = errors.New("exceeds maximum")
@@ -1336,19 +1509,35 @@ func dtoi(d decimal, scale int) (int64, error) {
 		return 0, errExponentOverflow
 	}
 	// Divide is = 10^(-mag)
-	if d.exp+scale < 0 {
+	switch {
+	case d.exp+scale < 0:
 		u = (u + powerOf10[mag]/2) / powerOf10[mag]
-	} else {
-		check := u * powerOf10[mag]
-		if check/powerOf10[mag] != u || check > maxInt64 {
+		break
+	case mag == 0:
+		if u > maxInt64 {
 			if d.neg {
 				return -maxInt64, &parseError{
-					msg: "-" + maxUint64Str,
+					msg: "-" + maxInt64Str,
 					err: errOverflowsInt64Negative,
 				}
 			}
 			return maxInt64, &parseError{
-				msg: maxUint64Str,
+				msg: maxInt64Str,
+				err: errOverflowsInt64,
+			}
+		}
+		break
+	default:
+		check := u * powerOf10[mag]
+		if check/powerOf10[mag] != u || check > maxInt64 {
+			if d.neg {
+				return -maxInt64, &parseError{
+					msg: "-" + maxInt64Str,
+					err: errOverflowsInt64Negative,
+				}
+			}
+			return maxInt64, &parseError{
+				msg: maxInt64Str,
 				err: errOverflowsInt64,
 			}
 		}
@@ -1490,12 +1679,12 @@ func atod(s string) (decimal, int, error) {
 			if check < d.base || check > maxInt64 {
 				if d.neg {
 					return decimal{}, 0, &parseError{
-						msg: "-" + maxUint64Str,
+						msg: "-" + maxInt64Str,
 						err: errOverflowsInt64Negative,
 					}
 				}
 				return decimal{}, 0, &parseError{
-					msg: maxUint64Str,
+					msg: maxInt64Str,
 					err: errOverflowsInt64,
 				}
 			}
@@ -1549,6 +1738,60 @@ func valueOfUnitString(s string, base prefix) (int64, int, error) {
 		return v, 0, err
 	}
 	return v, n, nil
+}
+
+// decimalMul calcululates the product of two decimals; a and b, keeping the
+// base less than maxInt64. Returns the number of times a figure was trimmed
+// from either base coefficients. This function is to aid in the multiplication
+// of numbers whose product have more than 18 significant figures. The minimum
+// accuracy of the end product that has been truncated is 9 significant figures.
+func decimalMul(a, b decimal) (decimal, uint) {
+	switch {
+	case a.base == 0 || b.base == 0:
+		// Anything multiplied by zero is zero. Special case to set exponent to
+		// zero.
+		return decimal{}, 0
+	case a.base > (1<<64)-6 || b.base > (1<<64)-6:
+		// In normal usage base will never be greater than 1<<63. However since
+		// base could be large as (1<<64 -1) this is to prevent an infinite loop
+		// when ((1<<64)-6)+5 overflows in the truncate least significant digit
+		// loop during rounding without adding addition bounds checking at that
+		// point.
+		break
+	default:
+		exp := a.exp + b.exp
+		neg := a.neg != b.neg
+		ab := a.base
+		bb := b.base
+		for i := uint(0); i < 21; i++ {
+			if ab <= 1 || bb <= 1 {
+				// This will always fit inside uint64.
+				return decimal{ab * bb, exp, neg}, i
+			}
+			if base := ab * bb; (base/ab == bb) && base < maxInt64 {
+				// Return if product did not overflow or exceed int64.
+				return decimal{base, exp, neg}, i
+			}
+			// Truncate least significant digit in product.
+			if bb > ab {
+				bb = (bb + 5) / 10
+				// Compact trailing zeros if any.
+				for bb > 0 && bb%10 == 0 {
+					bb /= 10
+					exp++
+				}
+			} else {
+				ab = (ab + 5) / 10
+				// Compact trailing zeros if any.
+				for ab > 0 && ab%10 == 0 {
+					ab /= 10
+					exp++
+				}
+			}
+			exp++
+		}
+	}
+	return decimal{}, 21
 }
 
 // For units with short and or plural variations order units with longest first.

@@ -35,8 +35,8 @@ func TestAngle_String(t *testing.T) {
 		{-1000 * Degree, "-1000°"},
 		{100000000000 * Degree, "100000000000°"},
 		{-100000000000 * Degree, "-100000000000°"},
-		{(9223372036854775807) * NanoRadian, "528460276055°"},
-		{(-9223372036854775807) * NanoRadian, "-528460276055°"},
+		{maxAngle, "528460276055°"},
+		{minAngle, "-528460276055°"},
 		{Pi, "180.0°"},
 		{Theta, "360.0°"},
 		{Radian, "57.296°"},
@@ -693,6 +693,172 @@ func TestDoti(t *testing.T) {
 	}
 }
 
+func Test_decimalMulScale(t *testing.T) {
+	const (
+		negative = true
+		positive = false
+	)
+	succeeds := []struct {
+		loss   uint
+		a, b   decimal
+		expect decimal
+	}{
+		{
+			0,
+			decimal{123, 0, positive},
+			decimal{123, 0, positive},
+			decimal{15129, 0, positive},
+		},
+		{
+			0,
+			decimal{123, 0, negative},
+			decimal{123, 0, positive},
+			decimal{15129, 0, negative},
+		},
+		{
+			0,
+			decimal{123, 0, positive},
+			decimal{123, 0, negative},
+			decimal{15129, 0, negative},
+		},
+		{
+			0,
+			decimal{123, 0, negative},
+			decimal{123, 0, negative},
+			decimal{15129, 0, positive},
+		},
+		{
+			0,
+			decimal{1000000001, 0, positive},
+			decimal{1000000001, 0, positive},
+			decimal{1000000002000000001, 0, positive},
+		},
+		{
+			1,
+			decimal{10000000001, 0, positive},
+			decimal{10000000001, 0, positive},
+			decimal{10000000001, 10, positive},
+		},
+		{
+			2,
+			decimal{10000000011, 0, positive},
+			decimal{10000000001, 0, positive},
+			decimal{1000000001, 11, positive},
+		},
+		{
+			2,
+			decimal{10000000011, 0, positive},
+			decimal{10000000011, 0, positive},
+			decimal{1000000002000000001, 2, positive},
+		},
+		{
+			4,
+			decimal{100000000111, 0, positive},
+			decimal{100000000111, 0, positive},
+			decimal{1000000002000000001, 4, positive},
+		},
+		{
+			6,
+			decimal{1000000001111, 0, positive},
+			decimal{1000000001111, 0, positive},
+			decimal{1000000002000000001, 6, positive},
+		},
+		{
+			8,
+			decimal{10000000011111, 0, positive},
+			decimal{10000000011111, 0, positive},
+			decimal{1000000002000000001, 8, positive},
+		},
+		{
+			10,
+			decimal{100000000111111, 0, positive},
+			decimal{100000000111111, 0, positive},
+			decimal{1000000002000000001, 10, positive},
+		},
+		{
+			12,
+			decimal{1000000001111111, 0, positive},
+			decimal{1000000001111111, 0, positive},
+			decimal{1000000002000000001, 12, positive},
+		},
+		{
+			14,
+			decimal{10000000011111111, 0, positive},
+			decimal{10000000011111111, 0, positive},
+			decimal{1000000002000000001, 14, positive},
+		},
+		{
+			16,
+			decimal{100000000111111111, 0, positive},
+			decimal{100000000111111111, 0, positive},
+			decimal{1000000002000000001, 16, positive},
+		},
+		{
+			18,
+			decimal{1000000001111111111, 0, positive},
+			decimal{1000000001111111111, 0, positive},
+			decimal{1000000002000000001, 18, positive},
+		},
+		{
+			20,
+			decimal{10000000011111111111, 0, positive},
+			decimal{10000000011111111111, 0, positive},
+			decimal{1000000002000000001, 20, positive},
+		},
+		{
+			19,
+			decimal{maxInt64, 0, positive},
+			decimal{maxInt64, 0, positive},
+			decimal{8507059176058364548, 19, positive},
+		},
+		{
+			18,
+			decimal{(1 << 64) - 6, 0, positive},
+			decimal{(1 << 64) - 6, 0, positive},
+			decimal{3402823667840801649, 20, positive},
+		},
+		{
+			0,
+			decimal{(1 << 64) - 6, 100, positive},
+			decimal{0, 0, positive},
+			decimal{0, 0, positive},
+		},
+	}
+
+	fails := []struct {
+		loss   uint
+		a, b   decimal
+		expect decimal
+	}{
+		{
+			21,
+			decimal{(1 << 64) - 5, 0, positive},
+			decimal{(1 << 64) - 5, 0, positive},
+			decimal{},
+		},
+	}
+
+	for _, tt := range succeeds {
+		got, loss := decimalMul(tt.a, tt.b)
+		if loss != tt.loss {
+			t.Errorf("decimalMulScale(%v,%v) expected %d loss but got %d", tt.a, tt.b, tt.loss, loss)
+		}
+		if got != tt.expect {
+			t.Errorf("decimalMulScale(%v,%v) got: %v expected: %v", tt.a, tt.b, got, tt.expect)
+		}
+	}
+
+	for _, tt := range fails {
+		got, loss := decimalMul(tt.a, tt.b)
+		if loss != tt.loss {
+			t.Errorf("decimalMulScale(%v,%v) expected %d loss but got %d", tt.a, tt.b, tt.loss, loss)
+		}
+		if got != tt.expect {
+			t.Errorf("decimalMulScale(%v,%v) got: %v expected: %v", tt.a, tt.b, got, tt.expect)
+		}
+	}
+}
+
 func TestPrefix(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -740,7 +906,7 @@ func TestParseError(t *testing.T) {
 }
 
 func TestMaxInt64(t *testing.T) {
-	if strconv.FormatUint(maxInt64, 10) != maxUint64Str {
+	if strconv.FormatUint(maxInt64, 10) != maxInt64Str {
 		t.Fatal("unexpected text representation of max")
 	}
 }
@@ -853,6 +1019,162 @@ func TestValueOfUnitString(t *testing.T) {
 
 		if err == nil {
 			t.Errorf("valueOfUnitString(%s,%d) expected an error", tt.in, tt.prefix)
+		}
+	}
+}
+
+func TestAngleSet(t *testing.T) {
+	succeeds := []struct {
+		in       string
+		expected Angle
+	}{
+		{"1nrad", NanoRadian},
+		{"10nrad", 10 * NanoRadian},
+		{"100nrad", 100 * NanoRadian},
+		{"1urad", 1 * MicroRadian},
+		{"10urad", 10 * MicroRadian},
+		{"100urad", 100 * MicroRadian},
+		{"1µrad", 1 * MicroRadian},
+		{"10µrad", 10 * MicroRadian},
+		{"100µrad", 100 * MicroRadian},
+		{"1mrad", 1 * MilliRadian},
+		{"10mrad", 10 * MilliRadian},
+		{"100mrad", 100 * MilliRadian},
+		{"1rad", 1 * Radian},
+		{"10rad", 10 * Radian},
+		{"100rad", 100 * Radian},
+		{"1krad", 1000 * Radian},
+		{"10krad", 10000 * Radian},
+		{"100krad", 100000 * Radian},
+		{"1Mrad", 1000000 * Radian},
+		{"10Mrad", 10000000 * Radian},
+		{"100Mrad", 100000000 * Radian},
+		{"1Grad", 1000000000 * Radian},
+		{"12.345rad", 12345 * MilliRadian},
+		{"-12.345rad", -12345 * MilliRadian},
+		{fmt.Sprintf("%dnrad", maxAngle), maxAngle},
+		{"1deg", 1 * Degree},
+		{"1Mdeg", 1000000 * Degree},
+		{"100Gdeg", 100000000000 * Degree},
+		{"500Gdeg", 500000000000 * Degree},
+		{maxAngle.String(), 528460276055 * Degree},
+		{minAngle.String(), -528460276055 * Degree},
+		{"1mdeg", Degree / 1000},
+		{"1udeg", Degree / 1000000},
+	}
+
+	fails := []struct {
+		in  string
+		err string
+	}{
+		{
+			"10000000000Tdeg",
+			"exponent exceeds int64",
+		},
+		{
+			"10Trad",
+			"exponent exceeds int64",
+		},
+		{
+			"10Erad",
+			"contains unknown unit prefix \"E\". valid prefixes for \"Rad\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10Exarad",
+			"contains unknown unit prefix \"Exa\". valid prefixes for \"Rad\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10eRadianE",
+			"contains unknown unit prefix \"e\". valid prefixes for \"Rad\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10",
+			"no units provided, need Rad",
+		},
+		{
+			fmt.Sprintf("%dnrad", uint64(maxAngle)+1),
+			"maximum value is 528460276055°",
+		},
+		{
+			fmt.Sprintf("-%dnrad", uint64(maxAngle)+1),
+			"minimum value is -528460276055°",
+		},
+		{
+			"528460276056deg",
+			"maximum value is 528460276055°",
+		},
+		{
+			"-528460276056deg",
+			"minimum value is -528460276055°",
+		},
+		{
+			"-9.223372036854775808Grad",
+			"minimum value is -528460276055°",
+		},
+		{
+			"9.223372036854775808Grad",
+			"maximum value is 528460276055°",
+		},
+		{
+			"9.224Grad",
+			"maximum value is 528460276055°",
+		},
+		{
+			"-9.224Grad",
+			"minimum value is -528460276055°",
+		},
+		{
+			"1cup",
+			"\"cup\" is not a valid unit for physic.Angle",
+		},
+		{
+			"rad",
+			"does not contain number",
+		},
+		{
+			"RPM",
+			"does not contain number or unit \"Rad\"",
+		},
+		{
+			"++1rad",
+			"multiple plus symbols ++1rad",
+		},
+		{
+			"--1rad",
+			"multiple minus symbols --1rad",
+		},
+		{
+			"+-1rad",
+			"can't contain both plus and minus symbols +-1rad",
+		},
+		{
+			"1.1.1.1rad",
+			"multiple decimal points 1.1.1.1rad",
+		},
+		{
+			string([]byte{0x33, 0x01}),
+			"unexpected end of string",
+		},
+	}
+
+	for _, tt := range succeeds {
+		var got Angle
+		if err := got.Set(tt.in); err != nil {
+			t.Errorf("Angle.Set(%s) got unexpected error: %v", tt.in, err)
+		}
+		if got != tt.expected {
+			t.Errorf("Angle.Set(%s) expected: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+		}
+	}
+
+	for _, tt := range fails {
+		var got Angle
+		if err := got.Set(tt.in); err != nil {
+			if err.Error() != tt.err {
+				t.Errorf("Angle.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+			}
+		} else {
+			t.Errorf("Angle.Set(%s) expected error: %s but got none", tt.in, tt.err)
 		}
 	}
 }
@@ -1434,6 +1756,182 @@ func TestElectricResistance_Set(t *testing.T) {
 		var got ElectricResistance
 		if err := got.Set(tt.in); err.Error() != tt.err {
 			t.Errorf("ElectricResistance.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+		}
+	}
+}
+
+func TestForceSet(t *testing.T) {
+	succeeds := []struct {
+		in       string
+		expected Force
+	}{
+		{"1nN", 1 * NanoNewton},
+		{"10nN", 10 * NanoNewton},
+		{"100nN", 100 * NanoNewton},
+		{"1uN", 1 * MicroNewton},
+		{"10uN", 10 * MicroNewton},
+		{"100uN", 100 * MicroNewton},
+		{"1µN", 1 * MicroNewton},
+		{"10µN", 10 * MicroNewton},
+		{"100µN", 100 * MicroNewton},
+		{"1mN", 1 * MilliNewton},
+		{"10mN", 10 * MilliNewton},
+		{"100mN", 100 * MilliNewton},
+		{"1N", 1 * Newton},
+		{"10N", 10 * Newton},
+		{"100N", 100 * Newton},
+		{"1kN", 1 * KiloNewton},
+		{"10kN", 10 * KiloNewton},
+		{"100kN", 100 * KiloNewton},
+		{"1MN", 1 * MegaNewton},
+		{"10MN", 10 * MegaNewton},
+		{"100MN", 100 * MegaNewton},
+		{"1GN", 1 * GigaNewton},
+		{"12.345N", 12345 * MilliNewton},
+		{"-12.345N", -12345 * MilliNewton},
+		{"9.223372036854775807GN", 9223372036854775807 * NanoNewton},
+		{"-9.223372036854775807GN", -9223372036854775807 * NanoNewton},
+		{"1MN", 1 * MegaNewton},
+		{"1nN", 1 * NanoNewton},
+		{"1mlbf", 4448222 * NanoNewton},
+		{"1lbf", 1 * PoundForce},
+		{"1lbf", 4448221615 * NanoNewton},
+		{"20lbf", 88964432305 * NanoNewton},
+		{"1klbf", 4448221615261 * NanoNewton},
+		{"1Mlbf", 4448221615261000 * NanoNewton},
+		{"2Mlbf", 8896443230522000 * NanoNewton},
+		{"2073496519lbf", 9223372034443058185 * NanoNewton},
+		{"1.0000000000101lbf", 4448221615 * NanoNewton},
+	}
+
+	fails := []struct {
+		in  string
+		err string
+	}{
+		{
+			"2073496520lbf",
+			"maximum value is 2.073496519Glbf",
+		},
+		{
+			"-2073496520lbf",
+			"minimum value is -2.073496519Glbf",
+		},
+		{
+			"1234567.890123456789lbf",
+			"converting to nano Newtons would overflow, consider using nN for maximum precision",
+		},
+		{
+			"100000000000Tlbf",
+			"exponent exceeds int64",
+		},
+		{
+			"10TN",
+			"exponent exceeds int64",
+		},
+		{
+			"10EN",
+			"contains unknown unit prefix \"E\". valid prefixes for \"N\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10ExaN",
+			"contains unknown unit prefix \"Exa\". valid prefixes for \"N\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10eNewtonE",
+			"contains unknown unit prefix \"e\". valid prefixes for \"N\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10",
+			"no units provided, need N",
+		},
+		{
+			"9223372036854775808",
+			"maximum value is 9.223GN",
+		},
+		{
+			"-9223372036854775808",
+			"minimum value is -9.223GN",
+		},
+		{
+			"9.223372036854775808GN",
+			"maximum value is 9.223GN",
+		},
+		{
+			"-9.223372036854775808GN",
+			"minimum value is -9.223GN",
+		},
+		{
+			"9.223372036854775808GN",
+			"maximum value is 9.223GN",
+		},
+		{
+			"-9.223372036854775808GN",
+			"minimum value is -9.223GN",
+		},
+		{
+			"9.3GN",
+			"maximum value is 9.223GN",
+		},
+		{
+			"-9.3GN",
+			"minimum value is -9.223GN",
+		},
+		{
+			"1random",
+			"contains unknown unit prefix \"ra\". valid prefixes for \"N\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"1cup",
+			"\"cup\" is not a valid unit for physic.Force",
+		},
+		{
+			"N",
+			"does not contain number",
+		},
+		{
+			"RPM",
+			"does not contain number or unit \"N\" or \"lbf\"",
+		},
+		{
+			"++1N",
+			"multiple plus symbols ++1N",
+		},
+		{
+			"--1N",
+			"multiple minus symbols --1N",
+		},
+		{
+			"+-1N",
+			"can't contain both plus and minus symbols +-1N",
+		},
+		{
+			"1.1.1.1N",
+			"multiple decimal points 1.1.1.1N",
+		},
+		{
+			string([]byte{0x33, 0x01}),
+			"unexpected end of string",
+		},
+	}
+
+	for _, tt := range succeeds {
+		var got Force
+		if err := got.Set(tt.in); err != nil {
+			t.Errorf("Force.Set(%s) got unexpected error: %v", tt.in, err)
+		}
+		if got != tt.expected {
+			t.Errorf("Force.Set(%s) expected: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+		}
+	}
+
+	for _, tt := range fails {
+		var got Force
+		if err := got.Set(tt.in); err != nil {
+			if err.Error() != tt.err {
+				t.Errorf("Force.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+			}
+		} else {
+			t.Errorf("Force.Set(%s) expected error: %s but got none", tt.in, tt.err)
 		}
 	}
 }
@@ -2424,8 +2922,7 @@ func BenchmarkDistanceSet(b *testing.B) {
 	var err error
 	var d Distance
 	for i := 0; i < b.N; i++ {
-		err = d.Set("1ft")
-		if err != nil {
+		if err = d.Set("1ft"); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -2437,11 +2934,82 @@ func BenchmarkElectricCurrentSet(b *testing.B) {
 	var err error
 	var e ElectricCurrent
 	for i := 0; i < b.N; i++ {
-		err = e.Set("1A")
-		if err != nil {
+		if err = e.Set("1A"); err != nil {
 			b.Fatal(err)
 		}
 	}
 	b.StopTimer()
 	_ = fmt.Sprintf("%d", e)
+}
+
+func BenchmarkForceSetMetric(b *testing.B) {
+	var err error
+	var f Force
+	for i := 0; i < b.N; i++ {
+		if err = f.Set("123N"); err != nil {
+			b.Fatal(err)
+		}
+	}
+	b.StopTimer()
+	_ = fmt.Sprintf("%d", f)
+}
+
+func BenchmarkForceSetImperial(b *testing.B) {
+	var err error
+	var f Force
+	for i := 0; i < b.N; i++ {
+		if err = f.Set("1.23Mlbf"); err != nil {
+			b.Fatal(err)
+		}
+	}
+	b.StopTimer()
+	_ = fmt.Sprintf("%d", f)
+}
+
+func BenchmarkForceSetImperialWorstCase(b *testing.B) {
+	var err error
+	var f Force
+	for i := 0; i < b.N; i++ {
+		if err = f.Set("1.0000000000101lbf"); err != nil {
+			b.Fatal(err)
+		}
+	}
+	b.StopTimer()
+	_ = fmt.Sprintf("%d", f)
+}
+
+func BenchmarkAngleSetRadian(b *testing.B) {
+	var err error
+	var a Angle
+	for i := 0; i < b.N; i++ {
+		if err = a.Set("1rad"); err != nil {
+			b.Fatal(err)
+		}
+	}
+	b.StopTimer()
+	_ = fmt.Sprintf("%d", a)
+}
+
+func BenchmarkAngleSet1Degree(b *testing.B) {
+	var err error
+	var a Angle
+	for i := 0; i < b.N; i++ {
+		if err = a.Set("1deg"); err != nil {
+			b.Fatal(err)
+		}
+	}
+	b.StopTimer()
+	_ = fmt.Sprintf("%d", a)
+}
+
+func BenchmarkAngleSet2Degree(b *testing.B) {
+	var err error
+	var a Angle
+	for i := 0; i < b.N; i++ {
+		if err = a.Set("2deg"); err != nil {
+			b.Fatal(err)
+		}
+	}
+	b.StopTimer()
+	_ = fmt.Sprintf("%d", a)
 }
