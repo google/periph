@@ -143,7 +143,7 @@ func mainImpl() error {
 	if _, err := host.Init(); err != nil {
 		return err
 	}
-	var disp nrzled.Strip
+	var disp *nrzled.Dev
 	{
 		var err error
 		if spiID != nil {
@@ -158,6 +158,8 @@ func mainImpl() error {
 			}
 			o := nrzled.Opts{
 				NumPixels: *numPixels,
+				Channels:  *channels,
+				Freq:      2500 * physic.KiloHertz,
 			}
 			disp, err = nrzled.NewSPI(s, &o)
 			if err != nil {
@@ -179,7 +181,7 @@ func mainImpl() error {
 			opts.NumPixels = *numPixels
 			opts.Freq = physic.Frequency(*hz) * physic.Hertz
 			opts.Channels = *channels
-			if disp, err = nrzled.New(s, &opts); err != nil {
+			if disp, err = nrzled.NewStream(s, &opts); err != nil {
 				return err
 			}
 		}

@@ -15,7 +15,7 @@ import (
 	"periph.io/x/periph/conn/physic"
 )
 
-func TestNew_3(t *testing.T) {
+func TestStream_NewBits_3(t *testing.T) {
 	g := gpiostreamtest.PinOutPlayback{
 		N: "Yo",
 		Ops: []gpiostream.Stream{
@@ -27,6 +27,7 @@ func TestNew_3(t *testing.T) {
 					0x92, 0x49, 0x24, 0x92, 0x49, 0x24, 0x92, 0x49, 0x24, 0x92, 0x49, 0x24, 0x92, 0x49, 0x24, 0x92,
 					0x49, 0x24, 0x92, 0x49, 0x24, 0x92, 0x49, 0x24, 0x92, 0x49, 0x24, 0x92, 0x49, 0x24, 0x92, 0x49,
 					0x24, 0x92, 0x49, 0x24, 0x92, 0x49, 0x24, 0x92, 0x49, 0x24,
+					0x00, 0x00, 0x00,
 				},
 				Freq: 800 * physic.KiloHertz,
 				LSBF: false,
@@ -35,7 +36,7 @@ func TestNew_3(t *testing.T) {
 	}
 	opts := DefaultOpts
 	opts.NumPixels = 10
-	d, err := New(&g, &opts)
+	d, err := NewStream(&g, &opts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,21 +57,21 @@ func TestNew_3(t *testing.T) {
 	}
 }
 
-func TestNew_fail(t *testing.T) {
+func TestStream_New_fail(t *testing.T) {
 	g := gpiostreamtest.PinOutPlayback{}
 	opts := DefaultOpts
 	opts.Freq = 0
-	if _, err := New(&g, &opts); err == nil {
+	if _, err := NewStream(&g, &opts); err == nil {
 		t.Fatal("hz == 0")
 	}
 	opts = DefaultOpts
 	opts.Channels = 2
-	if _, err := New(&g, &opts); err == nil {
+	if _, err := NewStream(&g, &opts); err == nil {
 		t.Fatal("channels == 2")
 	}
 }
 
-func TestDraw_NRGBA_3(t *testing.T) {
+func TestStream_Draw_NRGBA_3(t *testing.T) {
 	g := gpiostreamtest.PinOutPlayback{
 		Ops: []gpiostream.Stream{
 			&gpiostream.BitStream{
@@ -81,6 +82,7 @@ func TestDraw_NRGBA_3(t *testing.T) {
 					0xdb, 0x6d, 0xb6, 0xdb, 0x6d, 0xb6, 0xdb, 0x6d, 0xb6, 0xdb, 0x6d, 0xb6, 0x92, 0x49, 0x24, 0xdb,
 					0x6d, 0xb6, 0xdb, 0x6d, 0xb6, 0xdb, 0x6d, 0xb6, 0xdb, 0x6d, 0xb6, 0xdb, 0x6d, 0xb6, 0xdb, 0x6d,
 					0xb6, 0x92, 0x49, 0xb6, 0x92, 0x49, 0xb4, 0x92, 0x4d, 0x24,
+					0x00, 0x00, 0x00,
 				},
 				Freq: 800 * physic.KiloHertz,
 				LSBF: false,
@@ -89,7 +91,10 @@ func TestDraw_NRGBA_3(t *testing.T) {
 	}
 	opts := DefaultOpts
 	opts.NumPixels = 10
-	d, _ := New(&g, &opts)
+	d, err := NewStream(&g, &opts)
+	if err != nil {
+		t.Fatal(err)
+	}
 	img := image.NewNRGBA(d.Bounds())
 	copy(img.Pix, getRGBW())
 	if err := d.Draw(d.Bounds(), img, image.Point{}); err != nil {
@@ -100,7 +105,7 @@ func TestDraw_NRGBA_3(t *testing.T) {
 	}
 }
 
-func TestDraw_RGBA_3(t *testing.T) {
+func TestStream_Draw_RGBA_3(t *testing.T) {
 	g := gpiostreamtest.PinOutPlayback{
 		Ops: []gpiostream.Stream{
 			&gpiostream.BitStream{
@@ -111,6 +116,7 @@ func TestDraw_RGBA_3(t *testing.T) {
 					0xdb, 0x6d, 0xb6, 0xdb, 0x6d, 0xb6, 0xdb, 0x6d, 0xb6, 0xdb, 0x6d, 0xb6, 0x92, 0x49, 0x24, 0xdb,
 					0x6d, 0xb6, 0xdb, 0x6d, 0xb6, 0xdb, 0x6d, 0xb6, 0xdb, 0x6d, 0xa6, 0xdb, 0x6d, 0xa6, 0xdb, 0x6d,
 					0xa6, 0xda, 0x49, 0xb6, 0xd3, 0x4d, 0x34, 0xdb, 0x49, 0x36,
+					0x00, 0x00, 0x00,
 				},
 				Freq: 800 * physic.KiloHertz,
 				LSBF: false,
@@ -119,7 +125,10 @@ func TestDraw_RGBA_3(t *testing.T) {
 	}
 	opts := DefaultOpts
 	opts.NumPixels = 10
-	d, _ := New(&g, &opts)
+	d, err := NewStream(&g, &opts)
+	if err != nil {
+		t.Fatal(err)
+	}
 	img := image.NewRGBA(d.Bounds())
 	copy(img.Pix, getRGBW())
 	if err := d.Draw(d.Bounds(), img, image.Point{}); err != nil {
@@ -130,7 +139,7 @@ func TestDraw_RGBA_3(t *testing.T) {
 	}
 }
 
-func TestDraw_RGBA_4(t *testing.T) {
+func TestStream_Draw_RGBA_4(t *testing.T) {
 	g := gpiostreamtest.PinOutPlayback{
 		Ops: []gpiostream.Stream{
 			&gpiostream.BitStream{
@@ -143,6 +152,7 @@ func TestDraw_RGBA_4(t *testing.T) {
 					0x24, 0xdb, 0x6d, 0xb6, 0xdb, 0x6d, 0xb6, 0xdb, 0x6d, 0xb6, 0xdb, 0x6d, 0xb6, 0xdb, 0x6d, 0xb6,
 					0xdb, 0x6d, 0xa6, 0xdb, 0x6d, 0xa6, 0xdb, 0x6d, 0xa6, 0xd2, 0x49, 0x24, 0xda, 0x49, 0xb6, 0xd3,
 					0x4d, 0x34, 0xdb, 0x49, 0x36, 0x92, 0x4d, 0x26,
+					0x00, 0x00, 0x00,
 				},
 				Freq: 800 * physic.KiloHertz,
 				LSBF: false,
@@ -152,7 +162,10 @@ func TestDraw_RGBA_4(t *testing.T) {
 	opts := DefaultOpts
 	opts.NumPixels = 10
 	opts.Channels = 4
-	d, _ := New(&g, &opts)
+	d, err := NewStream(&g, &opts)
+	if err != nil {
+		t.Fatal(err)
+	}
 	img := image.NewRGBA(d.Bounds())
 	copy(img.Pix, getRGBW())
 	if err := d.Draw(d.Bounds(), img, image.Point{}); err != nil {
@@ -163,7 +176,7 @@ func TestDraw_RGBA_4(t *testing.T) {
 	}
 }
 
-func TestDraw_Limits(t *testing.T) {
+func TestStream_Draw_Limits(t *testing.T) {
 	g := gpiostreamtest.PinOutPlayback{
 		Ops: []gpiostream.Stream{
 			&gpiostream.BitStream{
@@ -174,6 +187,7 @@ func TestDraw_Limits(t *testing.T) {
 					0xdb, 0x6d, 0xb6, 0xdb, 0x6d, 0xb6, 0xdb, 0x6d, 0xb6, 0xdb, 0x6d, 0xb6, 0x92, 0x49, 0x24, 0xdb,
 					0x6d, 0xb6, 0xdb, 0x6d, 0xb6, 0xdb, 0x6d, 0xb6, 0xdb, 0x6d, 0xa6, 0xdb, 0x6d, 0xa6, 0xdb, 0x6d,
 					0xa6, 0xda, 0x49, 0xb6, 0xd3, 0x4d, 0x34, 0xdb, 0x49, 0x36,
+					0x00, 0x00, 0x00,
 				},
 				Freq: 800 * physic.KiloHertz,
 				LSBF: false,
@@ -182,7 +196,10 @@ func TestDraw_Limits(t *testing.T) {
 	}
 	opts := DefaultOpts
 	opts.NumPixels = 10
-	d, _ := New(&g, &opts)
+	d, err := NewStream(&g, &opts)
+	if err != nil {
+		t.Fatal(err)
+	}
 	img := image.NewRGBA(image.Rect(-1, -1, 20, 20))
 	copy(img.Pix, getRGBW())
 	if err := d.Draw(d.Bounds(), img, image.Point{}); err != nil {
@@ -193,7 +210,7 @@ func TestDraw_Limits(t *testing.T) {
 	}
 }
 
-func TestWrite_3(t *testing.T) {
+func TestStream_Write_3(t *testing.T) {
 	g := gpiostreamtest.PinOutPlayback{
 		Ops: []gpiostream.Stream{
 			&gpiostream.BitStream{
@@ -204,6 +221,7 @@ func TestWrite_3(t *testing.T) {
 					0xdb, 0x6d, 0xb6, 0xdb, 0x6d, 0xb6, 0xdb, 0x6d, 0xb6, 0xdb, 0x6d, 0xb6, 0x92, 0x49, 0x24, 0xdb,
 					0x6d, 0xb6, 0xdb, 0x6d, 0xb6, 0xdb, 0x6d, 0xb6, 0x92, 0x49, 0xa4, 0x92, 0x49, 0x36, 0x92, 0x49,
 					0xa6, 0x92, 0x49, 0xb6, 0x92, 0x49, 0xb4, 0x92, 0x4d, 0x24,
+					0x00, 0x00, 0x00,
 				},
 				Freq: 800 * physic.KiloHertz,
 				LSBF: false,
@@ -212,7 +230,10 @@ func TestWrite_3(t *testing.T) {
 	}
 	opts := DefaultOpts
 	opts.NumPixels = 10
-	d, _ := New(&g, &opts)
+	d, err := NewStream(&g, &opts)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if n, err := d.Write(getRGB()); n != 30 || err != nil {
 		t.Fatal(n, err)
 	}
@@ -221,11 +242,14 @@ func TestWrite_3(t *testing.T) {
 	}
 }
 
-func TestWrite_fail(t *testing.T) {
+func TestStream_Write_fail(t *testing.T) {
 	g := gpiostreamtest.PinOutPlayback{DontPanic: true}
 	opts := DefaultOpts
 	opts.NumPixels = 10
-	d, _ := New(&g, &opts)
+	d, err := NewStream(&g, &opts)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if n, err := d.Write([]byte{1}); n != 0 || err == nil {
 		t.Fatal(n, err)
 	}
@@ -237,11 +261,14 @@ func TestWrite_fail(t *testing.T) {
 	}
 }
 
-func TestHalt_fail(t *testing.T) {
+func TestStream_Halt_fail(t *testing.T) {
 	g := gpiostreamtest.PinOutPlayback{DontPanic: true}
 	opts := DefaultOpts
 	opts.NumPixels = 10
-	d, _ := New(&g, &opts)
+	d, err := NewStream(&g, &opts)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if d.Halt() == nil {
 		t.Fatal("expected failure")
 	}
@@ -250,7 +277,7 @@ func TestHalt_fail(t *testing.T) {
 	}
 }
 
-func TestRaster_3_3(t *testing.T) {
+func TestStream_Raster_3_3(t *testing.T) {
 	data := []byte{
 		// 24 bits per pixel in RGB
 		0, 1, 2,
@@ -262,13 +289,13 @@ func TestRaster_3_3(t *testing.T) {
 		0xdb, 0x6d, 0xb4, 0xdb, 0x6d, 0xa6, 0xdb, 0x6d, 0xb6,
 	}
 	actual := make([]byte, len(expected))
-	raster(actual, data, 3, 3)
+	rasterBits(actual, data, 3, 3)
 	if !bytes.Equal(expected, actual) {
 		t.Fatalf("\nexpected %#v\n  actual %#v", expected, actual)
 	}
 }
 
-func TestRaster_4_4(t *testing.T) {
+func TestStream_Raster_4_4(t *testing.T) {
 	data := []byte{
 		// 32 bits per pixel in RGBW
 		0, 1, 2, 3,
@@ -280,7 +307,7 @@ func TestRaster_4_4(t *testing.T) {
 		0xdb, 0x6d, 0xa6, 0xdb, 0x6d, 0xa4, 0xdb, 0x6d, 0xb4, 0xdb, 0x6d, 0xb6,
 	}
 	actual := make([]byte, len(expected))
-	raster(actual, data, 4, 4)
+	rasterBits(actual, data, 4, 4)
 	if !bytes.Equal(expected, actual) {
 		t.Fatalf("\nexpected %#v\n  actual %#v", expected, actual)
 	}
