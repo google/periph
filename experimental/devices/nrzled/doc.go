@@ -32,5 +32,4 @@
 // ws2812b A.K.A. Neopixel datasheet
 //
 // https://cdn-shop.adafruit.com/datasheets/WS2812B.pdf
-
 package nrzled

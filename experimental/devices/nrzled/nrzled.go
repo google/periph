@@ -15,32 +15,7 @@ import (
 	"periph.io/x/periph/conn/physic"
 )
 
-// NRZ converts a byte into the MSB-first Non-Return-to-Zero encoded 24 bits.
-//
-// The upper 8 bits are zeros and shall be ignored.
-//
-// The Non-return-to-zero protocol is a self-clocking signal that enables
-// one-way communication without the need of a dedicated clock signal, unlike
-// SPI driven LEDs like the apa102.
-//
-// See https://en.wikipedia.org/wiki/Non-return-to-zero for more technical
-// details.
-func NRZ(b byte) uint32 {
-	// The stream is 1x01x01x01x01x01x01x01x0 with the x bits being the bits from
-	// `b` in reverse order.
-	out := uint32(0x924924)
-	out |= uint32(b&0x80) << (3*7 + 1 - 7)
-	out |= uint32(b&0x40) << (3*6 + 1 - 6)
-	out |= uint32(b&0x20) << (3*5 + 1 - 5)
-	out |= uint32(b&0x10) << (3*4 + 1 - 4)
-	out |= uint32(b&0x08) << (3*3 + 1 - 3)
-	out |= uint32(b&0x04) << (3*2 + 1 - 2)
-	out |= uint32(b&0x02) << (3*1 + 1 - 1)
-	out |= uint32(b&0x01) << (3*0 + 1 - 0)
-	return out
-}
-
-//A Strip is the high level interface all hardware implementations conform to
+// Strip is deprecated and will soon be removed.
 type Strip interface {
 	display.Drawer
 	Write(pixels []byte) (int, error)
@@ -109,14 +84,11 @@ func (d *Dev) String() string {
 //
 // It doesn't affect the back buffer.
 func (d *Dev) Halt() error {
-	zero := NRZ(0)
-	a := byte(zero >> 16)
-	b := byte(zero >> 8)
-	c := byte(zero)
+	zero := nrzMSB3[0]
 	for i := 0; i < d.channels*d.numPixels; i++ {
-		d.b.Bits[3*i+0] = a
-		d.b.Bits[3*i+1] = b
-		d.b.Bits[3*i+2] = c
+		d.b.Bits[3*i+0] = zero[0]
+		d.b.Bits[3*i+1] = zero[1]
+		d.b.Bits[3*i+2] = zero[2]
 	}
 	if err := d.p.StreamOut(&d.b); err != nil {
 		return fmt.Errorf("nrzled: %v", err)
@@ -172,18 +144,18 @@ func (d *Dev) Draw(r image.Rectangle, src image.Image, sp image.Point) error {
 			for i := 0; i < m; i++ {
 				c := color.NRGBAModel.Convert(src.At(srcR.Min.X+i, srcR.Min.Y)).(color.NRGBA)
 				j := 3 * i
-				put(d.b.Bits[3*(j+0):], c.G)
-				put(d.b.Bits[3*(j+1):], c.R)
-				put(d.b.Bits[3*(j+2):], c.B)
+				putNRZMSB3(d.b.Bits[3*(j+0):], c.G)
+				putNRZMSB3(d.b.Bits[3*(j+1):], c.R)
+				putNRZMSB3(d.b.Bits[3*(j+2):], c.B)
 			}
 		} else {
 			for i := 0; i < m; i++ {
 				c := color.NRGBAModel.Convert(src.At(srcR.Min.X+i, srcR.Min.Y)).(color.NRGBA)
 				j := 4 * i
-				put(d.b.Bits[3*(j+0):], c.G)
-				put(d.b.Bits[3*(j+1):], c.R)
-				put(d.b.Bits[3*(j+2):], c.B)
-				put(d.b.Bits[3*(j+3):], c.A)
+				putNRZMSB3(d.b.Bits[3*(j+0):], c.G)
+				putNRZMSB3(d.b.Bits[3*(j+1):], c.R)
+				putNRZMSB3(d.b.Bits[3*(j+2):], c.B)
+				putNRZMSB3(d.b.Bits[3*(j+3):], c.A)
 			}
 		}
 	}
@@ -220,28 +192,26 @@ func raster(out, in []byte, outChannels, inChannels int) {
 		for i := 0; i < pixels; i++ {
 			j := i * inChannels
 			k := 3 * i
-			put(out[3*(k+0):], in[j+1])
-			put(out[3*(k+1):], in[j+0])
-			put(out[3*(k+2):], in[j+2])
+			putNRZMSB3(out[3*(k+0):], in[j+1])
+			putNRZMSB3(out[3*(k+1):], in[j+0])
+			putNRZMSB3(out[3*(k+2):], in[j+2])
 		}
 	} else {
 		for i := 0; i < pixels; i++ {
 			j := i * inChannels
 			k := 4 * i
-			put(out[3*(k+0):], in[j+1])
-			put(out[3*(k+1):], in[j+0])
-			put(out[3*(k+2):], in[j+2])
-			put(out[3*(k+3):], in[j+3])
+			putNRZMSB3(out[3*(k+0):], in[j+1])
+			putNRZMSB3(out[3*(k+1):], in[j+0])
+			putNRZMSB3(out[3*(k+2):], in[j+2])
+			putNRZMSB3(out[3*(k+3):], in[j+3])
 		}
 	}
 }
 
-// put writes the byte v as an MSB-first NRZ encoded triplet byte into out.
-func put(out []byte, v byte) {
-	w := NRZ(v)
-	out[0] = byte(w >> 16)
-	out[1] = byte(w >> 8)
-	out[2] = byte(w)
+// putNRZMSB3 writes the byte v as an MSB-first NRZ encoded triplet byte into
+// out.
+func putNRZMSB3(out []byte, v byte) {
+	copy(out, nrzMSB3[v][:])
 }
 
 var _ display.Drawer = &Dev{}
