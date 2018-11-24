@@ -13,7 +13,7 @@ import (
 )
 
 // FIXME: Expose public symbols as relevant. Do not export more than needed!
-// See https://periph.io/x/periph/tree/master/doc/drivers#requirements
+// See https://periph.io/project/#requirements
 // for the expectations.
 //
 // Use the following layout for drivers:
