@@ -5,6 +5,7 @@
 package sn3218
 
 import (
+	"bytes"
 	"testing"
 
 	"periph.io/x/periph/conn/i2c/i2ctest"
@@ -16,25 +17,6 @@ func setup() *i2ctest.Record {
 		Ops: []i2ctest.IO{},
 	}
 	return &bus
-}
-
-func equal(slice1 []byte, slice2 []byte) bool {
-	if slice1 == nil && slice2 == nil {
-		return true
-	}
-	if slice1 == nil || slice2 == nil {
-		return false
-	}
-	if len(slice1) != len(slice2) {
-		return false
-	}
-
-	for i := range slice1 {
-		if slice1[i] != slice2[i] {
-			return false
-		}
-	}
-	return true
 }
 
 func TestNew(t *testing.T) {
@@ -61,7 +43,7 @@ func TestEnable(t *testing.T) {
 	if bus.Ops[0].Addr != 0x54 {
 		t.Fatal("Expected: Write to address 0x54, got: ", bus.Ops[0].Addr)
 	}
-	if !equal(bus.Ops[0].W, []byte{0x00, 0x01}) {
+	if !bytes.Equal(bus.Ops[0].W, []byte{0x00, 0x01}) {
 		t.Fatal("Expected: 0x00,0x01, got: ", bus.Ops[0].W)
 	}
 }
@@ -70,7 +52,7 @@ func TestDisable(t *testing.T) {
 	bus := setup()
 	dev, _ := New(bus)
 	dev.Disable()
-	if !equal(bus.Ops[0].W, []byte{0x00, 0x00}) {
+	if !bytes.Equal(bus.Ops[0].W, []byte{0x00, 0x00}) {
 		t.Fatal("Expected: 0x00,0x00, got: ", bus.Ops[0].W)
 	}
 }
@@ -79,7 +61,7 @@ func TestReset(t *testing.T) {
 	bus := setup()
 	dev, _ := New(bus)
 	dev.Reset()
-	if !equal(bus.Ops[0].W, []byte{0x17, 0xFF}) {
+	if !bytes.Equal(bus.Ops[0].W, []byte{0x17, 0xFF}) {
 		t.Fatal("Expected: xxxxx, got: ", bus.Ops[0].W)
 	}
 	for i := 0; i < 18; i++ {
@@ -128,16 +110,16 @@ func TestSwitchLed(t *testing.T) {
 	if len(bus.Ops) != 4 {
 		t.Fatal("Expected 4 i2c writes, got: ", len(bus.Ops))
 	}
-	if !equal(bus.Ops[0].W, []byte{0x13, 0x00, 0x02, 0x00}) {
+	if !bytes.Equal(bus.Ops[0].W, []byte{0x13, 0x00, 0x02, 0x00}) {
 		t.Fatal("Expected 0x13,0x00,0x02,0x00, got:", bus.Ops[0].W)
 	}
-	if !equal(bus.Ops[1].W, []byte{0x16, 0xFF}) {
+	if !bytes.Equal(bus.Ops[1].W, []byte{0x16, 0xFF}) {
 		t.Fatal("Expected 0x16,0xFF got:", bus.Ops[1].W)
 	}
-	if !equal(bus.Ops[2].W, []byte{0x13, 0x00, 0x00, 0x00}) {
+	if !bytes.Equal(bus.Ops[2].W, []byte{0x13, 0x00, 0x00, 0x00}) {
 		t.Fatal("Expected 0x13,0x00,0x00,0x00, got: ", bus.Ops[2].W)
 	}
-	if !equal(bus.Ops[3].W, []byte{0x16, 0xFF}) {
+	if !bytes.Equal(bus.Ops[3].W, []byte{0x16, 0xFF}) {
 		t.Fatal("Expected 0x16,0xFF got:", bus.Ops[1].W)
 	}
 	if err = dev.SwitchLed(19, true); err == nil {
@@ -160,11 +142,11 @@ func TestSetGlobalBrightness(t *testing.T) {
 		t.Fatal("Expected 2 operations on I2C, got", len(bus.Ops))
 	}
 
-	if !equal(bus.Ops[0].W, []byte{0x01, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64}) {
+	if !bytes.Equal(bus.Ops[0].W, []byte{0x01, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64}) {
 		t.Fatal("Write operation to I2C different than expected")
 	}
 
-	if !equal(bus.Ops[1].W, []byte{0x16, 0xff}) {
+	if !bytes.Equal(bus.Ops[1].W, []byte{0x16, 0xff}) {
 		t.Fatal("Expected update command, but got something else")
 	}
 }
@@ -182,7 +164,7 @@ func TestSetBrightness(t *testing.T) {
 	if len(bus.Ops) != 2 {
 		t.Fatal("Expected 2 i2c operations, got", len(bus.Ops))
 	}
-	if !equal(bus.Ops[0].W, []byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0}) {
+	if !bytes.Equal(bus.Ops[0].W, []byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0}) {
 		t.Fatal("Write operation to I2C different than expected")
 	}
 }
@@ -199,7 +181,7 @@ func TestSwitchAllLeds(t *testing.T) {
 	if len(bus.Ops) != 2 {
 		t.Fatal("Expected 2 operations on I2C, got", len(bus.Ops))
 	}
-	if !equal(bus.Ops[0].W, []byte{19, 63, 63, 63}) {
+	if !bytes.Equal(bus.Ops[0].W, []byte{19, 63, 63, 63}) {
 		t.Fatal("Data written to bus different than expected")
 	}
 
@@ -212,7 +194,7 @@ func TestSwitchAllLeds(t *testing.T) {
 	if len(bus.Ops) != 4 {
 		t.Fatal("Expected 4 operations on I2C, got", len(bus.Ops))
 	}
-	if !equal(bus.Ops[2].W, []byte{19, 0, 0, 0}) {
+	if !bytes.Equal(bus.Ops[2].W, []byte{19, 0, 0, 0}) {
 		t.Fatal("Data written to bus different than expected")
 	}
 }
