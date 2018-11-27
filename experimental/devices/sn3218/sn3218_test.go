@@ -37,7 +37,6 @@ func equal(slice1 []byte, slice2 []byte) bool {
 	return true
 }
 
-// func New(bus i2c.Bus) (*dev, error) {
 func TestNew(t *testing.T) {
 	bus := i2ctest.Record{
 		Bus: nil,
