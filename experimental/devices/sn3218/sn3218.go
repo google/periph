@@ -20,7 +20,7 @@ const (
 )
 
 type dev struct {
-	i2c        *i2c.Dev
+	i2c        i2c.Dev
 	states     [18]bool
 	brightness [18]byte
 }
@@ -32,11 +32,11 @@ type dev struct {
 // of each LED. Therefore it's recommended to run d.Reseet() after this, so that
 // all LEDs are off and have the brightness 0.  Otherwise GetLedState() returns
 // wrong results.
-func New(bus i2c.Bus) (*dev, error) {
-	d := &i2c.Dev{Bus: bus, Addr: i2cAddress}
+func New(bus i2c.Bus) (dev, error) {
+	d := i2c.Dev{Bus: bus, Addr: i2cAddress}
 	dev := dev{}
 	dev.i2c = d
-	return &dev, nil
+	return dev, nil
 }
 
 // Enable enables the SN3218

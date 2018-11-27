@@ -43,12 +43,9 @@ func TestNew(t *testing.T) {
 		Bus: nil,
 		Ops: []i2ctest.IO{},
 	}
-	dev, err := New(&bus)
+	_, err := New(&bus)
 	if err != nil {
 		t.Fatal("New should not return error", err)
-	}
-	if dev == nil {
-		t.Fatal("Device should not be nil")
 	}
 	if len(bus.Ops) > 0 {
 		t.Fatal("Expected 0 operation to I2CBus, got ", len(bus.Ops))
