@@ -26,7 +26,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	l, _ := sn3218.New(b)
+	l, err := sn3218.New(b)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	l.Reset()
 	l.Enable()
 
