@@ -25,13 +25,7 @@ type dev struct {
 	brightness [18]byte
 }
 
-// New returns an object that handles communication with a SN3218 LED driver
-// The SN3213 only accepts writes, so this object also keeps the state of
-// each LED.
-// Important: The device is write only, so it is not possible to read the state
-// of each LED. Therefore it's recommended to run d.Reseet() after this, so that
-// all LEDs are off and have the brightness 0.  Otherwise GetLedState() returns
-// wrong results.
+// New returns a handle to a SN3218 LED driver.
 func New(bus i2c.Bus) (dev, error) {
 	d := i2c.Dev{Bus: bus, Addr: i2cAddress}
 	dev := dev{}
@@ -39,19 +33,19 @@ func New(bus i2c.Bus) (dev, error) {
 	return dev, nil
 }
 
-// Enable enables the SN3218
+// Enable enables the SN3218.
 func (d *dev) Enable() error {
 	_, err := d.i2c.Write([]byte{cmdEnableOutput, 0x01})
 	return err
 }
 
-// Disable disables the SN3218
+// Disable disables the SN3218.
 func (d *dev) Disable() error {
 	_, err := d.i2c.Write([]byte{cmdEnableOutput, 0x00})
 	return err
 }
 
-// Reset resets the registers to the default values
+// Reset resets the registers to the default values.
 func (d *dev) Reset() error {
 	_, err := d.i2c.Write([]byte{cmdReset, 0xFF})
 	d.states = [18]bool{}
@@ -60,7 +54,7 @@ func (d *dev) Reset() error {
 }
 
 // GetLedState returns the state (on/off) and the brightness (0..255) of the
-// LED 0..17
+// LED 0..17.
 func (d *dev) GetLedState(led int) (bool, byte, error) {
 	if led < 0 || led >= 18 {
 		return false, 0, errors.New("LED number out of range 0..17")
@@ -68,7 +62,7 @@ func (d *dev) GetLedState(led int) (bool, byte, error) {
 	return d.states[led], d.brightness[led], nil
 }
 
-// SwitchLed switched the LED led (0..18) to state (on/off)
+// SwitchLed switched the LED led (0..18) to state (on/off).
 func (d *dev) SwitchLed(led int, state bool) error {
 	if led < 0 || led >= 18 {
 		return errors.New("LED number out of range 0..17")
@@ -77,8 +71,7 @@ func (d *dev) SwitchLed(led int, state bool) error {
 	return d.updateLeds()
 }
 
-// SetGlobalBrightness sets the brightness of all LEDs to the value (0..255)
-// It overrides every brightness set for single LEDs
+// SetGlobalBrightness sets the brightness of all LEDs to the value (0..255).
 func (d *dev) SetGlobalBrightness(value byte) {
 	for i := 0; i < 18; i++ {
 		d.brightness[i] = value
@@ -86,14 +79,13 @@ func (d *dev) SetGlobalBrightness(value byte) {
 	d.updateBrightness()
 }
 
-// SetBrightness sets the brightness of led (0..17) to value (0..255)
+// SetBrightness sets the brightness of led (0..17) to value (0..255).
 func (d *dev) SetBrightness(led int, value byte) {
 	d.brightness[led] = value
 	d.updateBrightness()
 }
 
-// SwitchAllLeds switches all LEDs accoring to the state (on/off)
-// It overrides the state of individual LEDs
+// SwitchAllLeds switches all LEDs accoring to the state (on/off).
 func (d *dev) SwitchAllLeds(state bool) {
 	for i := 0; i < 18; i++ {
 		d.states[i] = state
