@@ -19,23 +19,24 @@ const (
 	cmdReset               = 0x17
 )
 
-type dev struct {
+// Dev is a handler to sn3218 controller.
+type Dev struct {
 	i2c        i2c.Dev
 	states     [18]bool
 	brightness [18]byte
 }
 
 // New returns a handle to a SN3218 LED driver.
-func New(bus i2c.Bus) (dev, error) {
+func New(bus i2c.Bus) (Dev, error) {
 	d := i2c.Dev{Bus: bus, Addr: i2cAddress}
-	dev := dev{}
+	dev := Dev{}
 	dev.i2c = d
 	dev.reset()
 	return dev, nil
 }
 
 // Halt resets the registers and switches the driver off.
-func (d *dev) Halt() error {
+func (d *Dev) Halt() error {
 	if err := d.Disable(); err != nil {
 		return err
 	}
@@ -43,20 +44,20 @@ func (d *dev) Halt() error {
 }
 
 // Enable enables the SN3218.
-func (d *dev) Enable() error {
+func (d *Dev) Enable() error {
 	_, err := d.i2c.Write([]byte{cmdEnableOutput, 0x01})
 	return err
 }
 
 // Disable disables the SN3218.
-func (d *dev) Disable() error {
+func (d *Dev) Disable() error {
 	_, err := d.i2c.Write([]byte{cmdEnableOutput, 0x00})
 	return err
 }
 
 // GetLedState returns the state (on/off) and the brightness (0..255) of the
 // LED 0..17.
-func (d *dev) GetLedState(led int) (bool, byte, error) {
+func (d *Dev) GetLedState(led int) (bool, byte, error) {
 	if led < 0 || led >= 18 {
 		return false, 0, errors.New("LED number out of range 0..17")
 	}
@@ -64,7 +65,7 @@ func (d *dev) GetLedState(led int) (bool, byte, error) {
 }
 
 // SwitchLed switched the LED led (0..18) to state (on/off).
-func (d *dev) SwitchLed(led int, state bool) error {
+func (d *Dev) SwitchLed(led int, state bool) error {
 	if led < 0 || led >= 18 {
 		return errors.New("LED number out of range 0..17")
 	}
@@ -73,7 +74,7 @@ func (d *dev) SwitchLed(led int, state bool) error {
 }
 
 // SetGlobalBrightness sets the brightness of all LEDs to the value (0..255).
-func (d *dev) SetGlobalBrightness(value byte) {
+func (d *Dev) SetGlobalBrightness(value byte) {
 	for i := 0; i < 18; i++ {
 		d.brightness[i] = value
 	}
@@ -81,7 +82,7 @@ func (d *dev) SetGlobalBrightness(value byte) {
 }
 
 // SetBrightness sets the brightness of led (0..17) to value (0..255).
-func (d *dev) SetBrightness(led int, value byte) error {
+func (d *Dev) SetBrightness(led int, value byte) error {
 	if led < 0 || led >= 18 {
 		return errors.New("LED number out of range 0..17")
 	}
@@ -91,7 +92,7 @@ func (d *dev) SetBrightness(led int, value byte) error {
 }
 
 // SwitchAllLeds switches all LEDs accoring to the state (on/off).
-func (d *dev) SwitchAllLeds(state bool) {
+func (d *Dev) SwitchAllLeds(state bool) {
 	for i := 0; i < 18; i++ {
 		d.states[i] = state
 	}
@@ -99,7 +100,7 @@ func (d *dev) SwitchAllLeds(state bool) {
 }
 
 // Reset resets the registers to the default values.
-func (d *dev) reset() error {
+func (d *Dev) reset() error {
 	_, err := d.i2c.Write([]byte{cmdReset, 0xFF})
 	d.states = [18]bool{}
 	d.brightness = [18]byte{}
@@ -118,12 +119,12 @@ func boolArrayToInt(states [18]bool) uint {
 	return result
 }
 
-func (d *dev) update() error {
+func (d *Dev) update() error {
 	_, err := d.i2c.Write([]byte{cmdUpdate, 0xFF})
 	return err
 }
 
-func (d *dev) updateLeds() error {
+func (d *Dev) updateLeds() error {
 	mask := boolArrayToInt(d.states)
 	_, err := d.i2c.Write([]byte{cmdEnableLeds, byte(mask & 0x3F), byte((mask >> 6) & 0x3F), byte((mask >> 12) & 0X3F)})
 	if err != nil {
@@ -132,7 +133,7 @@ func (d *dev) updateLeds() error {
 	return d.update()
 }
 
-func (d *dev) updateBrightness() error {
+func (d *Dev) updateBrightness() error {
 	_, err := d.i2c.Write(append([]byte{cmdSetBrightnessValues}, d.brightness[0:len(d.brightness)]...))
 	if err != nil {
 		return err
