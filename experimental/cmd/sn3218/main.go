@@ -74,5 +74,5 @@ func main() {
 	}
 
 	log.Println("Cleanup: Reset register and switch off")
-	l.Disable()
+	l.Halt()
 }

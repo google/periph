@@ -33,9 +33,26 @@ func TestNew(t *testing.T) {
 	}
 
 	if !bytes.Equal(bus.Ops[0].W, []byte{0x17, 0xFF}) {
-		t.Fatal("Expected: 0x17, 0x77 (reset), got: ", bus.Ops[0].W)
+		t.Fatal("Expected: 0x17, 0xFF (reset), got: ", bus.Ops[0].W)
 	}
+}
 
+func TestHalt(t *testing.T) {
+	bus := setup()
+	dev, _ := New(bus)
+	err := dev.Halt()
+	if err != nil {
+		t.Fatal("Halt should not return error, but did", err)
+	}
+	if len(bus.Ops) != 3 {
+		t.Fatal("Expected 3 operations, got", len(bus.Ops))
+	}
+	if !bytes.Equal(bus.Ops[1].W, []byte{0x00, 0x00}) {
+		t.Fatal("I2C write different than expected (disable)")
+	}
+	if !bytes.Equal(bus.Ops[2].W, []byte{0x17, 0xff}) {
+		t.Fatal("I2C write different than expected (reset)")
+	}
 }
 
 func TestEnable(t *testing.T) {

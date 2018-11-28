@@ -34,6 +34,14 @@ func New(bus i2c.Bus) (dev, error) {
 	return dev, nil
 }
 
+// Halt resets the registers and switches the driver off.
+func (d *dev) Halt() error {
+	if err := d.Disable(); err != nil {
+		return err
+	}
+	return d.reset()
+}
+
 // Enable enables the SN3218.
 func (d *dev) Enable() error {
 	_, err := d.i2c.Write([]byte{cmdEnableOutput, 0x01})
