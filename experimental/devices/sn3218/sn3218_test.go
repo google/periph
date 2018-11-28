@@ -50,7 +50,7 @@ func TestHalt(t *testing.T) {
 	if !bytes.Equal(bus.Ops[1].W, []byte{0x00, 0x00}) {
 		t.Fatal("I2C write different than expected (disable)")
 	}
-	if !bytes.Equal(bus.Ops[2].W, []byte{0x17, 0xff}) {
+	if !bytes.Equal(bus.Ops[2].W, []byte{0x17, 0xFF}) {
 		t.Fatal("I2C write different than expected (reset)")
 	}
 }
@@ -66,7 +66,7 @@ func TestEnable(t *testing.T) {
 		t.Fatal("Expected: Write to address 0x54, got: ", bus.Ops[1].Addr)
 	}
 	if !bytes.Equal(bus.Ops[1].W, []byte{0x00, 0x01}) {
-		t.Fatal("Expected: 0x00,0x01, got: ", bus.Ops[1].W)
+		t.Fatal("Expected: 0x00, 0x01, got: ", bus.Ops[1].W)
 	}
 }
 
@@ -75,7 +75,7 @@ func TestDisable(t *testing.T) {
 	dev, _ := New(bus)
 	dev.Disable()
 	if !bytes.Equal(bus.Ops[1].W, []byte{0x00, 0x00}) {
-		t.Fatal("Expected: 0x00,0x00, got: ", bus.Ops[1].W)
+		t.Fatal("Expected: 0x00, 0x00, got: ", bus.Ops[1].W)
 	}
 }
 
@@ -112,16 +112,16 @@ func TestSwitchLed(t *testing.T) {
 		t.Fatal("Expected 5 i2c writes, got: ", len(bus.Ops))
 	}
 	if !bytes.Equal(bus.Ops[1].W, []byte{0x13, 0x00, 0x02, 0x00}) {
-		t.Fatal("Expected 0x13,0x00,0x02,0x00, got:", bus.Ops[1].W)
+		t.Fatal("Expected 0x13, 0x00, 0x02, 0x00, got:", bus.Ops[1].W)
 	}
 	if !bytes.Equal(bus.Ops[2].W, []byte{0x16, 0xFF}) {
-		t.Fatal("Expected 0x16,0xFF got:", bus.Ops[2].W)
+		t.Fatal("Expected 0x16, 0xFF got:", bus.Ops[2].W)
 	}
 	if !bytes.Equal(bus.Ops[3].W, []byte{0x13, 0x00, 0x00, 0x00}) {
-		t.Fatal("Expected 0x13,0x00,0x00,0x00, got: ", bus.Ops[3].W)
+		t.Fatal("Expected 0x13, 0x00, 0x00, 0x00, got: ", bus.Ops[3].W)
 	}
 	if !bytes.Equal(bus.Ops[4].W, []byte{0x16, 0xFF}) {
-		t.Fatal("Expected 0x16,0xFF got:", bus.Ops[4].W)
+		t.Fatal("Expected 0x16, 0xFF got:", bus.Ops[4].W)
 	}
 	if err = dev.SwitchLed(19, true); err == nil {
 		t.Fatal("Tried to switch LED out of range and expected error, but error is nil...")
@@ -147,7 +147,7 @@ func TestSetGlobalBrightness(t *testing.T) {
 		t.Fatal("Write operation to I2C different than expected")
 	}
 
-	if !bytes.Equal(bus.Ops[2].W, []byte{0x16, 0xff}) {
+	if !bytes.Equal(bus.Ops[2].W, []byte{0x16, 0xFF}) {
 		t.Fatal("Expected update command, but got something else")
 	}
 }
