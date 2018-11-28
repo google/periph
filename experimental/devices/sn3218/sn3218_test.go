@@ -158,7 +158,9 @@ func TestSetBrightness(t *testing.T) {
 	if _, brightness, _ := dev.GetState(9); brightness != 0 {
 		t.Fatal("Brightness should be 0, but it's not")
 	}
-	dev.SetBrightness(9, 8)
+	if err := dev.SetBrightness(9, 8); err != nil {
+		t.Fatal("There should be no error, but it is", err)
+	}
 	if _, brightness, _ := dev.GetState(9); brightness != 8 {
 		t.Fatal("Brightness should be 8, but it's not")
 	}
@@ -167,6 +169,9 @@ func TestSetBrightness(t *testing.T) {
 	}
 	if !bytes.Equal(bus.Ops[1].W, []byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0}) {
 		t.Fatal("Write operation to I2C different than expected")
+	}
+	if err := dev.SetBrightness(42, 100); err == nil {
+		t.Fatal("Expected error because channel out of range, but error was nil")
 	}
 }
 
