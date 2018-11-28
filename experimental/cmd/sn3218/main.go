@@ -39,7 +39,7 @@ func main() {
 	d.SetGlobalBrightness(1)
 
 	// Switch LED 7 on
-	if err := d.SwitchLed(7, true); err != nil {
+	if err := d.Switch(7, true); err != nil {
 		log.Fatal("Error while switching LED", err)
 	}
 	time.Sleep(1000 * time.Millisecond)
@@ -51,14 +51,14 @@ func main() {
 	time.Sleep(1000 * time.Millisecond)
 
 	//Get state of LED 7
-	state, brightness, err := d.GetLedState(7)
+	state, brightness, err := d.GetState(7)
 	if err != nil {
 		log.Fatal("Error while reading LED state", err)
 	}
 	log.Println("State: ", state, " - Brightness: ", brightness)
 
 	// Switch all LEDs on
-	d.SwitchAllLeds(true)
+	d.SwitchAll(true)
 	time.Sleep(1000 * time.Millisecond)
 
 	// Increase brightness for all

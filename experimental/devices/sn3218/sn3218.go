@@ -55,25 +55,25 @@ func (d *Dev) Disable() error {
 	return err
 }
 
-// GetLedState returns the state (on/off) and the brightness (0..255) of the
-// LED 0..17.
-func (d *Dev) GetLedState(led int) (bool, byte, error) {
-	if led < 0 || led >= 18 {
-		return false, 0, errors.New("LED number out of range 0..17")
+// GetState returns the state (on/off) and the brightness (0..255) of the
+// Channel 0..17.
+func (d *Dev) GetState(channel int) (bool, byte, error) {
+	if channel < 0 || channel >= 18 {
+		return false, 0, errors.New("Channel number out of range 0..17")
 	}
-	return d.states[led], d.brightness[led], nil
+	return d.states[channel], d.brightness[channel], nil
 }
 
-// SwitchLed switched the LED led (0..18) to state (on/off).
-func (d *Dev) SwitchLed(led int, state bool) error {
-	if led < 0 || led >= 18 {
-		return errors.New("LED number out of range 0..17")
+// Switch switched the channel (0..18) to state (on/off).
+func (d *Dev) Switch(channel int, state bool) error {
+	if channel < 0 || channel >= 18 {
+		return errors.New("Channel number out of range 0..17")
 	}
-	d.states[led] = state
-	return d.updateLeds()
+	d.states[channel] = state
+	return d.updateStates()
 }
 
-// SetGlobalBrightness sets the brightness of all LEDs to the value (0..255).
+// SetGlobalBrightness sets the brightness of all channels to the value (0..255).
 func (d *Dev) SetGlobalBrightness(value byte) {
 	for i := 0; i < 18; i++ {
 		d.brightness[i] = value
@@ -82,21 +82,21 @@ func (d *Dev) SetGlobalBrightness(value byte) {
 }
 
 // SetBrightness sets the brightness of led (0..17) to value (0..255).
-func (d *Dev) SetBrightness(led int, value byte) error {
-	if led < 0 || led >= 18 {
-		return errors.New("LED number out of range 0..17")
+func (d *Dev) SetBrightness(channel int, value byte) error {
+	if channel < 0 || channel >= 18 {
+		return errors.New("Chhannel number out of range 0..17")
 	}
-	d.brightness[led] = value
+	d.brightness[channel] = value
 	d.updateBrightness()
 	return nil
 }
 
-// SwitchAllLeds switches all LEDs accoring to the state (on/off).
-func (d *Dev) SwitchAllLeds(state bool) {
+// SwitchAll switches all channels accoring to the state (on/off).
+func (d *Dev) SwitchAll(state bool) {
 	for i := 0; i < 18; i++ {
 		d.states[i] = state
 	}
-	d.updateLeds()
+	d.updateStates()
 }
 
 // Reset resets the registers to the default values.
@@ -124,7 +124,7 @@ func (d *Dev) update() error {
 	return err
 }
 
-func (d *Dev) updateLeds() error {
+func (d *Dev) updateStates() error {
 	mask := boolArrayToInt(d.states)
 	_, err := d.i2c.Write([]byte{cmdEnableLeds, byte(mask & 0x3F), byte((mask >> 6) & 0x3F), byte((mask >> 12) & 0X3F)})
 	if err != nil {

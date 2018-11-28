@@ -79,33 +79,33 @@ func TestDisable(t *testing.T) {
 	}
 }
 
-func TestGetLedState(t *testing.T) {
+func TestGetState(t *testing.T) {
 	bus := setup()
 	dev, _ := New(bus)
-	state, brightness, err := dev.GetLedState(0)
+	state, brightness, err := dev.GetState(0)
 	if state != false || brightness != 0 || err != nil {
 		t.Fatal("Expected: false, 0, nil, got: ", state, brightness, err)
 	}
-	if _, _, err := dev.GetLedState(-1); err == nil {
+	if _, _, err := dev.GetState(-1); err == nil {
 		t.Fatal("Expected error, but error is nil")
 	}
-	if _, _, err := dev.GetLedState(18); err == nil {
+	if _, _, err := dev.GetState(18); err == nil {
 		t.Fatal("Expected error, but error is nil")
 	}
 }
 
-func TestSwitchLed(t *testing.T) {
+func TestSwitch(t *testing.T) {
 	bus := setup()
 	dev, _ := New(bus)
-	err := dev.SwitchLed(7, true)
+	err := dev.Switch(7, true)
 	if err != nil {
 		t.Fatal("Expected: err == nil, got:", err)
 	}
-	if state, _, _ := dev.GetLedState(7); !state {
+	if state, _, _ := dev.GetState(7); !state {
 		t.Fatal("Expected: LED on, but was off")
 	}
-	dev.SwitchLed(7, false)
-	if state, _, _ := dev.GetLedState(7); state {
+	dev.Switch(7, false)
+	if state, _, _ := dev.GetState(7); state {
 		t.Fatal("Expected: LED off, but was on")
 	}
 	if len(bus.Ops) != 5 {
@@ -123,7 +123,7 @@ func TestSwitchLed(t *testing.T) {
 	if !bytes.Equal(bus.Ops[4].W, []byte{0x16, 0xFF}) {
 		t.Fatal("Expected 0x16, 0xFF got:", bus.Ops[4].W)
 	}
-	if err = dev.SwitchLed(19, true); err == nil {
+	if err = dev.Switch(19, true); err == nil {
 		t.Fatal("Tried to switch LED out of range and expected error, but error is nil...")
 	}
 
@@ -155,11 +155,11 @@ func TestSetGlobalBrightness(t *testing.T) {
 func TestSetBrightness(t *testing.T) {
 	bus := setup()
 	dev, _ := New(bus)
-	if _, brightness, _ := dev.GetLedState(9); brightness != 0 {
+	if _, brightness, _ := dev.GetState(9); brightness != 0 {
 		t.Fatal("Brightness should be 0, but it's not")
 	}
 	dev.SetBrightness(9, 8)
-	if _, brightness, _ := dev.GetLedState(9); brightness != 8 {
+	if _, brightness, _ := dev.GetState(9); brightness != 8 {
 		t.Fatal("Brightness should be 8, but it's not")
 	}
 	if len(bus.Ops) != 3 {
@@ -170,12 +170,12 @@ func TestSetBrightness(t *testing.T) {
 	}
 }
 
-func TestSwitchAllLeds(t *testing.T) {
+func TestSwitchAll(t *testing.T) {
 	bus := setup()
 	dev, _ := New(bus)
-	dev.SwitchAllLeds(true)
+	dev.SwitchAll(true)
 	for i := 0; i < 17; i++ {
-		if state, _, _ := dev.GetLedState(i); !state {
+		if state, _, _ := dev.GetState(i); !state {
 			t.Fatal("LED should be on, but is off: ", i)
 		}
 	}
@@ -186,9 +186,9 @@ func TestSwitchAllLeds(t *testing.T) {
 		t.Fatal("Data written to bus different than expected")
 	}
 
-	dev.SwitchAllLeds(false)
+	dev.SwitchAll(false)
 	for i := 0; i < 17; i++ {
-		if state, _, _ := dev.GetLedState(i); state {
+		if state, _, _ := dev.GetState(i); state {
 			t.Fatal("LED should be off, but is on: ", i)
 		}
 	}

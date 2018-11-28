@@ -37,7 +37,7 @@ func Example() {
 	d.Enable()
 
 	// Switch LED 7 on
-	if err := d.SwitchLed(7, true); err != nil {
+	if err := d.Switch(7, true); err != nil {
 		log.Fatal("Error while switching LED", err)
 	}
 
