@@ -30,6 +30,7 @@ func New(bus i2c.Bus) (dev, error) {
 	d := i2c.Dev{Bus: bus, Addr: i2cAddress}
 	dev := dev{}
 	dev.i2c = d
+	dev.reset()
 	return dev, nil
 }
 
@@ -42,14 +43,6 @@ func (d *dev) Enable() error {
 // Disable disables the SN3218.
 func (d *dev) Disable() error {
 	_, err := d.i2c.Write([]byte{cmdEnableOutput, 0x00})
-	return err
-}
-
-// Reset resets the registers to the default values.
-func (d *dev) Reset() error {
-	_, err := d.i2c.Write([]byte{cmdReset, 0xFF})
-	d.states = [18]bool{}
-	d.brightness = [18]byte{}
 	return err
 }
 
@@ -91,6 +84,14 @@ func (d *dev) SwitchAllLeds(state bool) {
 		d.states[i] = state
 	}
 	d.updateLeds()
+}
+
+// Reset resets the registers to the default values.
+func (d *dev) reset() error {
+	_, err := d.i2c.Write([]byte{cmdReset, 0xFF})
+	d.states = [18]bool{}
+	d.brightness = [18]byte{}
+	return err
 }
 
 func boolArrayToInt(states [18]bool) uint {

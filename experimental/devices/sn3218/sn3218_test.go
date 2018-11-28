@@ -28,23 +28,28 @@ func TestNew(t *testing.T) {
 	if err != nil {
 		t.Fatal("New should not return error", err)
 	}
-	if len(bus.Ops) > 0 {
+	if len(bus.Ops) > 1 {
 		t.Fatal("Expected 0 operation to I2CBus, got ", len(bus.Ops))
 	}
+
+	if !bytes.Equal(bus.Ops[0].W, []byte{0x17, 0xFF}) {
+		t.Fatal("Expected: 0x17, 0x77 (reset), got: ", bus.Ops[0].W)
+	}
+
 }
 
 func TestEnable(t *testing.T) {
 	bus := setup()
 	dev, _ := New(bus)
 	dev.Enable()
-	if len(bus.Ops) != 1 {
-		t.Fatal("Expected 1 operation, got", len(bus.Ops))
+	if len(bus.Ops) != 2 {
+		t.Fatal("Expected 2 operations, got", len(bus.Ops))
 	}
-	if bus.Ops[0].Addr != 0x54 {
-		t.Fatal("Expected: Write to address 0x54, got: ", bus.Ops[0].Addr)
+	if bus.Ops[1].Addr != 0x54 {
+		t.Fatal("Expected: Write to address 0x54, got: ", bus.Ops[1].Addr)
 	}
-	if !bytes.Equal(bus.Ops[0].W, []byte{0x00, 0x01}) {
-		t.Fatal("Expected: 0x00,0x01, got: ", bus.Ops[0].W)
+	if !bytes.Equal(bus.Ops[1].W, []byte{0x00, 0x01}) {
+		t.Fatal("Expected: 0x00,0x01, got: ", bus.Ops[1].W)
 	}
 }
 
@@ -52,29 +57,8 @@ func TestDisable(t *testing.T) {
 	bus := setup()
 	dev, _ := New(bus)
 	dev.Disable()
-	if !bytes.Equal(bus.Ops[0].W, []byte{0x00, 0x00}) {
-		t.Fatal("Expected: 0x00,0x00, got: ", bus.Ops[0].W)
-	}
-}
-
-func TestReset(t *testing.T) {
-	bus := setup()
-	dev, _ := New(bus)
-	dev.Reset()
-	if !bytes.Equal(bus.Ops[0].W, []byte{0x17, 0xFF}) {
-		t.Fatal("Expected: xxxxx, got: ", bus.Ops[0].W)
-	}
-	for i := 0; i < 18; i++ {
-		state, brightness, err := dev.GetLedState(i)
-		if state {
-			t.Fatal("LED", i, "should be off, but is on")
-		}
-		if brightness != 0 {
-			t.Fatal("Brightness of LED", i, "should be 0 but is", brightness)
-		}
-		if err != nil {
-			t.Fatal("Error should be nil, but is", err)
-		}
+	if !bytes.Equal(bus.Ops[1].W, []byte{0x00, 0x00}) {
+		t.Fatal("Expected: 0x00,0x00, got: ", bus.Ops[1].W)
 	}
 }
 
@@ -107,20 +91,20 @@ func TestSwitchLed(t *testing.T) {
 	if state, _, _ := dev.GetLedState(7); state {
 		t.Fatal("Expected: LED off, but was on")
 	}
-	if len(bus.Ops) != 4 {
-		t.Fatal("Expected 4 i2c writes, got: ", len(bus.Ops))
+	if len(bus.Ops) != 5 {
+		t.Fatal("Expected 5 i2c writes, got: ", len(bus.Ops))
 	}
-	if !bytes.Equal(bus.Ops[0].W, []byte{0x13, 0x00, 0x02, 0x00}) {
-		t.Fatal("Expected 0x13,0x00,0x02,0x00, got:", bus.Ops[0].W)
+	if !bytes.Equal(bus.Ops[1].W, []byte{0x13, 0x00, 0x02, 0x00}) {
+		t.Fatal("Expected 0x13,0x00,0x02,0x00, got:", bus.Ops[1].W)
 	}
-	if !bytes.Equal(bus.Ops[1].W, []byte{0x16, 0xFF}) {
-		t.Fatal("Expected 0x16,0xFF got:", bus.Ops[1].W)
+	if !bytes.Equal(bus.Ops[2].W, []byte{0x16, 0xFF}) {
+		t.Fatal("Expected 0x16,0xFF got:", bus.Ops[2].W)
 	}
-	if !bytes.Equal(bus.Ops[2].W, []byte{0x13, 0x00, 0x00, 0x00}) {
-		t.Fatal("Expected 0x13,0x00,0x00,0x00, got: ", bus.Ops[2].W)
+	if !bytes.Equal(bus.Ops[3].W, []byte{0x13, 0x00, 0x00, 0x00}) {
+		t.Fatal("Expected 0x13,0x00,0x00,0x00, got: ", bus.Ops[3].W)
 	}
-	if !bytes.Equal(bus.Ops[3].W, []byte{0x16, 0xFF}) {
-		t.Fatal("Expected 0x16,0xFF got:", bus.Ops[1].W)
+	if !bytes.Equal(bus.Ops[4].W, []byte{0x16, 0xFF}) {
+		t.Fatal("Expected 0x16,0xFF got:", bus.Ops[4].W)
 	}
 	if err = dev.SwitchLed(19, true); err == nil {
 		t.Fatal("Tried to switch LED out of range and expected error, but error is nil...")
@@ -138,15 +122,15 @@ func TestSetGlobalBrightness(t *testing.T) {
 		}
 	}
 
-	if len(bus.Ops) != 2 {
-		t.Fatal("Expected 2 operations on I2C, got", len(bus.Ops))
+	if len(bus.Ops) != 3 {
+		t.Fatal("Expected 3 operations on I2C, got", len(bus.Ops))
 	}
 
-	if !bytes.Equal(bus.Ops[0].W, []byte{0x01, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64}) {
+	if !bytes.Equal(bus.Ops[1].W, []byte{0x01, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0x64}) {
 		t.Fatal("Write operation to I2C different than expected")
 	}
 
-	if !bytes.Equal(bus.Ops[1].W, []byte{0x16, 0xff}) {
+	if !bytes.Equal(bus.Ops[2].W, []byte{0x16, 0xff}) {
 		t.Fatal("Expected update command, but got something else")
 	}
 }
@@ -161,10 +145,10 @@ func TestSetBrightness(t *testing.T) {
 	if _, brightness, _ := dev.GetLedState(9); brightness != 8 {
 		t.Fatal("Brightness should be 8, but it's not")
 	}
-	if len(bus.Ops) != 2 {
-		t.Fatal("Expected 2 i2c operations, got", len(bus.Ops))
+	if len(bus.Ops) != 3 {
+		t.Fatal("Expected 3 i2c operations, got", len(bus.Ops))
 	}
-	if !bytes.Equal(bus.Ops[0].W, []byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0}) {
+	if !bytes.Equal(bus.Ops[1].W, []byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0}) {
 		t.Fatal("Write operation to I2C different than expected")
 	}
 }
@@ -178,10 +162,10 @@ func TestSwitchAllLeds(t *testing.T) {
 			t.Fatal("LED should be on, but is off: ", i)
 		}
 	}
-	if len(bus.Ops) != 2 {
-		t.Fatal("Expected 2 operations on I2C, got", len(bus.Ops))
+	if len(bus.Ops) != 3 {
+		t.Fatal("Expected 3 operations on I2C, got", len(bus.Ops))
 	}
-	if !bytes.Equal(bus.Ops[0].W, []byte{19, 63, 63, 63}) {
+	if !bytes.Equal(bus.Ops[1].W, []byte{19, 63, 63, 63}) {
 		t.Fatal("Data written to bus different than expected")
 	}
 
@@ -191,10 +175,10 @@ func TestSwitchAllLeds(t *testing.T) {
 			t.Fatal("LED should be off, but is on: ", i)
 		}
 	}
-	if len(bus.Ops) != 4 {
+	if len(bus.Ops) != 5 {
 		t.Fatal("Expected 4 operations on I2C, got", len(bus.Ops))
 	}
-	if !bytes.Equal(bus.Ops[2].W, []byte{19, 0, 0, 0}) {
+	if !bytes.Equal(bus.Ops[3].W, []byte{19, 0, 0, 0}) {
 		t.Fatal("Data written to bus different than expected")
 	}
 }
