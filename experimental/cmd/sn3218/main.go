@@ -14,6 +14,7 @@ import (
 )
 
 func main() {
+
 	if _, err := host.Init(); err != nil {
 		log.Fatal(err)
 	}
@@ -26,53 +27,49 @@ func main() {
 		log.Fatal(err)
 	}
 
-	l, err := sn3218.New(b)
+	d, err := sn3218.New(b)
+
+	defer d.Halt()
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	l.Enable()
+	d.Enable()
+	d.SetGlobalBrightness(1)
 
-	log.Println("Switch each LED on one by one")
-	l.SetGlobalBrightness(1)
-	for i := 0; i < 18; i++ {
-		err := l.SwitchLed(i, true)
-		if err != nil {
-			log.Fatal(err)
-		}
-		time.Sleep(100 * time.Millisecond)
+	// Switch LED 7 on
+	if err := d.SwitchLed(7, true); err != nil {
+		log.Fatal("Error while switching LED", err)
 	}
+	time.Sleep(1000 * time.Millisecond)
 
-	log.Println("Set brightness of each LED to 10 one by one")
-	for i := 0; i < 18; i++ {
-		l.SetBrightness(i, 10)
-		time.Sleep(100 * time.Millisecond)
+	//Increase brightness for LED 7 to max
+	if err := d.SetBrightness(7, 255); err != nil {
+		log.Fatal("Error while changing LED brightness", err)
 	}
+	time.Sleep(1000 * time.Millisecond)
 
-	log.Println("Change between even and odd LEDs a couple of times")
-	l.SetGlobalBrightness(1)
-	time.Sleep(100 * time.Millisecond)
-	l.SetGlobalBrightness(1)
-	for x := 0; x < 10; x++ {
-		for i := 0; i < 18; i++ {
-			l.SwitchLed(i, i%2 == 0)
-		}
-		time.Sleep(100 * time.Millisecond)
-		for i := 0; i < 18; i++ {
-			l.SwitchLed(i, i%2 == 1)
-		}
-		time.Sleep(100 * time.Millisecond)
+	//Get state of LED 7
+	state, brightness, err := d.GetLedState(7)
+	if err != nil {
+		log.Fatal("Error while reading LED state", err)
 	}
+	log.Println("State: ", state, " - Brightness: ", brightness)
 
-	log.Println("And now all on and off together")
-	state := true
-	for i := 0; i < 10; i++ {
-		state = !state
-		l.SwitchAllLeds(state)
-		time.Sleep(100 * time.Millisecond)
-	}
+	// Switch all LEDs on
+	d.SwitchAllLeds(true)
+	time.Sleep(1000 * time.Millisecond)
 
-	log.Println("Cleanup: Reset register and switch off")
-	l.Halt()
+	// Increase brightness for all
+	d.SetGlobalBrightness(125)
+	time.Sleep(1000 * time.Millisecond)
+
+	// Disable to save energy, but keep state
+	d.Disable()
+	time.Sleep(1000 * time.Millisecond)
+
+	// Enable again
+	d.Enable()
+	time.Sleep(1000 * time.Millisecond)
 }

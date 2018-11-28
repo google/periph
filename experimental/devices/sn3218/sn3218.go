@@ -81,9 +81,13 @@ func (d *dev) SetGlobalBrightness(value byte) {
 }
 
 // SetBrightness sets the brightness of led (0..17) to value (0..255).
-func (d *dev) SetBrightness(led int, value byte) {
+func (d *dev) SetBrightness(led int, value byte) error {
+	if led < 0 || led >= 18 {
+		return errors.New("LED number out of range 0..17")
+	}
 	d.brightness[led] = value
 	d.updateBrightness()
+	return nil
 }
 
 // SwitchAllLeds switches all LEDs accoring to the state (on/off).
