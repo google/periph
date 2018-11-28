@@ -32,7 +32,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	l.Reset()
 	l.Enable()
 
 	log.Println("Switch each LED on one by one")
@@ -75,6 +74,5 @@ func main() {
 	}
 
 	log.Println("Cleanup: Reset register and switch off")
-	l.Reset()
 	l.Disable()
 }
