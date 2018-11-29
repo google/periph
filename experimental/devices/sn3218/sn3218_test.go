@@ -19,11 +19,8 @@ func setup() *i2ctest.Record {
 }
 
 func TestNew(t *testing.T) {
-	bus := i2ctest.Record{
-		Bus: nil,
-		Ops: []i2ctest.IO{},
-	}
-	_, err := New(&bus)
+	bus := setup()
+	_, err := New(bus)
 	if err != nil {
 		t.Fatal("New should not return error", err)
 	}
