@@ -206,29 +206,30 @@ func TestSwitchAll(t *testing.T) {
 }
 
 func TestBoolArrayToInt(t *testing.T) {
-	states := [18]bool{}
+	bus := setup()
+	dev, _ := New(bus)
 
-	result := boolArrayToInt(states)
+	result := dev.stateArrayToInt()
 	if result != 0 {
 		t.Error("Expected: 0, got: ", result)
 	}
 
-	states[0] = true
-	result = boolArrayToInt(states)
+	dev.states[0] = true
+	result = dev.stateArrayToInt()
 	if result != 1 {
 		t.Error("Expected: 1, got: ", result)
 	}
 
-	states[1] = true
-	result = boolArrayToInt(states)
+	dev.states[1] = true
+	result = dev.stateArrayToInt()
 	if result != 3 {
 		t.Error("Expected: 3, got ", result)
 	}
 
 	for i := 0; i < 18; i++ {
-		states[i] = true
+		dev.states[i] = true
 	}
-	result = boolArrayToInt(states)
+	result = dev.stateArrayToInt()
 	if result != 262143 {
 		t.Error("Expected: 262143, got ", result)
 	}

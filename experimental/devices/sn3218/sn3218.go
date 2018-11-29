@@ -108,11 +108,11 @@ func (d *Dev) reset() error {
 	return err
 }
 
-func boolArrayToInt(states [18]bool) uint {
+func (d *Dev) stateArrayToInt() uint {
 	var result uint = 0
 	for i := uint(0); i < uint(18); i++ {
 		state := uint(1)
-		if !states[i] {
+		if !d.states[i] {
 			state = uint(0)
 		}
 		result |= (state << i)
@@ -126,7 +126,7 @@ func (d *Dev) update() error {
 }
 
 func (d *Dev) updateStates() error {
-	mask := boolArrayToInt(d.states)
+	mask := d.stateArrayToInt()
 	_, err := d.i2c.Write([]byte{cmdEnableLeds, byte(mask & 0x3F), byte((mask >> 6) & 0x3F), byte((mask >> 12) & 0X3F)})
 	if err != nil {
 		return err
