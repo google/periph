@@ -124,8 +124,8 @@ func (d *Dev) update() error {
 
 func (d *Dev) updateStates() error {
 	mask := d.stateArrayToInt()
-	_, err := d.i2c.Write([]byte{cmdEnableLeds, byte(mask & 0x3F), byte((mask >> 6) & 0x3F), byte((mask >> 12) & 0X3F)})
-	if err != nil {
+	cmd := [...]byte{cmdEnableLeds, byte(mask & 0x3F), byte((mask >> 6) & 0x3F), byte((mask >> 12) & 0X3F)}
+	if _, err := d.i2c.Write(cmd[:]); err != nil {
 		return err
 	}
 	return d.update()
