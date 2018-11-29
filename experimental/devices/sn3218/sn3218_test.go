@@ -214,20 +214,20 @@ func TestBoolArrayToInt(t *testing.T) {
 		t.Error("Expected: 0, got: ", result)
 	}
 
-	dev.states[0] = true
+	dev.on[0] = true
 	result = dev.stateArrayToInt()
 	if result != 1 {
 		t.Error("Expected: 1, got: ", result)
 	}
 
-	dev.states[1] = true
+	dev.on[1] = true
 	result = dev.stateArrayToInt()
 	if result != 3 {
 		t.Error("Expected: 3, got ", result)
 	}
 
 	for i := 0; i < 18; i++ {
-		dev.states[i] = true
+		dev.on[i] = true
 	}
 	result = dev.stateArrayToInt()
 	if result != 262143 {

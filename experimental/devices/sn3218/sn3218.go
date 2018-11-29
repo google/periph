@@ -22,7 +22,7 @@ const (
 // Dev is a handler to sn3218 controller.
 type Dev struct {
 	i2c        i2c.Dev
-	states     [18]bool
+	on         [18]bool
 	brightness [18]byte
 }
 
@@ -63,7 +63,7 @@ func (d *Dev) GetState(channel int) (bool, byte, error) {
 	if channel < 0 || channel >= 18 {
 		return false, 0, errors.New("channel number out of range 0..17")
 	}
-	return d.states[channel], d.brightness[channel], nil
+	return d.on[channel], d.brightness[channel], nil
 }
 
 // Switch switched the channel (0..18) to state (on/off).
@@ -71,14 +71,14 @@ func (d *Dev) Switch(channel int, state bool) error {
 	if channel < 0 || channel >= 18 {
 		return errors.New("channel number out of range 0..17")
 	}
-	d.states[channel] = state
+	d.on[channel] = state
 	return d.updateStates()
 }
 
 // SwitchAll switches all channels accoring to the state (on/off).
 func (d *Dev) SwitchAll(state bool) error {
 	for i := 0; i < 18; i++ {
-		d.states[i] = state
+		d.on[i] = state
 	}
 	return d.updateStates()
 }
@@ -103,7 +103,7 @@ func (d *Dev) BrightnessAll(value byte) error {
 // Reset resets the registers to the default values.
 func (d *Dev) reset() error {
 	_, err := d.i2c.Write([]byte{cmdReset, 0xFF})
-	d.states = [18]bool{}
+	d.on = [18]bool{}
 	d.brightness = [18]byte{}
 	return err
 }
@@ -112,7 +112,7 @@ func (d *Dev) stateArrayToInt() uint {
 	var result uint = 0
 	for i := uint(0); i < uint(18); i++ {
 		state := uint(1)
-		if !d.states[i] {
+		if !d.on[i] {
 			state = uint(0)
 		}
 		result |= (state << i)
