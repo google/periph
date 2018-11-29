@@ -20,23 +20,24 @@ func main() {
 	}
 
 	b, err := i2creg.Open("")
-
+	if err != nil {
+		log.Fatal(err)
+	}
 	defer b.Close()
 
+	d, err := sn3218.New(b)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	d, err := sn3218.New(b)
-
 	defer d.Halt()
 
-	if err != nil {
-		log.Fatal(err)
+	if err := d.Enable(); err != nil {
+		log.Fatal("Error while enabling device", err)
 	}
 
-	d.Enable()
-	d.SetGlobalBrightness(1)
+	if err := d.SetGlobalBrightness(1); err != nil {
+		log.Fatal("Error while setting brightness", err)
+	}
 
 	// Switch LED 7 on
 	if err := d.Switch(7, true); err != nil {
@@ -58,18 +59,26 @@ func main() {
 	log.Println("State: ", state, " - Brightness: ", brightness)
 
 	// Switch all LEDs on
-	d.SwitchAll(true)
+	if err := d.SwitchAll(true); err != nil {
+		log.Fatal("Error while switching all LEDs", err)
+	}
 	time.Sleep(1000 * time.Millisecond)
 
 	// Increase brightness for all
-	d.SetGlobalBrightness(125)
+	if err := d.SetGlobalBrightness(125); err != nil {
+		log.Fatal("Error while changing globalBrightness", err)
+	}
 	time.Sleep(1000 * time.Millisecond)
 
 	// Disable to save energy, but keep state
-	d.Disable()
+	if err := d.Disable(); err != nil {
+		log.Fatal("Error while disabling device")
+	}
 	time.Sleep(1000 * time.Millisecond)
 
 	// Enable again
-	d.Enable()
+	if err := d.Enable(); err != nil {
+		log.Fatal("Error while enabling device")
+	}
 	time.Sleep(1000 * time.Millisecond)
 }

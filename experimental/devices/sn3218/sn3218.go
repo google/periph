@@ -74,29 +74,28 @@ func (d *Dev) Switch(channel int, state bool) error {
 }
 
 // SetGlobalBrightness sets the brightness of all channels to the value (0..255).
-func (d *Dev) SetGlobalBrightness(value byte) {
+func (d *Dev) SetGlobalBrightness(value byte) error {
 	for i := 0; i < 18; i++ {
 		d.brightness[i] = value
 	}
-	d.updateBrightness()
+	return d.updateBrightness()
 }
 
 // SetBrightness sets the brightness of led (0..17) to value (0..255).
 func (d *Dev) SetBrightness(channel int, value byte) error {
 	if channel < 0 || channel >= 18 {
-		return errors.New("Chhannel number out of range 0..17")
+		return errors.New("Channel number out of range 0..17")
 	}
 	d.brightness[channel] = value
-	d.updateBrightness()
-	return nil
+	return d.updateBrightness()
 }
 
 // SwitchAll switches all channels accoring to the state (on/off).
-func (d *Dev) SwitchAll(state bool) {
+func (d *Dev) SwitchAll(state bool) error {
 	for i := 0; i < 18; i++ {
 		d.states[i] = state
 	}
-	d.updateStates()
+	return d.updateStates()
 }
 
 // Reset resets the registers to the default values.
