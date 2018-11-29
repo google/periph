@@ -19,21 +19,16 @@ func Example() {
 	}
 
 	b, err := i2creg.Open("")
-
+	if err != nil {
+		log.Fatal(err)
+	}
 	defer b.Close()
 
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	d, err := sn3218.New(b)
-
-	// to ensure that all registers are reset and all LEDs are switched off
-	defer d.Halt()
-
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer d.Halt()
 
 	// By default, the device is disabled and brightness is 0 for all LEDs
 	// So let's set the brightness to a low value and enable the device to
