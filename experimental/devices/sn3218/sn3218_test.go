@@ -44,13 +44,10 @@ func TestHalt(t *testing.T) {
 	if err != nil {
 		t.Fatal("Halt should not return error, but did", err)
 	}
-	if len(bus.Ops) != 3 {
-		t.Fatal("Expected 3 operations, got", len(bus.Ops))
+	if len(bus.Ops) != 2 {
+		t.Fatal("Expected 2 operations, got", len(bus.Ops))
 	}
-	if !bytes.Equal(bus.Ops[1].W, []byte{0x00, 0x00}) {
-		t.Fatal("I2C write different than expected (disable)")
-	}
-	if !bytes.Equal(bus.Ops[2].W, []byte{0x17, 0xFF}) {
+	if !bytes.Equal(bus.Ops[1].W, []byte{0x17, 0xFF}) {
 		t.Fatal("I2C write different than expected (reset)")
 	}
 }

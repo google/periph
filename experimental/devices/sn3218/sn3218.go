@@ -39,9 +39,6 @@ func New(bus i2c.Bus) (*Dev, error) {
 
 // Halt resets the registers and switches the driver off.
 func (d *Dev) Halt() error {
-	if err := d.Sleep(); err != nil {
-		return err
-	}
 	return d.reset()
 }
 
