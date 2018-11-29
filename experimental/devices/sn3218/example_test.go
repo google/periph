@@ -6,10 +6,11 @@ package sn3218_test
 
 import (
 	"log"
+	"time"
+
 	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/experimental/devices/sn3218"
 	"periph.io/x/periph/host"
-	"time"
 )
 
 func Example() {
