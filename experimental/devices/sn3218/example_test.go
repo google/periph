@@ -33,7 +33,7 @@ func Example() {
 	// By default, the device is disabled and brightness is 0 for all LEDs
 	// So let's set the brightness to a low value and enable the device to
 	// get started
-	d.SetGlobalBrightness(1)
+	d.BrightnessAll(1)
 	d.Sleep()
 
 	// Switch LED 7 on

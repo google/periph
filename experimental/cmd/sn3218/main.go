@@ -35,7 +35,7 @@ func main() {
 		log.Fatal("Error while enabling device", err)
 	}
 
-	if err := d.SetGlobalBrightness(1); err != nil {
+	if err := d.BrightnessAll(1); err != nil {
 		log.Fatal("Error while setting brightness", err)
 	}
 
@@ -46,7 +46,7 @@ func main() {
 	time.Sleep(1000 * time.Millisecond)
 
 	//Increase brightness for LED 7 to max
-	if err := d.SetBrightness(7, 255); err != nil {
+	if err := d.Brightness(7, 255); err != nil {
 		log.Fatal("Error while changing LED brightness", err)
 	}
 	time.Sleep(1000 * time.Millisecond)
@@ -65,7 +65,7 @@ func main() {
 	time.Sleep(1000 * time.Millisecond)
 
 	// Increase brightness for all
-	if err := d.SetGlobalBrightness(125); err != nil {
+	if err := d.BrightnessAll(125); err != nil {
 		log.Fatal("Error while changing globalBrightness", err)
 	}
 	time.Sleep(1000 * time.Millisecond)

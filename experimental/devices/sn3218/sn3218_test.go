@@ -132,7 +132,7 @@ func TestSwitch(t *testing.T) {
 func TestSetGlobalBrightness(t *testing.T) {
 	bus := setup()
 	dev, _ := New(bus)
-	dev.SetGlobalBrightness(100)
+	dev.BrightnessAll(100)
 	for i := 0; i < 17; i++ {
 		if dev.brightness[i] != 100 {
 			t.Fatal("Brightness of LED", i, " should be 100, but is", dev.brightness[i])
@@ -158,7 +158,7 @@ func TestSetBrightness(t *testing.T) {
 	if _, brightness, _ := dev.GetState(9); brightness != 0 {
 		t.Fatal("Brightness should be 0, but it's not")
 	}
-	if err := dev.SetBrightness(9, 8); err != nil {
+	if err := dev.Brightness(9, 8); err != nil {
 		t.Fatal("There should be no error, but it is", err)
 	}
 	if _, brightness, _ := dev.GetState(9); brightness != 8 {
@@ -170,7 +170,7 @@ func TestSetBrightness(t *testing.T) {
 	if !bytes.Equal(bus.Ops[1].W, []byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0}) {
 		t.Fatal("Write operation to I2C different than expected")
 	}
-	if err := dev.SetBrightness(42, 100); err == nil {
+	if err := dev.Brightness(42, 100); err == nil {
 		t.Fatal("Expected error because channel out of range, but error was nil")
 	}
 }
