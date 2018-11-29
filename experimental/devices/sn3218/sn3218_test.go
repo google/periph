@@ -37,6 +37,7 @@ func TestHalt(t *testing.T) {
 	bus := setup()
 	dev, _ := New(bus)
 	err := dev.Halt()
+
 	if err != nil {
 		t.Fatal("Halt should not return error, but did", err)
 	}
