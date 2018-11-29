@@ -75,12 +75,12 @@ func (d *Dev) Switch(channel int, state bool) error {
 	return d.updateStates()
 }
 
-// SetGlobalBrightness sets the brightness of all channels to the value (0..255).
-func (d *Dev) SetGlobalBrightness(value byte) error {
+// SwitchAll switches all channels accoring to the state (on/off).
+func (d *Dev) SwitchAll(state bool) error {
 	for i := 0; i < 18; i++ {
-		d.brightness[i] = value
+		d.states[i] = state
 	}
-	return d.updateBrightness()
+	return d.updateStates()
 }
 
 // SetBrightness sets the brightness of led (0..17) to value (0..255).
@@ -92,12 +92,12 @@ func (d *Dev) SetBrightness(channel int, value byte) error {
 	return d.updateBrightness()
 }
 
-// SwitchAll switches all channels accoring to the state (on/off).
-func (d *Dev) SwitchAll(state bool) error {
+// SetGlobalBrightness sets the brightness of all channels to the value (0..255).
+func (d *Dev) SetGlobalBrightness(value byte) error {
 	for i := 0; i < 18; i++ {
-		d.states[i] = state
+		d.brightness[i] = value
 	}
-	return d.updateStates()
+	return d.updateBrightness()
 }
 
 // Reset resets the registers to the default values.
