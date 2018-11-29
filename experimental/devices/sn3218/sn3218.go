@@ -27,12 +27,14 @@ type Dev struct {
 }
 
 // New returns a handle to a SN3218 LED driver.
-func New(bus i2c.Bus) (Dev, error) {
-	d := i2c.Dev{Bus: bus, Addr: i2cAddress}
-	dev := Dev{}
-	dev.i2c = d
-	dev.reset()
-	return dev, nil
+func New(bus i2c.Bus) (*Dev, error) {
+	d := &Dev{
+		i2c: i2c.Dev{Bus: bus, Addr: i2cAddress},
+	}
+	if err := d.reset(); err != nil {
+		return nil, err
+	}
+	return d, nil
 }
 
 // Halt resets the registers and switches the driver off.
