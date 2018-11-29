@@ -12,11 +12,10 @@ import (
 )
 
 func setup() *i2ctest.Record {
-	bus := i2ctest.Record{
+	return &i2ctest.Record{
 		Bus: nil,
 		Ops: []i2ctest.IO{},
 	}
-	return &bus
 }
 
 func TestNew(t *testing.T) {
