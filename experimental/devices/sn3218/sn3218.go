@@ -61,7 +61,7 @@ func (d *Dev) Sleep() error {
 // Channel 0..17.
 func (d *Dev) GetState(channel int) (bool, byte, error) {
 	if channel < 0 || channel >= 18 {
-		return false, 0, errors.New("Channel number out of range 0..17")
+		return false, 0, errors.New("channel number out of range 0..17")
 	}
 	return d.states[channel], d.brightness[channel], nil
 }
@@ -69,7 +69,7 @@ func (d *Dev) GetState(channel int) (bool, byte, error) {
 // Switch switched the channel (0..18) to state (on/off).
 func (d *Dev) Switch(channel int, state bool) error {
 	if channel < 0 || channel >= 18 {
-		return errors.New("Channel number out of range 0..17")
+		return errors.New("channel number out of range 0..17")
 	}
 	d.states[channel] = state
 	return d.updateStates()
@@ -86,7 +86,7 @@ func (d *Dev) SetGlobalBrightness(value byte) error {
 // SetBrightness sets the brightness of led (0..17) to value (0..255).
 func (d *Dev) SetBrightness(channel int, value byte) error {
 	if channel < 0 || channel >= 18 {
-		return errors.New("Channel number out of range 0..17")
+		return errors.New("channel number out of range 0..17")
 	}
 	d.brightness[channel] = value
 	return d.updateBrightness()
