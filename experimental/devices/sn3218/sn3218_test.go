@@ -55,10 +55,10 @@ func TestHalt(t *testing.T) {
 	}
 }
 
-func TestEnable(t *testing.T) {
+func TestWakeUp(t *testing.T) {
 	bus := setup()
 	dev, _ := New(bus)
-	dev.Enable()
+	dev.WakeUp()
 	if len(bus.Ops) != 2 {
 		t.Fatal("Expected 2 operations, got", len(bus.Ops))
 	}
@@ -70,10 +70,10 @@ func TestEnable(t *testing.T) {
 	}
 }
 
-func TestDisable(t *testing.T) {
+func TestSleep(t *testing.T) {
 	bus := setup()
 	dev, _ := New(bus)
-	dev.Disable()
+	dev.Sleep()
 	if !bytes.Equal(bus.Ops[1].W, []byte{0x00, 0x00}) {
 		t.Fatal("Expected: 0x00, 0x00, got: ", bus.Ops[1].W)
 	}

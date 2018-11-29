@@ -34,7 +34,7 @@ func Example() {
 	// So let's set the brightness to a low value and enable the device to
 	// get started
 	d.SetGlobalBrightness(1)
-	d.Enable()
+	d.Sleep()
 
 	// Switch LED 7 on
 	if err := d.Switch(7, true); err != nil {

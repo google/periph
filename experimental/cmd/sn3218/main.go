@@ -31,7 +31,7 @@ func main() {
 	}
 	defer d.Halt()
 
-	if err := d.Enable(); err != nil {
+	if err := d.WakeUp(); err != nil {
 		log.Fatal("Error while enabling device", err)
 	}
 
@@ -70,14 +70,14 @@ func main() {
 	}
 	time.Sleep(1000 * time.Millisecond)
 
-	// Disable to save energy, but keep state
-	if err := d.Disable(); err != nil {
+	// Sleep mode to save energy, but keep state
+	if err := d.Sleep(); err != nil {
 		log.Fatal("Error while disabling device")
 	}
 	time.Sleep(1000 * time.Millisecond)
 
-	// Enable again
-	if err := d.Enable(); err != nil {
+	// WakeUp again
+	if err := d.WakeUp(); err != nil {
 		log.Fatal("Error while enabling device")
 	}
 	time.Sleep(1000 * time.Millisecond)

@@ -39,20 +39,20 @@ func New(bus i2c.Bus) (*Dev, error) {
 
 // Halt resets the registers and switches the driver off.
 func (d *Dev) Halt() error {
-	if err := d.Disable(); err != nil {
+	if err := d.Sleep(); err != nil {
 		return err
 	}
 	return d.reset()
 }
 
-// Enable enables the SN3218.
-func (d *Dev) Enable() error {
+// WakeUp returns from sleep mode and switches the channels according to the states in the register of SN3218.
+func (d *Dev) WakeUp() error {
 	_, err := d.i2c.Write([]byte{cmdEnableOutput, 0x01})
 	return err
 }
 
-// Disable disables the SN3218.
-func (d *Dev) Disable() error {
+// Sleep sends SN3218 to sleep mode while keeping the states in the registers.
+func (d *Dev) Sleep() error {
 	_, err := d.i2c.Write([]byte{cmdEnableOutput, 0x00})
 	return err
 }
