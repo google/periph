@@ -132,8 +132,9 @@ func (d *Dev) updateStates() error {
 }
 
 func (d *Dev) updateBrightness() error {
-	_, err := d.i2c.Write(append([]byte{cmdSetBrightnessValues}, d.brightness[0:len(d.brightness)]...))
-	if err != nil {
+	cmd := [19]byte{cmdSetBrightnessValues}
+	copy(cmd[1:], d.brightness[:])
+	if _, err := d.i2c.Write(cmd[:]); err != nil {
 		return err
 	}
 	return d.update()
