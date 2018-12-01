@@ -1,6 +1,8 @@
 # See https://github.com/periph/gohci
 version: 1
 workers:
+# BeagleBone Green Wireles by SeedStudio.
+# https://beagleboard.org/green-wireless
 - name: beaglebone-4373
   checks:
   - cmd:
@@ -28,6 +30,7 @@ workers:
     - P8_45
     - -pin2
     - P8_46
+# C.H.I.P. by Next Thing Co. The company closed its doors.
 - name: chip-a87d
   checks:
   - cmd:
@@ -86,6 +89,7 @@ workers:
   - cmd:
     - periph-smoketest
     - spi-testboard
+# Old MacBook Pro on 10.9.
 - name: mbp
   checks:
   - cmd:
@@ -114,6 +118,8 @@ workers:
     - i2c-list
   - cmd:
     - spi-list
+# ODROID-C1+ by HardKernel
+# https://www.hardkernel.com/shop/odroid-c1/
 - name: odroid-483d
   checks:
   - cmd:
@@ -165,6 +171,7 @@ workers:
     - -p
     - 97
     - -short
+# Raspberry Pi 3
 - name: raspberrypi-2f34
   checks:
   - cmd:
@@ -212,6 +219,14 @@ workers:
     - -p
     - 12
     - -short
+  - cmd:
+    - periph-smoketest
+    - gpio
+    - -pin1
+    - P1_15
+    - -pin2
+    - P1_16
+# Laptop on Windows 10.
 - name: win10
   checks:
   - cmd:
