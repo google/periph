@@ -20,9 +20,9 @@ import (
 )
 
 var (
-	// TimeoutError is returned from Read and ReadAveraged when the ADC took too
+	// ErrTimeout is returned from Read and ReadAveraged when the ADC took too
 	// long to indicate data was available.
-	TimeoutError = errors.New("timed out waiting for HX711 to become ready")
+	ErrTimeout = errors.New("timed out waiting for HX711 to become ready")
 )
 
 // InputMode controls the voltage gain and the channel multiplexer on the HX711.
@@ -168,14 +168,14 @@ func (d *Dev) IsReady() bool {
 //
 // It blocks until the ADC indicates there is data ready for retrieval. If the
 // ADC doesn't pull its Data pin low to indicate there is data ready before the
-// timeout is reached, TimeoutError is returned.
+// timeout is reached, ErrTimeout is returned.
 func (d *Dev) ReadTimeout(timeout time.Duration) (int32, error) {
 	// Wait for the falling edge that indicates the ADC has data.
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	if !d.IsReady() {
 		if !d.data.WaitForEdge(timeout) {
-			return 0, TimeoutError
+			return 0, ErrTimeout
 		}
 	}
 	return d.readRaw()

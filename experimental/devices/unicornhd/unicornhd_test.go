@@ -17,20 +17,20 @@ import (
 )
 
 func TestNewFailsWhenConnectionToSpiFails(t *testing.T) {
-	if dev, err := NewUnicornhd(&spiFail{}); dev != nil || err == nil {
+	if dev, err := New(&spiFail{}); dev != nil || err == nil {
 		t.Fatal()
 	}
 }
 
 func TestNewReturnsDriverWithGoodSpi(t *testing.T) {
-	if dev, err := NewUnicornhd(spitest.NewRecordRaw(nil)); dev == nil || err != nil {
+	if dev, err := New(spitest.NewRecordRaw(nil)); dev == nil || err != nil {
 		t.Fatal()
 	}
 }
 
 func TestStringIsDriverNameWidthHeight(t *testing.T) {
 	expectedString := "UnicornHD{16, 16}"
-	dev, _ := NewUnicornhd(spitest.NewRecordRaw(nil))
+	dev, _ := New(spitest.NewRecordRaw(nil))
 	devString := dev.String()
 	if devString != expectedString {
 		t.Fatalf("expected: '%s', actual: '%s'", expectedString, devString)
@@ -81,7 +81,7 @@ func TestHalt(t *testing.T) {
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	}
 	buf := bytes.Buffer{}
-	dev, _ := NewUnicornhd(spitest.NewRecordRaw(&buf))
+	dev, _ := New(spitest.NewRecordRaw(&buf))
 	if err := dev.Halt(); err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +92,7 @@ func TestHalt(t *testing.T) {
 }
 
 func TestColorModeIsNRGBA(t *testing.T) {
-	dev, _ := NewUnicornhd(spitest.NewRecordRaw(nil))
+	dev, _ := New(spitest.NewRecordRaw(nil))
 
 	if dev.ColorModel() != color.NRGBAModel {
 		t.Fatal()
@@ -100,7 +100,7 @@ func TestColorModeIsNRGBA(t *testing.T) {
 }
 
 func TestBoundsMatchDeviceSize(t *testing.T) {
-	dev, _ := NewUnicornhd(spitest.NewRecordRaw(nil))
+	dev, _ := New(spitest.NewRecordRaw(nil))
 
 	bounds := dev.Bounds()
 
@@ -162,7 +162,7 @@ func TestDrawWritesBlackImageToSpi(t *testing.T) {
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	}
 	buf := bytes.Buffer{}
-	dev, _ := NewUnicornhd(spitest.NewRecordRaw(&buf))
+	dev, _ := New(spitest.NewRecordRaw(&buf))
 	black := color.RGBA{0, 0, 0, 0}
 	if err := dev.Draw(dev.Bounds(), &image.Uniform{black}, image.ZP); err != nil {
 		t.Fatal(err)
@@ -217,7 +217,7 @@ func TestDrawWritesWhiteImageToSpi(t *testing.T) {
 		0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
 	}
 	buf := bytes.Buffer{}
-	dev, _ := NewUnicornhd(spitest.NewRecordRaw(&buf))
+	dev, _ := New(spitest.NewRecordRaw(&buf))
 	white := color.RGBA{255, 255, 255, 255}
 	if err := dev.Draw(dev.Bounds(), &image.Uniform{white}, image.ZP); err != nil {
 		t.Fatal(err)
@@ -265,10 +265,10 @@ func TestDrawWritesSequenceImageToSpi(t *testing.T) {
 		0xe8, 0xea, 0xe9, 0xeb, 0xed, 0xec, 0xee, 0xf0, 0xef, 0xf1, 0xf3, 0xf2, 0xf4, 0xf6, 0xf5, 0xf7, 0xf9, 0xf8, 0xfa, 0xfc, 0xfb, 0xfd, 0xff, 0xfe,
 	}
 	buf := bytes.Buffer{}
-	dev, _ := NewUnicornhd(spitest.NewRecordRaw(&buf))
+	dev, _ := New(spitest.NewRecordRaw(&buf))
 
 	img := image.NewNRGBA(image.Rect(0, 0, width, height))
-	var c uint8 = 0
+	var c uint8
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
 			r := c
@@ -352,7 +352,7 @@ func TestDrawSupportsPartialUpdates(t *testing.T) {
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	}
 	buf := bytes.Buffer{}
-	dev, _ := NewUnicornhd(spitest.NewRecordRaw(&buf))
+	dev, _ := New(spitest.NewRecordRaw(&buf))
 	white := color.RGBA{0xFF, 0xFF, 0xFF, 0xFF}
 	if err := dev.Draw(image.Rect(0, 0, 3, 3), &image.Uniform{white}, image.ZP); err != nil {
 		t.Fatal(err)

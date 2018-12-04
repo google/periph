@@ -39,7 +39,7 @@ type Opts struct {
 	Freq physic.Frequency
 }
 
-// New opens a handle to a compatible LED strip.
+// NewStream opens a handle to a compatible LED strip.
 func NewStream(p gpiostream.PinOut, opts *Opts) (*Dev, error) {
 	// Allow a wider range in case there's new devices with higher supported
 	// frequency.

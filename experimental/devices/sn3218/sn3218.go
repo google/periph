@@ -106,7 +106,7 @@ func (d *Dev) reset() error {
 }
 
 func (d *Dev) stateArrayToInt() uint {
-	var result uint = 0
+	var result uint
 	for i := uint(0); i < uint(18); i++ {
 		state := uint(1)
 		if !d.on[i] {

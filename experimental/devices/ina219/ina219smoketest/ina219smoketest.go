@@ -29,6 +29,7 @@ func (s *SmokeTest) Description() string {
 	return "Tests INA219 over I²C"
 }
 
+// Run implements the SmokeTest interface.
 func (s *SmokeTest) Run(f *flag.FlagSet, args []string) (err error) {
 	i2cID := f.String("i2c", "", "I²C bus to use")
 	i2cAddr := f.Int("ia", 0x40, "I²C bus address use: 0x40 to 0x4f")

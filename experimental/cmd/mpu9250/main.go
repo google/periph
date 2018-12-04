@@ -96,9 +96,9 @@ func main() {
 
 	if *continuous {
 		for {
-			x := MustInt16(dev.GetAccelerationX())
-			y := MustInt16(dev.GetAccelerationY())
-			z := MustInt16(dev.GetAccelerationZ())
+			x := mustInt16(dev.GetAccelerationX())
+			y := mustInt16(dev.GetAccelerationY())
+			z := mustInt16(dev.GetAccelerationZ())
 			fmt.Printf("Raw : X: %d, Y: %d, Z: %d\n", x, y, z)
 			fmt.Printf("Calc: X: %.2f, Y: %.2f, Z: %.2f\n", float32(x)*accMulti, float32(y)*accMulti, float32(z)*accMulti)
 			time.Sleep(time.Second)
@@ -107,7 +107,7 @@ func main() {
 	}
 }
 
-func MustInt16(s int16, err error) int16 {
+func mustInt16(s int16, err error) int16 {
 	if err != nil {
 		panic(err)
 	}

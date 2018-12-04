@@ -37,7 +37,7 @@ type Dev struct {
 //
 // The SPI port speed must be 9MHz and the SPI mode, 0, as in the
 // python example library.
-func NewUnicornhd(port spi.Port) (*Dev, error) {
+func New(port spi.Port) (*Dev, error) {
 	connector, err := port.Connect(speed, spi.Mode0, bits)
 	if err != nil {
 		return nil, err
@@ -49,14 +49,15 @@ func NewUnicornhd(port spi.Port) (*Dev, error) {
 	}, nil
 }
 
-// Implement display.Drawer
+// String implements display.Drawer
 //
-// Returns a string with the driver name and the width and height of the display.
+// Returns a string with the driver name and the width and height of the
+// display.
 func (device *Dev) String() string {
 	return fmt.Sprintf("UnicornHD{%d, %d}", width, height)
 }
 
-// Halting the unicorn HD sets all the pixels to black. Error is always nil.
+// Halt sets all the pixels to black. Error is always nil.
 func (device *Dev) Halt() error {
 	black := color.RGBA{0, 0, 0, 0}
 	return device.Draw(device.Bounds(), &image.Uniform{black}, image.ZP)
