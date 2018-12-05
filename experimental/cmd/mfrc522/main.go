@@ -94,7 +94,9 @@ func mainImpl() error {
 		return err
 	}
 
-	access := mfrc522.ParseBlockAccess(auth[6:10])
+	var access mfrc522.BlocksAccess
+
+	access.Init(auth[6:10])
 
 	fmt.Printf("RFID sector %d, block %d : %v, auth: %v\n", *sector, *block, data, auth)
 	fmt.Printf("Permissions: B0: %s, B1: %s, B2: %s, B3/A: %s\n",

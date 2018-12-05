@@ -13,16 +13,25 @@ import (
 	"periph.io/x/periph/conn/spi"
 )
 
+// Card authentication status enum.
+const (
+	AuthOk          AuthStatus = iota
+	AuthReadFailure AuthStatus = iota
+	AuthFailure     AuthStatus = iota
+)
+
+// LowLevel is a low-level handler of a MFRC522 RFID reader.
+type LowLevel struct {
+	resetPin    gpio.PinOut
+	irqPin      gpio.PinIn
+	spiDev      spi.Conn
+	antennaGain int
+	stop        chan struct{}
+}
+
 // AuthStatus indicates the authentication response, could be one of AuthOk,
 // AuthReadFailure or AuthFailure
 type AuthStatus byte
-
-// Card authentication status enum.
-const (
-	AuthOk AuthStatus = iota
-	AuthReadFailure
-	AuthFailure
-)
 
 // NewLowLevelSPI creates and initializes the RFID card reader attached to SPI.
 //
@@ -33,9 +42,6 @@ func NewLowLevelSPI(spiPort spi.Port, resetPin gpio.PinOut, irqPin gpio.PinIn) (
 	if resetPin == nil {
 		return nil, wrapf("reset pin is not set")
 	}
-	if irqPin == nil {
-		return nil, wrapf("IRQ pin is not set")
-	}
 	spiDev, err := spiPort.Connect(10*physic.MegaHertz, spi.Mode0, 8)
 	if err != nil {
 		return nil, err
@@ -43,24 +49,66 @@ func NewLowLevelSPI(spiPort spi.Port, resetPin gpio.PinOut, irqPin gpio.PinIn) (
 	if err := resetPin.Out(gpio.High); err != nil {
 		return nil, err
 	}
-	if err := irqPin.In(gpio.PullUp, gpio.FallingEdge); err != nil {
-		return nil, err
+	if irqPin != nil {
+		if err := irqPin.In(gpio.PullUp, gpio.FallingEdge); err != nil {
+			return nil, err
+		}
 	}
 
 	dev := &LowLevel{
-		spiDev:   spiDev,
-		irqPin:   irqPin,
-		resetPin: resetPin,
+		spiDev:      spiDev,
+		irqPin:      irqPin,
+		resetPin:    resetPin,
+		antennaGain: 4,
+		stop:        make(chan struct{}, 1),
 	}
 
 	return dev, nil
 }
 
-// LowLevel is a low-level handler of a MFRC522 RFID reader.
-type LowLevel struct {
-	resetPin gpio.PinOut
-	irqPin   gpio.PinIn
-	spiDev   spi.Conn
+// Reset resets the RFID chip to initial state.
+func (r *LowLevel) Reset() error {
+	return r.DevWrite(CommandReg, PCD_RESETPHASE)
+}
+
+// SetAntennaGain sets the antenna gain for the driver.
+// This method does not update the gain on the device itself.
+// A subsequent call to SetAntenna is necessary to have an effect.
+func (r *LowLevel) SetAntennaGain(gain int) {
+	r.antennaGain = gain
+}
+
+// Init initializes the RFID chip.
+func (r *LowLevel) Init() error {
+	if err := r.Reset(); err != nil {
+		return err
+	}
+	if err := r.writeCommandSequence(sequenceCommands.init); err != nil {
+		return err
+	}
+
+	gain := byte(r.antennaGain) << 4
+
+	if err := r.DevWrite(int(RFCfgReg), gain); err != nil {
+		return err
+	}
+
+	return r.SetAntenna(true)
+}
+
+// setAntenna configures the antenna state, on/off.
+func (r *LowLevel) SetAntenna(state bool) error {
+	if state {
+		current, err := r.DevRead(TxControlReg)
+		if err != nil {
+			return err
+		}
+		if current&0x03 != 0 {
+			return wrapf("can not set the bitmask for antenna")
+		}
+		return r.SetBitmask(TxControlReg, 0x03)
+	}
+	return r.ClearBitmask(TxControlReg, 0x03)
 }
 
 // String implements conn.Resource.
@@ -145,9 +193,41 @@ func (r *LowLevel) StopCrypto() error {
 	return r.ClearBitmask(Status2Reg, 0x08)
 }
 
-// WaitForEdge waits for an IRQ pin to strobe.
-func (r *LowLevel) WaitForEdge(timeout time.Duration) bool {
-	return r.irqPin.WaitForEdge(timeout)
+// WaitForEdge waits for an IRQ pin to strobe. If IRQ pin is not set, then always returns false immediately.
+func (r *LowLevel) WaitForEdge(timeout time.Duration) error {
+	irqChannel := make(chan bool)
+	go func() {
+		irqChannel <- r.irqPin.WaitForEdge(timeout)
+	}()
+
+	defer close(irqChannel)
+
+	if err := r.Init(); err != nil {
+		return err
+	}
+	if err := r.writeCommandSequence(sequenceCommands.waitInit); err != nil {
+		return err
+	}
+
+	for {
+		if err := r.writeCommandSequence(sequenceCommands.waitLoop); err != nil {
+			return err
+		}
+		select {
+		case <-r.stop:
+			return wrapf("halt")
+		case irqResult, ok := <-irqChannel:
+			if !ok {
+				return wrapf("closed IRQ channel")
+			}
+			if !irqResult {
+				return wrapf("timeout waiting for IRQ edge: %v", timeout)
+			}
+			return nil
+		case <-time.After(100 * time.Millisecond):
+			// do nothing
+		}
+	}
 }
 
 // Auth authenticate the card fof the sector/block using the provided data.
@@ -288,6 +368,46 @@ func (r *LowLevel) CardWrite(command byte, data []byte) ([]byte, int, error) {
 	return backData, backLength, nil
 }
 
+// Halt stops the card and cleans up resources.
+func (r *LowLevel) Halt() error {
+	close(r.stop)
+	return r.DevWrite(CommandReg, 16)
+}
+
+func (r *LowLevel) writeCommandSequence(commands [][]byte) error {
+	for _, cmdData := range commands {
+		if err := r.DevWrite(int(cmdData[0]), cmdData[1]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func wrapf(format string, a ...interface{}) error {
-	return fmt.Errorf("mfrc522: "+format, a...)
+	return fmt.Errorf("mfrc522 lowlevel: "+format, a...)
+}
+
+// the command batches for card init and wait loop.
+var sequenceCommands = struct {
+	init     [][]byte
+	waitInit [][]byte
+	waitLoop [][]byte
+}{
+	init: [][]byte{
+		{TModeReg, 0x8D},
+		{TPrescalerReg, 0x3E},
+		{TReloadRegL, 30},
+		{TReloadRegH, 0},
+		{TxAutoReg, 0x40},
+		{ModeReg, 0x3D},
+	},
+	waitInit: [][]byte{
+		{CommIrqReg, 0x00},
+		{CommIEnReg, 0xA0},
+	},
+	waitLoop: [][]byte{
+		{FIFODataReg, 0x26},
+		{CommandReg, 0x0C},
+		{BitFramingReg, 0x87},
+	},
 }
