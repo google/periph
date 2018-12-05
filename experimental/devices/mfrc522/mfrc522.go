@@ -122,24 +122,14 @@ func (r *Dev) SetAntennaGain(gain int) error {
 	return nil
 }
 
-// ReadCard reads the card sector/block.
-//
-//  auth     the authentication mode.
-//  sector   the sector to authenticate on.
-//  block    the block within sector to authenticate.
-//  key      the key to be used for accessing the sector data.
-func (r *Dev) ReadCard(auth byte, sector int, block int, key Key) (data []byte, err error) {
-	return r.ReadCardTimed(r.operationTimeout, auth, sector, block, key)
-}
-
-// ReadCardTimed   reads the card sector/block with IRQ event timeout.
+// ReadCard  reads the card sector/block with IRQ event timeout.
 //
 //  timeout   the operation timeout
 //  auth      the authentication mode.
 //  sector    the sector to authenticate on.
 //  block     the block within sector to authenticate.
 //  key       the key to be used for accessing the sector data.
-func (r *Dev) ReadCardTimed(timeout time.Duration, auth byte, sector int, block int, key Key) (data []byte, err error) {
+func (r *Dev) ReadCard(timeout time.Duration, auth byte, sector int, block int, key Key) (data []byte, err error) {
 	r.beforeCall()
 	defer func() {
 		r.afterCall()
@@ -162,22 +152,13 @@ func (r *Dev) ReadCardTimed(timeout time.Duration, auth byte, sector int, block 
 	return r.readBlock(sector, block)
 }
 
-// ReadAuth     reads the card authentication data.
-//
-//  auth    authentication type
-//  sector  the sector to authenticate on.
-//  key     the key to be used for accessing the sector data.
-func (r *Dev) ReadAuth(auth byte, sector int, key Key) (data []byte, err error) {
-	return r.ReadAuthTimed(r.operationTimeout, auth, sector, key)
-}
-
-// ReadAuthTimed   reads the card authentication data with IRQ event timeout.
+// ReadAuth  reads the card authentication data with IRQ event timeout.
 //
 //  timeout    the operation timeout
 //  auth       authentication type
 //  sector     the sector to authenticate on.
 //  key        the key to be used for accessing the sector data.
-func (r *Dev) ReadAuthTimed(timeout time.Duration, auth byte, sector int, key Key) (data []byte, err error) {
+func (r *Dev) ReadAuth(timeout time.Duration, auth byte, sector int, key Key) (data []byte, err error) {
 	r.beforeCall()
 	defer func() {
 		r.afterCall()
@@ -201,17 +182,6 @@ func (r *Dev) ReadAuthTimed(timeout time.Duration, auth byte, sector int, key Ke
 	return r.read(calcBlockAddress(sector, 3))
 }
 
-// WriteCardTimed   writes the data into the card block.
-//
-//  auth       the authentiction mode.
-//  sector     the sector on the card to write to.
-//  block      the block within the sector to write into.
-//  data       16 bytes if data to write
-//  key        the key used to authenticate the card - depends on the used auth method.
-func (r *Dev) WriteCard(auth byte, sector int, block int, data [16]byte, key Key) (err error) {
-	return r.WriteCardTimed(r.operationTimeout, auth, sector, block, data, key)
-}
-
 // WriteCard    writes the data into the card block with IRQ event timeout.
 //
 //  timeout     the operation timeout
@@ -220,7 +190,7 @@ func (r *Dev) WriteCard(auth byte, sector int, block int, data [16]byte, key Key
 //  block       the block within the sector to write into.
 //  data        16 bytes if data to write
 //  key          the key used to authenticate the card - depends on the used auth method.
-func (r *Dev) WriteCardTimed(timeout time.Duration, auth byte, sector int, block int, data [16]byte, key Key) (err error) {
+func (r *Dev) WriteCard(timeout time.Duration, auth byte, sector int, block int, data [16]byte, key Key) (err error) {
 	r.beforeCall()
 	defer func() {
 		r.afterCall()
@@ -244,19 +214,7 @@ func (r *Dev) WriteCardTimed(timeout time.Duration, auth byte, sector int, block
 	return r.write(calcBlockAddress(sector, block%3), data[:])
 }
 
-// WriteSectorTrail writes the sector trail with sector access bits.
-//
-// auth     authentication mode.
-// sector   sector to set authentication.
-// keyA     the key used for AuthA authentication scheme.
-// keyB     the key used for AuthB authentication scheme.
-// access   the block access structure.
-// key      the current key used to authenticate the provided sector.
-func (r *Dev) WriteSectorTrail(auth byte, sector int, keyA Key, keyB Key, access *BlocksAccess, key Key) (err error) {
-	return r.WriteSectorTrailTimed(r.operationTimeout, auth, sector, keyA, keyB, access, key)
-}
-
-// WriteSectorTrailTimed  writes the sector trail with sector access bits with IRQ event timeout.
+// WriteSectorTrail  writes the sector trail with sector access bits with IRQ event timeout.
 //
 //  timeout   operation timeout
 //  auth      authentication mode.
@@ -265,7 +223,7 @@ func (r *Dev) WriteSectorTrail(auth byte, sector int, keyA Key, keyB Key, access
 //  keyB      the key used for AuthB authentication scheme.
 //  access    the block access structure.
 //  key       the current key used to authenticate the provided sector.
-func (r *Dev) WriteSectorTrailTimed(timeout time.Duration, auth byte, sector int, keyA Key, keyB Key, access *BlocksAccess, key Key) (err error) {
+func (r *Dev) WriteSectorTrail(timeout time.Duration, auth byte, sector int, keyA Key, keyB Key, access *BlocksAccess, key Key) (err error) {
 	r.beforeCall()
 	defer func() {
 		r.afterCall()
@@ -447,9 +405,9 @@ func (r *Dev) preAccess(blockAddr byte, cmd byte) ([]byte, int, error) {
 	return r.LowLevel.CardWrite(commands.PCD_TRANSCEIVE, send)
 }
 
-// read	reads the block
+// read  reads the block
 //
-//	blockAddr the address to read from the card.
+//   blockAddr the address to read from the card.
 func (r *Dev) read(blockAddr byte) ([]byte, error) {
 	data, _, err := r.preAccess(blockAddr, commands.PICC_READ)
 	if err != nil {

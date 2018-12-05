@@ -15,9 +15,9 @@ import (
 
 // Card authentication status enum.
 const (
-	AuthOk          AuthStatus = iota
-	AuthReadFailure AuthStatus = iota
-	AuthFailure     AuthStatus = iota
+	AuthOk AuthStatus = iota
+	AuthReadFailure
+	AuthFailure
 )
 
 // LowLevel is a low-level handler of a MFRC522 RFID reader.
@@ -197,10 +197,9 @@ func (r *LowLevel) StopCrypto() error {
 func (r *LowLevel) WaitForEdge(timeout time.Duration) error {
 	irqChannel := make(chan bool)
 	go func() {
+		defer close(irqChannel)
 		irqChannel <- r.irqPin.WaitForEdge(timeout)
 	}()
-
-	defer close(irqChannel)
 
 	if err := r.Init(); err != nil {
 		return err
@@ -216,10 +215,7 @@ func (r *LowLevel) WaitForEdge(timeout time.Duration) error {
 		select {
 		case <-r.stop:
 			return wrapf("halt")
-		case irqResult, ok := <-irqChannel:
-			if !ok {
-				return wrapf("closed IRQ channel")
-			}
+		case irqResult := <-irqChannel:
 			if !irqResult {
 				return wrapf("timeout waiting for IRQ edge: %v", timeout)
 			}

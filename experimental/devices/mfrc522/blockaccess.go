@@ -31,25 +31,27 @@ const (
 
 // Access bits for the sector trail.
 // Every trail sector has the options for controlling the access to the trailing sector bits.
-// For example : KeyA_R[Key]_W[Key]_BITS_R[Key]_W[Key]_KeyB_R[Key]_W[Key]
+// For example :
 //
-// - KeyA
-//   - could be Read by providing [Key] ( where [Key] could be KeyA or KeyB )
-//   - could be Written by Providing [Key] ( where [Key] is KeyA or KeyB )
-// - access bits for the sector data (see above)
-//   - could be Read by providing [Key] ( where [Key] could be KeyA or KeyB )
-//   - could be Written by Providing [Key] ( where [Key] is KeyA or KeyB )
-// - KeyB
-//   - could be Read by providing [Key] ( where [Key] could be KeyA or KeyB )
-//   - could be Written by Providing [Key] ( where [Key] is KeyA or KeyB )
+//  KeyA_R[Key]_W[Key]_BITS_R[Key]_W[Key]_KeyB_R[Key]_W[Key]
 //
-// example:
+//  - KeyA
+//    - could be Read by providing [Key] ( where [Key] could be KeyA or KeyB )
+//    - could be Written by Providing [Key] ( where [Key] is KeyA or KeyB )
+//  - access bits for the sector data (see above)
+//    - could be Read by providing [Key] ( where [Key] could be KeyA or KeyB )
+//    - could be Written by Providing [Key] ( where [Key] is KeyA or KeyB )
+//  - KeyB
+//    - could be Read by providing [Key] ( where [Key] could be KeyA or KeyB )
+//    - could be Written by Providing [Key] ( where [Key] is KeyA or KeyB )
 //
-//  KeyA_RN_WA_BITS_RA_WA_KeyB_RA_WA means
-//  - KeyA could not be read but could be overwriten if KeyA is provided
-//  - Access bits could be read and overwritten if KeyA is provided during the card authentication
-//  - KeyB could be read and overriten if KeyA is provided during the card authentication
-// more on the matter: https://www.nxp.com/docs/en/data-sheet/MF1S50YYX_V1.pdf
+//  example:
+//
+//   KeyA_RN_WA_BITS_RA_WA_KeyB_RA_WA means
+//   - KeyA could not be read but could be overwriten if KeyA is provided
+//   - Access bits could be read and overwritten if KeyA is provided during the card authentication
+//   - KeyB could be read and overriten if KeyA is provided during the card authentication
+//  more on the matter: https://www.nxp.com/docs/en/data-sheet/MF1S50YYX_V1.pdf
 const (
 	KeyA_RN_WA_BITS_RA_WN_KeyB_RA_WA        SectorTrailerAccess = 0x0
 	KeyA_RN_WN_BITS_RA_WN_KeyB_RA_WN        SectorTrailerAccess = 0x02
@@ -73,7 +75,7 @@ func (ba *BlocksAccess) String() string {
 
 // serialize calculates the block access and stores it into the passed slice, that must be at least 4 bytes wide.
 func (ba *BlocksAccess) serialize(dst []byte) error {
-	if len(dst) < 4 {
+	if len(dst) != 4 {
 		return wrapf("serialized array must be of size at least 4")
 	}
 	dst[0] = ((^ba.getBits(2) & 0x0F) << 4) | (^ba.getBits(1) & 0x0F)

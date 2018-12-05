@@ -67,7 +67,7 @@ func Example() {
 
 		for {
 			// Trying to read data from sector 1 block 0
-			data, err := rfid.ReadCard(byte(commands.PICC_AUTHENT1B), 1, 0, key)
+			data, err := rfid.ReadCard(10*time.Second, byte(commands.PICC_AUTHENT1B), 1, 0, key)
 
 			// If main thread timed out just exiting.
 			if timedOut {
