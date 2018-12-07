@@ -768,9 +768,9 @@ func (m *Mass) Set(s string) error {
 			if e, ok := err.(*parseError); ok {
 				switch e.err {
 				case errOverflowsInt64:
-					return errors.New("maximum value is " + strconv.FormatInt(maxPoundMass, 10) + "lb")
+					return errors.New("maximum value is " + strconv.FormatInt(int64(maxPoundMass), 10) + "lb")
 				case errOverflowsInt64Negative:
-					return errors.New("minimum value is " + strconv.FormatInt(minPoundMass, 10) + "lb")
+					return errors.New("minimum value is " + strconv.FormatInt(int64(minPoundMass), 10) + "lb")
 				}
 			}
 			return err
@@ -788,9 +788,9 @@ func (m *Mass) Set(s string) error {
 			if e, ok := err.(*parseError); ok {
 				switch e.err {
 				case errOverflowsInt64:
-					return errors.New("maximum value is " + strconv.FormatInt(maxOunceMass, 10) + "oz")
+					return errors.New("maximum value is " + strconv.FormatInt(int64(maxOunceMass), 10) + "oz")
 				case errOverflowsInt64Negative:
-					return errors.New("minimum value is " + strconv.FormatInt(minOunceMass, 10) + "oz")
+					return errors.New("minimum value is " + strconv.FormatInt(int64(minOunceMass), 10) + "oz")
 				}
 			}
 			return err
@@ -832,11 +832,11 @@ const (
 	minMass Mass = -((1 << 63) - 1)
 
 	// min and max Pound mass are in lb.
-	minPoundMass = -20334054
-	maxPoundMass = 20334054
-	// min and max Ounce mass are in ox.
-	minOunceMass = -325344874
-	maxOunceMass = 325344874
+	minPoundMass Mass = -20334054
+	maxPoundMass Mass = 20334054
+	// min and max Ounce mass are in oz.
+	minOunceMass Mass = -325344874
+	maxOunceMass Mass = 325344874
 )
 
 // Pressure is a measurement of force applied to a surface per unit
@@ -1013,9 +1013,9 @@ func (sp *Speed) Set(s string) error {
 			if e, ok := err.(*parseError); ok {
 				switch e.err {
 				case errOverflowsInt64:
-					return errors.New("maximum value is " + strconv.FormatInt(maxKilometrePerHour, 10) + "kph")
+					return errors.New("maximum value is " + strconv.FormatInt(int64(maxKilometrePerHour), 10) + "kph")
 				case errOverflowsInt64Negative:
-					return errors.New("minimum value is " + strconv.FormatInt(minKilometrePerHour, 10) + "kph")
+					return errors.New("minimum value is " + strconv.FormatInt(int64(minKilometrePerHour), 10) + "kph")
 				}
 			}
 			return err
@@ -1033,9 +1033,9 @@ func (sp *Speed) Set(s string) error {
 			if e, ok := err.(*parseError); ok {
 				switch e.err {
 				case errOverflowsInt64:
-					return errors.New("maximum value is " + strconv.FormatInt(maxFootPerSecond, 10) + "fps")
+					return errors.New("maximum value is " + strconv.FormatInt(int64(maxFootPerSecond), 10) + "fps")
 				case errOverflowsInt64Negative:
-					return errors.New("minimum value is " + strconv.FormatInt(minFootPerSecond, 10) + "fps")
+					return errors.New("minimum value is " + strconv.FormatInt(int64(minFootPerSecond), 10) + "fps")
 				}
 			}
 			return err
@@ -1053,9 +1053,9 @@ func (sp *Speed) Set(s string) error {
 			if e, ok := err.(*parseError); ok {
 				switch e.err {
 				case errOverflowsInt64:
-					return errors.New("maximum value is " + strconv.FormatInt(maxMilePerHour, 10) + "mph")
+					return errors.New("maximum value is " + strconv.FormatInt(int64(maxMilePerHour), 10) + "mph")
 				case errOverflowsInt64Negative:
-					return errors.New("minimum value is " + strconv.FormatInt(minMilePerHour, 10) + "mph")
+					return errors.New("minimum value is " + strconv.FormatInt(int64(minMilePerHour), 10) + "mph")
 				}
 			}
 			return err
@@ -1091,12 +1091,15 @@ const (
 	maxSpeed Speed = (1 << 63) - 1
 	minSpeed Speed = -((1 << 63) - 1)
 
-	minKilometrePerHour = -33204139306
-	maxKilometrePerHour = 33204139306
-	minMilePerHour      = -20632095644
-	maxMilePerHour      = 20632095644
-	minFootPerSecond    = -30260406945
-	maxFootPerSecond    = 30260406945
+	// Min Max KilometrePerHour are in kph.
+	minKilometrePerHour Speed = -33204139306
+	maxKilometrePerHour Speed = 33204139306
+	// Min Max MilePerHour are in mph.
+	minMilePerHour Speed = -20632095644
+	maxMilePerHour Speed = 20632095644
+	// Min Max FootPerSecond are in fps.
+	minFootPerSecond Speed = -30260406945
+	maxFootPerSecond Speed = 30260406945
 )
 
 // Temperature is a measurement of hotness stored as a nano kelvin.
