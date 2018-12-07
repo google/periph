@@ -706,6 +706,107 @@ func (m Mass) String() string {
 	return nanoAsString(int64(m)) + "g"
 }
 
+// Set sets the Mass to the value represented by s. Units are to be provided in
+// "g", "lb" or "oz" with an optional SI prefix: "p", "n", "u", "µ", "m", "k",
+// "M", "G" or "T".
+func (m *Mass) Set(s string) error {
+	d, n, err := atod(s)
+	if err != nil {
+		if e, ok := err.(*parseError); ok {
+			switch e.err {
+			case errNotANumber:
+				if found, _ := containsUnitString(s[n:], "g", "lb", "oz"); found != "" {
+					return errors.New("does not contain number")
+				}
+				return errors.New("does not contain number or unit \"g\"")
+			case errOverflowsInt64:
+				return errors.New("maximum value is " + maxMass.String())
+			case errOverflowsInt64Negative:
+				return errors.New("minimum value is " + minMass.String())
+			}
+		}
+		return err
+	}
+
+	var si prefix
+	if n != len(s) {
+		r, rsize := utf8.DecodeRuneInString(s[n:])
+		if r <= 1 || rsize == 0 {
+			return &parseError{
+				err: errors.New("unexpected end of string"),
+			}
+		}
+		var siSize int
+		si, siSize = parseSIPrefix(r)
+		n += siSize
+	}
+
+	switch s[n:] {
+	case "g":
+		v, err := dtoi(d, int(si-nano))
+		if err != nil {
+			if e, ok := err.(*parseError); ok {
+				switch e.err {
+				case errOverflowsInt64:
+					return errors.New("maximum value is " + maxMass.String())
+				case errOverflowsInt64Negative:
+					return errors.New("minimum value is " + minMass.String())
+				}
+			}
+			return err
+		}
+		*m = (Mass)(v)
+	case "lb":
+		gramsPerlb := decimal{
+			base: uint64(PoundMass),
+			exp:  0,
+			neg:  false,
+		}
+		lbs, _ := decimalMul(d, gramsPerlb)
+		v, err := dtoi(lbs, int(si))
+		if err != nil {
+			if e, ok := err.(*parseError); ok {
+				switch e.err {
+				case errOverflowsInt64:
+					return errors.New("maximum value is " + strconv.FormatInt(maxPoundMass, 10) + "lb")
+				case errOverflowsInt64Negative:
+					return errors.New("minimum value is " + strconv.FormatInt(minPoundMass, 10) + "lb")
+				}
+			}
+			return err
+		}
+		*m = (Mass)(v)
+	case "oz":
+		gramsPerOz := decimal{
+			base: uint64(OunceMass),
+			exp:  0,
+			neg:  false,
+		}
+		oz, _ := decimalMul(d, gramsPerOz)
+		v, err := dtoi(oz, int(si))
+		if err != nil {
+			if e, ok := err.(*parseError); ok {
+				switch e.err {
+				case errOverflowsInt64:
+					return errors.New("maximum value is " + strconv.FormatInt(maxOunceMass, 10) + "oz")
+				case errOverflowsInt64Negative:
+					return errors.New("minimum value is " + strconv.FormatInt(minOunceMass, 10) + "oz")
+				}
+			}
+			return err
+		}
+		*m = (Mass)(v)
+	case "":
+		return noUnits("g")
+	default:
+		if found, extra := containsUnitString(s[n:], "g", "lb", "oz"); found != "" {
+			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
+		}
+		return incorrectUnit(s[n:], "physic.Mass")
+	}
+	return nil
+}
+
 const (
 	NanoGram  Mass = 1
 	MicroGram Mass = 1000 * NanoGram
@@ -724,7 +825,18 @@ const (
 	// Pound is both a unit of mass and weight (force). The suffix Mass is added
 	// to disambiguate the measurement it represents.
 	PoundMass Mass = 16 * OunceMass
-	Slug      Mass = 14593903 * MilliGram
+
+	Slug Mass = 14593903 * MilliGram
+
+	maxMass Mass = (1 << 63) - 1
+	minMass Mass = -((1 << 63) - 1)
+
+	// min and max Pound mass are in lb.
+	minPoundMass = -20334054
+	maxPoundMass = 20334054
+	// min and max Ounce mass are in ox.
+	minOunceMass = -325344874
+	maxOunceMass = 325344874
 )
 
 // Pressure is a measurement of force applied to a surface per unit
@@ -826,6 +938,140 @@ func (s Speed) String() string {
 	return nanoAsString(int64(s)) + "m/s"
 }
 
+// Set sets the Speed to the value represented by s. Units are to be provided in
+// "mps"(meters per second), "m/s", "kph", "fps", or "mph" with an optional SI
+// prefix: "p", "n", "u", "µ", "m", "k", "M", "G" or "T".
+func (sp *Speed) Set(s string) error {
+	d, n, err := atod(s)
+	if err != nil {
+		if e, ok := err.(*parseError); ok {
+			switch e.err {
+			case errNotANumber:
+				if found, _ := containsUnitString(s[n:], "m/s", "mps", "kph", "fps", "mph"); found != "" {
+					return errors.New("does not contain number")
+				}
+				return errors.New("does not contain number or unit \"m/s\"")
+			case errOverflowsInt64:
+				return errors.New("maximum value is " + maxSpeed.String())
+			case errOverflowsInt64Negative:
+				return errors.New("minimum value is " + minSpeed.String())
+			}
+		}
+		return err
+	}
+
+	var si prefix
+	if n != len(s) {
+		r, rsize := utf8.DecodeRuneInString(s[n:])
+		if r <= 1 || rsize == 0 {
+			return &parseError{
+				err: errors.New("unexpected end of string"),
+			}
+		}
+		var siSize int
+		si, siSize = parseSIPrefix(r)
+		if si == milli {
+			switch s[n:] {
+			case "m/s", "mps", "mph":
+				si = unit
+				siSize = 0
+			}
+		}
+		if si == kilo {
+			switch s[n:] {
+			case "kph":
+				si = unit
+				siSize = 0
+			}
+		}
+		n += siSize
+	}
+	switch s[n:] {
+	case "m/s", "mps":
+		v, err := dtoi(d, int(si-nano))
+		if err != nil {
+			if e, ok := err.(*parseError); ok {
+				switch e.err {
+				case errOverflowsInt64:
+					return errors.New("maximum value is " + maxSpeed.String())
+				case errOverflowsInt64Negative:
+					return errors.New("minimum value is " + minSpeed.String())
+				}
+			}
+			return err
+		}
+		*sp = (Speed)(v)
+	case "kph":
+		mpsPerkph := decimal{
+			base: uint64(KilometrePerHour),
+			exp:  0,
+			neg:  false,
+		}
+		kph, _ := decimalMul(d, mpsPerkph)
+		v, err := dtoi(kph, int(si))
+		if err != nil {
+			if e, ok := err.(*parseError); ok {
+				switch e.err {
+				case errOverflowsInt64:
+					return errors.New("maximum value is " + strconv.FormatInt(maxKilometrePerHour, 10) + "kph")
+				case errOverflowsInt64Negative:
+					return errors.New("minimum value is " + strconv.FormatInt(minKilometrePerHour, 10) + "kph")
+				}
+			}
+			return err
+		}
+		*sp = (Speed)(v)
+	case "fps":
+		mpsPerfps := decimal{
+			base: uint64(FootPerSecond / 1000),
+			exp:  3,
+			neg:  false,
+		}
+		oz, _ := decimalMul(d, mpsPerfps)
+		v, err := dtoi(oz, int(si))
+		if err != nil {
+			if e, ok := err.(*parseError); ok {
+				switch e.err {
+				case errOverflowsInt64:
+					return errors.New("maximum value is " + strconv.FormatInt(maxFootPerSecond, 10) + "fps")
+				case errOverflowsInt64Negative:
+					return errors.New("minimum value is " + strconv.FormatInt(minFootPerSecond, 10) + "fps")
+				}
+			}
+			return err
+		}
+		*sp = (Speed)(v)
+	case "mph":
+		mpsPermph := decimal{
+			base: uint64(MilePerHour / 1000),
+			exp:  3,
+			neg:  false,
+		}
+		oz, _ := decimalMul(d, mpsPermph)
+		v, err := dtoi(oz, int(si))
+		if err != nil {
+			if e, ok := err.(*parseError); ok {
+				switch e.err {
+				case errOverflowsInt64:
+					return errors.New("maximum value is " + strconv.FormatInt(maxMilePerHour, 10) + "mph")
+				case errOverflowsInt64Negative:
+					return errors.New("minimum value is " + strconv.FormatInt(minMilePerHour, 10) + "mph")
+				}
+			}
+			return err
+		}
+		*sp = (Speed)(v)
+	case "":
+		return noUnits("m/s")
+	default:
+		if found, extra := containsUnitString(s[n:], "m/s", "mps", "kph", "fps", "mph"); found != "" {
+			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
+		}
+		return incorrectUnit(s[n:], "physic.Speed")
+	}
+	return nil
+}
+
 const (
 	// MetrePerSecond is m/s.
 	NanoMetrePerSecond  Speed = 1
@@ -841,6 +1087,16 @@ const (
 	KilometrePerHour Speed = 277777778 * NanoMetrePerSecond
 	MilePerHour      Speed = 447040 * MicroMetrePerSecond
 	FootPerSecond    Speed = 304800 * MicroMetrePerSecond
+
+	maxSpeed Speed = (1 << 63) - 1
+	minSpeed Speed = -((1 << 63) - 1)
+
+	minKilometrePerHour = -33204139306
+	maxKilometrePerHour = 33204139306
+	minMilePerHour      = -20632095644
+	maxMilePerHour      = 20632095644
+	minFootPerSecond    = -30260406945
+	maxFootPerSecond    = 30260406945
 )
 
 // Temperature is a measurement of hotness stored as a nano kelvin.

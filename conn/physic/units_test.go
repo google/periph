@@ -2065,6 +2065,152 @@ func TestFrequency_Set(t *testing.T) {
 	}
 }
 
+func TestMass_Set(t *testing.T) {
+	succeeds := []struct {
+		in       string
+		expected Mass
+	}{
+		{"1ng", NanoGram},
+		{"1ug", MicroGram},
+		{"1µg", MicroGram},
+		{"1mg", MilliGram},
+		{"1g", Gram},
+		{"1kg", KiloGram},
+		{"1Mg", MegaGram},
+		{"1Gg", GigaGram},
+		{"1oz", OunceMass},
+		{"1lb", PoundMass},
+		// Maximum and minimum values that are allowed.
+		{"9.223372036854775807Gg", 9223372036854775807},
+		{"-9.223372036854775807Gg", -9223372036854775807},
+		{"20334054lb", maxPoundMass * PoundMass},
+		{"-20334054lb", minPoundMass * PoundMass},
+	}
+
+	fails := []struct {
+		in  string
+		err string
+	}{
+		{
+			"10Gg",
+			"exponent exceeds int64",
+		},
+		{
+			"10Eg",
+			"contains unknown unit prefix \"E\". valid prefixes for \"g\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10",
+			"no units provided, need g",
+		},
+		{
+			fmt.Sprintf("%dlb", maxPoundMass+1),
+			fmt.Sprintf("maximum value is %dlb", maxPoundMass),
+		},
+		{
+			fmt.Sprintf("%dlb", minPoundMass-1),
+			fmt.Sprintf("minimum value is %dlb", minPoundMass),
+		},
+		{
+			fmt.Sprintf("%doz", maxOunceMass+1),
+			fmt.Sprintf("maximum value is %doz", maxOunceMass),
+		},
+		{
+			fmt.Sprintf("%doz", minOunceMass-1),
+			fmt.Sprintf("minimum value is %doz", minOunceMass),
+		},
+		{
+			fmt.Sprintf("%dlb", maxPoundMass+1),
+			fmt.Sprintf("maximum value is %dlb", maxPoundMass),
+		},
+		{
+			fmt.Sprintf("%dlb", minPoundMass-1),
+			fmt.Sprintf("minimum value is %dlb", minPoundMass),
+		},
+		{
+			"9.224Gg",
+			"maximum value is 9.223Gg",
+		},
+		{
+			"-9.224Gg",
+			"minimum value is -9.223Gg",
+		},
+		{
+			"9223372036854775808ng",
+			"maximum value is 9.223Gg",
+		},
+		{
+			"-9223372036854775808ng",
+			"minimum value is -9.223Gg",
+		},
+		{
+			"1random",
+			"\"random\" is not a valid unit for physic.Mass",
+		},
+		{
+			"g",
+			"does not contain number",
+		},
+		{
+			"oz",
+			"does not contain number",
+		},
+		{
+			"lb",
+			"does not contain number",
+		},
+		{
+			"RPM",
+			"does not contain number or unit \"g\"",
+		},
+		{
+			"++1g",
+			"multiple plus symbols ++1g",
+		},
+		{
+			"--1g",
+			"multiple minus symbols --1g",
+		},
+		{
+			"+-1g",
+			"can't contain both plus and minus symbols +-1g",
+		},
+		{
+			"1.1.1.1g",
+			"multiple decimal points 1.1.1.1g",
+		},
+		{
+			string([]byte{0x33, 0x01}),
+			"unexpected end of string",
+		},
+		{
+			"10000000Tlb",
+			errExponentOverflow.Error(),
+		},
+		{
+			"10000000Toz",
+			errExponentOverflow.Error(),
+		},
+	}
+
+	for _, tt := range succeeds {
+		var got Mass
+		if err := got.Set(tt.in); err != nil {
+			t.Errorf("Mass.Set(%s) unexpected error: %v", tt.in, err)
+		}
+		if got != tt.expected {
+			t.Errorf("Mass.Set(%s) wanted: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+		}
+	}
+
+	for _, tt := range fails {
+		var got Mass
+		if err := got.Set(tt.in); err.Error() != tt.err {
+			t.Errorf("Mass.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+		}
+	}
+}
+
 func TestPressure_Set(t *testing.T) {
 	succeeds := []struct {
 		in       string
@@ -2191,6 +2337,173 @@ func TestPressure_Set(t *testing.T) {
 		var got Pressure
 		if err := got.Set(tt.in); err.Error() != tt.err {
 			t.Errorf("Pressure.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+		}
+	}
+}
+
+func TestSpeed_Set(t *testing.T) {
+	succeeds := []struct {
+		in       string
+		expected Speed
+	}{
+		{"1nmps", NanoMetrePerSecond},
+		{"1umps", MicroMetrePerSecond},
+		{"1µmps", MicroMetrePerSecond},
+		{"1mmps", MilliMetrePerSecond},
+		{"1mps", MetrePerSecond},
+		{"1kmps", KiloMetrePerSecond},
+		{"1Mmps", MegaMetrePerSecond},
+		{"1Gmps", GigaMetrePerSecond},
+		{"1nm/s", NanoMetrePerSecond},
+		{"1um/s", MicroMetrePerSecond},
+		{"1µm/s", MicroMetrePerSecond},
+		{"1mm/s", MilliMetrePerSecond},
+		{"1m/s", MetrePerSecond},
+		{"1km/s", KiloMetrePerSecond},
+		{"1Mm/s", MegaMetrePerSecond},
+		{"1Gm/s", GigaMetrePerSecond},
+		{"1mph", MilePerHour},
+		{"1fps", FootPerSecond},
+		{"1kph", KilometrePerHour},
+		// Maximum and minimum values that are allowed.
+		{fmt.Sprintf("%dnmps", minSpeed), minSpeed},
+		{fmt.Sprintf("%dnmps", maxSpeed), maxSpeed},
+		{fmt.Sprintf("%dkph", minKilometrePerHour), minKilometrePerHour * KilometrePerHour},
+		{fmt.Sprintf("%dkph", maxKilometrePerHour), maxKilometrePerHour * KilometrePerHour},
+		{fmt.Sprintf("%dmph", minMilePerHour), minMilePerHour * MilePerHour},
+		{fmt.Sprintf("%dmph", maxMilePerHour), maxMilePerHour * MilePerHour},
+		{fmt.Sprintf("%dfps", minFootPerSecond), minFootPerSecond * FootPerSecond},
+		{fmt.Sprintf("%dfps", maxFootPerSecond), maxFootPerSecond * FootPerSecond},
+	}
+
+	fails := []struct {
+		in  string
+		err string
+	}{
+		{
+			"10Gm/s",
+			"exponent exceeds int64",
+		},
+		{
+			"10Em/s",
+			"contains unknown unit prefix \"E\". valid prefixes for \"m/s\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10",
+			"no units provided, need m/s",
+		},
+		{
+			fmt.Sprintf("%dkph", maxKilometrePerHour+1),
+			fmt.Sprintf("maximum value is %dkph", maxKilometrePerHour),
+		},
+		{
+			fmt.Sprintf("%dkph", minKilometrePerHour-1),
+			fmt.Sprintf("minimum value is %dkph", minKilometrePerHour),
+		},
+		{
+			fmt.Sprintf("%dmph", maxMilePerHour+1),
+			fmt.Sprintf("maximum value is %dmph", maxMilePerHour),
+		},
+		{
+			fmt.Sprintf("%dmph", minMilePerHour-1),
+			fmt.Sprintf("minimum value is %dmph", minMilePerHour),
+		},
+		{
+			fmt.Sprintf("%dfps", maxFootPerSecond+1),
+			fmt.Sprintf("maximum value is %dfps", maxFootPerSecond),
+		},
+		{
+			fmt.Sprintf("%dfps", minFootPerSecond-1),
+			fmt.Sprintf("minimum value is %dfps", minFootPerSecond),
+		},
+		{
+			"9.224Gm/s",
+			"maximum value is 9.223Gm/s",
+		},
+		{
+			"-9.224Gm/s",
+			"minimum value is -9.223Gm/s",
+		},
+		{
+			"9223372036854775808nm/s",
+			"maximum value is 9.223Gm/s",
+		},
+		{
+			"-9223372036854775808nm/s",
+			"minimum value is -9.223Gm/s",
+		},
+		{
+			"1random",
+			"\"random\" is not a valid unit for physic.Speed",
+		},
+		{
+			"m/s",
+			"does not contain number",
+		},
+		{
+			"fps",
+			"does not contain number",
+		},
+		{
+			"mph",
+			"does not contain number",
+		},
+		{
+			"kph",
+			"does not contain number",
+		},
+		{
+			"RPM",
+			"does not contain number or unit \"m/s\"",
+		},
+		{
+			"++1m/s",
+			"multiple plus symbols ++1m/s",
+		},
+		{
+			"--1m/s",
+			"multiple minus symbols --1m/s",
+		},
+		{
+			"+-1m/s",
+			"can't contain both plus and minus symbols +-1m/s",
+		},
+		{
+			"1.1.1.1m/s",
+			"multiple decimal points 1.1.1.1m/s",
+		},
+		{
+			string([]byte{0x33, 0x01}),
+			"unexpected end of string",
+		},
+		{
+			"10000000Tmph",
+			errExponentOverflow.Error(),
+		},
+		{
+			"10000000Tfps",
+			errExponentOverflow.Error(),
+		},
+		{
+			"10000000Tkph",
+			errExponentOverflow.Error(),
+		},
+	}
+
+	for _, tt := range succeeds {
+		var got Speed
+		if err := got.Set(tt.in); err != nil {
+			t.Errorf("Speed.Set(%s) unexpected error: %v", tt.in, err)
+		}
+		if got != tt.expected {
+			t.Errorf("Speed.Set(%s) wanted: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+		}
+	}
+
+	for _, tt := range fails {
+		var got Speed
+		if err := got.Set(tt.in); err.Error() != tt.err {
+			t.Errorf("Speed.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
 		}
 	}
 }

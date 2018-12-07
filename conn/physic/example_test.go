@@ -317,6 +317,42 @@ func ExampleMass() {
 	// 14.594kg
 }
 
+func ExampleMass_Set() {
+	var m physic.Mass
+
+	if err := m.Set("10mg"); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(m)
+
+	if err := m.Set("16.5kg"); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(m)
+
+	if err := m.Set("2.2oz"); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(m)
+
+	if err := m.Set("16lb"); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(m)
+	// Output:
+	// 10mg
+	// 16.500kg
+	// 62.369g
+	// 7.257kg
+}
+
+func ExampleMass_flag() {
+	var m physic.Mass
+
+	flag.Var(&m, "weight", "amount of cat food to dispense")
+	flag.Parse()
+}
+
 func ExamplePressure() {
 	fmt.Println(101010 * physic.Pascal)
 	fmt.Println(101 * physic.KiloPascal)
@@ -369,6 +405,42 @@ func ExampleSpeed() {
 	// 277.778mm/s
 	// 447.040mm/s
 	// 304.800mm/s
+}
+
+func ExampleSpeed_Set() {
+	var s physic.Speed
+
+	if err := s.Set("10m/s"); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(s)
+
+	if err := s.Set("100kph"); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(s)
+
+	if err := s.Set("2067fps"); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(s)
+
+	if err := s.Set("55mph"); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(s)
+	// Output:
+	// 10m/s
+	// 27.778m/s
+	// 630.022m/s
+	// 24.587m/s
+}
+
+func ExampleSpeed_flag() {
+	var s physic.Speed
+
+	flag.Var(&s, "speed", "window shutter closing speed")
+	flag.Parse()
 }
 
 func ExampleTemperature() {
