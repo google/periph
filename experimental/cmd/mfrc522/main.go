@@ -12,6 +12,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/spi/spireg"
@@ -85,16 +86,20 @@ func mainImpl() error {
 		return err
 	}
 
-	data, err := rfid.ReadCard(currentAccessMethod, *sector, *block, currentAccessKey)
+	timeout := 10 * time.Second
+
+	data, err := rfid.ReadCard(timeout, currentAccessMethod, *sector, *block, currentAccessKey)
 	if err != nil {
 		return err
 	}
-	auth, err := rfid.ReadAuth(currentAccessMethod, *sector, currentAccessKey)
+	auth, err := rfid.ReadAuth(timeout, currentAccessMethod, *sector, currentAccessKey)
 	if err != nil {
 		return err
 	}
 
-	access := mfrc522.ParseBlockAccess(auth[6:10])
+	var access mfrc522.BlocksAccess
+
+	access.Init(auth[6:10])
 
 	fmt.Printf("RFID sector %d, block %d : %v, auth: %v\n", *sector, *block, data, auth)
 	fmt.Printf("Permissions: B0: %s, B1: %s, B2: %s, B3/A: %s\n",
@@ -105,7 +110,7 @@ func mainImpl() error {
 	)
 
 	if *keyCommand {
-		err = rfid.WriteSectorTrail(commands.PICC_AUTHENT1A,
+		err = rfid.WriteSectorTrail(timeout, commands.PICC_AUTHENT1A,
 			*sector,
 			[6]byte{1, 2, 3, 4, 5, 6},
 			[6]byte{6, 5, 4, 3, 2, 1},
@@ -134,11 +139,7 @@ func mainImpl() error {
 			}
 			defaultDataBytes[i] = byte(intVal)
 		}
-		err = rfid.WriteCard(currentAccessMethod,
-			*sector,
-			*block,
-			defaultDataBytes,
-			currentAccessKey)
+		err = rfid.WriteCard(timeout, currentAccessMethod, *sector, *block, defaultDataBytes, currentAccessKey)
 		if err != nil {
 			return err
 		}

@@ -40,7 +40,15 @@ func TestBitCalc(t *testing.T) {
 		B0: RAB_WB_IB_DAB,                     // 110
 	}
 
-	access := CalculateBlockAccess(&ba)
+	var access [4]byte
+
+	if err := ba.serialize(access[:1]); err == nil {
+		t.Fatal("destination array should be reported as insufficient")
+	}
+
+	if err := ba.serialize(access[:]); err != nil {
+		t.Fatal(err)
+	}
 
 	if fromBitString(t, "1011") != ba.getBits(1) {
 		t.Fatalf("1011 is not equal to %d", ba.getBits(1))
@@ -55,14 +63,16 @@ func TestBitCalc(t *testing.T) {
 
 	expected[3] = expected[0] ^ expected[1] ^ expected[2]
 
-	if !bytes.Equal(expected, access) {
+	if !bytes.Equal(expected, access[:]) {
 		t.Fatalf("Access is incorrect: %v != %v", expected, access)
 	}
 
-	parsedAccess := ParseBlockAccess(access)
+	var parsedAccess BlocksAccess
 
-	if !reflect.DeepEqual(ba, *parsedAccess) {
-		t.Fatalf("Parsed access mismatch %s != %s", ba.String(), (*parsedAccess).String())
+	parsedAccess.Init(access[:])
+
+	if !reflect.DeepEqual(ba, parsedAccess) {
+		t.Fatalf("Parsed access mismatch %s != %s", ba.String(), (parsedAccess).String())
 	}
 }
 
@@ -91,8 +101,12 @@ func TestByteArrayDecipher(t *testing.T) {
 		B2: AnyKeyRWID,
 		B3: KeyA_RN_WA_BITS_RA_WA_KeyB_RA_WA,
 	}
-	access := CalculateBlockAccess(&ba)
-	if !reflect.DeepEqual(bitsData[:], access) {
+	var access [4]byte
+
+	if err := ba.serialize(access[:]); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(bitsData[:], access[:]) {
 		t.Fatalf("Wrong access calculation: %v != %v", bitsData, access)
 	}
 }
