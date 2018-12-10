@@ -401,7 +401,7 @@ func ExampleRelativeHumidity_Set() {
 	}
 	fmt.Println(r)
 
-	if err := r.Set("20%rH"); err != nil {
+	if err := r.Set("20%"); err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println(r)

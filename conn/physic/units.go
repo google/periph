@@ -972,8 +972,8 @@ const (
 	MilliRH      RelativeHumidity = 1000 * MicroRH    // 0.1%rH
 	PercentRH    RelativeHumidity = 10 * MilliRH      // 1%rH
 
-	maxRelativeHumidity RelativeHumidity = (1 << 31) - 1
-	minRelativeHumidity RelativeHumidity = -((1 << 31) - 1)
+	maxRelativeHumidity RelativeHumidity = 100 * PercentRH
+	minRelativeHumidity RelativeHumidity = 0
 )
 
 // Speed is a measurement of magnitude of velocity stored as an int64 nano

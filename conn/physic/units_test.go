@@ -2378,19 +2378,19 @@ func TestRelativeHumidity_Set(t *testing.T) {
 		},
 		{
 			"21474836.48m%rH",
-			"maximum value is 21474.8%rH",
+			"maximum value is 100%rH",
 		},
 		{
 			"-21474836.48m%rH",
-			"minimum value is -21474.8%rH",
+			"minimum value is 0%rH",
 		},
 		{
 			"90224T%rH",
-			"maximum value is 21474.8%rH",
+			"maximum value is 100%rH",
 		},
 		{
 			"-90224T%rH",
-			"minimum value is -21474.8%rH",
+			"minimum value is 0%rH",
 		},
 		{
 			"1random",
