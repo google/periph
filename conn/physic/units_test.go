@@ -2341,6 +2341,111 @@ func TestPressure_Set(t *testing.T) {
 	}
 }
 
+func TestRelativeHumidity_Set(t *testing.T) {
+	succeeds := []struct {
+		in       string
+		expected RelativeHumidity
+	}{
+		{"10u%rH", PercentRH / 100000},
+		{"1m%rH", PercentRH / 1000},
+		{"1%rH", PercentRH},
+		{"10%rH", 10 * PercentRH},
+		{"100%rH", 100 * PercentRH},
+		{"10u%", PercentRH / 100000},
+		{"1m%", PercentRH / 1000},
+		{"1%", PercentRH},
+		{"10%", 10 * PercentRH},
+		{"100%", 100 * PercentRH},
+		{fmt.Sprintf("%du%%rH", int64(maxRelativeHumidity)*10), maxRelativeHumidity},
+		{fmt.Sprintf("%du%%rH", int64(minRelativeHumidity)*10), minRelativeHumidity},
+	}
+
+	fails := []struct {
+		in  string
+		err string
+	}{
+		{
+			"1000T%rH",
+			"exponent exceeds int64",
+		},
+		{
+			"10E%rH",
+			"contains unknown unit prefix \"E\". valid prefixes for \"%rH\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10",
+			"no units provided, need %rH",
+		},
+		{
+			"21474836.48m%rH",
+			"maximum value is 100%rH",
+		},
+		{
+			"-21474836.48m%rH",
+			"minimum value is 0%rH",
+		},
+		{
+			"90224T%rH",
+			"maximum value is 100%rH",
+		},
+		{
+			"-90224T%rH",
+			"minimum value is 0%rH",
+		},
+		{
+			"1random",
+			"\"random\" is not a valid unit for physic.RelativeHumidity",
+		},
+		{
+			"%rH",
+			"does not contain number",
+		},
+		{
+			"%",
+			"does not contain number",
+		},
+		{
+			"RPM",
+			"does not contain number or unit \"%rH\"",
+		},
+		{
+			"++1%rH",
+			"multiple plus symbols ++1%rH",
+		},
+		{
+			"--1%rH",
+			"multiple minus symbols --1%rH",
+		},
+		{
+			"+-1%rH",
+			"can't contain both plus and minus symbols +-1%rH",
+		},
+		{
+			"1.1.1.1%rH",
+			"multiple decimal points 1.1.1.1%rH",
+		},
+	}
+
+	for _, tt := range succeeds {
+		var got RelativeHumidity
+		if err := got.Set(tt.in); err != nil {
+			t.Errorf("RelativeHumidity.Set(%s) unexpected error: %v", tt.in, err)
+		}
+		if got != tt.expected {
+			t.Errorf("RelativeHumidity.Set(%s) wanted: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+		}
+	}
+
+	for _, tt := range fails {
+		var got RelativeHumidity
+		if err := got.Set(tt.in); err == nil {
+			t.Errorf("RelativeHumidity.Set(%s) \nexpected: error %v but got none", tt.in, tt.err)
+		} else if err.Error() != tt.err {
+			t.Errorf("RelativeHumidity.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+		}
+	}
+}
+
 func TestSpeed_Set(t *testing.T) {
 	succeeds := []struct {
 		in       string
