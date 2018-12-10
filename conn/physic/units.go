@@ -920,11 +920,60 @@ func (h RelativeHumidity) String() string {
 	return strconv.Itoa(int(h)/10) + "." + strconv.Itoa(frac) + "%rH"
 }
 
+// Set sets the RelativeHumidity to the value represented by s. Units are to
+// be provided in "%rH" or "%" with an optional SI prefix: "p", "n", "u", "µ",
+// "m", "k", "M", "G" or "T".
+func (r *RelativeHumidity) Set(s string) error {
+	// PercentRH is micro + deca.
+	v, n, err := valueOfUnitString(s, micro+deca)
+	if err != nil {
+		if e, ok := err.(*parseError); ok {
+			switch e.err {
+			case errOverflowsInt64:
+				return errors.New("maximum value is " + maxRelativeHumidity.String())
+			case errOverflowsInt64Negative:
+				return errors.New("minimum value is " + minRelativeHumidity.String())
+			case errNotANumber:
+				if found, _ := containsUnitString(s[n:], "%rH", "%"); found != "" {
+					return errors.New("does not contain number")
+				}
+				return errors.New("does not contain number or unit \"%rH\"")
+			}
+		}
+		return err
+	}
+
+	switch s[n:] {
+	case "%", "%rH":
+		// We need an extra check here to make sure that v will fit inside a
+		// int32.
+		switch {
+		case v > int64(maxRelativeHumidity):
+			return errors.New("maximum value is " + maxRelativeHumidity.String())
+		case v < int64(minRelativeHumidity):
+			return errors.New("minimum value is " + minRelativeHumidity.String())
+		}
+		*r = (RelativeHumidity)(v)
+	case "":
+		return noUnits("%rH")
+	default:
+		if found, extra := containsUnitString(s[n:], "%rH", "%"); found != "" {
+			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
+		}
+		return incorrectUnit(s[n:], "physic.RelativeHumidity")
+	}
+
+	return nil
+}
+
 const (
 	TenthMicroRH RelativeHumidity = 1                 // 0.00001%rH
 	MicroRH      RelativeHumidity = 10 * TenthMicroRH // 0.0001%rH
 	MilliRH      RelativeHumidity = 1000 * MicroRH    // 0.1%rH
 	PercentRH    RelativeHumidity = 10 * MilliRH      // 1%rH
+
+	maxRelativeHumidity RelativeHumidity = (1 << 31) - 1
+	minRelativeHumidity RelativeHumidity = -((1 << 31) - 1)
 )
 
 // Speed is a measurement of magnitude of velocity stored as an int64 nano

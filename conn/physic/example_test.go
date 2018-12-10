@@ -393,6 +393,30 @@ func ExampleRelativeHumidity() {
 	// 20%rH
 }
 
+func ExampleRelativeHumidity_Set() {
+	var r physic.RelativeHumidity
+
+	if err := r.Set("50.6%rH"); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(r)
+
+	if err := r.Set("20%rH"); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(r)
+	// Output:
+	// 50.6%rH
+	// 20%rH
+}
+
+func ExampleRelativeHumidity_flag() {
+	var h physic.RelativeHumidity
+
+	flag.Var(&h, "humidity", "green house humidity high alarm level")
+	flag.Parse()
+}
+
 func ExampleSpeed() {
 	fmt.Println(10 * physic.MilliMetrePerSecond)
 	fmt.Println(physic.LightSpeed)
