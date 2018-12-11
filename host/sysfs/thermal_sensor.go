@@ -39,8 +39,10 @@ func ThermalSensorByName(name string) (*ThermalSensor, error) {
 
 // ThermalSensor represents one thermal sensor on the system.
 type ThermalSensor struct {
-	name string
-	root string
+	name           string
+	root           string
+	sensorFilename string
+	typeFilename   string
 
 	mu        sync.Mutex
 	nameType  string
@@ -62,23 +64,33 @@ func (t *ThermalSensor) Type() string {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	if t.nameType == "" {
-		f, err := fileIOOpen(t.root+"type", os.O_RDONLY)
+		nameType, err := t.readType()
 		if err != nil {
-			return fmt.Sprintf("sysfs-thermal: %v", err)
+			return err.Error()
 		}
-		defer f.Close()
-		var buf [256]byte
-		n, err := f.Read(buf[:])
-		if err != nil {
-			return fmt.Sprintf("sysfs-thermal: %v", err)
-		}
-		if n < 2 {
-			t.nameType = "<unknown>"
-		} else {
-			t.nameType = string(buf[:n-1])
-		}
+		t.nameType = nameType
 	}
 	return t.nameType
+}
+
+func (t *ThermalSensor) readType() (string, error) {
+	f, err := fileIOOpen(t.root+t.typeFilename, os.O_RDONLY)
+	if os.IsNotExist(err) {
+		return "<unknown>", nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("sysfs-thermal: %v", err)
+	}
+	defer f.Close()
+	var buf [256]byte
+	n, err := f.Read(buf[:])
+	if err != nil {
+		return "", fmt.Errorf("sysfs-thermal: %v", err)
+	}
+	if n < 2 {
+		return "<unknown>", nil
+	}
+	return string(buf[:n-1]), nil
 }
 
 // Sense implements physic.SenseEnv.
@@ -136,7 +148,7 @@ func (t *ThermalSensor) open() error {
 	if t.f != nil {
 		return nil
 	}
-	f, err := fileIOOpen(t.root+"temp", os.O_RDONLY)
+	f, err := fileIOOpen(t.root+t.sensorFilename, os.O_RDONLY)
 	if err != nil {
 		return fmt.Errorf("sysfs-thermal: %v", err)
 	}
@@ -167,24 +179,39 @@ func (d *driverThermalSensor) After() []string {
 //
 // * for the most minimalistic meaning of 'described'.
 func (d *driverThermalSensor) Init() (bool, error) {
-	// This driver is only registered on linux, so there is no legitimate time to
-	// skip it.
-	items, err := filepath.Glob("/sys/class/thermal/*/temp")
-	if err != nil {
+	if err := d.discoverDevices("/sys/class/thermal/*/temp", "type"); err != nil {
 		return true, err
 	}
-	if len(items) == 0 {
+	if err := d.discoverDevices("/sys/class/hwmon/*/temp*_input", "device/name"); err != nil {
+		return true, err
+	}
+	if len(ThermalSensors) == 0 {
 		return false, errors.New("sysfs-thermal: no sensor found")
+	}
+	return true, nil
+}
+
+func (d *driverThermalSensor) discoverDevices(glob, typeFilename string) error {
+	// This driver is only registered on linux, so there is no legitimate time to
+	// skip it.
+	items, err := filepath.Glob(glob)
+	if err != nil {
+		return err
+	}
+	if len(items) == 0 {
+		return nil
 	}
 	sort.Strings(items)
 	for _, item := range items {
 		base := filepath.Dir(item)
 		ThermalSensors = append(ThermalSensors, &ThermalSensor{
-			name: filepath.Base(base),
-			root: base + "/",
+			name:           filepath.Base(base),
+			root:           base + "/",
+			sensorFilename: filepath.Base(item),
+			typeFilename:   typeFilename,
 		})
 	}
-	return true, nil
+	return nil
 }
 
 func init() {
