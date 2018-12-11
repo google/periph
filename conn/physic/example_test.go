@@ -474,7 +474,50 @@ func ExampleTemperature() {
 	// Output:
 	// -273.150°C
 	// 23.010°C
-	// 26.666°C
+	// 26.667°C
+}
+
+func ExampleTemperature_Set() {
+	var t physic.Temperature
+
+	if err := t.Set("0°C"); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(t)
+
+	if err := t.Set("1C"); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(t)
+
+	if err := t.Set("5MK"); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(t)
+
+	if err := t.Set("0F"); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(t)
+
+	if err := t.Set("32F"); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(t)
+
+	// Output:
+	// 0°C
+	// 1°C
+	// 5M°C
+	// -17.778°C
+	// 0°C
+}
+
+func ExampleTemperature_flag() {
+	var t physic.Temperature
+
+	flag.Var(&t, "temp", "thermostat setpoint")
+	flag.Parse()
 }
 
 func ExamplePower() {

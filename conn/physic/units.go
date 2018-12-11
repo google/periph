@@ -1160,7 +1160,124 @@ type Temperature int64
 
 // String returns the temperature formatted as a string in °Celsius.
 func (t Temperature) String() string {
+	if t < minCelsius || t > maxCelsius {
+		return nanoAsString(int64(t)) + "K"
+	}
 	return nanoAsString(int64(t-ZeroCelsius)) + "°C"
+}
+
+// Set sets the Temperature to the value represented by s. Units are to be
+// provided in "C", "°C", "F" or "K" with an optional SI prefix: "p", "n", "u",
+// "µ", "m", "k", "M", "G" or "T".
+func (t *Temperature) Set(s string) error {
+	d, n, err := atod(s)
+	if err != nil {
+		if e, ok := err.(*parseError); ok {
+			switch e.err {
+			case errNotANumber:
+				if found, _ := containsUnitString(s[n:], "°C", "C", "F", "K"); found != "" {
+					return errors.New("does not contain number")
+				}
+				return errors.New("does not contain number or unit \"°C\"")
+			case errOverflowsInt64:
+				return errors.New("maximum value is " + maxTemperature.String())
+			case errOverflowsInt64Negative:
+				return errors.New("minimum value is " + minTemperature.String())
+			}
+		}
+		return err
+	}
+
+	var si prefix
+	if n != len(s) {
+		r, rsize := utf8.DecodeRuneInString(s[n:])
+		if r <= 1 || rsize == 0 {
+			return &parseError{
+				err: errors.New("unexpected end of string"),
+			}
+		}
+		var siSize int
+		si, siSize = parseSIPrefix(r)
+		n += siSize
+	}
+	switch s[n:] {
+	case "F":
+		// F to nK  nK = 555555555.56*F + 255372222222
+		fPerK := decimal{
+			base: 55555555556,
+			exp:  -2,
+			neg:  false,
+		}
+		f, _ := decimalMul(d, fPerK)
+		v, err := dtoi(f, int(si))
+		if err != nil {
+			if e, ok := err.(*parseError); ok {
+				switch e.err {
+				case errOverflowsInt64:
+					return errors.New("maximum value is " + strconv.FormatInt(int64(maxFahrenheit), 10) + "F")
+				case errOverflowsInt64Negative:
+					return errors.New("minimum value is " + strconv.FormatInt(int64(minFahrenheit), 10) + "F")
+				}
+			}
+			return err
+		}
+		// We need an extra check here to make sure that will not overflow with
+		// the addition of ZeroFahrenheit.
+		switch {
+		case v > int64(maxTemperature-ZeroFahrenheit):
+			return errors.New("maximum value is " + strconv.FormatInt(int64(maxFahrenheit), 10) + "F")
+		case v < int64(minTemperature+ZeroFahrenheit):
+			return errors.New("minimum value is " + strconv.FormatInt(int64(minFahrenheit), 10) + "F")
+		}
+
+		v += int64(ZeroFahrenheit)
+		*t = (Temperature)(v)
+	case "K":
+		v, err := dtoi(d, int(si-nano))
+		if err != nil {
+			if e, ok := err.(*parseError); ok {
+				switch e.err {
+				case errOverflowsInt64:
+					return errors.New("maximum value is " + strconv.FormatInt(int64(maxTemperature/1000000000), 10) + "K")
+				case errOverflowsInt64Negative:
+					return errors.New("minimum value is " + strconv.FormatInt(int64(minTemperature/1000000000), 10) + "K")
+				}
+			}
+			return err
+		}
+		*t = (Temperature)(v)
+	case "C", "°C":
+		v, err := dtoi(d, int(si-nano))
+		if err != nil {
+			if e, ok := err.(*parseError); ok {
+				switch e.err {
+				case errOverflowsInt64:
+					return errors.New("maximum value is " + strconv.FormatInt(int64(maxCelsius/1000000000), 10) + "°C")
+				case errOverflowsInt64Negative:
+					return errors.New("minimum value is " + strconv.FormatInt(int64(minCelsius/1000000000), 10) + "°C")
+				}
+			}
+			return err
+		}
+		// We need an extra check here to make sure that will not overflow with
+		// the addition of ZeroCelsius.
+		switch {
+		case v > int64(maxCelsius):
+			return errors.New("maximum value is " + strconv.FormatInt(int64(maxCelsius/1000000000), 10) + "°C")
+		case v < int64(minCelsius):
+			return errors.New("minimum value is " + strconv.FormatInt(int64(minCelsius/1000000000), 10) + "°C")
+		}
+		v += int64(ZeroCelsius)
+		*t = (Temperature)(v)
+	case "":
+		return noUnits("°C")
+	default:
+		if found, extra := containsUnitString(s[n:], "°C", "C", "F", "K"); found != "" {
+			return unknownUnitPrefix(found, extra, "p,n,u,µ,m,k,M,G or T")
+		}
+		return incorrectUnit(s[n:], "physic.Temperature")
+	}
+	return nil
 }
 
 const (
@@ -1178,9 +1295,20 @@ const (
 	Celsius      Temperature = Kelvin
 
 	// Conversion between Kelvin and Fahrenheit.
-	ZeroFahrenheit  Temperature = 255372 * MilliKelvin
+	ZeroFahrenheit  Temperature = 255372222222 * NanoKelvin
 	MilliFahrenheit Temperature = 555555 * NanoKelvin
 	Fahrenheit      Temperature = 555555555 * NanoKelvin
+
+	maxTemperature Temperature = (1 << 63) - 1
+	minTemperature Temperature = -((1 << 63) - 1)
+
+	// Maximum Celsius is 9223371763704775807°nC.
+	maxCelsius Temperature = maxTemperature - ZeroCelsius
+	minCelsius Temperature = -maxCelsius
+
+	// Maximum Fahrenheit is 16602069204F
+	maxFahrenheit Temperature = 16602069204
+	minFahrenheit Temperature = -maxFahrenheit
 )
 
 // Power is a measurement of power stored as a nano watts.
