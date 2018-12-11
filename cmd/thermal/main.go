@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"time"
 
 	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/host"
@@ -19,6 +20,8 @@ import (
 )
 
 func mainImpl() error {
+	cont := flag.String("cont", "", "Reads continuously from the sensor with this name")
+	interval := flag.Duration("interval", time.Second, "Poll interval when used with -cont")
 	verbose := flag.Bool("v", false, "verbose mode")
 	flag.Parse()
 	if !*verbose {
@@ -31,6 +34,20 @@ func mainImpl() error {
 
 	if _, err := host.Init(); err != nil {
 		return err
+	}
+	if *cont != "" {
+		t, err := sysfs.ThermalSensorByName(*cont)
+		if err != nil {
+			return err
+		}
+		ch, err := t.SenseContinuous(*interval)
+		if err != nil {
+			return err
+		}
+		for {
+			e := <-ch
+			fmt.Printf("%s: %s: %s\n", t, t.Type(), e.Temperature)
+		}
 	}
 	for _, t := range sysfs.ThermalSensors {
 		e := physic.Env{}
