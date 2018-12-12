@@ -2624,7 +2624,6 @@ func TestTemperature_Set(t *testing.T) {
 		{"1K", Kelvin},
 		{"100C", ZeroCelsius + 100*Celsius},
 		{"-40F", ZeroCelsius - 40*Celsius},
-
 		{fmt.Sprintf("%dnC", int64(maxCelsius)), ZeroCelsius + maxCelsius},
 		{"-273.15C", 0},
 		{fmt.Sprintf("%dnK", int64(maxTemperature)), maxTemperature},

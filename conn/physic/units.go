@@ -1202,7 +1202,7 @@ func (t *Temperature) Set(s string) error {
 	}
 	switch s[n:] {
 	case "F", "°F":
-		// F to nK  nK = 555555555.56*F + 255372222222
+		// F to nK  nK = 555555555.556*F + 255372222222
 		fPerK := decimal{
 			base: 555555555556,
 			exp:  -3,
