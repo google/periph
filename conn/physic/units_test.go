@@ -1177,6 +1177,15 @@ func TestAngleSet(t *testing.T) {
 			t.Errorf("Angle.Set(%s) expected error: %s but got none", tt.in, tt.err)
 		}
 	}
+
+	x := 123 * Degree
+	var y Angle
+	if err := y.Set(x.String()); err != nil {
+		t.Fatalf("Angle.Set(stringer) failed: %v", err)
+	}
+	if x != y {
+		t.Fatalf("Angle expected %s to equal %s", x, y)
+	}
 }
 
 func TestDistance_Set(t *testing.T) {
@@ -1376,6 +1385,15 @@ func TestDistance_Set(t *testing.T) {
 			t.Errorf("Distance.Set(%s) expected error: %s but got none", tt.in, tt.err)
 		}
 	}
+
+	x := 123 * Metre
+	var y Distance
+	if err := y.Set(x.String()); err != nil {
+		t.Fatalf("Distance.Set(stringer) failed: %v", err)
+	}
+	if x != y {
+		t.Fatalf("Distance expected %s to equal %s", x, y)
+	}
 }
 
 func TestElectricPotential_Set(t *testing.T) {
@@ -1502,6 +1520,15 @@ func TestElectricPotential_Set(t *testing.T) {
 			t.Errorf("ElectricPotential.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
 		}
 	}
+
+	x := 123 * Volt
+	var y ElectricPotential
+	if err := y.Set(x.String()); err != nil {
+		t.Fatalf("ElectricPotential.Set(stringer) failed: %v", err)
+	}
+	if x != y {
+		t.Fatalf("ElectricPotential expected %s to equal %s", x, y)
+	}
 }
 
 func TestElectricCurrent_Set(t *testing.T) {
@@ -1627,6 +1654,15 @@ func TestElectricCurrent_Set(t *testing.T) {
 		if err := got.Set(tt.in); err.Error() != tt.err {
 			t.Errorf("ElectricCurrent.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
 		}
+	}
+
+	x := 123 * Ampere
+	var y ElectricCurrent
+	if err := y.Set(x.String()); err != nil {
+		t.Fatalf("ElectricCurrent.Set(stringer) failed: %v", err)
+	}
+	if x != y {
+		t.Fatalf("ElectricCurrent expected %s to equal %s", x, y)
 	}
 }
 
@@ -1757,6 +1793,15 @@ func TestElectricResistance_Set(t *testing.T) {
 		if err := got.Set(tt.in); err.Error() != tt.err {
 			t.Errorf("ElectricResistance.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
 		}
+	}
+
+	x := 123 * Ohm
+	var y ElectricResistance
+	if err := y.Set(x.String()); err != nil {
+		t.Fatalf("ElectricResistance.Set(stringer) failed: %v", err)
+	}
+	if x != y {
+		t.Fatalf("ElectricResistance expected %s to equal %s", x, y)
 	}
 }
 
@@ -1934,6 +1979,15 @@ func TestForceSet(t *testing.T) {
 			t.Errorf("Force.Set(%s) expected error: %s but got none", tt.in, tt.err)
 		}
 	}
+
+	x := 123 * Newton
+	var y Force
+	if err := y.Set(x.String()); err != nil {
+		t.Fatalf("Force.Set(stringer) failed: %v", err)
+	}
+	if x != y {
+		t.Fatalf("Force expected %s to equal %s", x, y)
+	}
 }
 
 func TestFrequency_Set(t *testing.T) {
@@ -2062,6 +2116,15 @@ func TestFrequency_Set(t *testing.T) {
 		if err := got.Set(tt.in); err.Error() != tt.err {
 			t.Errorf("Frequency.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
 		}
+	}
+
+	x := 123 * Hertz
+	var y Frequency
+	if err := y.Set(x.String()); err != nil {
+		t.Fatalf("Frequency.Set(stringer) failed: %v", err)
+	}
+	if x != y {
+		t.Fatalf("Frequency expected %s to equal %s", x, y)
 	}
 }
 
@@ -2209,6 +2272,15 @@ func TestMass_Set(t *testing.T) {
 			t.Errorf("Mass.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
 		}
 	}
+
+	x := 123 * Gram
+	var y Mass
+	if err := y.Set(x.String()); err != nil {
+		t.Fatalf("Mass.Set(stringer) failed: %v", err)
+	}
+	if x != y {
+		t.Fatalf("Mass expected %s to equal %s", x, y)
+	}
 }
 
 func TestPressure_Set(t *testing.T) {
@@ -2339,6 +2411,15 @@ func TestPressure_Set(t *testing.T) {
 			t.Errorf("Pressure.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
 		}
 	}
+
+	x := 123 * Pascal
+	var y Pressure
+	if err := y.Set(x.String()); err != nil {
+		t.Fatalf("Pressure.Set(stringer) failed: %v", err)
+	}
+	if x != y {
+		t.Fatalf("Pressure expected %s to equal %s", x, y)
+	}
 }
 
 func TestRelativeHumidity_Set(t *testing.T) {
@@ -2443,6 +2524,15 @@ func TestRelativeHumidity_Set(t *testing.T) {
 		} else if err.Error() != tt.err {
 			t.Errorf("RelativeHumidity.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
 		}
+	}
+
+	x := 23 * PercentRH
+	var y RelativeHumidity
+	if err := y.Set(x.String()); err != nil {
+		t.Fatalf("RelativeHumidity.Set(stringer) failed: %v", err)
+	}
+	if x != y {
+		t.Fatalf("RelativeHumidity expected %s to equal %s", x, y)
 	}
 }
 
@@ -2610,6 +2700,15 @@ func TestSpeed_Set(t *testing.T) {
 		if err := got.Set(tt.in); err.Error() != tt.err {
 			t.Errorf("Speed.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
 		}
+	}
+
+	x := 123 * MetrePerSecond
+	var y Speed
+	if err := y.Set(x.String()); err != nil {
+		t.Fatalf("Speed.Set(stringer) failed: %v", err)
+	}
+	if x != y {
+		t.Fatalf("Speed expected %s to equal %s", x, y)
 	}
 }
 
@@ -2779,6 +2878,15 @@ func TestTemperature_Set(t *testing.T) {
 			t.Errorf("Temperature.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
 		}
 	}
+
+	x := 123 * Celsius
+	var y Temperature
+	if err := y.Set(x.String()); err != nil {
+		t.Fatalf("Temperature.Set(stringer) failed: %v", err)
+	}
+	if x != y {
+		t.Fatalf("Temperature expected %s to equal %s", x, y)
+	}
 }
 
 func TestPower_Set(t *testing.T) {
@@ -2908,6 +3016,15 @@ func TestPower_Set(t *testing.T) {
 		if err := got.Set(tt.in); err.Error() != tt.err {
 			t.Errorf("Power.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
 		}
+	}
+
+	x := 123 * Watt
+	var y Power
+	if err := y.Set(x.String()); err != nil {
+		t.Fatalf("Power.Set(stringer) failed: %v", err)
+	}
+	if x != y {
+		t.Fatalf("Power expected %s to equal %s", x, y)
 	}
 }
 
@@ -3039,6 +3156,15 @@ func TestEnergy_Set(t *testing.T) {
 			t.Errorf("Energy.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
 		}
 	}
+
+	x := 123 * Joule
+	var y Energy
+	if err := y.Set(x.String()); err != nil {
+		t.Fatalf("Energy.Set(stringer) failed: %v", err)
+	}
+	if x != y {
+		t.Fatalf("Energy expected %s to equal %s", x, y)
+	}
 }
 
 func TestElectricalCapacitance_Set(t *testing.T) {
@@ -3168,6 +3294,15 @@ func TestElectricalCapacitance_Set(t *testing.T) {
 		if err := got.Set(tt.in); err.Error() != tt.err {
 			t.Errorf("ElectricalCapacitance.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
 		}
+	}
+
+	x := 123 * Farad
+	var y ElectricalCapacitance
+	if err := y.Set(x.String()); err != nil {
+		t.Fatalf("ElectricalCapacitance.Set(stringer) failed: %v", err)
+	}
+	if x != y {
+		t.Fatalf("ElectricalCapacitance expected %s to equal %s", x, y)
 	}
 }
 
@@ -3299,6 +3434,15 @@ func TestLuminousIntensity_Set(t *testing.T) {
 			t.Errorf("LuminousIntensity.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
 		}
 	}
+
+	x := 123 * Candela
+	var y LuminousIntensity
+	if err := y.Set(x.String()); err != nil {
+		t.Fatalf("LuminousIntensity.Set(stringer) failed: %v", err)
+	}
+	if x != y {
+		t.Fatalf("LuminousIntensity expected %s to equal %s", x, y)
+	}
 }
 
 func TestLuminousFlux_Set(t *testing.T) {
@@ -3428,6 +3572,15 @@ func TestLuminousFlux_Set(t *testing.T) {
 		if err := got.Set(tt.in); err.Error() != tt.err {
 			t.Errorf("LuminousFlux.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
 		}
+	}
+
+	x := 123 * Lumen
+	var y LuminousFlux
+	if err := y.Set(x.String()); err != nil {
+		t.Fatalf("LuminousFlux.Set(stringer) failed: %v", err)
+	}
+	if x != y {
+		t.Fatalf("LuminousFlux expected %s to equal %s", x, y)
 	}
 }
 
