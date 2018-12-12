@@ -495,7 +495,7 @@ func ExampleTemperature_Set() {
 	}
 	fmt.Println(t)
 
-	if err := t.Set("0F"); err != nil {
+	if err := t.Set("0°F"); err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println(t)

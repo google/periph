@@ -2624,15 +2624,16 @@ func TestTemperature_Set(t *testing.T) {
 		{"1K", Kelvin},
 		{"100C", ZeroCelsius + 100*Celsius},
 		{"-40F", ZeroCelsius - 40*Celsius},
+
 		{fmt.Sprintf("%dnC", int64(maxCelsius)), ZeroCelsius + maxCelsius},
-		{fmt.Sprintf("%dnC", int64(minCelsius)), ZeroCelsius + minCelsius},
+		{"-273.15C", 0},
 		{fmt.Sprintf("%dnK", int64(maxTemperature)), maxTemperature},
-		{fmt.Sprintf("%dnK", int64(minTemperature)), minTemperature},
+		{fmt.Sprintf("%dnK", int64(minTemperature)), 0},
 		{fmt.Sprintf("%dF", int64(maxFahrenheit)), 9223372033887869742},
-		{fmt.Sprintf("%dF", int64(minFahrenheit)), -9223371523143425298},
+		{"-459.67F", 0},
 		{"1GK", GigaKelvin},
 		{"1kC", ZeroCelsius + 1000*Celsius},
-		{"16kF", 9144261111182},
+		{"16kF", 9144261111118},
 	}
 
 	fails := []struct {
@@ -2640,12 +2641,16 @@ func TestTemperature_Set(t *testing.T) {
 		err string
 	}{
 		{
+			"-1nK",
+			"minimum value is 0K",
+		},
+		{
 			fmt.Sprintf("%dnC", int64(maxCelsius+1)),
 			"maximum value is 9223371763°C",
 		},
 		{
-			fmt.Sprintf("%dnC", int64(minCelsius-1)),
-			"minimum value is -9223371763°C",
+			fmt.Sprintf("%dnC", int64(-ZeroCelsius-1)),
+			"minimum value is -273.15°C",
 		},
 		{
 			"9223372036854775808nK",
@@ -2653,23 +2658,23 @@ func TestTemperature_Set(t *testing.T) {
 		},
 		{
 			"-9223372036854775808nK",
-			"minimum value is -9.223GK",
+			"minimum value is -273.150°C",
 		},
 		{
 			fmt.Sprintf("%dF", int64(maxFahrenheit+1)),
 			"maximum value is 16602069204F",
 		},
 		{
-			fmt.Sprintf("%dF", int64(minFahrenheit-1)),
-			"minimum value is -16602069204F",
+			"-459.671F",
+			"minimum value is -459.67F",
 		},
 		{
 			fmt.Sprintf("%dF", int64(maxCelsius)),
 			"maximum value is 16602069204F",
 		},
 		{
-			fmt.Sprintf("%dF", int64(minCelsius)),
-			"minimum value is -16602069204F",
+			"-273.151C",
+			"minimum value is -273.15°C",
 		},
 		{
 			"9.224GK",
@@ -2677,7 +2682,7 @@ func TestTemperature_Set(t *testing.T) {
 		},
 		{
 			"-9.224GK",
-			"minimum value is -9223372036K",
+			"minimum value is 0K",
 		},
 		{
 			"9.224GC",
@@ -2685,10 +2690,14 @@ func TestTemperature_Set(t *testing.T) {
 		},
 		{
 			"-9.224GC",
-			"minimum value is -9223371763°C",
+			"minimum value is -273.15°C",
 		},
 		{
-			"1000000000TF",
+			"-9.224TF",
+			"minimum value is -459.67F",
+		},
+		{
+			"100000000000TF",
 			errExponentOverflow.Error(),
 		},
 		{
