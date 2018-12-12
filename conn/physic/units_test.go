@@ -2613,6 +2613,174 @@ func TestSpeed_Set(t *testing.T) {
 	}
 }
 
+func TestTemperature_Set(t *testing.T) {
+	succeeds := []struct {
+		in       string
+		expected Temperature
+	}{
+		{"0C", ZeroCelsius},
+		{"0K", 0},
+		{"0F", ZeroFahrenheit},
+		{"1K", Kelvin},
+		{"100C", ZeroCelsius + 100*Celsius},
+		{"-40F", ZeroCelsius - 40*Celsius},
+		{fmt.Sprintf("%dnC", int64(maxCelsius)), ZeroCelsius + maxCelsius},
+		{"-273.15C", 0},
+		{fmt.Sprintf("%dnK", int64(maxTemperature)), maxTemperature},
+		{fmt.Sprintf("%dnK", int64(minTemperature)), 0},
+		{fmt.Sprintf("%dF", int64(maxFahrenheit)), 9223372033887869742},
+		{"-459.67F", 0},
+		{"1GK", GigaKelvin},
+		{"1kC", ZeroCelsius + 1000*Celsius},
+		{"16kF", 9144261111118},
+	}
+
+	fails := []struct {
+		in  string
+		err string
+	}{
+		{
+			"-1nK",
+			"minimum value is 0K",
+		},
+		{
+			fmt.Sprintf("%dnC", int64(maxCelsius+1)),
+			"maximum value is 9223371763°C",
+		},
+		{
+			fmt.Sprintf("%dnC", int64(-ZeroCelsius-1)),
+			"minimum value is -273.15°C",
+		},
+		{
+			"9223372036854775808nK",
+			"maximum value is 9.223GK",
+		},
+		{
+			"-9223372036854775808nK",
+			"minimum value is -273.150°C",
+		},
+		{
+			fmt.Sprintf("%dF", int64(maxFahrenheit+1)),
+			"maximum value is 16602069204F",
+		},
+		{
+			"-459.671F",
+			"minimum value is -459.67F",
+		},
+		{
+			fmt.Sprintf("%dF", int64(maxCelsius)),
+			"maximum value is 16602069204F",
+		},
+		{
+			"-273.151C",
+			"minimum value is -273.15°C",
+		},
+		{
+			"9.224GK",
+			"maximum value is 9223372036K",
+		},
+		{
+			"-9.224GK",
+			"minimum value is 0K",
+		},
+		{
+			"9.224GC",
+			"maximum value is 9223371763°C",
+		},
+		{
+			"-9.224GC",
+			"minimum value is -273.15°C",
+		},
+		{
+			"-9.224TF",
+			"minimum value is -459.67F",
+		},
+		{
+			"100000000000TF",
+			errExponentOverflow.Error(),
+		},
+		{
+			"1000000000TC",
+			errExponentOverflow.Error(),
+		},
+		{
+			"1000000000TK",
+			errExponentOverflow.Error(),
+		},
+		{
+			"10E°C",
+			"contains unknown unit prefix \"E\". valid prefixes for \"°C\" are p,n,u,µ,m,k,M,G or T",
+		},
+		{
+			"10",
+			"no units provided, need °C",
+		},
+		{
+			"1random",
+			"\"random\" is not a valid unit for physic.Temperature",
+		},
+		{
+			"C",
+			"does not contain number",
+		},
+		{
+			"°C",
+			"does not contain number",
+		},
+		{
+			"K",
+			"does not contain number",
+		},
+		{
+			"F",
+			"does not contain number",
+		},
+		{
+			"RPM",
+			"does not contain number or unit \"°C\"",
+		},
+		{
+			"++1°C",
+			"multiple plus symbols ++1°C",
+		},
+		{
+			"--1°C",
+			"multiple minus symbols --1°C",
+		},
+		{
+			"+-1°C",
+			"can't contain both plus and minus symbols +-1°C",
+		},
+		{
+			"1.1.1.1°C",
+			"multiple decimal points 1.1.1.1°C",
+		},
+		{
+			string([]byte{0x33, 0x01}),
+			"unexpected end of string",
+		},
+	}
+
+	for _, tt := range succeeds {
+		var got Temperature
+		if err := got.Set(tt.in); err != nil {
+			t.Errorf("Temperature.Set(%s) unexpected error: %v", tt.in, err)
+		}
+		if got != tt.expected {
+			t.Errorf("Temperature.Set(%s) wanted: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+		}
+	}
+
+	for _, tt := range fails {
+		var got Temperature
+		if err := got.Set(tt.in); err == nil {
+			t.Errorf("Temperature.Set(%s) \nexpected: error %v but got none", tt.in, tt.err)
+		} else if err.Error() != tt.err {
+			t.Errorf("Temperature.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+		}
+	}
+}
+
 func TestPower_Set(t *testing.T) {
 	succeeds := []struct {
 		in       string
