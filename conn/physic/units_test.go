@@ -1177,7 +1177,9 @@ func TestAngleSet(t *testing.T) {
 			t.Errorf("Angle.Set(%s) expected error: %s but got none", tt.in, tt.err)
 		}
 	}
+}
 
+func TestAngle_RoundTrip(t *testing.T) {
 	x := 123 * Degree
 	var y Angle
 	if err := y.Set(x.String()); err != nil {
@@ -1385,7 +1387,9 @@ func TestDistance_Set(t *testing.T) {
 			t.Errorf("Distance.Set(%s) expected error: %s but got none", tt.in, tt.err)
 		}
 	}
+}
 
+func TestDistance_RoundTrip(t *testing.T) {
 	x := 123 * Metre
 	var y Distance
 	if err := y.Set(x.String()); err != nil {
@@ -1520,7 +1524,9 @@ func TestElectricPotential_Set(t *testing.T) {
 			t.Errorf("ElectricPotential.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
 		}
 	}
+}
 
+func TestElectricPotential_RoundTrip(t *testing.T) {
 	x := 123 * Volt
 	var y ElectricPotential
 	if err := y.Set(x.String()); err != nil {
@@ -1655,7 +1661,9 @@ func TestElectricCurrent_Set(t *testing.T) {
 			t.Errorf("ElectricCurrent.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
 		}
 	}
+}
 
+func TestElectricCurrent_RoundTrip(t *testing.T) {
 	x := 123 * Ampere
 	var y ElectricCurrent
 	if err := y.Set(x.String()); err != nil {
@@ -1794,7 +1802,9 @@ func TestElectricResistance_Set(t *testing.T) {
 			t.Errorf("ElectricResistance.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
 		}
 	}
+}
 
+func TestElectricResistance_RoundTrip(t *testing.T) {
 	x := 123 * Ohm
 	var y ElectricResistance
 	if err := y.Set(x.String()); err != nil {
@@ -1979,7 +1989,9 @@ func TestForceSet(t *testing.T) {
 			t.Errorf("Force.Set(%s) expected error: %s but got none", tt.in, tt.err)
 		}
 	}
+}
 
+func TestForce_RoundTrip(t *testing.T) {
 	x := 123 * Newton
 	var y Force
 	if err := y.Set(x.String()); err != nil {
@@ -2117,7 +2129,9 @@ func TestFrequency_Set(t *testing.T) {
 			t.Errorf("Frequency.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
 		}
 	}
+}
 
+func TestFrequency_RoundTrip(t *testing.T) {
 	x := 123 * Hertz
 	var y Frequency
 	if err := y.Set(x.String()); err != nil {
@@ -2272,7 +2286,9 @@ func TestMass_Set(t *testing.T) {
 			t.Errorf("Mass.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
 		}
 	}
+}
 
+func TestMass_RoundTrip(t *testing.T) {
 	x := 123 * Gram
 	var y Mass
 	if err := y.Set(x.String()); err != nil {
@@ -2411,7 +2427,9 @@ func TestPressure_Set(t *testing.T) {
 			t.Errorf("Pressure.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
 		}
 	}
+}
 
+func TestPressure_RoundTrip(t *testing.T) {
 	x := 123 * Pascal
 	var y Pressure
 	if err := y.Set(x.String()); err != nil {
@@ -2525,7 +2543,9 @@ func TestRelativeHumidity_Set(t *testing.T) {
 			t.Errorf("RelativeHumidity.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
 		}
 	}
+}
 
+func TestRelativeHumidity_RoundTrip(t *testing.T) {
 	x := 23 * PercentRH
 	var y RelativeHumidity
 	if err := y.Set(x.String()); err != nil {
@@ -2701,7 +2721,9 @@ func TestSpeed_Set(t *testing.T) {
 			t.Errorf("Speed.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
 		}
 	}
+}
 
+func TestSpeed_RoundTrip(t *testing.T) {
 	x := 123 * MetrePerSecond
 	var y Speed
 	if err := y.Set(x.String()); err != nil {
@@ -2878,7 +2900,9 @@ func TestTemperature_Set(t *testing.T) {
 			t.Errorf("Temperature.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
 		}
 	}
+}
 
+func TestTemperature_RoundTrip(t *testing.T) {
 	x := 123 * Celsius
 	var y Temperature
 	if err := y.Set(x.String()); err != nil {
@@ -3017,7 +3041,9 @@ func TestPower_Set(t *testing.T) {
 			t.Errorf("Power.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
 		}
 	}
+}
 
+func TestPower_RoundTrip(t *testing.T) {
 	x := 123 * Watt
 	var y Power
 	if err := y.Set(x.String()); err != nil {
@@ -3156,7 +3182,9 @@ func TestEnergy_Set(t *testing.T) {
 			t.Errorf("Energy.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
 		}
 	}
+}
 
+func TestEnergy_RoundTrip(t *testing.T) {
 	x := 123 * Joule
 	var y Energy
 	if err := y.Set(x.String()); err != nil {
@@ -3295,7 +3323,9 @@ func TestElectricalCapacitance_Set(t *testing.T) {
 			t.Errorf("ElectricalCapacitance.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
 		}
 	}
+}
 
+func TestElectricalCapacitance_RoundTrip(t *testing.T) {
 	x := 123 * Farad
 	var y ElectricalCapacitance
 	if err := y.Set(x.String()); err != nil {
@@ -3434,7 +3464,9 @@ func TestLuminousIntensity_Set(t *testing.T) {
 			t.Errorf("LuminousIntensity.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
 		}
 	}
+}
 
+func TestLuminousIntensity_RoundTrip(t *testing.T) {
 	x := 123 * Candela
 	var y LuminousIntensity
 	if err := y.Set(x.String()); err != nil {
@@ -3573,7 +3605,9 @@ func TestLuminousFlux_Set(t *testing.T) {
 			t.Errorf("LuminousFlux.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
 		}
 	}
+}
 
+func TestLuminousFlux_RoundTrip(t *testing.T) {
 	x := 123 * Lumen
 	var y LuminousFlux
 	if err := y.Set(x.String()); err != nil {
