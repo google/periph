@@ -66,7 +66,7 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) (err error) {
 	if err != nil {
 		return err
 	}
-	t, err := sensor.Sense()
+	t, err := sensor.SenseTemp()
 	if err != nil {
 		return err
 	}
