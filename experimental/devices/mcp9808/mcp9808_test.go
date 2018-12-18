@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"reflect"
 	"testing"
+	"time"
 
 	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/i2c/i2ctest"
@@ -52,6 +53,193 @@ func TestNew(t *testing.T) {
 		_, err := New(&bus, &tt.opts)
 		if err != tt.want {
 			t.Errorf("New(%s) expected %v but got %v ", tt.name, tt.want, err)
+		}
+	}
+}
+
+func TestSense(t *testing.T) {
+	tests := []struct {
+		name     string
+		want     physic.Temperature
+		tx       []i2ctest.IO
+		shutdown bool
+		err      error
+	}{
+		{
+			name: "0C",
+			tx: []i2ctest.IO{
+				{Addr: 0x18, W: []byte{temperature}, R: []byte{0x00, 0x00}},
+			},
+			want: physic.ZeroCelsius,
+			err:  nil,
+		},
+		{
+			name: "10C",
+			tx: []i2ctest.IO{
+				{Addr: 0x18, W: []byte{temperature}, R: []byte{0x00, 0xa0}},
+			},
+			want: physic.ZeroCelsius + 10*physic.Kelvin,
+			err:  nil,
+		},
+		{
+			name: "-10C",
+			tx: []i2ctest.IO{
+				{Addr: 0x18, W: []byte{temperature}, R: []byte{0x10, 0xa0}},
+			},
+			want: physic.ZeroCelsius - 10*physic.Kelvin,
+			err:  nil,
+		},
+		{
+			name: "io error",
+			tx:   []i2ctest.IO{},
+			err:  errReadTemperature,
+		},
+		{
+			name:     "enable error",
+			shutdown: true,
+			want:     physic.ZeroCelsius + 10*physic.Kelvin,
+			err:      errWritingConfiguration,
+		},
+	}
+
+	for _, tt := range tests {
+		bus := i2ctest.Playback{
+			Ops:       tt.tx,
+			DontPanic: true,
+		}
+		mcp9808 := &Dev{
+			m: mmr.Dev8{
+				Conn:  &i2c.Dev{Bus: &bus, Addr: 0x18},
+				Order: binary.BigEndian},
+			shutdown: tt.shutdown,
+		}
+		e := &physic.Env{}
+		err := mcp9808.Sense(e)
+		if err == nil && tt.want != e.Temperature {
+			t.Errorf("%s Sense() expected %v but got %v ", tt.name, tt.want, e.Temperature)
+		}
+		if err != tt.err {
+			t.Errorf("%s Sense() expected %v but got %v ", tt.name, tt.err, err)
+		}
+	}
+}
+
+func TestSenseContinuous(t *testing.T) {
+	tests := []struct {
+		name     string
+		want     physic.Temperature
+		res      resolution
+		interval time.Duration
+		tx       []i2ctest.IO
+		Halt     bool
+		err      error
+	}{
+		{
+			name:     "errTooShortInterval Max",
+			res:      Maximum,
+			interval: 249 * time.Millisecond,
+			err:      errTooShortInterval,
+		},
+		{
+			name:     "errTooShortInterval High",
+			res:      High,
+			interval: 129 * time.Millisecond,
+			err:      errTooShortInterval,
+		},
+		{
+			name:     "errTooShortInterval Med",
+			res:      Medium,
+			interval: 64 * time.Millisecond,
+			err:      errTooShortInterval,
+		},
+		{
+			name:     "errTooShortInterval Low",
+			res:      Low,
+			interval: 29 * time.Millisecond,
+			err:      errTooShortInterval,
+		},
+		{
+			name: "Halt",
+			tx: []i2ctest.IO{
+				{Addr: 0x18, W: []byte{temperature}, R: []byte{0x00, 0xa0}},
+				{Addr: 0x18, W: []byte{configuration, 0x01, 0x00}, R: nil},
+			},
+			want:     physic.ZeroCelsius + 10*physic.Celsius,
+			res:      Low,
+			interval: 30 * time.Millisecond,
+			Halt:     true,
+			err:      nil,
+		},
+	}
+	for _, tt := range tests {
+		bus := i2ctest.Playback{
+			Ops:       tt.tx,
+			DontPanic: true,
+		}
+		mcp9808 := &Dev{
+			m: mmr.Dev8{
+				Conn:  &i2c.Dev{Bus: &bus, Addr: 0x18},
+				Order: binary.BigEndian,
+			},
+			res:  tt.res,
+			stop: make(chan struct{}, 1),
+		}
+
+		env, err := mcp9808.SenseContinuous(tt.interval)
+
+		if tt.Halt {
+			e := <-env
+			err := mcp9808.Halt()
+			if err != tt.err {
+				t.Errorf("SenseContinuous() %s wanted err: %v, but got: %v", tt.name, tt.err, err)
+			}
+			if err == nil && e.Temperature != tt.want {
+				t.Errorf("SenseContinuous() %s wanted %v, but got: %v", tt.name, tt.want, e.Temperature)
+			}
+		}
+
+		if err != tt.err {
+			t.Errorf("SenseContinuous() %s wanted err: %v, but got: %v", tt.name, tt.err, err)
+		}
+		mcp9808.Halt()
+	}
+
+}
+
+func TestPrecision(t *testing.T) {
+	tests := []struct {
+		name string
+		want physic.Temperature
+		res  resolution
+	}{
+		{
+			name: "Maximum",
+			want: 62500 * physic.MicroKelvin,
+			res:  Maximum,
+		},
+		{
+			name: "High",
+			want: 125 * physic.MilliKelvin,
+			res:  High,
+		},
+		{
+			name: "Medium",
+			want: 250 * physic.MilliKelvin,
+			res:  Medium,
+		},
+		{
+			name: "Low",
+			want: 500 * physic.MilliKelvin,
+			res:  Low,
+		},
+	}
+
+	for _, tt := range tests {
+		d := &Dev{res: tt.res}
+		e := &physic.Env{}
+		d.Precision(e)
+		if e.Temperature != tt.want {
+			t.Errorf("Precision(%s) wanted %v but got %v", tt.name, tt.want, e.Temperature)
 		}
 	}
 }
