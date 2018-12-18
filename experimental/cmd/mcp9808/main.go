@@ -55,7 +55,7 @@ func mainImpl() error {
 	for {
 		select {
 		case <-everySecond:
-			t, err := sensor.Sense()
+			t, err := sensor.SenseTemp()
 			if err != nil {
 				return fmt.Errorf("sensor reading error: %v", err)
 			}
