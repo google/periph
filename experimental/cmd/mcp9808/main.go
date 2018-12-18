@@ -40,13 +40,13 @@ func mainImpl() error {
 	defer bus.Close()
 
 	// Create a new temperature sensor a sense with default options.
-	sensor, err := mcp9808.New(bus, &mcp9808.Opts{Address: *address})
+	sensor, err := mcp9808.New(bus, &mcp9808.Opts{Addr: *address})
 	if err != nil {
 		return fmt.Errorf("failed to open new sensor: %v", err)
 	}
 
 	// Read values from sensor every second.
-	everySecond := time.NewTicker(time.Second).C
+	everySecond := time.Tick(time.Second)
 	var halt = make(chan os.Signal)
 	signal.Notify(halt, syscall.SIGTERM)
 	signal.Notify(halt, syscall.SIGINT)

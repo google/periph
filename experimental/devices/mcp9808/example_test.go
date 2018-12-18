@@ -8,14 +8,13 @@ import (
 	"fmt"
 	"log"
 
-	"periph.io/x/periph/conn/physic"
-
 	"periph.io/x/periph/conn/i2c/i2creg"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/experimental/devices/mcp9808"
 	"periph.io/x/periph/host"
 )
 
-func ExampleDev_Sense() {
+func ExampleDev_SenseTemp() {
 	// Make sure periph is initialized.
 	if _, err := host.Init(); err != nil {
 		log.Fatal(err)
@@ -35,7 +34,7 @@ func ExampleDev_Sense() {
 	}
 
 	// Read values from sensor.
-	measurement, err := sensor.Sense()
+	measurement, err := sensor.SenseTemp()
 
 	if err != nil {
 		log.Fatalln(err)
@@ -74,10 +73,8 @@ func ExampleDev_SenseWithAlerts() {
 		log.Fatalln(err)
 	}
 
-	if len(alerts) > 0 {
-		for _, alert := range alerts {
-			fmt.Println(alert)
-		}
+	for _, alert := range alerts {
+		fmt.Println(alert)
 	}
 
 	fmt.Println(temperature)

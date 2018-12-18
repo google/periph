@@ -58,8 +58,8 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) (err error) {
 
 	// Create a new temperature sensor a with maximum resolution.
 	config := mcp9808.Opts{
-		Address:    *i2cAddr,
-		Resolution: mcp9808.Maximum,
+		Addr: *i2cAddr,
+		Res:  mcp9808.Maximum,
 	}
 
 	sensor, err := mcp9808.New(bus, &config)

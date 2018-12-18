@@ -33,12 +33,12 @@ func TestNew(t *testing.T) {
 		},
 		{
 			name: "bad address",
-			opts: Opts{Address: 0x40},
+			opts: Opts{Addr: 0x40},
 			want: errAddressOutOfRange,
 		},
 		{
 			name: "io error",
-			opts: Opts{Address: 0x18},
+			opts: Opts{Addr: 0x18},
 			want: errWritingResolution,
 		},
 	}
@@ -56,7 +56,7 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func TestSense(t *testing.T) {
+func TestSenseTemp(t *testing.T) {
 	tests := []struct {
 		name string
 		want physic.Temperature
@@ -104,12 +104,12 @@ func TestSense(t *testing.T) {
 				Conn:  &i2c.Dev{Bus: &bus, Addr: 0x18},
 				Order: binary.BigEndian},
 		}
-		got, err := mcp9808.Sense()
+		got, err := mcp9808.SenseTemp()
 		if tt.want != got {
-			t.Errorf("%s Sense() expected %v but got %v ", tt.name, tt.want, got)
+			t.Errorf("%s SenseTemp() expected %v but got %v ", tt.name, tt.want, got)
 		}
 		if err != tt.err {
-			t.Errorf("%s Sense() expected %v but got %v ", tt.name, tt.err, err)
+			t.Errorf("%s SenseTemp() expected %v but got %v ", tt.name, tt.err, err)
 		}
 	}
 }
@@ -539,8 +539,8 @@ func TestDev_setCriticalAlert(t *testing.T) {
 			err: nil,
 		},
 		{
-			name:  "125C",
-			alert: physic.ZeroCelsius + 125*physic.Kelvin,
+			name:  "126C",
+			alert: physic.ZeroCelsius + 126*physic.Kelvin,
 			tx:    []i2ctest.IO{},
 			err:   errAlertOutOfRange,
 		},
@@ -594,8 +594,8 @@ func TestDev_setUpperAlert(t *testing.T) {
 			err: nil,
 		},
 		{
-			name:  "125C",
-			alert: physic.ZeroCelsius + 125*physic.Kelvin,
+			name:  "126C",
+			alert: physic.ZeroCelsius + 126*physic.Kelvin,
 			tx:    []i2ctest.IO{},
 			err:   errAlertOutOfRange,
 		},
@@ -649,8 +649,8 @@ func TestDev_setLowerAlert(t *testing.T) {
 			err: nil,
 		},
 		{
-			name:  "125C",
-			alert: physic.ZeroCelsius + 125*physic.Kelvin,
+			name:  "126C",
+			alert: physic.ZeroCelsius + 126*physic.Kelvin,
 			tx:    []i2ctest.IO{},
 			err:   errAlertOutOfRange,
 		},
@@ -723,8 +723,8 @@ func Test_temperatureToAlertBits(t *testing.T) {
 		alert physic.Temperature
 		want  error
 	}{
-		{"125°C", physic.ZeroCelsius + 125*physic.Kelvin, errAlertOutOfRange},
-		{"-40°C", physic.ZeroCelsius - 40*physic.Kelvin, errAlertOutOfRange},
+		{"126°C", physic.ZeroCelsius + 126*physic.Kelvin, errAlertOutOfRange},
+		{"-41°C", physic.ZeroCelsius - 41*physic.Kelvin, errAlertOutOfRange},
 	}
 
 	for _, tt := range succeeds {

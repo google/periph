@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"sync"
+	"time"
 
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/i2c"
@@ -23,25 +24,24 @@ import (
 // slave address. Default configuration is address 0x18 (Ax pins to GND). For a
 // full address table see datasheet.
 type Opts struct {
-	Address    int
-	Resolution resolution
+	Addr int
+	Res  resolution
 }
 
 // DefaultOpts is the recommended default options.
 var DefaultOpts = Opts{
-	Address:    0x18,
-	Resolution: Maximum,
+	Addr: 0x18,
+	Res:  Maximum,
 }
 
 // New opens a handle to an mcp9808 sensor.
 func New(bus i2c.Bus, opts *Opts) (*Dev, error) {
-
-	i2cAddress := DefaultOpts.Address
-	if opts.Address != 0 {
-		if opts.Address < 0x18 || opts.Address > 0x1f {
+	i2cAddress := DefaultOpts.Addr
+	if opts.Addr != 0 {
+		if opts.Addr < 0x18 || opts.Addr > 0x1f {
 			return nil, errAddressOutOfRange
 		}
-		i2cAddress = opts.Address
+		i2cAddress = opts.Addr
 	}
 
 	dev := &Dev{
@@ -49,46 +49,107 @@ func New(bus i2c.Bus, opts *Opts) (*Dev, error) {
 			Conn:  &i2c.Dev{Bus: bus, Addr: uint16(i2cAddress)},
 			Order: binary.BigEndian,
 		},
+		stop: make(chan struct{}, 1),
+		res:  opts.Res,
 	}
 
-	if err := dev.setResolution(opts.Resolution); err != nil {
+	if err := dev.setResolution(opts.Res); err != nil {
 		return nil, err
 	}
 	if err := dev.enable(); err != nil {
 		return nil, err
 	}
-
 	return dev, nil
 }
 
 // Dev is a handle to the mcp9808 sensor.
 type Dev struct {
-	m mmr.Dev8
+	m    mmr.Dev8
+	stop chan struct{}
+	res  resolution
 
 	mu       sync.Mutex
+	sensing  bool
 	critical physic.Temperature
 	upper    physic.Temperature
 	lower    physic.Temperature
 	shutdown bool
 }
 
-// Sense reads the current ambient temperature.
-func (d *Dev) Sense() (physic.Temperature, error) {
-	if err := d.enable(); err != nil {
-		return 0, err
+// Sense reads the current temperature.
+func (d *Dev) Sense(e *physic.Env) error {
+	t, _, err := d.readTemperature()
+	e.Temperature = t
+	return err
+}
+
+func (d *Dev) SenseContinuous(interval time.Duration) (<-chan physic.Env, error) {
+	switch d.res {
+	case Maximum:
+		if interval < 250*time.Millisecond {
+			return nil, errTooShortInterval
+		}
+	case High:
+		if interval < 130*time.Millisecond {
+			return nil, errTooShortInterval
+		}
+	case Medium:
+		if interval < 65*time.Millisecond {
+			return nil, errTooShortInterval
+		}
+	case Low:
+		if interval < 30*time.Millisecond {
+			return nil, errTooShortInterval
+		}
 	}
-	tbits, err := d.m.ReadUint16(temperature)
-	if err != nil {
-		return 0, errReadTemperature
+
+	env := make(chan physic.Env)
+	d.mu.Lock()
+	d.sensing = true
+	d.mu.Unlock()
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go func() {
+		for {
+			select {
+			case <-time.After(interval):
+				t, _, _ := d.readTemperature()
+				env <- physic.Env{Temperature: t}
+			case <-d.stop:
+				wg.Done()
+				return
+			}
+		}
+	}()
+
+	go func() {
+		wg.Wait()
+		close(env)
+		d.mu.Lock()
+		d.sensing = false
+		d.mu.Unlock()
+	}()
+	return env, nil
+}
+
+func (d *Dev) Precision(e *physic.Env) {
+	switch d.res {
+	case Maximum:
+		e.Temperature = 62500 * physic.MicroKelvin
+	case High:
+		e.Temperature = 125 * physic.MilliKelvin
+	case Medium:
+		e.Temperature = 250 * physic.MilliKelvin
+	case Low:
+		e.Temperature = 500 * physic.MilliKelvin
 	}
-	// Convert to physic.Temperature 0.0625°C per bit
-	t := physic.Temperature(tbits&0x0FFF) * 62500 * physic.MicroKelvin
-	if tbits&0x1000 > 0 {
-		// Check for bit sign.
-		t = -t
-	}
-	t += physic.ZeroCelsius
-	return t, nil
+}
+
+// SenseTemp reads the current temperature.
+func (d *Dev) SenseTemp() (physic.Temperature, error) {
+	t, _, err := d.readTemperature()
+	return t, err
 }
 
 // SenseWithAlerts reads the ambient temperature and returns an slice of any
@@ -109,25 +170,15 @@ func (d *Dev) SenseWithAlerts(lower, upper, critical physic.Temperature) (physic
 		return 0, nil, errAlertInvalid
 	}
 
-	if err := d.enable(); err != nil {
+	t, alertBits, err := d.readTemperature()
+	if err != nil {
 		return 0, nil, err
 	}
 
-	tbits, err := d.m.ReadUint16(temperature)
-	if err != nil {
-		return 0, nil, errReadTemperature
-	}
-	// Convert to physic.Temperature 0.0625°C per bit
-	t := physic.Temperature(tbits&0x0FFF) * 62500 * physic.MicroKelvin
-	if tbits&0x1000 > 0 {
-		// Check for bit sign.
-		t = -t
-	}
-	t += physic.ZeroCelsius
 	// Check for Alerts.
-	if tbits&0xe000 > 0 {
+	if alertBits&0xe0 > 0 {
 		var as []Alert
-		if tbits&0x8000 > 0 {
+		if alertBits&0x80 > 0 {
 			// Critical Alert bit set.
 			crit, err := d.m.ReadUint16(critAlert)
 			if err != nil {
@@ -137,7 +188,7 @@ func (d *Dev) SenseWithAlerts(lower, upper, critical physic.Temperature) (physic
 			as = append(as, Alert{"critical", t})
 		}
 
-		if tbits&0x4000 > 0 {
+		if alertBits&0x40 > 0 {
 			// Upper Alert bit set.
 			upper, err := d.m.ReadUint16(upperAlert)
 			if err != nil {
@@ -147,7 +198,7 @@ func (d *Dev) SenseWithAlerts(lower, upper, critical physic.Temperature) (physic
 			as = append(as, Alert{"upper", t})
 		}
 
-		if tbits&0x2000 > 0 {
+		if alertBits&0x20 > 0 {
 			// Lower Alert bit set.
 			lower, err := d.m.ReadUint16(lowerAlert)
 			if err != nil {
@@ -159,13 +210,18 @@ func (d *Dev) SenseWithAlerts(lower, upper, critical physic.Temperature) (physic
 
 		return t, as, nil
 	}
-
 	return t, nil, nil
 }
 
 // Halt put the mcp9808 into shutdown mode. It will not read temperatures while
 // in shutdown mode.
 func (d *Dev) Halt() error {
+	d.mu.Lock()
+	if d.sensing {
+		d.stop <- struct{}{}
+	}
+	d.mu.Unlock()
+
 	if err := d.m.WriteUint16(configuration, 0x0100); err != nil {
 		return errWritingConfiguration
 	}
@@ -173,7 +229,6 @@ func (d *Dev) Halt() error {
 	d.mu.Lock()
 	d.shutdown = true
 	d.mu.Unlock()
-
 	return nil
 }
 
@@ -191,6 +246,25 @@ func (d *Dev) enable() error {
 		d.shutdown = false
 	}
 	return nil
+}
+
+func (d *Dev) readTemperature() (physic.Temperature, uint8, error) {
+	if err := d.enable(); err != nil {
+		return 0, 0, err
+	}
+
+	tbits, err := d.m.ReadUint16(temperature)
+	if err != nil {
+		return 0, 0, errReadTemperature
+	}
+	// Convert to physic.Temperature 0.0625°C per bit
+	t := physic.Temperature(tbits&0x0FFF) * 62500 * physic.MicroKelvin
+	if tbits&0x1000 > 0 {
+		// Check for bit sign.
+		t = -t
+	}
+	t += physic.ZeroCelsius
+	return t, uint8(tbits>>8) & 0xe0, nil
 }
 
 func (d *Dev) setResolution(r resolution) error {
@@ -214,7 +288,6 @@ func (d *Dev) setResolution(r resolution) error {
 	default:
 		return errInvalidResolution
 	}
-
 	return nil
 }
 
@@ -298,8 +371,9 @@ var (
 	errWritingCritAlert     = errors.New("failed to write critical alert configuration")
 	errWritingUpperAlert    = errors.New("failed to write upper alert configuration")
 	errWritingLowerAlert    = errors.New("failed to write lower alert configuration")
-	errAlertOutOfRange      = errors.New("alert seeting exceeds operating conditions")
+	errAlertOutOfRange      = errors.New("alert setting exceeds operating conditions")
 	errAlertInvalid         = errors.New("invalid alert temperature configuration")
+	errTooShortInterval     = errors.New("too short interval for resolution")
 )
 
 func alertBitsToTemperature(b uint16) physic.Temperature {
@@ -313,14 +387,14 @@ func alertBitsToTemperature(b uint16) physic.Temperature {
 }
 
 func alertTemperatureToBits(t physic.Temperature) (uint16, error) {
-	const (
-		maxAlert = 125*physic.Kelvin + physic.ZeroCelsius
-		minAlert = -40*physic.Kelvin + physic.ZeroCelsius
-	)
-	if t >= maxAlert || t <= minAlert {
+	const maxAlert = 125*physic.Kelvin + physic.ZeroCelsius
+	const minAlert = -40*physic.Kelvin + physic.ZeroCelsius
+
+	if t > maxAlert || t < minAlert {
 		return 0, errAlertOutOfRange
 	}
 	t -= physic.ZeroCelsius
+	// 0.25°C per bit.
 	t /= 250 * physic.MilliKelvin
 
 	var bits uint16
@@ -343,3 +417,4 @@ const (
 )
 
 var _ conn.Resource = &Dev{}
+var _ physic.SenseEnv = &Dev{}
