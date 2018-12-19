@@ -25,5 +25,5 @@ func main() {
 		log.Fatalf("inky: %v", err)
 	}
 
-	dev.Update(inky.Black)
+	dev.Update(inky.Red)
 }
