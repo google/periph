@@ -2,8 +2,6 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// TODO(hatstand): Support InkyWHat too.
-
 package inky
 
 import (
@@ -15,13 +13,14 @@ import (
 	"time"
 
 	"periph.io/x/periph/conn"
+	"periph.io/x/periph/conn/display"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/spi"
 )
 
 const (
-	// Constants for an InkyPHat
+	// Constants for an Inky pHAT
 	cols = 104
 	rows = 212
 
@@ -74,15 +73,20 @@ func New(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn, color C
 // Dev is a handle to an Inky.
 type Dev struct {
 	c conn.Conn
-	// Data or command SPI message.
+	// Low when sending a command, high when sending data.
 	dc   gpio.PinOut
+	// Reset pin, active low.
 	r    gpio.PinOut
+	// High when device is busy.
 	busy gpio.PinIn
 
+	// Color of device screen (red, yellow or black).
 	color  Color
+	// Modifiable color of border.
 	border Color
 }
 
+// SetBorder changes the border color. This will not take effect until the next Draw().
 func (d *Dev) SetBorder(c Color) {
 	d.border = c
 }
@@ -98,7 +102,8 @@ func (d *Dev) Halt() error {
 }
 
 // ColorModel implements display.Drawer
-// Maps white to white, black to black and anything else as red.
+// Maps white to white, black to black and anything else as red. Red is used as
+// a placeholder for the display's third color, i.e., red or yellow.
 func (d *Dev) ColorModel() color.Model {
 	return color.ModelFunc(func(c color.Color) color.Color {
 		r, g, b, _ := c.RGBA()
@@ -285,3 +290,5 @@ func boolToByte(b bool) byte {
 	}
 	return 0
 }
+
+var _ display.Drawer = &Dev{}
