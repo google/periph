@@ -1,7 +1,11 @@
 package main
 
 import (
+	"flag"
+	"image"
+	_ "image/png"
 	"log"
+	"os"
 
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/spi/spireg"
@@ -9,7 +13,22 @@ import (
 	"periph.io/x/periph/host"
 )
 
+var img = flag.String("image", "", "Path to image")
+
 func main() {
+	flag.Parse()
+
+	reader, err := os.Open(*img)
+	if err != nil {
+		log.Fatalf("Failed to open image %s: %v", *img, err)
+	}
+	defer reader.Close()
+
+	m, _, err := image.Decode(reader)
+	if err != nil {
+		log.Fatalf("Could not decode image: %v", err)
+	}
+
 	host.Init()
 	port, err := spireg.Open("")
 	if err != nil {
@@ -25,5 +44,5 @@ func main() {
 		log.Fatalf("inky: %v", err)
 	}
 
-	dev.Update(inky.Red)
+	dev.Draw(m.Bounds(), m, image.Point{0, 0}) 
 }

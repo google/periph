@@ -7,6 +7,8 @@ package inky
 import (
 	"encoding/binary"
 	"fmt"
+	"image"
+	"image/color"
 	"log"
 	"time"
 
@@ -31,7 +33,7 @@ const (
 const (
 	Black = 0x00
 	Red = 0x33
-	Yello = 0x33
+	Yellow = 0x33
 	White = 0xff
 )
 
@@ -72,20 +74,79 @@ type Dev struct {
 	busy gpio.PinIn
 }
 
-func (d *Dev) reset() {
-	d.r.Out(gpio.Low)
-	time.Sleep(100 * time.Millisecond)
-	d.r.Out(gpio.High)
-	time.Sleep(100 * time.Millisecond)
-
-	d.busy.In(gpio.PullUp, gpio.FallingEdge)
-	defer d.busy.In(gpio.PullUp, gpio.NoEdge)
-	d.sendCommand(0x12, nil)  // Soft Reset
-	log.Println("Waiting for soft reset")
-	d.busy.WaitForEdge(-1)
+// String implements conn.Resource.
+func (d *Dev) String() string {
+	return "InkyPHat"
 }
 
-func (d *Dev) Update(border byte) error {
+// Halt implements conn.Resource
+func (d *Dev) Halt() error {
+	return nil
+}
+
+// ColorModel implements display.Drawer
+func (d *Dev) ColorModel() color.Model {
+	return color.ModelFunc(func(c color.Color) color.Color {
+		r, g, b, _ := c.RGBA()
+		if r == 0 && g == 0 && b == 0 {
+			return color.RGBA{
+				R: 0,
+				G: 0,
+				B: 0,
+				A: 0,
+			}
+		} else if r == 255 && g == 0 && b == 0 {
+			return color.RGBA{
+				R: 255,
+				G: 0,
+				B: 0,
+				A: 0,
+			}
+		}
+		return color.RGBA{
+			R: 255,
+			G: 255,
+			B: 255,
+			A: 0,
+		}
+	})
+}
+
+// Bounds implements display.Drawer
+func (d *Dev) Bounds() image.Rectangle {
+	return image.Rect(0, 0, rows, cols)
+}
+
+// Draw implements display.Drawer
+func (d *Dev) Draw(dstRect image.Rectangle, src image.Image, srcPtrs image.Point) error {
+	if dstRect != d.Bounds() {
+		return fmt.Errorf("Partial update not supported")
+	}
+
+	if src.Bounds() != d.Bounds() {
+		return fmt.Errorf("Image must be the same size as bounds: %v", d.Bounds())
+	}
+
+	b := src.Bounds()
+	black := make([]bool, rows * cols)
+	red := make([]bool, rows * cols)
+	for x := b.Min.X; x < b.Max.X; x++ {
+		for y := b.Min.Y; y < b.Max.Y; y++ {
+			r, g, b, _ := b.ColorModel().Convert(src.At(x, y)).RGBA()
+			if r == 255 && g == 255 && b == 255 {
+				black[y * rows + x] = true
+			} else if r == 255 && g == 0 && b == 0 {
+				red[y * rows + x] = true
+			}
+		}
+	}
+
+	bufA, _ := pack(black)
+	bufB, _ := pack(red)
+	return d.update(Red, bufA, bufB)
+}
+
+func (d *Dev) update(border byte, black []byte, red []byte) error {
 	log.Printf("Resetting")
 	d.reset()
 
@@ -120,18 +181,14 @@ func (d *Dev) Update(border byte) error {
 	binary.LittleEndian.PutUint16(h[2:], rows)
 	d.sendCommand(0x45, h)  // Set RAM Y Start/End
 
-	// Pure white.
 	log.Printf("Writing B/W")
 	d.sendCommand(0x4e, []byte{0x00})
 	d.sendCommand(0x4f, []byte{0x00, 0x00})
-	black, _ := pack(makeBlank())
 	d.sendCommand(0x24, black)
 
-	// Pure red.
 	log.Printf("Writing red")
 	d.sendCommand(0x43, []byte{0x00})
 	d.sendCommand(0x4f, []byte{0x00, 0x00})
-	red, _ := pack(makeBlank())
 	d.sendCommand(0x26, red)
 
 	d.sendCommand(0x22, []byte{0xc7})
@@ -145,6 +202,19 @@ func (d *Dev) Update(border byte) error {
 	log.Printf("Going back to sleep")
 	d.sendCommand(0x10, []byte{0x01})  // Enter deep sleep.
 	return nil
+}
+
+func (d *Dev) reset() {
+	d.r.Out(gpio.Low)
+	time.Sleep(100 * time.Millisecond)
+	d.r.Out(gpio.High)
+	time.Sleep(100 * time.Millisecond)
+
+	d.busy.In(gpio.PullUp, gpio.FallingEdge)
+	defer d.busy.In(gpio.PullUp, gpio.NoEdge)
+	d.sendCommand(0x12, nil)  // Soft Reset
+	log.Println("Waiting for soft reset")
+	d.busy.WaitForEdge(-1)
 }
 
 func (d *Dev) sendCommand(command byte, data []byte) error {
