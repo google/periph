@@ -134,12 +134,12 @@ func (d *Dev) Draw(dstRect image.Rectangle, src image.Image, srcPtrs image.Point
 	white := make([]bool, rows * cols)
 	// true for red, false for b/w.
 	red := make([]bool, rows * cols)
-	c := 0
 	for x := b.Min.X; x < b.Max.X; x++ {
 		for y := b.Min.Y; y < b.Max.Y; y++ {
-			c++
 			i := x * cols + y
-			r, g, b, _ := d.ColorModel().Convert(src.At(x, y)).RGBA()
+			srcX := x
+			srcY := b.Max.Y - y - 1
+			r, g, b, _ := d.ColorModel().Convert(src.At(srcX, srcY)).RGBA()
 			if r == 0xffff && g == 0xffff && b == 0xffff {
 				white[i] = true
 			} else if r == 0xffff {
@@ -264,7 +264,7 @@ func pack(bits []bool) ([]byte, error) {
 	ret := make([]byte, len(bits) / 8)
 	for i, b := range bits {
 		index := i / 8
-		shift := uint(i) % 8
+		shift := 7 - uint(i) % 8
 		ret[index] |= (boolToByte(b) << shift)
 	}
 	return ret, nil
