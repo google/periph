@@ -6,6 +6,7 @@ package inky
 
 import (
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"image"
 	"image/color"
@@ -85,6 +86,7 @@ func (d *Dev) Halt() error {
 }
 
 // ColorModel implements display.Drawer
+// Maps white to white, black to black and anything else as red.
 func (d *Dev) ColorModel() color.Model {
 	return color.ModelFunc(func(c color.Color) color.Color {
 		r, g, b, _ := c.RGBA()
@@ -93,21 +95,21 @@ func (d *Dev) ColorModel() color.Model {
 				R: 0,
 				G: 0,
 				B: 0,
-				A: 0,
+				A: 255,
 			}
-		} else if r == 255 && g == 0 && b == 0 {
+		} else if r == 0xffff && g == 0xffff && b == 0xffff {
 			return color.RGBA{
 				R: 255,
-				G: 0,
-				B: 0,
-				A: 0,
+				G: 255,
+				B: 255,
+				A: 255,
 			}
 		}
 		return color.RGBA{
 			R: 255,
-			G: 255,
-			B: 255,
-			A: 0,
+			G: 0,
+			B: 0,
+			A: 255,
 		}
 	})
 }
@@ -128,25 +130,32 @@ func (d *Dev) Draw(dstRect image.Rectangle, src image.Image, srcPtrs image.Point
 	}
 
 	b := src.Bounds()
-	black := make([]bool, rows * cols)
+	// true for white, false for black.
+	white := make([]bool, rows * cols)
+	// true for red, false for b/w.
 	red := make([]bool, rows * cols)
+	c := 0
 	for x := b.Min.X; x < b.Max.X; x++ {
 		for y := b.Min.Y; y < b.Max.Y; y++ {
-			r, g, b, _ := b.ColorModel().Convert(src.At(x, y)).RGBA()
-			if r == 255 && g == 255 && b == 255 {
-				black[y * rows + x] = true
-			} else if r == 255 && g == 0 && b == 0 {
-				red[y * rows + x] = true
+			c++
+			i := x * cols + y
+			r, g, b, _ := d.ColorModel().Convert(src.At(x, y)).RGBA()
+			if r == 0xffff && g == 0xffff && b == 0xffff {
+				white[i] = true
+			} else if r == 0xffff {
+				red[i] = true
 			}
 		}
 	}
 
-	bufA, _ := pack(black)
+	bufA, _ := pack(white)
 	bufB, _ := pack(red)
 	return d.update(Red, bufA, bufB)
 }
 
 func (d *Dev) update(border byte, black []byte, red []byte) error {
+	log.Println(hex.Dump(black))
+	log.Println(hex.Dump(red))
 	log.Printf("Resetting")
 	d.reset()
 
