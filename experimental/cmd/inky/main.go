@@ -43,6 +43,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("inky: %v", err)
 	}
+	dev.SetBorder(inky.Black)
 
 	dev.Draw(m.Bounds(), m, image.Point{0, 0}) 
 }

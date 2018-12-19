@@ -2,11 +2,12 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// TODO(hatstand): Support InkyWHat too.
+
 package inky
 
 import (
 	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 	"image"
 	"image/color"
@@ -20,9 +21,9 @@ import (
 )
 
 const (
+	// Constants for an InkyPHat
 	cols = 104
 	rows = 212
-	rotation = -90
 
 	speed = 488 * physic.KiloHertz
 	spiBits = 8
@@ -31,25 +32,16 @@ const (
 	spiData = gpio.High
 )
 
+type BorderColor byte
+
 const (
-	Black = 0x00
-	Red = 0x33
-	Yellow = 0x33
-	White = 0xff
+	Black = BorderColor(0x00)
+	Red = BorderColor(0x33)
+	Yellow = BorderColor(0x33)
+	White = BorderColor(0xff)
 )
 
-// FIXME: Expose public symbols as relevant. Do not export more than needed!
-// See https://periph.io/project/#requirements
-// for the expectations.
-//
-// Use the following layout for drivers:
-//  - exported support symbols
-//  - Opts struct
-//  - New func
-//  - Dev struct and methods
-//  - Private support code
-
-// New opens a handle to the device. FIXME.
+// New opens a handle to an Inky.
 func New(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn) (*Dev, error) {
 	c, err := p.Connect(speed, spi.Mode0, spiBits)
 	if err != nil {
@@ -61,18 +53,25 @@ func New(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn) (*Dev, 
 		dc: dc,
 		r: reset,
 		busy: busy,
+		border: Black,
 	}
 
 	return d, nil
 }
 
-// Dev is a handle to the device. FIXME.
+// Dev is a handle to an Inky.
 type Dev struct {
 	c conn.Conn
 	// Data or command SPI message.
 	dc gpio.PinOut
 	r gpio.PinOut
 	busy gpio.PinIn
+
+	border BorderColor
+}
+
+func (d *Dev) SetBorder(c BorderColor) {
+	d.border = c
 }
 
 // String implements conn.Resource.
@@ -130,9 +129,9 @@ func (d *Dev) Draw(dstRect image.Rectangle, src image.Image, srcPtrs image.Point
 	}
 
 	b := src.Bounds()
-	// true for white, false for black.
+	// Black/white pixels.
 	white := make([]bool, rows * cols)
-	// true for red, false for b/w.
+	// Red/Transparent pixels.
 	red := make([]bool, rows * cols)
 	for x := b.Min.X; x < b.Max.X; x++ {
 		for y := b.Min.Y; y < b.Max.Y; y++ {
@@ -143,6 +142,7 @@ func (d *Dev) Draw(dstRect image.Rectangle, src image.Image, srcPtrs image.Point
 			if r == 0xffff && g == 0xffff && b == 0xffff {
 				white[i] = true
 			} else if r == 0xffff {
+				// Red pixels also need white behind them.
 				white[i] = true
 				red[i] = true
 			}
@@ -151,16 +151,12 @@ func (d *Dev) Draw(dstRect image.Rectangle, src image.Image, srcPtrs image.Point
 
 	bufA, _ := pack(white)
 	bufB, _ := pack(red)
-	return d.update(Red, bufA, bufB)
+	return d.update(d.border, bufA, bufB)
 }
 
-func (d *Dev) update(border byte, black []byte, red []byte) error {
-	log.Println(hex.Dump(black))
-	log.Println(hex.Dump(red))
-	log.Printf("Resetting")
+func (d *Dev) update(border BorderColor, black []byte, red []byte) error {
 	d.reset()
 
-	log.Printf("Getting ready for update")
 	d.sendCommand(0x74, []byte{0x54})  // Set Analog Block Control.
 	d.sendCommand(0x7e, []byte{0x3b})  // Set Digital Block Control.
 
@@ -177,13 +173,11 @@ func (d *Dev) update(border byte, black []byte, red []byte) error {
 	d.sendCommand(0x04, nil)  // Power on
 	d.sendCommand(0x2c, []byte{0x3c})  // VCOM Register, 0x3c = -1.5v?
 
-	log.Printf("Setting border colour")
 	d.sendCommand(0x3c, []byte{0x00})
-	d.sendCommand(0x3c, []byte{border})  // Border colour.
+	d.sendCommand(0x3c, []byte{byte(border)})  // Border colour.
 
 	// TODO(hatstand): Support Yellow.
 
-	log.Printf("Sending LUT")
 	d.sendCommand(0x32, redLUT)  // Set LUTs
 
 	d.sendCommand(0x44, []byte{0x00, cols / 8 - 1})  // Set RAM X Start/End
@@ -191,12 +185,10 @@ func (d *Dev) update(border byte, black []byte, red []byte) error {
 	binary.LittleEndian.PutUint16(h[2:], rows)
 	d.sendCommand(0x45, h)  // Set RAM Y Start/End
 
-	log.Printf("Writing B/W")
 	d.sendCommand(0x4e, []byte{0x00})
 	d.sendCommand(0x4f, []byte{0x00, 0x00})
 	d.sendCommand(0x24, black)
 
-	log.Printf("Writing red")
 	d.sendCommand(0x43, []byte{0x00})
 	d.sendCommand(0x4f, []byte{0x00, 0x00})
 	d.sendCommand(0x26, red)
@@ -206,10 +198,8 @@ func (d *Dev) update(border byte, black []byte, red []byte) error {
 	defer d.busy.In(gpio.PullUp, gpio.NoEdge)
 	d.sendCommand(0x20, nil)
 
-	log.Printf("Waiting for update to finish")
 	d.busy.WaitForEdge(-1)
 
-	log.Printf("Going back to sleep")
 	d.sendCommand(0x10, []byte{0x01})  // Enter deep sleep.
 	return nil
 }
@@ -223,7 +213,6 @@ func (d *Dev) reset() {
 	d.busy.In(gpio.PullUp, gpio.FallingEdge)
 	defer d.busy.In(gpio.PullUp, gpio.NoEdge)
 	d.sendCommand(0x12, nil)  // Soft Reset
-	log.Println("Waiting for soft reset")
 	d.busy.WaitForEdge(-1)
 }
 
@@ -269,18 +258,6 @@ func pack(bits []bool) ([]byte, error) {
 		ret[index] |= (boolToByte(b) << shift)
 	}
 	return ret, nil
-}
-
-func makeBlank() []bool {
-	return make([]bool, rows * cols)
-}
-
-func makeFilled() []bool {
-	ret := makeBlank()
-	for i, _ := range ret {
-		ret[i] = true
-	}
-	return ret
 }
 
 func boolToByte(b bool) byte {
