@@ -203,7 +203,6 @@ func TestSenseContinuous(t *testing.T) {
 		}
 		mcp9808.Halt()
 	}
-
 }
 
 func TestPrecision(t *testing.T) {
@@ -705,9 +704,7 @@ func TestDev_setResolution(t *testing.T) {
 		if err := mcp9808.setResolution(tt.res); err != tt.err {
 			t.Errorf("setResolution(%s) expected %v but got %v", tt.name, tt.err, err)
 		}
-
 	}
-
 }
 
 func TestDev_setCriticalAlert(t *testing.T) {
@@ -930,5 +927,4 @@ func Test_temperatureToAlertBits(t *testing.T) {
 			t.Errorf("alertBitsToTemperature(%s) expected error %v", tt.name, tt.want)
 		}
 	}
-
 }
