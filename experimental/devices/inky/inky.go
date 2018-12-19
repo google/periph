@@ -74,14 +74,14 @@ func New(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn, color C
 type Dev struct {
 	c conn.Conn
 	// Low when sending a command, high when sending data.
-	dc   gpio.PinOut
+	dc gpio.PinOut
 	// Reset pin, active low.
-	r    gpio.PinOut
+	r gpio.PinOut
 	// High when device is busy.
 	busy gpio.PinIn
 
 	// Color of device screen (red, yellow or black).
-	color  Color
+	color Color
 	// Modifiable color of border.
 	border Color
 }
