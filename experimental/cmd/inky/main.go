@@ -39,7 +39,7 @@ func main() {
 	reset := gpioreg.ByName("27")
 	busy := gpioreg.ByName("17")
 
-	dev, err := inky.New(port, dc, reset, busy)
+	dev, err := inky.New(port, dc, reset, busy, inky.Red)
 	if err != nil {
 		log.Fatalf("inky: %v", err)
 	}

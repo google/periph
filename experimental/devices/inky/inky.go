@@ -32,17 +32,28 @@ const (
 	spiData    = gpio.High
 )
 
-type BorderColor byte
+type Color int
 
 const (
-	Black  = BorderColor(0x00)
-	Red    = BorderColor(0x33)
-	Yellow = BorderColor(0x33)
-	White  = BorderColor(0xff)
+	Black  = iota
+	Red    = iota
+	Yellow = iota
+	White  = iota
 )
 
+var borderColor = map[Color]byte{
+	Black:  0x00,
+	Red:    0x33,
+	Yellow: 0x33,
+	White:  0xff,
+}
+
 // New opens a handle to an Inky.
-func New(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn) (*Dev, error) {
+func New(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn, color Color) (*Dev, error) {
+	if color != Black && color != Red && color != Yellow {
+		return nil, fmt.Errorf("Unsupported color: %v", color)
+	}
+
 	c, err := p.Connect(speed, spi.Mode0, spiBits)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to inky over spi: %v", err)
@@ -53,6 +64,7 @@ func New(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn) (*Dev, 
 		dc:     dc,
 		r:      reset,
 		busy:   busy,
+		color:  color,
 		border: Black,
 	}
 
@@ -67,10 +79,11 @@ type Dev struct {
 	r    gpio.PinOut
 	busy gpio.PinIn
 
-	border BorderColor
+	color  Color
+	border Color
 }
 
-func (d *Dev) SetBorder(c BorderColor) {
+func (d *Dev) SetBorder(c Color) {
 	d.border = c
 }
 
@@ -151,10 +164,10 @@ func (d *Dev) Draw(dstRect image.Rectangle, src image.Image, srcPtrs image.Point
 
 	bufA, _ := pack(white)
 	bufB, _ := pack(red)
-	return d.update(d.border, bufA, bufB)
+	return d.update(borderColor[d.border], bufA, bufB)
 }
 
-func (d *Dev) update(border BorderColor, black []byte, red []byte) error {
+func (d *Dev) update(border byte, black []byte, red []byte) error {
 	d.reset()
 
 	d.sendCommand(0x74, []byte{0x54}) // Set Analog Block Control.
@@ -176,9 +189,15 @@ func (d *Dev) update(border BorderColor, black []byte, red []byte) error {
 	d.sendCommand(0x3c, []byte{0x00})
 	d.sendCommand(0x3c, []byte{byte(border)}) // Border colour.
 
-	// TODO(hatstand): Support Yellow.
-
-	d.sendCommand(0x32, redLUT) // Set LUTs
+	switch d.color {
+	case Black:
+		d.sendCommand(0x32, blackLUT)
+	case Red:
+		d.sendCommand(0x32, redLUT)
+	case Yellow:
+		d.sendCommand(0x04, []byte{0x07}) // Set voltage of VSH and VSL.
+		d.sendCommand(0x32, yellowLUT)
+	}
 
 	d.sendCommand(0x44, []byte{0x00, cols/8 - 1}) // Set RAM X Start/End
 	h := make([]byte, 4)
