@@ -131,7 +131,7 @@ func (d *Dev) Update(border byte) error {
 	log.Printf("Writing red")
 	d.sendCommand(0x43, []byte{0x00})
 	d.sendCommand(0x4f, []byte{0x00, 0x00})
-	red, _ := pack(makeFilled())
+	red, _ := pack(makeBlank())
 	d.sendCommand(0x26, red)
 
 	d.sendCommand(0x22, []byte{0xc7})
