@@ -45,5 +45,5 @@ func main() {
 	}
 	dev.SetBorder(inky.Black)
 
-	dev.Draw(m.Bounds(), m, image.Point{0, 0}) 
+	dev.Draw(m.Bounds(), m, image.Point{0, 0})
 }
