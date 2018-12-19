@@ -49,8 +49,9 @@ func New(bus i2c.Bus, opts *Opts) (*Dev, error) {
 			Conn:  &i2c.Dev{Bus: bus, Addr: uint16(i2cAddress)},
 			Order: binary.BigEndian,
 		},
-		stop: make(chan struct{}, 1),
-		res:  opts.Res,
+		stop:    make(chan struct{}, 1),
+		res:     opts.Res,
+		enabled: false,
 	}
 
 	if err := dev.setResolution(opts.Res); err != nil {
@@ -73,7 +74,7 @@ type Dev struct {
 	critical physic.Temperature
 	upper    physic.Temperature
 	lower    physic.Temperature
-	shutdown bool
+	enabled  bool
 }
 
 // Sense reads the current temperature.
@@ -227,7 +228,7 @@ func (d *Dev) Halt() error {
 	}
 
 	d.mu.Lock()
-	d.shutdown = true
+	d.enabled = false
 	d.mu.Unlock()
 	return nil
 }
@@ -239,11 +240,11 @@ func (d *Dev) String() string {
 func (d *Dev) enable() error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	if d.shutdown {
+	if !d.enabled {
 		if err := d.m.WriteUint16(configuration, 0x0000); err != nil {
 			return errWritingConfiguration
 		}
-		d.shutdown = false
+		d.enabled = true
 	}
 	return nil
 }

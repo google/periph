@@ -42,6 +42,14 @@ func TestNew(t *testing.T) {
 			opts: Opts{Addr: 0x18},
 			want: errWritingResolution,
 		},
+		{
+			name: "enabled error",
+			opts: DefaultOpts,
+			tx: []i2ctest.IO{
+				{Addr: 0x18, W: []byte{resolutionConfig, 0x03}, R: []byte{}},
+			},
+			want: errWritingConfiguration,
+		},
 	}
 
 	for _, tt := range tests {
@@ -59,46 +67,50 @@ func TestNew(t *testing.T) {
 
 func TestSense(t *testing.T) {
 	tests := []struct {
-		name     string
-		want     physic.Temperature
-		tx       []i2ctest.IO
-		shutdown bool
-		err      error
+		name    string
+		want    physic.Temperature
+		tx      []i2ctest.IO
+		enabled bool
+		err     error
 	}{
 		{
 			name: "0C",
 			tx: []i2ctest.IO{
 				{Addr: 0x18, W: []byte{temperature}, R: []byte{0x00, 0x00}},
 			},
-			want: physic.ZeroCelsius,
-			err:  nil,
+			enabled: true,
+			want:    physic.ZeroCelsius,
+			err:     nil,
 		},
 		{
 			name: "10C",
 			tx: []i2ctest.IO{
 				{Addr: 0x18, W: []byte{temperature}, R: []byte{0x00, 0xa0}},
 			},
-			want: physic.ZeroCelsius + 10*physic.Kelvin,
-			err:  nil,
+			enabled: true,
+			want:    physic.ZeroCelsius + 10*physic.Kelvin,
+			err:     nil,
 		},
 		{
 			name: "-10C",
 			tx: []i2ctest.IO{
 				{Addr: 0x18, W: []byte{temperature}, R: []byte{0x10, 0xa0}},
 			},
-			want: physic.ZeroCelsius - 10*physic.Kelvin,
-			err:  nil,
+			enabled: true,
+			want:    physic.ZeroCelsius - 10*physic.Kelvin,
+			err:     nil,
 		},
 		{
-			name: "io error",
-			tx:   []i2ctest.IO{},
-			err:  errReadTemperature,
+			name:    "io error",
+			tx:      []i2ctest.IO{},
+			enabled: true,
+			err:     errReadTemperature,
 		},
 		{
-			name:     "enable error",
-			shutdown: true,
-			want:     physic.ZeroCelsius + 10*physic.Kelvin,
-			err:      errWritingConfiguration,
+			name:    "enable error",
+			enabled: false,
+			want:    physic.ZeroCelsius + 10*physic.Kelvin,
+			err:     errWritingConfiguration,
 		},
 	}
 
@@ -111,7 +123,7 @@ func TestSense(t *testing.T) {
 			m: mmr.Dev8{
 				Conn:  &i2c.Dev{Bus: &bus, Addr: 0x18},
 				Order: binary.BigEndian},
-			shutdown: tt.shutdown,
+			enabled: tt.enabled,
 		}
 		e := &physic.Env{}
 		err := mcp9808.Sense(e)
@@ -131,6 +143,7 @@ func TestSenseContinuous(t *testing.T) {
 		res      resolution
 		interval time.Duration
 		tx       []i2ctest.IO
+		enabled  bool
 		Halt     bool
 		err      error
 	}{
@@ -167,6 +180,7 @@ func TestSenseContinuous(t *testing.T) {
 			want:     physic.ZeroCelsius + 10*physic.Celsius,
 			res:      Low,
 			interval: 30 * time.Millisecond,
+			enabled:  true,
 			Halt:     true,
 			err:      nil,
 		},
@@ -181,8 +195,9 @@ func TestSenseContinuous(t *testing.T) {
 				Conn:  &i2c.Dev{Bus: &bus, Addr: 0x18},
 				Order: binary.BigEndian,
 			},
-			res:  tt.res,
-			stop: make(chan struct{}, 1),
+			res:     tt.res,
+			enabled: tt.enabled,
+			stop:    make(chan struct{}, 1),
 		}
 
 		env, err := mcp9808.SenseContinuous(tt.interval)
@@ -290,6 +305,7 @@ func TestSenseTemp(t *testing.T) {
 			m: mmr.Dev8{
 				Conn:  &i2c.Dev{Bus: &bus, Addr: 0x18},
 				Order: binary.BigEndian},
+			enabled: true,
 		}
 		got, err := mcp9808.SenseTemp()
 		if tt.want != got {
@@ -486,6 +502,7 @@ func TestSenseWithAlerts(t *testing.T) {
 			m: mmr.Dev8{
 				Conn:  &i2c.Dev{Bus: &bus, Addr: 0x18},
 				Order: binary.BigEndian},
+			enabled: true,
 		}
 		temp, alerts, err := mcp9808.SenseWithAlerts(tt.lower, tt.upper, tt.critical)
 		if err != tt.err {
@@ -502,29 +519,29 @@ func TestSenseWithAlerts(t *testing.T) {
 
 func TestDevHalt(t *testing.T) {
 	tests := []struct {
-		name     string
-		tx       []i2ctest.IO
-		shutdown bool
-		want     bool
-		err      error
+		name    string
+		tx      []i2ctest.IO
+		enabled bool
+		want    bool
+		err     error
 	}{
 		{
 			name: "shutdown",
 			tx: []i2ctest.IO{
 				{Addr: 0x18, W: []byte{configuration, 0x01, 0x00}, R: nil},
 			},
-			shutdown: false,
-			want:     true,
-			err:      nil,
+			enabled: true,
+			want:    false,
+			err:     nil,
 		},
 		{
 			name: "io error",
 			tx:   []i2ctest.IO{
 				// {Addr: 0x18, W: []byte{configuration, 0x01, 0x00}, R: nil},
 			},
-			shutdown: false,
-			want:     false,
-			err:      errWritingConfiguration,
+			enabled: true,
+			want:    true,
+			err:     errWritingConfiguration,
 		},
 	}
 	for _, tt := range tests {
@@ -537,14 +554,14 @@ func TestDevHalt(t *testing.T) {
 			m: mmr.Dev8{
 				Conn:  &i2c.Dev{Bus: &bus, Addr: 0x18},
 				Order: binary.BigEndian},
-			shutdown: tt.shutdown,
+			enabled: tt.enabled,
 		}
 
 		if err := mcp9808.Halt(); err != tt.err {
 			t.Errorf("Halt(%s) wanted error: %v but got: %v", tt.name, tt.err, err)
 		}
-		if mcp9808.shutdown != tt.want {
-			t.Errorf("Halt(%s) expected dev to be: %t but is: %t", tt.name, tt.want, mcp9808.shutdown)
+		if mcp9808.enabled != tt.want {
+			t.Errorf("Halt(%s) expected dev to be: %t but is: %t", tt.name, tt.want, mcp9808.enabled)
 		}
 	}
 }
@@ -559,29 +576,29 @@ func TestDevString(t *testing.T) {
 
 func TestDev_enable(t *testing.T) {
 	tests := []struct {
-		name     string
-		tx       []i2ctest.IO
-		shutdown bool
-		want     bool
-		err      error
+		name    string
+		tx      []i2ctest.IO
+		enabled bool
+		want    bool
+		err     error
 	}{
 		{
 			name: "shutdown",
 			tx: []i2ctest.IO{
 				{Addr: 0x18, W: []byte{configuration, 0x00, 0x00}, R: nil},
 			},
-			shutdown: true,
-			want:     false,
-			err:      nil,
+			enabled: false,
+			want:    true,
+			err:     nil,
 		},
 		{
 			name: "io error",
 			tx:   []i2ctest.IO{
 				// {Addr: 0x18, W: []byte{configuration, 0x01, 0x00}, R: nil},
 			},
-			shutdown: true,
-			want:     true,
-			err:      errWritingConfiguration,
+			enabled: false,
+			want:    false,
+			err:     errWritingConfiguration,
 		},
 	}
 	for _, tt := range tests {
@@ -594,14 +611,14 @@ func TestDev_enable(t *testing.T) {
 			m: mmr.Dev8{
 				Conn:  &i2c.Dev{Bus: &bus, Addr: 0x18},
 				Order: binary.BigEndian},
-			shutdown: tt.shutdown,
+			enabled: tt.enabled,
 		}
 
 		if err := mcp9808.enable(); err != tt.err {
 			t.Errorf("enable(%s) wanted error: %v but got: %v", tt.name, tt.err, err)
 		}
-		if mcp9808.shutdown != tt.want {
-			t.Errorf("enable(%s) expected dev to be: %t but is: %t", tt.name, tt.want, mcp9808.shutdown)
+		if mcp9808.enabled != tt.want {
+			t.Errorf("enable(%s) expected dev to be: %t but is: %t", tt.name, tt.want, mcp9808.enabled)
 		}
 	}
 }
