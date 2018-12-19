@@ -23,6 +23,9 @@ const (
 
 	speed = 488 * physic.KiloHertz
 	spiBits = 8
+	chunkSize = 4096
+	spiCommand = gpio.Low
+	spiData = gpio.High
 )
 
 const (
@@ -53,20 +56,9 @@ func New(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn) (*Dev, 
 	d := &Dev{
 		c: c,
 		dc: dc,
-		reset: reset,
+		r: reset,
 		busy: busy,
 	}
-
-	d.reset.Out(gpio.Low)
-	time.Sleep(100 * time.Millisecond)
-	d.reset.Out(gpio.High)
-	time.Sleep(100 * time.Millisecond)
-
-	d.busy.In(gpio.PullUp, gpio.FallingEdge)
-	defer d.busy.In(gpio.PullUp, gpio.NoEdge)
-	d.sendCommand(0x12, nil)  // Soft Reset
-	log.Println("Waiting for soft reset")
-	d.busy.WaitForEdge(-1)
 
 	return d, nil
 }
@@ -76,11 +68,27 @@ type Dev struct {
 	c conn.Conn
 	// Data or command SPI message.
 	dc gpio.PinOut
-	reset gpio.PinOut
+	r gpio.PinOut
 	busy gpio.PinIn
 }
 
+func (d *Dev) reset() {
+	d.r.Out(gpio.Low)
+	time.Sleep(100 * time.Millisecond)
+	d.r.Out(gpio.High)
+	time.Sleep(100 * time.Millisecond)
+
+	d.busy.In(gpio.PullUp, gpio.FallingEdge)
+	defer d.busy.In(gpio.PullUp, gpio.NoEdge)
+	d.sendCommand(0x12, nil)  // Soft Reset
+	log.Println("Waiting for soft reset")
+	d.busy.WaitForEdge(-1)
+}
+
 func (d *Dev) Update(border byte) error {
+	log.Printf("Resetting")
+	d.reset()
+
 	log.Printf("Getting ready for update")
 	d.sendCommand(0x74, []byte{0x54})  // Set Analog Block Control.
 	d.sendCommand(0x7e, []byte{0x3b})  // Set Digital Block Control.
@@ -102,6 +110,8 @@ func (d *Dev) Update(border byte) error {
 	d.sendCommand(0x3c, []byte{0x00})
 	d.sendCommand(0x3c, []byte{border})  // Border colour.
 
+	// TODO(hatstand): Support Yellow.
+
 	log.Printf("Sending LUT")
 	d.sendCommand(0x32, redLUT)  // Set LUTs
 
@@ -114,7 +124,7 @@ func (d *Dev) Update(border byte) error {
 	log.Printf("Writing B/W")
 	d.sendCommand(0x4e, []byte{0x00})
 	d.sendCommand(0x4f, []byte{0x00, 0x00})
-	black, _ := pack(makeBlank())
+	black, _ := pack(makeFilled())
 	d.sendCommand(0x24, black)
 
 	// Pure red.
@@ -125,10 +135,10 @@ func (d *Dev) Update(border byte) error {
 	d.sendCommand(0x26, red)
 
 	d.sendCommand(0x22, []byte{0xc7})
+	d.busy.In(gpio.PullUp, gpio.FallingEdge)
+	defer d.busy.In(gpio.PullUp, gpio.NoEdge)
 	d.sendCommand(0x20, nil)
 
-	d.busy.In(gpio.Float, gpio.FallingEdge)
-	defer d.busy.In(gpio.Float, gpio.NoEdge)
 	log.Printf("Waiting for update to finish")
 	d.busy.WaitForEdge(-1)
 
@@ -138,14 +148,16 @@ func (d *Dev) Update(border byte) error {
 }
 
 func (d *Dev) sendCommand(command byte, data []byte) error {
-	d.dc.Out(gpio.Low)
+	d.dc.Out(spiCommand)
 	err := d.c.Tx([]byte{command}, nil)
 	if err != nil {
+		panic("halp")
 		return fmt.Errorf("failed to send command %x to inky: %v", command, err)
 	}
 	if data != nil {
 		err = d.sendData(data)
 		if err != nil {
+			panic("halp")
 			return fmt.Errorf("failed to send data for command %x to inky: %v", command, err)
 		}
 	}
@@ -153,9 +165,13 @@ func (d *Dev) sendCommand(command byte, data []byte) error {
 }
 
 func (d *Dev) sendData(data []byte) error {
-	d.dc.Out(gpio.High)
+	if len(data) > 4096 {
+		log.Fatalf("Sending more data than chunk size")
+	}
+	d.dc.Out(spiData)
 	err := d.c.Tx(data, nil)
 	if err != nil {
+		panic("halp")
 		return fmt.Errorf("failed to send data to inky: %v", err)
 	}
 	return nil
