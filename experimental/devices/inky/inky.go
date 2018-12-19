@@ -143,6 +143,7 @@ func (d *Dev) Draw(dstRect image.Rectangle, src image.Image, srcPtrs image.Point
 			if r == 0xffff && g == 0xffff && b == 0xffff {
 				white[i] = true
 			} else if r == 0xffff {
+				white[i] = true
 				red[i] = true
 			}
 		}
