@@ -84,6 +84,11 @@ func (d *Dev) Sense(e *physic.Env) error {
 	return err
 }
 
+// SenseContinuous returns measurements as °C, on a continuous basis.
+// The application must call Halt() to stop the sensing when done to stop the
+// sensor and close the channel.
+// It's the responsibility of the caller to retrieve the values from the channel
+// as fast as possible, otherwise the interval may not be respected.
 func (d *Dev) SenseContinuous(interval time.Duration) (<-chan physic.Env, error) {
 	switch d.res {
 	case Maximum:
