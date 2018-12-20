@@ -116,11 +116,8 @@ type Addr uint16
 // Set sets the Addr to a value respresented by the string s. Values maybe in
 // decimal or hexadecimal form.
 func (a *Addr) Set(s string) error {
-	u, err := strconv.ParseUint(s, 0, strconv.IntSize)
+	u, err := strconv.ParseUint(s, 0, 16)
 	if err != nil {
-		return errI2CSetError
-	}
-	if u > 0xffff {
 		return errI2CSetError
 	}
 	*a = Addr(u)
