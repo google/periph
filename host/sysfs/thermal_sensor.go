@@ -19,7 +19,9 @@ import (
 	"periph.io/x/periph/conn/physic"
 )
 
-// ThermalSensors is all the sensors discovered on this host via sysfs.
+// ThermalSensors is all the sensors discovered on this host via sysfs.  It
+// includes 'thermal' devices as well as temperature 'hwmon' devices, so
+// pre-configured onewire temperature sensors will be discovered automatically.
 var ThermalSensors []*ThermalSensor
 
 // ThermalSensorByName returns a *ThermalSensor for the sensor name, if any.
