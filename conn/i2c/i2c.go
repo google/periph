@@ -19,6 +19,7 @@
 package i2c
 
 import (
+	"errors"
 	"io"
 	"strconv"
 
@@ -109,6 +110,23 @@ func (d *Dev) Duplex() conn.Duplex {
 	return conn.Half
 }
 
-//
+// Addr implements flag.Value.
+type Addr uint16
+
+// Set sets the Addr to a value respresented by the string s. Values maybe in
+// decimal or hexadecimal form.
+func (a *Addr) Set(s string) error {
+	u, err := strconv.ParseUint(s, 0, strconv.IntSize)
+	if err != nil {
+		return errI2CSetError
+	}
+	if u > 0xffff {
+		return errI2CSetError
+	}
+	*a = Addr(u)
+	return nil
+}
+
+var errI2CSetError = errors.New("invalid i2c address")
 
 var _ conn.Conn = &Dev{}
