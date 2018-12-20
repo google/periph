@@ -56,9 +56,6 @@ func TestThermalSensor_fail(t *testing.T) {
 	if err := d.Sense(&e); err == nil || err.Error() != "sysfs-thermal: file I/O is inhibited" {
 		t.Fatal("should have failed")
 	}
-	if _, err := d.SenseContinuous(time.Second); err == nil || err.Error() != "sysfs-thermal: not implemented" {
-		t.Fatal(err)
-	}
 }
 
 func TestThermalSensor_Type_success(t *testing.T) {
@@ -277,6 +274,45 @@ func TestThermalSensor_Precision_MilliKelvin(t *testing.T) {
 	e := physic.Env{}
 	d.Precision(&e)
 	if e.Temperature != physic.MilliKelvin {
+		t.Fatal(e.Temperature)
+	}
+}
+
+func TestThermalSensor_SenseContinuous_success(t *testing.T) {
+	defer resetThermal()
+	fileIOOpen = func(path string, flag int) (fileIO, error) {
+		if flag != os.O_RDONLY {
+			t.Fatal(flag)
+		}
+		switch path {
+		case "//\x00/temp":
+			return &fileRead{t: t, ops: [][]byte{
+				[]byte("42\n"),
+				[]byte("43\n"),
+				[]byte("44\n"),
+				[]byte("45\n"), // In case there's a read after the test finishes.
+			}}, nil
+		default:
+			t.Fatalf("unknown %q", path)
+			return nil, errors.New("unknown file")
+		}
+	}
+	d := ThermalSensor{name: "cpu", root: "//\000/"}
+	ch, err := d.SenseContinuous(time.Nanosecond)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer d.Halt()
+	e := <-ch
+	if e.Temperature != 42*physic.Celsius+physic.ZeroCelsius {
+		t.Fatal(e.Temperature)
+	}
+	e = <-ch
+	if e.Temperature != 43*physic.Celsius+physic.ZeroCelsius {
+		t.Fatal(e.Temperature)
+	}
+	e = <-ch
+	if e.Temperature != 44*physic.Celsius+physic.ZeroCelsius {
 		t.Fatal(e.Temperature)
 	}
 }
