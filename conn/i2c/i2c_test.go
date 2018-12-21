@@ -114,7 +114,7 @@ func TestAddr_Set(t *testing.T) {
 		{"0x18", 0x18, nil},
 		{"24", 24, nil},
 		{"0x7ff", 2047, nil},
-		{"65536", 0, errI2CSetError},
+		{"0x800", 0, errI2CSetError},
 		{"-1", 0, errI2CSetError},
 	}
 
