@@ -116,8 +116,8 @@ type Addr uint16
 // Set sets the Addr to a value represented by the string s. Values maybe in
 // decimal or hexadecimal form. Set implements the flag.Value interface.
 func (a *Addr) Set(s string) error {
-	// Allow for only maximum of 11 bits for i2c addresses.
-	u, err := strconv.ParseUint(s, 0, 11)
+	// Allow for only maximum of 10 bits for i2c addresses.
+	u, err := strconv.ParseUint(s, 0, 10)
 	if err != nil {
 		return errI2CSetError
 	}
