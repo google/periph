@@ -110,14 +110,18 @@ func (d *Dev) Duplex() conn.Duplex {
 	return conn.Half
 }
 
-// Addr implements flag.Value.
+// Addr is an I²C slave address. Addr implements the flag.Value interface.
 type Addr uint16
 
-// Set sets the Addr to a value respresented by the string s. Values maybe in
+// Set sets the Addr to a value represented by the string s. Values maybe in
 // decimal or hexadecimal form.
 func (a *Addr) Set(s string) error {
 	u, err := strconv.ParseUint(s, 0, 16)
 	if err != nil {
+		return errI2CSetError
+	}
+	// Allow for 10 bit i2c addresses.
+	if u > 0x07ff {
 		return errI2CSetError
 	}
 	*a = Addr(u)
