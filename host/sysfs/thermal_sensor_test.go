@@ -297,7 +297,7 @@ func TestThermalSensor_SenseContinuous_success(t *testing.T) {
 			return nil, errors.New("unknown file")
 		}
 	}
-	d := ThermalSensor{name: "cpu", root: "//\000/"}
+	d := ThermalSensor{name: "cpu", root: "//\000/", sensorFilename: "temp"}
 	ch, err := d.SenseContinuous(time.Nanosecond)
 	if err != nil {
 		t.Fatal(err)
