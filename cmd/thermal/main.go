@@ -19,6 +19,8 @@ import (
 )
 
 func mainImpl() error {
+	dev := flag.String("dev", "", "Read only the device with this name. If not specified, read all devices found")
+	interval := flag.Duration("interval", 0, "Poll continuously with the given interval")
 	verbose := flag.Bool("v", false, "verbose mode")
 	flag.Parse()
 	if !*verbose {
@@ -28,11 +30,40 @@ func mainImpl() error {
 	if flag.NArg() != 0 {
 		return errors.New("unexpected argument, try -help")
 	}
+	if *interval != 0 && *dev == "" {
+		return errors.New("-dev is required when -interval is used")
+	}
 
 	if _, err := host.Init(); err != nil {
 		return err
 	}
-	for _, t := range sysfs.ThermalSensors {
+
+	// Find the named device if provided, otherwise use all devices.
+	var sensors []*sysfs.ThermalSensor
+	if *dev == "" {
+		sensors = sysfs.ThermalSensors
+	} else {
+		t, err := sysfs.ThermalSensorByName(*dev)
+		if err != nil {
+			return err
+		}
+		sensors = []*sysfs.ThermalSensor{t}
+	}
+
+	// Read continuously if an interval was provided.
+	if *interval != 0 {
+		t := sensors[0] // There is exactly 1 device, enforced above.
+		ch, err := t.SenseContinuous(*interval)
+		if err != nil {
+			return err
+		}
+		for {
+			e := <-ch
+			fmt.Printf("%s: %s: %s\n", t, t.Type(), e.Temperature)
+		}
+	}
+
+	for _, t := range sensors {
 		e := physic.Env{}
 		if err := t.Sense(&e); err != nil {
 			return err

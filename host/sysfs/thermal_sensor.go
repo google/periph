@@ -50,14 +50,22 @@ type ThermalSensor struct {
 	nameType  string
 	f         fileIO
 	precision physic.Temperature
+
+	done chan struct{}
 }
 
 func (t *ThermalSensor) String() string {
 	return t.name
 }
 
-// Halt implements conn.Resource. It is a noop.
+// Halt stops a continuous sense that was started with SenseContinuous.
 func (t *ThermalSensor) Halt() error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if t.done != nil {
+		close(t.done)
+		t.done = nil
+	}
 	return nil
 }
 
@@ -126,8 +134,33 @@ func (t *ThermalSensor) Sense(e *physic.Env) error {
 
 // SenseContinuous implements physic.SenseEnv.
 func (t *ThermalSensor) SenseContinuous(interval time.Duration) (<-chan physic.Env, error) {
-	// TODO(maruel): Manually poll in a loop via time.NewTicker.
-	return nil, errors.New("sysfs-thermal: not implemented")
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if t.done != nil {
+		return nil, nil
+	}
+	done := make(chan struct{})
+	ret := make(chan physic.Env)
+	ticker := time.NewTicker(interval)
+
+	go func() {
+		defer ticker.Stop()
+		for {
+			select {
+			case <-done:
+				close(ret)
+				return
+			case <-ticker.C:
+				var e physic.Env
+				if err := t.Sense(&e); err == nil {
+					ret <- e
+				}
+			}
+		}
+	}()
+
+	t.done = done
+	return ret, nil
 }
 
 // Precision implements physic.SenseEnv.
