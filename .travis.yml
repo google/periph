@@ -2,9 +2,8 @@ language: go
 sudo: false
 go_import_path: periph.io/x/periph
 go:
-  - 1.5.4
   - 1.7.6
-  - 1.11.2
+  - 1.11.4
 
 before_script:
   - echo $TRAVIS_GO_VERSION
