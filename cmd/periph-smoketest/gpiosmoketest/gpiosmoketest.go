@@ -43,8 +43,12 @@ type SmokeTest struct {
 	// but 20µs is necessary on a Pine64. There's quality right there.
 	shortDelay time.Duration
 
-	// Time to wait for an edge.
-	edgeWait time.Duration
+	// Time to wait for an edge, in the case where an edge is expected and when
+	// an edge is not expected. We do not want to wait too much when an edge is
+	// not expected, it'd be a waste of time. On the other hand if an edge is
+	// expected, we want to make sure it's not flaky.
+	expectedEdgeWait   time.Duration
+	unexpectedEdgeWait time.Duration
 }
 
 // Name implements periph-smoketest.SmokeTest.
@@ -75,8 +79,13 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) error {
 		return errors.New("-pin1 and -pin2 are required and they must be connected together")
 	}
 
-	s.edgeWait = 10 * time.Millisecond
+	// It must be high enough that if there is jank in the kernel, for example
+	// after running all night the OS decides to write to the SDCard, which may
+	// hang the system for a while, but low enough so the tests are fast.
+	s.expectedEdgeWait = 1 * time.Second
+	s.unexpectedEdgeWait = 50 * time.Millisecond
 	if *slow {
+		s.unexpectedEdgeWait = 1 * time.Second
 		s.slow = 2 * time.Second
 	}
 
@@ -143,19 +152,31 @@ func (s *SmokeTest) slowSleep() {
 	}
 }
 
-// Returns a channel that will return one bool, true if a edge was detected,
-// false otherwise.
-func (s *SmokeTest) waitForEdge(p gpio.PinIO) <-chan bool {
+// expectEdge returns a channel that will return true if an edge was detected.
+//
+// It waits for a long delay, as the edge trigger should be normally quick, yet
+// we don't want this test to be flaky.
+func (s *SmokeTest) expectEdge(p gpio.PinIO) <-chan bool {
 	c := make(chan bool)
-	// A timeout inherently makes this test flaky but there's a inherent
-	// assumption that the CPU edge trigger wakes up this process within a
-	// reasonable amount of time; in term of latency.
 	go func() {
-		b := p.WaitForEdge(s.edgeWait)
-		// Author note: the test intentionally doesn't call p.Read() to test that
-		// reading is not necessary.
-		fmt.Printf("    %s -> WaitForEdge(%s) -> %t\n", since(s.start), p, b)
-		c <- b
+		// Author note: the function intentionally doesn't call p.Read() to test
+		// that reading is not necessary.
+		c <- p.WaitForEdge(s.expectedEdgeWait)
+	}()
+	return c
+}
+
+// expectNoEdge returns a channel that will return true if no edge was detected.
+//
+// It waits for a small delay, to not slow the test down. It's still long
+// enough to catch false positive.
+func (s *SmokeTest) expectNoEdge(p gpio.PinIO) <-chan bool {
+	c := make(chan bool)
+	go func() {
+		// Author note: the function intentionally doesn't call p.Read() to test
+		// that reading is not necessary.
+		// Inverse the returned signal.
+		c <- !p.WaitForEdge(s.unexpectedEdgeWait)
 	}()
 	return c
 }
@@ -172,8 +193,8 @@ func (s *SmokeTest) testBasic(p1, p2 gpio.PinIO) error {
 	if l := p1.Read(); l != gpio.Low {
 		return fmt.Errorf("%s: expected to read %s but got %s", p1, gpio.Low, l)
 	}
-
 	s.slowSleep()
+
 	if err := p2.Out(gpio.High); err != nil {
 		return err
 	}
@@ -217,69 +238,74 @@ func (s *SmokeTest) testEdgesBoth(p1, p2 gpio.PinIO) error {
 		return err
 	}
 	time.Sleep(s.shortDelay)
-	if c := s.waitForEdge(p1); <-c {
-		// The linux kernel makes it hard to enforce this. :(
+	if !<-s.expectNoEdge(p1) {
 		fmt.Printf("    warning: there should be no edge right after setting a pin\n")
 	}
-
 	s.slowSleep()
-	c := s.waitForEdge(p1)
+
+	c := s.expectEdge(p1)
 	if err := p2.Out(gpio.High); err != nil {
 		return err
 	}
 	if !<-c {
 		return errors.New("edge Low->High didn't trigger")
 	}
-
 	s.slowSleep()
-	c = s.waitForEdge(p1)
+
+	c = s.expectEdge(p1)
 	if err := p2.Out(gpio.Low); err != nil {
 		return err
 	}
 	if !<-c {
 		return errors.New("edge High->Low didn't trigger")
 	}
+	s.slowSleep()
 
 	// No edge
-	s.slowSleep()
-	if <-s.waitForEdge(p1) {
+	if !<-s.expectNoEdge(p1) {
 		return errors.New("spurious edge 2")
 	}
+	s.slowSleep()
 
 	// One accumulated edge.
-	s.slowSleep()
 	if err := p2.Out(gpio.High); err != nil {
 		return err
 	}
-	if !<-s.waitForEdge(p1) {
+	time.Sleep(s.shortDelay)
+	if !<-s.expectEdge(p1) {
 		return errors.New("edge Low->High didn't trigger")
 	}
-
-	// Two accumulated edge are merged.
 	s.slowSleep()
+
+	// Two accumulated edge are generally merged.
 	if err := s.togglePin(p2, gpio.Low, gpio.High); err != nil {
 		return err
 	}
-	if !<-s.waitForEdge(p1) {
+	time.Sleep(s.shortDelay)
+	if !<-s.expectEdge(p1) {
 		return errors.New("edge High->Low didn't trigger")
 	}
-	if <-s.waitForEdge(p1) {
-		// BUG(maruel): Seen this to occur flakily. Need to investigate. :(
-		//return errors.New("didn't expect for two edges to accumulate")
+	if !<-s.expectNoEdge(p1) {
+		// Normally this should not happen but in practice it can, due to a race
+		// condition in the linux kernel between when the GPIO edge interrupt is
+		// serviced and when it's finally surfaced to userland.
+		fmt.Printf("    two edges accumulated (this can happen)\n")
 	}
-
-	// Calling In() flush any accumulated event.
 	s.slowSleep()
+
+	// Verify that calling In() flushes any accumulated event.
 	if err := p2.Out(gpio.Low); err != nil {
 		return err
 	}
-	// At that point, there's an accumulated event.
-	time.Sleep(s.shortDelay)
-	// This flushes the event.
+	// Use a slow sleep instead of a 1µs one since the propagation delay for edge
+	// detection has significant latency.
+	s.slowSleep()
+	// At that point, there's an accumulated event. This flushes the event.
 	if err := p1.In(gpio.Float, gpio.BothEdges); err != nil {
 		return err
 	}
-	if <-s.waitForEdge(p1) {
+	time.Sleep(s.shortDelay)
+	if !<-s.expectNoEdge(p1) {
 		// The linux kernel makes it hard to enforce this. :(
 		fmt.Printf("    warning: accumulated event should have been flushed by In()\n")
 	}
@@ -288,7 +314,7 @@ func (s *SmokeTest) testEdgesBoth(p1, p2 gpio.PinIO) error {
 }
 
 // testWaitForEdge ensures that a pending WaitForEdge() can be canceled with
-// Halt().
+// Halt(), In() or Out().
 func (s *SmokeTest) testWaitForEdge(p1, p2 gpio.PinIO) (err error) {
 	fmt.Printf("  Testing WaitForEdge+Halt\n")
 	if err = preparePins(p1, p2); err != nil {
@@ -298,9 +324,9 @@ func (s *SmokeTest) testWaitForEdge(p1, p2 gpio.PinIO) (err error) {
 		return err
 	}
 	const short = 100 * time.Millisecond
-	const timeout = 5 * time.Second
-	// First an blocked wait. The 100ms is kinda crappy but there's no way to
-	// guarantee that the WaitForEdge is blocking.
+	const timeout = 1 * time.Second
+
+	// Halt() unblocks a WaitForEdge()
 	now := time.Now()
 	t := time.AfterFunc(short, func() {
 		if err2 := p1.Halt(); err == nil {
@@ -312,32 +338,53 @@ func (s *SmokeTest) testWaitForEdge(p1, p2 gpio.PinIO) (err error) {
 		return fmt.Errorf("unexpected edge; waited for %s", time.Since(now))
 	}
 	if d := time.Since(now); d < short {
-		return fmt.Errorf("wait returned too early after %s", d)
+		return fmt.Errorf("wait returned too early after %s; < %s", d, short)
 	} else if d >= timeout {
-		//return fmt.Errorf("wait timed out after %s", d)
+		//return fmt.Errorf("wait timed out after %s; >= %s", d, timeout)
 		fmt.Println("Known failure due to https://github.com/google/periph/issues/323")
 		return nil
 	}
 	return errors.New("unexpected success; https://github.com/google/periph/issues/323")
 	/* Need to comment out otherwise go vet will be unhappy.
-	// Then make sure it still works after.
 	s.slowSleep()
+
+	fmt.Printf("  Testing WaitForEdge+In\n")
+	// Out() also unblocks a WaitForEdge()
 	now = time.Now()
 	t = time.AfterFunc(short, func() {
-		if err2 := p2.Out(gpio.High); err == nil {
+		if err2 := p1.In(gpio.Float, gpio.BothEdges); err == nil {
 			err = err2
 		}
 	})
-	if !p1.WaitForEdge(-1) {
+	if p1.WaitForEdge(timeout) {
 		t.Stop()
-		return fmt.Errorf("expected edge; waited for %s", time.Since(now))
+		return fmt.Errorf("unexpected second edge; waited for %s", time.Since(now))
 	}
 	if d := time.Since(now); d < short {
-		return fmt.Errorf("wait returned too early after %s", d)
+		return fmt.Errorf("second wait returned too early after %s; %s", d, short)
 	} else if d >= timeout {
-		return fmt.Errorf("wait timed out after %s", d)
+		return fmt.Errorf("second wait timed out after %s; > %s", d, timeout)
 	}
-	return
+	s.slowSleep()
+
+	fmt.Printf("  Testing WaitForEdge+Out\n")
+	// Out() also unblocks a WaitForEdge()
+	now = time.Now()
+	t = time.AfterFunc(short, func() {
+		if err2 := p1.Out(gpio.High); err == nil {
+			err = err2
+		}
+	})
+	if p1.WaitForEdge(timeout) {
+		t.Stop()
+		return fmt.Errorf("unexpected second edge; waited for %s", time.Since(now))
+	}
+	if d := time.Since(now); d < short {
+		return fmt.Errorf("second wait returned too early after %s; %s", d, short)
+	} else if d >= timeout {
+		return fmt.Errorf("second wait timed out after %s; > %s", d, timeout)
+	}
+	return nil
 	*/
 }
 
@@ -365,67 +412,73 @@ func (s *SmokeTest) testEdgesSide(p1, p2 gpio.PinIO, e gpio.Edge) error {
 		return err
 	}
 	time.Sleep(s.shortDelay)
-	if c := s.waitForEdge(p1); <-c {
-		// The linux kernel makes it hard to enforce this. :(
-		fmt.Printf("    warning: there should be no edge right after setting a pin\n")
+	if !<-s.expectNoEdge(p1) {
+		// Can happen occasionally, likely because the interrupt was serviced late.
+		return errors.New("there should be no edge right after setting a pin")
 	}
-
 	s.slowSleep()
-	c := s.waitForEdge(p1)
+
+	c := s.expectEdge(p1)
 	if err := p2.Out(set); err != nil {
 		return err
 	}
 	if !<-c {
 		return fmt.Errorf("edge %s->%s didn't trigger", idle, set)
 	}
+	s.slowSleep()
 
 	// No edge
-	s.slowSleep()
-	c = s.waitForEdge(p1)
+	c = s.expectNoEdge(p1)
 	if err := p2.Out(idle); err != nil {
 		return err
 	}
-	if <-c {
+	if !<-c {
 		return fmt.Errorf("edge %s->%s shouldn't trigger", set, idle)
 	}
-	if <-s.waitForEdge(p1) {
+	if !<-s.expectNoEdge(p1) {
 		return errors.New("spurious edge 2")
 	}
+	s.slowSleep()
 
 	// One accumulated edge.
-	s.slowSleep()
 	if err := p2.Out(set); err != nil {
 		return err
 	}
-	if !<-s.waitForEdge(p1) {
+	time.Sleep(s.shortDelay)
+	if !<-s.expectEdge(p1) {
 		return fmt.Errorf("edge %s->%s didn't trigger", idle, set)
 	}
-
-	// Two accumulated edge are merged.
 	s.slowSleep()
+
+	// Two accumulated edge generally are merged.
 	if err := s.togglePin(p2, idle, set, idle, set); err != nil {
 		return err
 	}
-	if !<-s.waitForEdge(p1) {
+	time.Sleep(s.shortDelay)
+	if !<-s.expectEdge(p1) {
 		return fmt.Errorf("edge %s->%s didn't trigger", idle, set)
 	}
-	if <-s.waitForEdge(p1) {
-		// The linux kernel makes it hard to enforce this. :(
-		fmt.Printf("    warning: didn't expect for two edges to accumulate\n")
+	if !<-s.expectNoEdge(p1) {
+		// Normally this should not happen but in practice it can, due to a race
+		// condition in the linux kernel between when the GPIO edge interrupt is
+		// serviced and when it's finally surfaced to userland.
+		fmt.Printf("    two edges accumulated (this can happen)\n")
 	}
-
-	// Calling In() flush any accumulated event.
 	s.slowSleep()
+
+	// Verify that calling In() flushes any accumulated event.
 	if err := s.togglePin(p2, idle, set); err != nil {
 		return err
 	}
-	// At that point, there's an accumulated event.
-	time.Sleep(s.shortDelay)
-	// This flushes the event.
+	// Use a slow sleep instead of a 1µs one since the propagation delay for edge
+	// detection has significant latency.
+	s.slowSleep()
+	// At that point, there's an accumulated event. This flushes the event.
 	if err := p1.In(gpio.Float, e); err != nil {
 		return err
 	}
-	if <-s.waitForEdge(p1) {
+	time.Sleep(s.shortDelay)
+	if !<-s.expectNoEdge(p1) {
 		// The linux kernel makes it hard to enforce this. :(
 		fmt.Printf("    warning: accumulated event should have been flushed by In()\n")
 	}
@@ -464,8 +517,8 @@ func (s *SmokeTest) testPull(p1, p2 gpio.PinIO) error {
 	if p1.Read() != gpio.Low {
 		return errors.New("read pull down failure")
 	}
-
 	s.slowSleep()
+
 	if err := p2.In(gpio.PullUp, gpio.NoEdge); err != nil {
 		return err
 	}
@@ -555,6 +608,13 @@ func (p *loggingPin) Halt() error {
 func (p *loggingPin) In(pull gpio.Pull, edge gpio.Edge) error {
 	fmt.Printf("    %s %s.In(%s, %s)\n", since(p.start), p, pull, edge)
 	return p.PinIO.In(pull, edge)
+}
+
+func (p *loggingPin) WaitForEdge(d time.Duration) bool {
+	fmt.Printf("    %s -> %s.WaitForEdge(%s) ...\n", since(p.start), p, d)
+	b := p.PinIO.WaitForEdge(d)
+	fmt.Printf("    %s -> %s.WaitForEdge(%s) -> %t\n", since(p.start), p, d, b)
+	return b
 }
 
 func (p *loggingPin) Out(l gpio.Level) error {
