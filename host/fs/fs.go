@@ -16,10 +16,10 @@ import (
 
 // Ioctler is a file handle that supports ioctl calls.
 type Ioctler interface {
-	// Ioctl sends a linux ioctl on the file handle. op is effectively a uint32.
+	// Ioctl sends a linux ioctl on the file handle.
 	//
-	// The op is expected to be encoded in the format on x64. ARM happens to
-	// share the same format.
+	// op is effectively an uint32. op is expected to be encoded in the format on
+	// x64. ARM happens to share the same format.
 	Ioctl(op uint, data uintptr) error
 }
 
