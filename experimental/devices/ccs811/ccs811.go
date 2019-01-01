@@ -64,6 +64,8 @@ const ( //registers
 	measurementModeReg byte = 0x01
 	algoResultsReg     byte = 0x02
 	rawDataReg         byte = 0x03
+	environmentReg     byte = 0x05
+	baselineReg        byte = 0x11
 )
 
 func (d *Dev) SetMeasurementMode(mesModeValue byte) error {
@@ -83,13 +85,52 @@ func (d *Dev) Reset() error {
 }
 
 func (d *Dev) ReadStatus() (byte, error) {
-	// r is a read buffer, Tx will try and read len(rx) bytes.
 	r := make([]byte, 1)
-
 	if err := d.c.Tx([]byte{statusReg}, r); err != nil {
 		return 0, err
 	}
 	return r[0], nil
+}
+
+func (d *Dev) ReadRawData() (current, voltage int, err error) {
+	r := make([]byte, 2)
+	if err = d.c.Tx([]byte{rawDataReg}, r); err != nil {
+		return 0, 0, err
+	}
+	current, voltage = valuesFromRawData(r)
+	return
+}
+
+func (d *Dev) SetEnvironmentData(temp, humidity float32) error {
+	// r is a read buffer, Tx will try and read len(rx) bytes.
+	rawTemp := uint16((temp + 25) / (1 / 512))
+	rawHum := uint16(humidity / (1 / 512))
+	w := []byte{environmentReg,
+		byte(rawHum >> 8),
+		byte(rawHum),
+		byte(rawTemp >> 8),
+		byte(rawTemp)}
+
+	if err := d.c.Tx(w, nil); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *Dev) GetBaseline() ([]byte, error) {
+	r := make([]byte, 2)
+	if err := d.c.Tx([]byte{baselineReg}, r); err != nil {
+		return r, err
+	}
+	return r, nil
+}
+
+func (d *Dev) SetBaseline(baseline []byte) error {
+	w := []byte{baselineReg, baseline[0], baseline[1]}
+	if err := d.c.Tx(w, nil); err != nil {
+		return err
+	}
+	return nil
 }
 
 type ReadData byte
@@ -119,10 +160,14 @@ func (d *Dev) Sense(mode ReadData) (*SensorValues, error) {
 	}
 	sv := &SensorValues{}
 	if mode >= ReadCO2 {
-		sv.ECO2 = int(uint32(read[0])<<8 | uint32(read[1]))
+		// exptected range: 400ppm to 8192ppm
+		// 0x3F is used to erase randomly set top bits causing value out of range given by specs
+		sv.ECO2 = int(uint32(read[0]&0x3F)<<8 | uint32(read[1]))
 	}
 	if mode >= ReadCO2VOC {
-		sv.VOC = int(uint32(read[2])<<8 | uint32(read[3]))
+		// expected range: 0ppb to 1187ppb
+		// 0x7 is used to erase randomly set top bits causing value out of range given by specs
+		sv.VOC = int(uint32(read[2]&0x7)<<8 | uint32(read[3]))
 	}
 	if mode >= ReadCO2VOCStatus {
 		sv.Status = read[4]

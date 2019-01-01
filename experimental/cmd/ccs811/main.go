@@ -23,14 +23,15 @@ func main() {
 	}
 	defer b.Close()
 
-	d, err := ccs811.New(b, &ccs811.Opts{Addr: 0x5A})
+	d, err := ccs811.New(b, &ccs811.Opts{Addr: 0x5A, MeasurementMode: ccs811.MeasurementModeConstant1000})
 	if err != nil {
 		log.Fatalf("Device creation failed: %v", err)
 	}
+	d.SetBaseline([]byte{244, 255})
 	for {
 		values, err := d.Sense(ccs811.ReadCO2VOCStatus)
 		if err != nil {
-			log.Println("Error during measurement, waiting for next value")
+			log.Println("Error during measurement, waiting for next value", err)
 		} else {
 			fmt.Println("eCO:", values.ECO2, "VOC:", values.VOC)
 		}
@@ -39,3 +40,5 @@ func main() {
 	}
 
 }
+
+//33177, 409
