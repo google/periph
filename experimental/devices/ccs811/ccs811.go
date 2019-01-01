@@ -25,7 +25,7 @@ func New(bus i2c.Bus, opts *Opts) (*Dev, error) {
 	}
 
 	dev := &Dev{
-		c:    &i2c.Dev{Bus: bus, Addr: 0x5a},
+		c:    &i2c.Dev{Bus: bus, Addr: opts.Addr},
 		opts: opts,
 	}
 
@@ -41,7 +41,7 @@ func New(bus i2c.Bus, opts *Opts) (*Dev, error) {
 	mesModeValue = mesModeValue | ((0x1 & opts.InterruptWhenReady) << 3)
 	mesModeValue = mesModeValue | ((0x1 & opts.UseThreshold) << 2)
 
-	dev.writeMeasurementModeRegister(mesModeValue)
+	dev.SetMeasurementMode(mesModeValue)
 
 	return dev, nil
 }
@@ -66,7 +66,7 @@ const ( //registers
 	rawDataReg         byte = 0x03
 )
 
-func (d *Dev) writeMeasurementModeRegister(mesModeValue byte) error {
+func (d *Dev) SetMeasurementMode(mesModeValue byte) error {
 	// set measurement mode
 	err := d.c.Tx([]byte{measurementModeReg, mesModeValue}, nil)
 	if err != nil {
@@ -75,14 +75,14 @@ func (d *Dev) writeMeasurementModeRegister(mesModeValue byte) error {
 	return err
 }
 
-func (d *Dev) reset() error {
+func (d *Dev) Reset() error {
 	if err := d.c.Tx([]byte{0x11, 0xE5, 0x72, 0x8A}, nil); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (d *Dev) readStatusRegister() (byte, error) {
+func (d *Dev) ReadStatus() (byte, error) {
 	// r is a read buffer, Tx will try and read len(rx) bytes.
 	r := make([]byte, 1)
 
@@ -111,7 +111,7 @@ type SensorValues struct {
 	RawDataVoltage int
 }
 
-func (d *Dev) sense(mode ReadData) (*SensorValues, error) {
+func (d *Dev) Sense(mode ReadData) (*SensorValues, error) {
 	read := make([]byte, mode)
 	err := d.c.Tx([]byte{algoResultsReg}, read)
 	if err != nil {
