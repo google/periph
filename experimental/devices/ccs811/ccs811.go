@@ -16,7 +16,7 @@ type Opts struct {
 }
 
 func New(bus i2c.Bus, opts *Opts) (*Dev, error) {
-	if opts.Addr != 0x5A || opts.Addr != 0x5B {
+	if opts.Addr != 0x5A && opts.Addr != 0x5B {
 		return nil, fmt.Errorf("Invalid device address, only 0x5A or 0x5B are allowed")
 	}
 

@@ -23,7 +23,7 @@ func main() {
 	}
 	defer b.Close()
 
-	d, err := ccs811.New(b, nil)
+	d, err := ccs811.New(b, &ccs811.Opts{Addr: 0x5A})
 	if err != nil {
 		log.Fatalf("Device creation failed: %v", err)
 	}
