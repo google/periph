@@ -99,7 +99,7 @@ type event struct {
 // syscall.EpollCreate: http://man7.org/linux/man-pages/man2/epoll_create.2.html
 // syscall.EpollCtl: http://man7.org/linux/man-pages/man2/epoll_ctl.2.html
 func (e *event) makeEvent(fd uintptr) error {
-	epollFd, err := syscall.EpollCreate(1)
+	epollFd, err := syscall.EpollCreate1(0)
 	if err != nil {
 		return err
 	}
@@ -149,7 +149,7 @@ func (e *eventsListener) init() error {
 	}
 	e.closing = false
 	var err error
-	e.epollFd, err = syscall.EpollCreate(1)
+	e.epollFd, err = syscall.EpollCreate1(0)
 	if err != nil {
 		return err
 	}
