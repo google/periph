@@ -104,7 +104,7 @@ func (e *event) makeEvent(fd uintptr) error {
 	case err == nil:
 		break
 	case err.Error() == "function not implemented":
-		// Some arch (arm64) do not implement EpollCreate()
+		// Some arch (arm64) do not implement EpollCreate().
 		if epollFd, err = syscall.EpollCreate1(0); err != nil {
 			return err
 		}
@@ -162,7 +162,7 @@ func (e *eventsListener) init() error {
 	case err == nil:
 		break
 	case err.Error() == "function not implemented":
-		// Some arch (arm64) do not implement EpollCreate()
+		// Some arch (arm64) do not implement EpollCreate().
 		if e.epollFd, err = syscall.EpollCreate1(0); err != nil {
 			return err
 		}
