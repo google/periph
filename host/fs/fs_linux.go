@@ -100,7 +100,15 @@ type event struct {
 // syscall.EpollCtl: http://man7.org/linux/man-pages/man2/epoll_ctl.2.html
 func (e *event) makeEvent(fd uintptr) error {
 	epollFd, err := syscall.EpollCreate(1)
-	if err != nil {
+	switch {
+	case err == nil:
+		break
+	case err.Error() == "function not implemented":
+		// Some arch (arm64) do not implement EpollCreate().
+		if epollFd, err = syscall.EpollCreate1(0); err != nil {
+			return err
+		}
+	default:
 		return err
 	}
 	e.epollFd = epollFd
@@ -150,7 +158,15 @@ func (e *eventsListener) init() error {
 	e.closing = false
 	var err error
 	e.epollFd, err = syscall.EpollCreate(1)
-	if err != nil {
+	switch {
+	case err == nil:
+		break
+	case err.Error() == "function not implemented":
+		// Some arch (arm64) do not implement EpollCreate().
+		if e.epollFd, err = syscall.EpollCreate1(0); err != nil {
+			return err
+		}
+	default:
 		return err
 	}
 	e.r, e.w, err = os.Pipe()
