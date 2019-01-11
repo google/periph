@@ -27,7 +27,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Device creation failed: %v", err)
 	}
-	d.SetBaseline([]byte{244, 255})
+
 	for {
 		values, err := d.Sense(ccs811.ReadCO2VOCStatus)
 		if err != nil {
@@ -40,5 +40,3 @@ func main() {
 	}
 
 }
-
-//33177, 409

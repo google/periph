@@ -8,6 +8,60 @@ import (
 	"periph.io/x/periph/conn/i2c"
 )
 
+// Different measurement modes constants
+const (
+	MeasurementModeIdle         byte = 0
+	MeasurementModeConstant1000 byte = 1
+	MeasurementModePulse        byte = 2
+	MeasurementModeLowPower     byte = 3
+	MeasurementModeConstant250  byte = 4
+)
+
+// NeededData represents set of data read from the sensor
+type NeededData byte
+
+// What data should be read from the sensor
+const (
+	ReadCO2          NeededData = 2
+	ReadCO2VOC       NeededData = 4
+	ReadCO2VOCStatus NeededData = 5
+	ReadAll          NeededData = 8
+)
+
+// SensorErrorID represents error reported by the sensor
+type SensorErrorID byte
+
+/*
+Error constants
+
+WRITE_REG_INVALID
+The CCS811 received an I2C write request addressed to this station but with invalid register address ID
+1
+READ_REG_INVALID
+The CCS811 received an I2C read request to a mailbox ID that is invalid
+2
+MEASMODE_INVALID
+The CCS811 received an I2C request to write an unsupported mode to MEAS_MODE
+3
+MAX_RESISTANCE
+The sensor resistance measurement has reached or exceeded the maximum range
+4
+HEATER_FAULT
+The Heater current in the CCS811 is not in range
+5
+HEATER_SUPPLY
+The Heater voltage is not being applied correctly
+*/
+const (
+	WriteRegInvalid SensorErrorID = 0x1
+	ReadRegInvalid  SensorErrorID = 0x2
+	MeasModeInvalid SensorErrorID = 0x4
+	MaxResistance   SensorErrorID = 0x8
+	HeaterFault     SensorErrorID = 0x10
+	HeaterSupply    SensorErrorID = 0x20
+)
+
+// Opts holds the configuration options.
 type Opts struct {
 	Addr               uint16
 	MeasurementMode    byte
@@ -15,6 +69,15 @@ type Opts struct {
 	UseThreshold       byte
 }
 
+// DefaultOpts are the safe default options.
+var DefaultOpts = Opts{
+	Addr:               0x5A,
+	MeasurementMode:    MeasurementModeConstant1000,
+	InterruptWhenReady: 0,
+	UseThreshold:       0,
+}
+
+// New creates a new driver for CCS811 VOC sensor
 func New(bus i2c.Bus, opts *Opts) (*Dev, error) {
 	if opts.Addr != 0x5A && opts.Addr != 0x5B {
 		return nil, fmt.Errorf("Invalid device address, only 0x5A or 0x5B are allowed")
@@ -37,23 +100,12 @@ func New(bus i2c.Bus, opts *Opts) (*Dev, error) {
 
 	time.Sleep(20 * time.Millisecond)
 
-	mesModeValue := (opts.MeasurementMode << 4)
-	mesModeValue = mesModeValue | ((0x1 & opts.InterruptWhenReady) << 3)
-	mesModeValue = mesModeValue | ((0x1 & opts.UseThreshold) << 2)
-
-	dev.SetMeasurementMode(mesModeValue)
+	dev.SetMeasurementMode(MeasurementModeConstant1000, false, false)
 
 	return dev, nil
 }
 
-const (
-	MeasurementModeIdle         byte = 0
-	MeasurementModeConstant1000 byte = 1
-	MeasurementModePulse        byte = 2
-	MeasurementModeLowPower     byte = 3
-	MeasurementModeConstant250  byte = 4
-)
-
+// Dev is an handle to an CCS811 sensor.
 type Dev struct {
 	c    conn.Conn
 	opts *Opts
@@ -68,7 +120,25 @@ const ( //registers
 	baselineReg        byte = 0x11
 )
 
-func (d *Dev) SetMeasurementMode(mesModeValue byte) error {
+func (d *Dev) String() string {
+	return "CCS811"
+}
+
+// SetMeasurementMode sets one of the 5 measurement modes, interrupt generation and interrupt threshold
+//
+// generateInterrupt:
+//		if true, CCS811 will trigger interrupt when new data is available
+// useThreshold:
+// 		if true, you have to set Threshold register with appropriate values
+func (d *Dev) SetMeasurementMode(measurementMode byte, generateInterrupt, useThreshold bool) error {
+	mesModeValue := (measurementMode << 4)
+	if generateInterrupt {
+		mesModeValue = mesModeValue | (0x1 << 3)
+	}
+	if useThreshold {
+		mesModeValue = mesModeValue | (0x1 << 2)
+	}
+
 	// set measurement mode
 	err := d.c.Tx([]byte{measurementModeReg, mesModeValue}, nil)
 	if err != nil {
@@ -77,6 +147,7 @@ func (d *Dev) SetMeasurementMode(mesModeValue byte) error {
 	return err
 }
 
+// Reset sets device into the BOOT mode
 func (d *Dev) Reset() error {
 	if err := d.c.Tx([]byte{0x11, 0xE5, 0x72, 0x8A}, nil); err != nil {
 		return err
@@ -84,6 +155,7 @@ func (d *Dev) Reset() error {
 	return nil
 }
 
+// ReadStatus returns value of status register
 func (d *Dev) ReadStatus() (byte, error) {
 	r := make([]byte, 1)
 	if err := d.c.Tx([]byte{statusReg}, r); err != nil {
@@ -92,6 +164,7 @@ func (d *Dev) ReadStatus() (byte, error) {
 	return r[0], nil
 }
 
+// ReadRawData provides current and voltage on the sensor
 func (d *Dev) ReadRawData() (current, voltage int, err error) {
 	r := make([]byte, 2)
 	if err = d.c.Tx([]byte{rawDataReg}, r); err != nil {
@@ -101,8 +174,8 @@ func (d *Dev) ReadRawData() (current, voltage int, err error) {
 	return
 }
 
+// SetEnvironmentData allows to provide temperature and humidity so sensor can compensate it's measurement
 func (d *Dev) SetEnvironmentData(temp, humidity float32) error {
-	// r is a read buffer, Tx will try and read len(rx) bytes.
 	rawTemp := uint16((temp + 25) / (1 / 512))
 	rawHum := uint16(humidity / (1 / 512))
 	w := []byte{environmentReg,
@@ -117,6 +190,7 @@ func (d *Dev) SetEnvironmentData(temp, humidity float32) error {
 	return nil
 }
 
+// GetBaseline provides current baseline used by measurement alogrithm
 func (d *Dev) GetBaseline() ([]byte, error) {
 	r := make([]byte, 2)
 	if err := d.c.Tx([]byte{baselineReg}, r); err != nil {
@@ -125,6 +199,27 @@ func (d *Dev) GetBaseline() ([]byte, error) {
 	return r, nil
 }
 
+/*
+SetBaseline sets current baseline for measurement algorithm. For mor detail check sensor's specification
+
+Manual Baseline Correction
+There is a mechanism within CCS811 to manually save and restore a previously saved baseline value using the BASELINE register.
+The correct time to save the baseline will depend on the customer use-case and application.
+• For devices which are powered for >24 hours at a time:
+• During the first 500 hours – save the baseline every
+24-48 hours.
+• After the first 500 hours – save the baseline every 5-7 days.
+
+• For devices which are powered <24 hours at a time:
+• If the device is run in, save the baseline before power down
+• If multiple operating modes are used, a separate baseline should be stored for each
+• The baseline should only be restored when the resistance is stable (typically 20-30 minutes)
+• If changing from a low to high power mode (without spending at least 10 minutes in idle), the sensor resistance should be allowed to settle again before restoring the baseline
+
+Note(s):
+1. If a value is written to the BASELINE register while the sensor is stabilising, the output of the TVOC and eCO2 calculations may be higher than expected.
+2. The baseline must be written after the conditioning period
+*/
 func (d *Dev) SetBaseline(baseline []byte) error {
 	w := []byte{baselineReg, baseline[0], baseline[1]}
 	if err := d.c.Tx(w, nil); err != nil {
@@ -133,16 +228,7 @@ func (d *Dev) SetBaseline(baseline []byte) error {
 	return nil
 }
 
-type ReadData byte
-
-// what data should be read from sensor
-const (
-	ReadCO2          ReadData = 2
-	ReadCO2VOC       ReadData = 4
-	ReadCO2VOCStatus ReadData = 5
-	ReadAll          ReadData = 8
-)
-
+// SensorValues represents data read from the sensor. Data are populated based on NeededData parameter
 type SensorValues struct {
 	ECO2           int
 	VOC            int
@@ -152,7 +238,8 @@ type SensorValues struct {
 	RawDataVoltage int
 }
 
-func (d *Dev) Sense(mode ReadData) (*SensorValues, error) {
+// Sense provides data from the sensor. ReadData parameter specifies which data should be read
+func (d *Dev) Sense(mode NeededData) (*SensorValues, error) {
 	read := make([]byte, mode)
 	err := d.c.Tx([]byte{algoResultsReg}, read)
 	if err != nil {
@@ -180,38 +267,9 @@ func (d *Dev) Sense(mode ReadData) (*SensorValues, error) {
 	return sv, nil
 }
 
+// parse current and voltage from raw data
 func valuesFromRawData(data []byte) (int, int) {
 	current := int(data[0] >> 2)
 	voltage := int((uint16(data[0]&0x03) << 8) | uint16(data[1]))
 	return current, voltage
 }
-
-type SensorErrorID byte
-
-/*
-WRITE_REG_INVALID
-The CCS811 received an I2C write request addressed to this station but with invalid register address ID
-1
-READ_REG_INVALID
-The CCS811 received an I2C read request to a mailbox ID that is invalid
-2
-MEASMODE_INVALID
-The CCS811 received an I2C request to write an unsupported mode to MEAS_MODE
-3
-MAX_RESISTANCE
-The sensor resistance measurement has reached or exceeded the maximum range
-4
-HEATER_FAULT
-The Heater current in the CCS811 is not in range
-5
-HEATER_SUPPLY
-The Heater voltage is not being applied correctly
-*/
-const (
-	WriteRegInvalid SensorErrorID = 0x1
-	ReadRegInvalid  SensorErrorID = 0x2
-	MeasModeInvalid SensorErrorID = 0x4
-	MaxResistance   SensorErrorID = 0x8
-	HeaterFault     SensorErrorID = 0x10
-	HeaterSupply    SensorErrorID = 0x20
-)
