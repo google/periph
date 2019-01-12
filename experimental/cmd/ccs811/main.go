@@ -31,6 +31,10 @@ func main() {
 		log.Fatalf("Device creation failed: %v", err)
 	}
 
+	if len(os.Args) < 2 {
+		printHelp()
+		return
+	}
 	switch os.Args[1] {
 	case "status":
 		status, err := d.ReadStatus()
@@ -143,9 +147,21 @@ func main() {
 			d.SetMeasurementMode(byte(i), false, false)
 		}
 	default:
-		fmt.Println("Allowed commands:")
+		printHelp()
 	}
 
+}
+
+func printHelp() {
+	fmt.Println(`Allowed commands:
+	status: displays status register of sensor
+	rawdata: displays current and voltage of sensors measurement resistor
+	baseline: displays value used for correction of measurement
+	sense: perform one time measurement
+	readcontinuously: perform continous measuremnt with interval of one second
+	fwinfo: display different versions of hardware, boot and firmware
+	appstart: start sensors application - move it from boot to application mode
+	measuremode [0-4]: without parameter just shows current measurement mode, with parameter sets the mode`)
 }
 
 func printByteAsNibble(b byte) {
