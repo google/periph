@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	d "github.com/GoogleCloudPlatform/golang-samples/datastore/snippets"
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/i2c"
 )
@@ -95,7 +94,10 @@ func New(bus i2c.Bus, opts *Opts) (*Dev, error) {
 	}
 
 	// from boot mode to measurement mode
-	dev.StartSensorApp()
+	err := dev.StartSensorApp()
+	if err != nil {
+		return nil, fmt.Errorf("Error transitioning from boot do app mode: %v", err)
+	}
 
 	time.Sleep(20 * time.Millisecond)
 
@@ -125,11 +127,12 @@ func (d *Dev) String() string {
 }
 
 // StartSensorApp initializes sensor to application mode
-func (d *Dev) StartSensorApp() {
-	err := dev.c.Tx([]byte{0xf4}, nil)
+func (d *Dev) StartSensorApp() error {
+	err := d.c.Tx([]byte{0xf4}, nil)
 	if err != nil {
-		return nil, fmt.Errorf("Write error: %v", err)
+		return fmt.Errorf("Write error: %v", err)
 	}
+	return nil
 }
 
 // SetMeasurementMode sets one of the 5 measurement modes, interrupt generation
@@ -299,19 +302,19 @@ type FwVersions struct {
 	ApplicationVersion string
 }
 
-func GetFirmwareData() (version FwVersions, err error) {
+func (d *Dev) GetFirmwareData() (version FwVersions, err error) {
 	hwid := make([]byte, 1)
 	if err := d.c.Tx([]byte{0x20}, hwid); err == nil {
 		return version, err
 	} else {
-		version.HWIdentifier = hwid
+		version.HWIdentifier = hwid[0]
 	}
 
 	hwver := make([]byte, 1)
 	if err := d.c.Tx([]byte{0x21}, hwver); err == nil {
 		return version, err
 	} else {
-		version.HWVersion = hwver
+		version.HWVersion = hwver[0]
 	}
 
 	bootver := make([]byte, 2)
@@ -321,7 +324,7 @@ func GetFirmwareData() (version FwVersions, err error) {
 		minor := bootver[0] & 0x0F
 		major := (bootver[0] & 0xF0) >> 4
 		trivial := bootver[1]
-		version.HWVersion = fmt.Sprintf("%d.%d.%d", major, minor, trivial)
+		version.BootVersion = fmt.Sprintf("%d.%d.%d", major, minor, trivial)
 	}
 
 	appver := make([]byte, 2)
