@@ -35,7 +35,8 @@ type SensorErrorID byte
 Error constants
 
 WRITE_REG_INVALID
-The CCS811 received an I2C write request addressed to this station but with invalid register address ID
+The CCS811 received an I2C write request addressed to this station
+but with invalid register address ID
 1
 READ_REG_INVALID
 The CCS811 received an I2C read request to a mailbox ID that is invalid
@@ -65,16 +66,16 @@ const (
 type Opts struct {
 	Addr               uint16
 	MeasurementMode    byte
-	InterruptWhenReady byte
-	UseThreshold       byte
+	InterruptWhenReady bool
+	UseThreshold       bool
 }
 
 // DefaultOpts are the safe default options.
 var DefaultOpts = Opts{
 	Addr:               0x5A,
 	MeasurementMode:    MeasurementModeConstant1000,
-	InterruptWhenReady: 0,
-	UseThreshold:       0,
+	InterruptWhenReady: false,
+	UseThreshold:       false,
 }
 
 // New creates a new driver for CCS811 VOC sensor
@@ -100,7 +101,7 @@ func New(bus i2c.Bus, opts *Opts) (*Dev, error) {
 
 	time.Sleep(20 * time.Millisecond)
 
-	dev.SetMeasurementMode(MeasurementModeConstant1000, false, false)
+	dev.SetMeasurementMode(MeasurementModeConstant1000, opts.InterruptWhenReady, opts.UseThreshold)
 
 	return dev, nil
 }
@@ -118,13 +119,15 @@ const ( //registers
 	rawDataReg         byte = 0x03
 	environmentReg     byte = 0x05
 	baselineReg        byte = 0x11
+	resetReg           byte = 0xFF
 )
 
 func (d *Dev) String() string {
 	return "CCS811"
 }
 
-// SetMeasurementMode sets one of the 5 measurement modes, interrupt generation and interrupt threshold
+// SetMeasurementMode sets one of the 5 measurement modes, interrupt generation
+// and interrupt threshold
 //
 // generateInterrupt:
 //		if true, CCS811 will trigger interrupt when new data is available
@@ -149,7 +152,7 @@ func (d *Dev) SetMeasurementMode(measurementMode byte, generateInterrupt, useThr
 
 // Reset sets device into the BOOT mode
 func (d *Dev) Reset() error {
-	if err := d.c.Tx([]byte{0x11, 0xE5, 0x72, 0x8A}, nil); err != nil {
+	if err := d.c.Tx([]byte{resetReg, 0x11, 0xE5, 0x72, 0x8A}, nil); err != nil {
 		return err
 	}
 	return nil
@@ -165,7 +168,9 @@ func (d *Dev) ReadStatus() (byte, error) {
 }
 
 // ReadRawData provides current and voltage on the sensor
-func (d *Dev) ReadRawData() (current, voltage int, err error) {
+// current in uA
+// voltage from 0-1023, where 1023 = 1.65V
+func (d *Dev) ReadRawData() (current int, voltage int, err error) {
 	r := make([]byte, 2)
 	if err = d.c.Tx([]byte{rawDataReg}, r); err != nil {
 		return 0, 0, err
@@ -174,7 +179,8 @@ func (d *Dev) ReadRawData() (current, voltage int, err error) {
 	return
 }
 
-// SetEnvironmentData allows to provide temperature and humidity so sensor can compensate it's measurement
+// SetEnvironmentData allows to provide temperature and humidity so
+// sensor can compensate it's measurement
 func (d *Dev) SetEnvironmentData(temp, humidity float32) error {
 	rawTemp := uint16((temp + 25) * 512)
 	rawHum := uint16(humidity * 512)
@@ -200,11 +206,14 @@ func (d *Dev) GetBaseline() ([]byte, error) {
 }
 
 /*
-SetBaseline sets current baseline for measurement algorithm. For mor detail check sensor's specification
+SetBaseline sets current baseline for measurement algorithm.
+For mor detail check sensor's specification
 
 Manual Baseline Correction
-There is a mechanism within CCS811 to manually save and restore a previously saved baseline value using the BASELINE register.
-The correct time to save the baseline will depend on the customer use-case and application.
+There is a mechanism within CCS811 to manually save and restore a previously
+saved baseline value using the BASELINE register. The correct time to save the baseline
+will depend on the customer use-case and application.
+
 • For devices which are powered for >24 hours at a time:
 • During the first 500 hours – save the baseline every
 24-48 hours.
@@ -214,11 +223,12 @@ The correct time to save the baseline will depend on the customer use-case and a
 • If the device is run in, save the baseline before power down
 • If multiple operating modes are used, a separate baseline should be stored for each
 • The baseline should only be restored when the resistance is stable (typically 20-30 minutes)
-• If changing from a low to high power mode (without spending at least 10 minutes in idle), the sensor resistance should be allowed to settle again before restoring the baseline
+• If changing from a low to high power mode (without spending at least 10 minutes in idle),
+  the sensor resistance should be allowed to settle again before restoring the baseline
 
 Note(s):
-1. If a value is written to the BASELINE register while the sensor is stabilising, the output of the TVOC and eCO2 calculations may be higher than expected.
-2. The baseline must be written after the conditioning period
+1) If a value is written to the BASELINE register while the sensor is stabilising, the output of the TVOC and eCO2 calculations may be higher than expected.
+2) The baseline must be written after the conditioning period
 */
 func (d *Dev) SetBaseline(baseline []byte) error {
 	w := []byte{baselineReg, baseline[0], baseline[1]}
@@ -228,17 +238,19 @@ func (d *Dev) SetBaseline(baseline []byte) error {
 	return nil
 }
 
-// SensorValues represents data read from the sensor. Data are populated based on NeededData parameter
+// SensorValues represents data read from the sensor.
+// Data are populated based on NeededData parameter.
 type SensorValues struct {
 	ECO2           int
 	VOC            int
 	Status         byte
 	ErrorID        SensorErrorID
-	RawDataCurrent int
-	RawDataVoltage int
+	RawDataCurrent int // current in uA
+	RawDataVoltage int // voltage from 0-1023, where 1023 = 1.65V
 }
 
-// Sense provides data from the sensor. ReadData parameter specifies which data should be read
+// Sense provides data from the sensor.
+// ReadData parameter specifies which data should be read.
 func (d *Dev) Sense(mode NeededData) (*SensorValues, error) {
 	read := make([]byte, mode)
 	err := d.c.Tx([]byte{algoResultsReg}, read)
@@ -268,8 +280,8 @@ func (d *Dev) Sense(mode NeededData) (*SensorValues, error) {
 }
 
 // parse current and voltage from raw data
-func valuesFromRawData(data []byte) (int, int) {
-	current := int(data[0] >> 2)
-	voltage := int((uint16(data[0]&0x03) << 8) | uint16(data[1]))
+func valuesFromRawData(data []byte) (current int, voltage int) {
+	current = int(data[0] >> 2)
+	voltage = int((uint16(data[0]&0x03) << 8) | uint16(data[1]))
 	return current, voltage
 }

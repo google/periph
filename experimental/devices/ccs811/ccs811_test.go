@@ -16,19 +16,29 @@ func TestBasicInitialisationAndDataRead(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			{Addr: 0x5A, W: []byte{0xf4}, R: nil},
-			{Addr: 0x5A, W: []byte{measurementModeReg, 0x10}, R: nil},
-			{Addr: 0x5A, W: []byte{algoResultsReg}, R: []byte{0x1, 0x2, 0x2, 0x3}},
+			{Addr: 0x5A, W: []byte{measurementModeReg, 0x1C}, R: nil},
+			{Addr: 0x5A, W: []byte{algoResultsReg}, R: []byte{0x1, 0x2, 0x2, 0x3, 0xF, 0xD, 0xF, 0xF}},
 		},
 		DontPanic: true,
 	}
-	dev, err := New(&bus, &DefaultOpts)
+
+	opts := DefaultOpts
+	opts.InterruptWhenReady = true
+	opts.UseThreshold = true
+
+	dev, err := New(&bus, &opts)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if data, err := dev.Sense(ReadCO2VOC); err == nil {
-		if data.ECO2 != 0x102 && data.VOC != 0x203 {
-			t.Fatal("eCO2 and/or VOC data parsed incorrectly")
+	if data, err := dev.Sense(ReadAll); err == nil {
+		if data.ECO2 != 0x102 &&
+			data.VOC != 0x203 &&
+			data.Status != 0xF &&
+			data.ErrorID != 0xD &&
+			data.RawDataCurrent != 63 &&
+			data.RawDataVoltage != 1023 {
+			t.Fatalf("Data parsed incorrectly, got %v", data)
 		}
 	} else {
 		t.Fatal(err)
@@ -83,9 +93,48 @@ func TestBaseline(t *testing.T) {
 	dev.SetBaseline(base)
 }
 
+func TestReadRawData(t *testing.T) {
+	bus := i2ctest.Playback{
+		Ops: []i2ctest.IO{
+			{Addr: 0x5A, W: []byte{0xf4}, R: nil},
+			{Addr: 0x5A, W: []byte{measurementModeReg, 0x10}, R: nil},
+			{Addr: 0x5A, W: []byte{rawDataReg}, R: []byte{0x96, 0xAA}},
+		},
+	}
+	dev, err := New(&bus, &DefaultOpts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cur, vol, err := dev.ReadRawData()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cur != 37 || vol != 682 {
+		t.Fatalf("Raw data reading failed got values: %d, %d", cur, vol)
+	}
+
+}
+
 func TestRawDataParsing(t *testing.T) {
 	c, v := valuesFromRawData([]byte{0xF9, 0x0})
 	if c != 62 && v != 512 {
 		t.Fatal("current and/or voltage data parsed incorrectly")
 	}
+}
+
+func TestReset(t *testing.T) {
+	bus := i2ctest.Playback{
+		Ops: []i2ctest.IO{
+			{Addr: 0x5B, W: []byte{0xf4}, R: nil},
+			{Addr: 0x5B, W: []byte{measurementModeReg, 0x10}, R: nil},
+			{Addr: 0x5B, W: []byte{resetReg, 0x11, 0xE5, 0x72, 0x8A}, R: nil},
+		},
+	}
+	opts := &DefaultOpts
+	opts.Addr = 0x5B
+	dev, err := New(&bus, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dev.Reset()
 }
