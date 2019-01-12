@@ -95,7 +95,7 @@ func New(bus i2c.Bus, opts *Opts) (*Dev, error) {
 	// from boot mode to measurement mode
 	err := dev.c.Tx([]byte{0xf4}, nil)
 	if err != nil {
-		return nil, fmt.Errorf("Write error: ", err)
+		return nil, fmt.Errorf("Write error: %v", err)
 	}
 
 	time.Sleep(20 * time.Millisecond)
@@ -176,8 +176,8 @@ func (d *Dev) ReadRawData() (current, voltage int, err error) {
 
 // SetEnvironmentData allows to provide temperature and humidity so sensor can compensate it's measurement
 func (d *Dev) SetEnvironmentData(temp, humidity float32) error {
-	rawTemp := uint16((temp + 25) / (1 / 512))
-	rawHum := uint16(humidity / (1 / 512))
+	rawTemp := uint16((temp + 25) * 512)
+	rawHum := uint16(humidity * 512)
 	w := []byte{environmentReg,
 		byte(rawHum >> 8),
 		byte(rawHum),
