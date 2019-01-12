@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	d "github.com/GoogleCloudPlatform/golang-samples/datastore/snippets"
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/i2c"
 )
@@ -32,8 +33,8 @@ const (
 type SensorErrorID byte
 
 /*
-Error constants
-
+Error constants, applicable if status registers signals error
+0
 WRITE_REG_INVALID
 The CCS811 received an I2C write request addressed to this station
 but with invalid register address ID
@@ -94,10 +95,7 @@ func New(bus i2c.Bus, opts *Opts) (*Dev, error) {
 	}
 
 	// from boot mode to measurement mode
-	err := dev.c.Tx([]byte{0xf4}, nil)
-	if err != nil {
-		return nil, fmt.Errorf("Write error: %v", err)
-	}
+	dev.StartSensorApp()
 
 	time.Sleep(20 * time.Millisecond)
 
@@ -124,6 +122,14 @@ const ( //registers
 
 func (d *Dev) String() string {
 	return "CCS811"
+}
+
+// StartSensorApp initializes sensor to application mode
+func (d *Dev) StartSensorApp() {
+	err := dev.c.Tx([]byte{0xf4}, nil)
+	if err != nil {
+		return nil, fmt.Errorf("Write error: %v", err)
+	}
 }
 
 // SetMeasurementMode sets one of the 5 measurement modes, interrupt generation
@@ -284,4 +290,48 @@ func valuesFromRawData(data []byte) (current int, voltage int) {
 	current = int(data[0] >> 2)
 	voltage = int((uint16(data[0]&0x03) << 8) | uint16(data[1]))
 	return current, voltage
+}
+
+type FwVersions struct {
+	HWIdentifier       byte
+	HWVersion          byte
+	BootVersion        string
+	ApplicationVersion string
+}
+
+func GetFirmwareData() (version FwVersions, err error) {
+	hwid := make([]byte, 1)
+	if err := d.c.Tx([]byte{0x20}, hwid); err == nil {
+		return version, err
+	} else {
+		version.HWIdentifier = hwid
+	}
+
+	hwver := make([]byte, 1)
+	if err := d.c.Tx([]byte{0x21}, hwver); err == nil {
+		return version, err
+	} else {
+		version.HWVersion = hwver
+	}
+
+	bootver := make([]byte, 2)
+	if err := d.c.Tx([]byte{0x23}, bootver); err == nil {
+		return version, err
+	} else {
+		minor := bootver[0] & 0x0F
+		major := (bootver[0] & 0xF0) >> 4
+		trivial := bootver[1]
+		version.HWVersion = fmt.Sprintf("%d.%d.%d", major, minor, trivial)
+	}
+
+	appver := make([]byte, 2)
+	if err := d.c.Tx([]byte{0x24}, appver); err == nil {
+		return version, err
+	} else {
+		minor := appver[0] & 0x0F
+		major := (appver[0] & 0xF0) >> 4
+		trivial := appver[1]
+		version.ApplicationVersion = fmt.Sprintf("%d.%d.%d", major, minor, trivial)
+	}
+	return version, nil
 }
