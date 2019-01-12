@@ -1,4 +1,4 @@
-// Copyright 2016 The Periph Authors. All rights reserved.
+// Copyright 2019 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
@@ -11,8 +11,6 @@ import (
 )
 
 func TestBasicInitialisationAndDataRead(t *testing.T) {
-	// FIXME: Try to include basic code coverage. You can use "replay" tests by
-	// leveraging i2ctest and spitest.
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			{Addr: 0x5A, W: []byte{0xf4}, R: nil},
