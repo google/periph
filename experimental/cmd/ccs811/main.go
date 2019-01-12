@@ -105,7 +105,7 @@ func main() {
 			if err != nil {
 				log.Println("Error during measurement, waiting for next value", err)
 			} else {
-				fmt.Println("eCO:", values.ECO2, "VOC:", values.VOC)
+				fmt.Println("eCO2:", values.ECO2, "VOC:", values.VOC)
 			}
 			time.Sleep(1200 * time.Millisecond)
 		}
@@ -128,8 +128,12 @@ func main() {
 			mode, err := d.GetMeasurementMode()
 			if err != nil {
 				fmt.Println("Can't get measurement mode", err)
+				return
 			}
-			return
+			fmt.Println("Measurement mode:", mode.MeasurementMode)
+			fmt.Println("Generate interrupt:", mode.GenerateInterrupt)
+			fmt.Println("Use thresholds:", mode.UseThreshold)
+
 		} else {
 			fmt.Println("Setting measurement mode to", os.Args[2])
 			i, err := strconv.Atoi(os.Args[2])
