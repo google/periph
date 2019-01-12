@@ -4,25 +4,13 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/DeziderMesko/periph/experimental/devices/ccs811"
 	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/host"
 )
-
-type config struct {
-	Parent      string
-	ParentID    string
-	Url         string
-	User        string
-	Token       string
-	Interactive bool
-}
-
-func getConfiguration() {
-
-}
 
 func main() {
 
@@ -132,6 +120,17 @@ func main() {
 	case "appstart":
 		err := d.StartSensorApp()
 
+	case "setmeasuremod":
+		if len(os.Args) < 3 {
+			fmt.Println("Invalid measurement mode")
+			return
+		}
+		fmt.Println("Setting measurement mode to ", os.args[2])
+		i, e := strconv.Atoi(os.args[2])
+		if e != nil {
+			fmt.Println("Can't convert measurement mode to number (0-4)")
+		}
+		d.SetMeasurementMode(i, false, false)
 	default:
 		fmt.Println("Allowed commands:")
 	}
