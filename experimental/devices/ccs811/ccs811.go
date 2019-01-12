@@ -130,7 +130,7 @@ func (d *Dev) String() string {
 func (d *Dev) StartSensorApp() error {
 	err := d.c.Tx([]byte{0xf4}, nil)
 	if err != nil {
-		return fmt.Errorf("Write error: %v", err)
+		return err
 	}
 	return nil
 }
@@ -154,9 +154,28 @@ func (d *Dev) SetMeasurementMode(measurementMode byte, generateInterrupt, useThr
 	// set measurement mode
 	err := d.c.Tx([]byte{measurementModeReg, mesModeValue}, nil)
 	if err != nil {
-		fmt.Println("Write error: ", err)
+		return err
 	}
-	return err
+	return nil
+}
+
+type MeasurementMode struct {
+	MeasurementMode   byte
+	GenerateInterrupt bool
+	UseThreshold      bool
+}
+
+func (d *Dev) GetMeasurementMode() (mm MeasurementMode, err error) {
+	r := make([]byte, 1)
+	err = d.c.Tx([]byte{measurementModeReg}, r)
+	if err != nil {
+		return mm, err
+	}
+	mode := r[0] >> 4
+	threshold := (r[0]&4 == 1)
+	interrupt := (r[0]&8 == 1)
+
+	return MeasurementMode{MeasurementMode: mode, GenerateInterrupt: interrupt, UseThreshold: threshold}, nil
 }
 
 // Reset sets device into the BOOT mode
@@ -302,23 +321,25 @@ type FwVersions struct {
 	ApplicationVersion string
 }
 
-func (d *Dev) GetFirmwareData() (version FwVersions, err error) {
+func (d *Dev) GetFirmwareData() (version *FwVersions, err error) {
+	version = &FwVersions{}
 	hwid := make([]byte, 1)
-	if err := d.c.Tx([]byte{0x20}, hwid); err == nil {
+
+	if err := d.c.Tx([]byte{0x20}, hwid); err != nil {
 		return version, err
 	} else {
 		version.HWIdentifier = hwid[0]
 	}
 
 	hwver := make([]byte, 1)
-	if err := d.c.Tx([]byte{0x21}, hwver); err == nil {
+	if err := d.c.Tx([]byte{0x21}, hwver); err != nil {
 		return version, err
 	} else {
 		version.HWVersion = hwver[0]
 	}
 
 	bootver := make([]byte, 2)
-	if err := d.c.Tx([]byte{0x23}, bootver); err == nil {
+	if err := d.c.Tx([]byte{0x23}, bootver); err != nil {
 		return version, err
 	} else {
 		minor := bootver[0] & 0x0F
@@ -328,7 +349,7 @@ func (d *Dev) GetFirmwareData() (version FwVersions, err error) {
 	}
 
 	appver := make([]byte, 2)
-	if err := d.c.Tx([]byte{0x24}, appver); err == nil {
+	if err := d.c.Tx([]byte{0x24}, appver); err != nil {
 		return version, err
 	} else {
 		minor := appver[0] & 0x0F

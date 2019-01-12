@@ -78,14 +78,14 @@ func main() {
 		if err != nil {
 			fmt.Println("Error getting baseline:", err)
 		}
-		fmt.Printf("Baseline: %X %X", baseline[0], baseline[1])
+		fmt.Printf("Baseline: %X %X\n", baseline[0], baseline[1])
 
 	case "sense":
 		values, err := d.Sense(ccs811.ReadAll)
 		if err != nil {
 			fmt.Println("Error getting data:", err)
 		}
-		fmt.Println("Sensor values: \neCO2: %d\nVOC: %d\n")
+		fmt.Printf("Sensor values: \neCO2: %d\nVOC: %d\n", values.ECO2, values.VOC)
 		fmt.Print("Status: ")
 		printByteAsNibble(values.Status)
 		fmt.Println()
@@ -115,22 +115,29 @@ func main() {
 		if err != nil {
 			fmt.Println("Error getting firmware versions:", err)
 		}
-		fmt.Printf("Versions: %+v\n")
+		fmt.Printf("Versions: %+v\n", fw)
 
 	case "appstart":
 		err := d.StartSensorApp()
+		if err != nil {
+			fmt.Println("Error starting sensor app:", err)
+		}
 
-	case "setmeasuremod":
+	case "measuremode":
 		if len(os.Args) < 3 {
-			fmt.Println("Invalid measurement mode")
+			mode, err := d.GetMeasurementMode()
+			if err != nil {
+				fmt.Println("Can't get measurement mode", err)
+			}
 			return
+		} else {
+			fmt.Println("Setting measurement mode to", os.Args[2])
+			i, err := strconv.Atoi(os.Args[2])
+			if err != nil {
+				fmt.Println("Can't convert measurement mode to number (0-4)")
+			}
+			d.SetMeasurementMode(byte(i), false, false)
 		}
-		fmt.Println("Setting measurement mode to ", os.args[2])
-		i, e := strconv.Atoi(os.args[2])
-		if e != nil {
-			fmt.Println("Can't convert measurement mode to number (0-4)")
-		}
-		d.SetMeasurementMode(i, false, false)
 	default:
 		fmt.Println("Allowed commands:")
 	}
@@ -140,7 +147,7 @@ func main() {
 func printByteAsNibble(b byte) {
 	for c := 0; c < 8; c++ {
 		fmt.Printf("%d", (b >> 0 & 1))
-		if c == 4 {
+		if c == 3 {
 			fmt.Print(" ")
 		}
 	}
