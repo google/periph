@@ -125,7 +125,7 @@ func (a *Addr) Set(s string) error {
 	return nil
 }
 
-// String returns i2c.Addr as a string formated in hexadecimal.
+// String returns an i2c.Addr as a string formated in hexadecimal.
 func (a Addr) String() string {
 	return "0x" + strconv.FormatInt(int64(a), 16)
 }
