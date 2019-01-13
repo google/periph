@@ -140,8 +140,7 @@ func TestAddr_String(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got := tt.Addr.String()
-		if got != tt.want {
+		if got := tt.Addr.String(); got != tt.want {
 			t.Errorf("i2cAddr.String() expected %s but got %s", tt.want, got)
 		}
 	}
