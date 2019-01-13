@@ -196,7 +196,7 @@ func (d *Dev) ReadStatus() (byte, error) {
 }
 
 // ReadRawData provides current and voltage on the sensor.
-// Current is in uA. Voltage is in range 0-1023, where 1023 = 1.65V.
+// Current is in range of 0-63uA. Voltage is in range 0-1.65V.
 func (d *Dev) ReadRawData() (physic.ElectricCurrent, physic.ElectricPotential, error) {
 	r := make([]byte, 2)
 	if err := d.c.Tx([]byte{rawDataReg}, r); err != nil {
