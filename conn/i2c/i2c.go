@@ -125,6 +125,11 @@ func (a *Addr) Set(s string) error {
 	return nil
 }
 
+// String returns an i2c.Addr as a string formated in hexadecimal.
+func (a Addr) String() string {
+	return "0x" + strconv.FormatInt(int64(a), 16)
+}
+
 var errI2CSetError = errors.New("invalid i2c address")
 
 var _ conn.Conn = &Dev{}

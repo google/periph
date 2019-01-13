@@ -5,6 +5,7 @@
 package i2c_test
 
 import (
+	"flag"
 	"fmt"
 	"log"
 
@@ -56,4 +57,10 @@ func ExamplePins() {
 		fmt.Printf("SDA: %s", p.SDA())
 		fmt.Printf("SCL: %s", p.SCL())
 	}
+}
+
+func ExampleAddr_flag() {
+	var addr i2c.Addr
+	flag.Var(&addr, "addr", "i2c device address")
+	flag.Parse()
 }
