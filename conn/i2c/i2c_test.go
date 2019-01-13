@@ -128,3 +128,21 @@ func TestAddr_Set(t *testing.T) {
 		}
 	}
 }
+
+func TestAddr_String(t *testing.T) {
+	tests := []struct {
+		Addr Addr
+		want string
+	}{
+		{0x01, "0x1"},
+		{0x24, "0x24"},
+		{0x3ff, "0x3ff"},
+	}
+
+	for _, tt := range tests {
+		got := tt.Addr.String()
+		if got != tt.want {
+			t.Errorf("i2cAddr.String() expected %s but got %s", tt.want, got)
+		}
+	}
+}
