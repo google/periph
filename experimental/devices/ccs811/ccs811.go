@@ -16,12 +16,16 @@ import (
 // MeasurementMode represents different ways how data is read
 type MeasurementMode byte
 
-// Different measurement modes constants.
-// MeasurementMode:
+// Different measurement mode constants:
+//
 // -  Mode 0: Idle, low current mode.
+//
 // -  Mode 1: Constant power mode, IAQ measurement every second.
+//
 // -  Mode 2: Pulse heating mode IAQ measurement every 10 seconds.
+//
 // -  Mode 3: Low power pulse heating mode IAQ measurement every 60 seconds.
+//
 // -  Mode 4: Constant power mode, sensor measurement every 250ms.
 const (
 	MeasurementModeIdle         MeasurementMode = 0
@@ -103,9 +107,11 @@ func New(bus i2c.Bus, opts *Opts) (*Dev, error) {
 	if err := dev.StartSensorApp(); err != nil {
 		return nil, fmt.Errorf("Error transitioning from boot do app mode: %v", err)
 	}
+	mmp := &MeasurementModeParams{MeasurementMode: opts.MeasurementMode,
+		GenerateInterrupt: opts.InterruptWhenReady,
+		UseThreshold:      opts.UseThreshold}
 
-	err := dev.SetMeasurementModeRegister(opts.MeasurementMode, opts.InterruptWhenReady, opts.UseThreshold)
-	if err != nil {
+	if err := dev.SetMeasurementModeRegister(*mmp); err != nil {
 		return nil, fmt.Errorf("Error setting measurement mode: %v", err)
 	}
 
@@ -139,17 +145,12 @@ func (d *Dev) StartSensorApp() error {
 
 // SetMeasurementModeRegister sets one of the 5 measurement modes, interrupt generation
 // and interrupt threshold.
-//
-// generateInterrupt:
-//		If true, CCS811 will trigger interrupt when new data is available.
-// useThreshold:
-// 		If true, you have to set Threshold register with appropriate values.
-func (d *Dev) SetMeasurementModeRegister(measurementMode MeasurementMode, generateInterrupt, useThreshold bool) error {
-	mesModeValue := (measurementMode << 4)
-	if generateInterrupt {
+func (d *Dev) SetMeasurementModeRegister(mmp MeasurementModeParams) error {
+	mesModeValue := (mmp.MeasurementMode << 4)
+	if mmp.GenerateInterrupt {
 		mesModeValue = mesModeValue | (0x1 << 3)
 	}
-	if useThreshold {
+	if mmp.UseThreshold {
 		mesModeValue = mesModeValue | (0x1 << 2)
 	}
 
@@ -158,7 +159,7 @@ func (d *Dev) SetMeasurementModeRegister(measurementMode MeasurementMode, genera
 
 // MeasurementModeParams is a structure representing Measuremode register of the sensor.
 type MeasurementModeParams struct {
-	MeasurementMode   byte
+	MeasurementMode   MeasurementMode
 	GenerateInterrupt bool // True if sensor should generate interrupts on new measurement.
 	UseThreshold      bool // True if sensor should use thresholds from threshold register.
 }
@@ -167,11 +168,10 @@ type MeasurementModeParams struct {
 func (d *Dev) GetMeasurementModeRegister() (MeasurementModeParams, error) {
 	r := make([]byte, 1)
 
-	err := d.c.Tx([]byte{measurementModeReg}, r)
-	if err != nil {
+	if err := d.c.Tx([]byte{measurementModeReg}, r); err != nil {
 		return MeasurementModeParams{}, err
 	}
-	mode := r[0] >> 4
+	mode := MeasurementMode(r[0] >> 4)
 	threshold := (r[0]&4 == 1)
 	interrupt := (r[0]&8 == 1)
 
@@ -243,22 +243,30 @@ func (d *Dev) GetBaseline() ([]byte, error) {
 // the baseline will depend on the customer use-case and application.
 //
 // For devices which are powered for >24 hours at a time:
+//
 // - During the first 500 hours – save the baseline every 24-48 hours.
+//
 // - After the first 500 hours – save the baseline every 5-7 days.
 //
 // For devices which are powered <24 hours at a time:
+//
 // - If the device is run in, save the baseline before power down.
+//
 // - If multiple operating modes are used, a separate baseline should be stored for each.
+//
 // - The baseline should only be restored when the resistance is stable
-//   (typically 20-30 minutes).
+// (typically 20-30 minutes).
+//
 // - If changing from a low to high power mode (without spending at least
-//	 10 minutes in idle), the sensor resistance should be allowed to settle again
-//   before restoring the baseline.
+// 10 minutes in idle), the sensor resistance should be allowed to settle again
+// before restoring the baseline.
 //
 // Note(s):
+//
 // 1) If a value is written to the BASELINE register while the sensor
 // is stabilising, the output of the TVOC and eCO2 calculations may be higher
 // than expected.
+//
 // 2) The baseline must be written after the conditioning period
 func (d *Dev) SetBaseline(baseline []byte) error {
 	w := []byte{baselineReg, baseline[0], baseline[1]}
@@ -290,8 +298,7 @@ func (d *Dev) Sense(values *SensorValues) error {
 // You can specify what subset of data you want through NeededData constants.
 func (d *Dev) SensePartial(requested NeededData, values *SensorValues) error {
 	read := make([]byte, requested)
-	err := d.c.Tx([]byte{algoResultsReg}, read)
-	if err != nil {
+	if err := d.c.Tx([]byte{algoResultsReg}, read); err != nil {
 		return err
 	}
 	if requested >= ReadCO2 {
@@ -339,35 +346,33 @@ type FwVersions struct {
 // GetFirmwareData populates FwVersions structure with data.
 func (d *Dev) GetFirmwareData() (*FwVersions, error) {
 	version := &FwVersions{}
-	hwid := make([]byte, 1)
+	buffer1 := make([]byte, 1)
 
-	if err := d.c.Tx([]byte{0x20}, hwid); err != nil {
+	if err := d.c.Tx([]byte{0x20}, buffer1); err != nil {
 		return version, err
 	}
-	version.HWIdentifier = hwid[0]
+	version.HWIdentifier = buffer1[0]
 
-	hwver := make([]byte, 1)
-	if err := d.c.Tx([]byte{0x21}, hwver); err != nil {
+	if err := d.c.Tx([]byte{0x21}, buffer1); err != nil {
 		return version, err
 	}
-	version.HWVersion = hwver[0]
+	version.HWVersion = buffer1[0]
 
-	bootver := make([]byte, 2)
-	if err := d.c.Tx([]byte{0x23}, bootver); err != nil {
+	buffer2 := make([]byte, 2)
+	if err := d.c.Tx([]byte{0x23}, buffer2); err != nil {
 		return version, err
 	}
-	minor := bootver[0] & 0x0F
-	major := (bootver[0] & 0xF0) >> 4
-	trivial := bootver[1]
+	minor := buffer2[0] & 0x0F
+	major := (buffer2[0] & 0xF0) >> 4
+	trivial := buffer2[1]
 	version.BootVersion = fmt.Sprintf("%d.%d.%d", major, minor, trivial)
 
-	appver := make([]byte, 2)
-	if err := d.c.Tx([]byte{0x24}, appver); err != nil {
+	if err := d.c.Tx([]byte{0x24}, buffer2); err != nil {
 		return version, err
 	}
-	minor = appver[0] & 0x0F
-	major = (appver[0] & 0xF0) >> 4
-	trivial = appver[1]
+	minor = buffer2[0] & 0x0F
+	major = (buffer2[0] & 0xF0) >> 4
+	trivial = buffer2[1]
 	version.ApplicationVersion = fmt.Sprintf("%d.%d.%d", major, minor, trivial)
 
 	return version, nil

@@ -186,8 +186,8 @@ func main() {
 			fmt.Println("Can't convert measurement mode to number (0-4)")
 		}
 
-		mode := ccs811.MeasurementMode(i)
-		d.SetMeasurementModeRegister(mode, false, false)
+		mmp := ccs811.MeasurementModeParams{MeasurementMode: ccs811.MeasurementMode(i)}
+		d.SetMeasurementModeRegister(mmp)
 	}
 
 }
