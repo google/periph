@@ -5,6 +5,7 @@
 package ccs811
 
 import (
+	"fmt"
 	"testing"
 
 	"periph.io/x/periph/conn/i2c/i2ctest"
@@ -16,7 +17,7 @@ func TestBasicInitialisationAndDataRead(t *testing.T) {
 		Ops: []i2ctest.IO{
 			{Addr: 0x5A, W: []byte{0xf4}, R: nil},
 			{Addr: 0x5A, W: []byte{measurementModeReg, 0x1C}, R: nil},
-			{Addr: 0x5A, W: []byte{algoResultsReg}, R: []byte{0x1, 0x2, 0x2, 0x3, 0xF, 0xD, 0xF, 0xF}},
+			{Addr: 0x5A, W: []byte{algoResultsReg}, R: []byte{0x1, 0x2, 0x2, 0x3, 0xF, 0x8, 0xF, 0xF}},
 		},
 		DontPanic: true,
 	}
@@ -32,17 +33,82 @@ func TestBasicInitialisationAndDataRead(t *testing.T) {
 
 	data := &SensorValues{}
 	if err := dev.Sense(data); err == nil {
+		var vExpected physic.ElectricPotential
+		vExpected.Set("1.65V") // 682 units
+		var cExpected physic.ElectricCurrent
+		cExpected.Set("63uA")
 		if data.ECO2 != 0x102 &&
 			data.VOC != 0x203 &&
 			data.Status != 0xF &&
-			data.ErrorID != 0xD &&
-			data.RawDataCurrent != 63 &&
-			data.RawDataVoltage != 1023 {
+			data.Error != fmt.Errorf("Sensor error: %s", "HEATER_FAULT: The Heater current in the CCS811 is not in range.") &&
+			data.RawDataCurrent != cExpected &&
+			data.RawDataVoltage != vExpected {
 			t.Fatalf("Data parsed incorrectly, got %v", data)
 		}
 	} else {
 		t.Fatal(err)
 	}
+}
+
+func TestMeasurementModeRegisterRead(t *testing.T) {
+	bus := i2ctest.Playback{
+		Ops: []i2ctest.IO{
+			{Addr: 0x5A, W: []byte{0xf4}, R: nil},
+			{Addr: 0x5A, W: []byte{measurementModeReg, 0x4C}, R: nil},
+			{Addr: 0x5A, W: []byte{measurementModeReg}, R: []byte{0x4C}},
+		},
+		DontPanic: true,
+	}
+
+	opts := DefaultOpts
+	opts.MeasurementMode = MeasurementModeConstant250
+	opts.InterruptWhenReady = true
+	opts.UseThreshold = true
+
+	dev, err := New(&bus, &opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mode, err := dev.GetMeasurementModeRegister()
+	if err != nil ||
+		mode.GenerateInterrupt != true ||
+		mode.UseThreshold != true ||
+		mode.MeasurementMode != MeasurementModeConstant250 {
+		t.Fatalf("Parsing of Measurement Mode register failed. Got: %+v", mode)
+	}
+
+}
+func TestGetFirmwareData(t *testing.T) {
+	bus := i2ctest.Playback{
+		Ops: []i2ctest.IO{
+			{Addr: 0x5A, W: []byte{0xf4}, R: nil},
+			{Addr: 0x5A, W: []byte{measurementModeReg, 0x4C}, R: nil},
+			{Addr: 0x5A, W: []byte{0x20}, R: []byte{0x81}},
+			{Addr: 0x5A, W: []byte{0x21}, R: []byte{0x15}},
+			{Addr: 0x5A, W: []byte{0x23}, R: []byte{0x12, 0x03}},
+			{Addr: 0x5A, W: []byte{0x24}, R: []byte{0x89, 0x20}},
+		},
+		DontPanic: true,
+	}
+
+	opts := DefaultOpts
+	opts.MeasurementMode = MeasurementModeConstant250
+	opts.InterruptWhenReady = true
+	opts.UseThreshold = true
+
+	dev, err := New(&bus, &opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	versions, err := dev.GetFirmwareData()
+	if err != nil ||
+		versions.HWIdentifier != 0x81 ||
+		versions.HWVersion != 0x15 ||
+		versions.BootVersion != "1.2.3" ||
+		versions.ApplicationVersion != "8.9.32" {
+		t.Fatalf("Parsing of firmware version data failed. Got: %+v", versions)
+	}
+
 }
 
 func TestInvalidSensorAddress(t *testing.T) {

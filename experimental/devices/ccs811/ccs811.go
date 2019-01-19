@@ -50,27 +50,44 @@ const (
 type SensorErrorID byte
 
 // Error constants, applicable if status registers signals error.
-//
-// 0 WRITE_REG_INVALID The CCS811 received an I2C write request addressed
-// to this station but with invalid register address ID
-//
-// 1 READ_REG_INVALID The CCS811 received an I2C read request to a mailbox ID that is invalid
-//
-// 2 MEASMODE_INVALID The CCS811 received an I2C request to write an unsupported mode to MEAS_MODE
-//
-// 3 MAX_RESISTANCE The sensor resistance measurement has reached or exceeded the maximum range
-//
-// 4 HEATER_FAULT The Heater current in the CCS811 is not in range
-//
-// 5 HEATER_SUPPLY The Heater voltage is not being applied correctly
 const (
-	WriteRegInvalid SensorErrorID = 0x1
-	ReadRegInvalid  SensorErrorID = 0x2
-	MeasModeInvalid SensorErrorID = 0x4
-	MaxResistance   SensorErrorID = 0x8
-	HeaterFault     SensorErrorID = 0x10
-	HeaterSupply    SensorErrorID = 0x20
+	//The CCS811 received an I2C write request addressed to this station but with invalid register address ID.
+	writeRegInvalid SensorErrorID = 0x1
+	//The CCS811 received an I2C read request to a mailbox ID that is invalid.
+	readRegInvalid SensorErrorID = 0x2
+	//The CCS811 received an I2C request to write an unsupported mode to MEAS_MODE.
+	measModeInvalid SensorErrorID = 0x4
+	//The sensor resistance measurement has reached or exceeded the maximum range.
+	maxResistance SensorErrorID = 0x8
+	//The Heater current in the CCS811 is not in range.
+	heaterFault SensorErrorID = 0x10
+	//The Heater voltage is not being applied correctly.
+	heaterSupply SensorErrorID = 0x20
 )
+
+func (d *Dev) errorCodeToError(errorCode SensorErrorID) error {
+	if errorCode == 0 {
+		return nil
+	}
+	errorText := ""
+	switch errorCode {
+	case writeRegInvalid:
+		errorText = "WRITE_REG_INVALID: The CCS811 received an I2C write request addressed to this station but with invalid register address ID."
+	case readRegInvalid:
+		errorText = "READ_REG_INVALID: The CCS811 received an I2C read request to a mailbox ID that is invalid."
+	case measModeInvalid:
+		errorText = "MEASMODE_INVALID: The CCS811 received an I2C request to write an unsupported mode to MEAS_MODE."
+	case maxResistance:
+		errorText = "MAX_RESISTANCE: The sensor resistance measurement has reached or exceeded the maximum range."
+	case heaterFault:
+		errorText = "HEATER_FAULT: The Heater current in the CCS811 is not in range."
+	case heaterSupply:
+		errorText = "HEATER_SUPPLY: The Heater voltage is not being applied correctly."
+	default:
+		errorText = fmt.Sprintf("Uknwown error, code: %d", errorCode)
+	}
+	return fmt.Errorf("Sensor error: %s", errorText)
+}
 
 // Opts holds the configuration options. The address must be 0x5A or 0x5B.
 type Opts struct {
@@ -172,8 +189,8 @@ func (d *Dev) GetMeasurementModeRegister() (MeasurementModeParams, error) {
 		return MeasurementModeParams{}, err
 	}
 	mode := MeasurementMode(r[0] >> 4)
-	threshold := (r[0]&4 == 1)
-	interrupt := (r[0]&8 == 1)
+	threshold := (r[0]&4 == 4)
+	interrupt := (r[0]&8 == 8)
 
 	return MeasurementModeParams{MeasurementMode: mode, GenerateInterrupt: interrupt, UseThreshold: threshold}, nil
 }
@@ -278,11 +295,30 @@ func (d *Dev) SetBaseline(baseline []byte) error {
 
 // SensorValues represents data read from the sensor.
 // Data are populated based on NeededData parameter.
+//
+// Sensor provides eCO2 measurement in range: 400ppm to 8192ppm,
+// and VOC measurement in range: 0ppb to 1187ppb.
+//
+// Sensing resistor's current is between 0-63uA, and voltage 0-1.65V.
+//
+// Status represents sensor's status register.
+// 		1001 0110
+// 		|||||||||
+// 		||||||| \- 1 = There is an error.
+// 		|||||| \- Reserved.
+// 		||||| \- Reserved.
+// 		|||| \- 1 = Data ready.
+// 		||| \- 1 = Valid application firmware loaded.
+// 		|| \- Reserved.
+// 		| \- Reserved.
+// 		 \- 0 = Firmware in boot mode, 1 Firmware in application mode.
+//
+// Error represents error state of the sensor if available, otherwise is nil.
 type SensorValues struct {
 	ECO2           int
 	VOC            int
 	Status         byte
-	ErrorID        SensorErrorID
+	Error          error
 	RawDataCurrent physic.ElectricCurrent
 	RawDataVoltage physic.ElectricPotential
 }
@@ -317,7 +353,7 @@ func (d *Dev) SensePartial(requested NeededData, values *SensorValues) error {
 		values.Status = read[4]
 	}
 	if requested == ReadAll {
-		values.ErrorID = SensorErrorID(read[5])
+		values.Error = d.errorCodeToError(SensorErrorID(read[5]))
 		values.RawDataCurrent, values.RawDataVoltage = valuesFromRawData(read[6:])
 	}
 
@@ -336,6 +372,14 @@ func valuesFromRawData(data []byte) (physic.ElectricCurrent, physic.ElectricPote
 }
 
 // FwVersions is a strcutre which aggregates all different versions of sensors features.
+//
+// HWIdentifier - for family of CCS81x should be 0x81.
+//
+// HWVersion - hardware major and minor version: 0x1X.
+//
+// BootVersion - version of firmware bootloader in form Major.Minor.Trivial.
+//
+// ApplicationVersion - version of firmware application in form Major.Minor.Trivial.
 type FwVersions struct {
 	HWIdentifier       byte
 	HWVersion          byte

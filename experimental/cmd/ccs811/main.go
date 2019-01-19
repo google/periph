@@ -19,10 +19,6 @@ import (
 	"periph.io/x/periph/host"
 )
 
-func justOneCommand(*flag.Flag) {
-
-}
-
 func main() {
 	i2cID := flag.String("i2c", "", "I²C bus to use (default, uses the first I²C found)")
 	i2cAddr := flag.Uint("ia", 0x5A, "I²C bus address to use; either 0x5A (90, default) or 0x5B (91)")
@@ -134,7 +130,7 @@ func main() {
 		fmt.Println()
 		fmt.Print("Error: ")
 		if values.Status&1 == 1 {
-			printByteAsNibble(byte(values.ErrorID))
+			fmt.Print(values.Error)
 		} else {
 			fmt.Print("N/A")
 		}
