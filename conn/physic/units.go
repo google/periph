@@ -618,7 +618,7 @@ const (
 	minForce Force = -((1 << 63) - 1)
 )
 
-// Frequency is a measurement of cycle per second, stored as an int32 micro
+// Frequency is a measurement of cycle per second, stored as an int64 micro
 // Hertz.
 //
 // The highest representable value is 9.2THz.
@@ -665,16 +665,39 @@ func (f *Frequency) Set(s string) error {
 	return nil
 }
 
+// Period returns the duration of one cycle at this frequency.
+//
+// Frequency above GigaHertz cannot be represented as Duration.
+//
+// A 0Hz frequency returns a 0s period.
+func (f Frequency) Period() time.Duration {
+	if f == 0 {
+		return 0
+	}
+	if f < 0 {
+		return (time.Second*time.Duration(Hertz) - time.Duration(f/2)) / time.Duration(f)
+	}
+	return (time.Second*time.Duration(Hertz) + time.Duration(f/2)) / time.Duration(f)
+}
+
 // Duration returns the duration of one cycle at this frequency.
+//
+// Deprecated: This method is removed in v4.0.0. Use Period() instead.
 func (f Frequency) Duration() time.Duration {
-	// Note: Duration() should have been named Period().
-	// TODO(maruel): Rounding should be fine-tuned.
-	return time.Second * time.Duration(Hertz) / time.Duration(f)
+	return f.Period()
 }
 
 // PeriodToFrequency returns the frequency for a period of this interval.
-func PeriodToFrequency(t time.Duration) Frequency {
-	return Frequency(time.Second) * Hertz / Frequency(t)
+//
+// A 0s period returns a 0Hz frequency.
+func PeriodToFrequency(p time.Duration) Frequency {
+	if p == 0 {
+		return 0
+	}
+	if p < 0 {
+		return (Frequency(time.Second)*Hertz - Frequency(p/2)) / Frequency(p)
+	}
+	return (Frequency(time.Second)*Hertz + Frequency(p/2)) / Frequency(p)
 }
 
 const (

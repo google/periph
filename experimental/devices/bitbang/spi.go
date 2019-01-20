@@ -73,7 +73,7 @@ func (s *SPI) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, er
 	defer s.spiConn.mu.Unlock()
 	s.spiConn.freqDev = f
 	if s.spiConn.freqDev != 0 && (s.spiConn.freqPort == 0 || s.spiConn.freqDev < s.spiConn.freqPort) {
-		s.spiConn.halfCycle = f.Duration() / 2
+		s.spiConn.halfCycle = f.Period() / 2
 	}
 	s.spiConn.mode = mode
 	s.spiConn.bits = bits
@@ -101,7 +101,7 @@ func (s *SPI) LimitSpeed(f physic.Frequency) error {
 	defer s.spiConn.mu.Unlock()
 	s.spiConn.freqPort = f
 	if s.spiConn.freqDev == 0 || s.spiConn.freqPort < s.spiConn.freqDev {
-		s.spiConn.halfCycle = f.Duration() / 2
+		s.spiConn.halfCycle = f.Period() / 2
 	}
 	return nil
 }
