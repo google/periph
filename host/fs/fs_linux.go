@@ -134,28 +134,26 @@ func (e *event) wait(timeoutms int) (int, error) {
 // One OS thread is needed for all the events. This is more efficient on single
 // core system.
 type eventsListener struct {
-	wg sync.WaitGroup
-
-	mu      sync.Mutex
-	closing bool
 	// file descriptor of the epoll handle itself.
 	epollFd int
 	// pipes to wake up the loop()
-	r, w *os.File
-	// mapping of file descriptors to wait on with their corresponding channels.
-	fds    map[int32]chan<- time.Time
+	r, w   *os.File
 	wakeUp <-chan time.Time
+
+	// Mapping of file descriptors to wait on with their corresponding channels.
+	mu  sync.Mutex
+	fds map[int32]chan<- time.Time
 }
 
 // init must be called on a fresh instance.
 func (e *eventsListener) init() error {
-	e.mu.Lock()
-	if e.epollFd != 0 {
+	// In theory this check should be done with a lock but in practice this is
+	// not necessary, as this value is only set with a lock.
+	if e.fds != nil {
 		// Was already initialized.
-		e.mu.Unlock()
 		return nil
 	}
-	e.closing = false
+	e.mu.Lock()
 	var err error
 	e.epollFd, err = syscall.EpollCreate(1)
 	switch {
@@ -164,67 +162,35 @@ func (e *eventsListener) init() error {
 	case err.Error() == "function not implemented":
 		// Some arch (arm64) do not implement EpollCreate().
 		if e.epollFd, err = syscall.EpollCreate1(0); err != nil {
+			e.mu.Unlock()
 			return err
 		}
 	default:
+		e.mu.Unlock()
 		return err
 	}
 	e.r, e.w, err = os.Pipe()
-	e.fds = map[int32]chan<- time.Time{}
 	// Only need epollIN. epollPRI has no effect on pipes.
 	const flags = epollET | epollIN
 	if err := e.addFdInner(e.r.Fd(), flags); err != nil {
+		// This object will not be reusable at this point.
+		e.mu.Unlock()
 		return err
 	}
 	wakeUp := make(chan time.Time)
-	e.fds[int32(e.r.Fd())] = wakeUp
 	e.wakeUp = wakeUp
-	// The mutex is still held after this function exits, it's loop() that will
-	// release the mutex.
+	e.fds = map[int32]chan<- time.Time{}
+	e.fds[int32(e.r.Fd())] = wakeUp
+	// The mutexes are still held after this function exits, it's loop() that will
+	// release the mutexes.
 	//
 	// This forces loop() to be started before addFd() can be called by users.
-	e.wg.Add(1)
 	go e.loop()
 	return nil
 }
 
-// stopLoop releases the epoll resource and terminates the polling loop.
-//
-// This is used in unit tests only.
-func (e *eventsListener) stopLoop() error {
-	e.mu.Lock()
-	if e.epollFd == 0 {
-		// Was already closed.
-		e.mu.Unlock()
-		return nil
-	}
-	if len(e.fds) != 1 {
-		// Disallow closing if there is any listener, as wakeUpLoop() could
-		// deadlock otherwise.
-		e.mu.Unlock()
-		return errors.New("cannot stop loop() while there's an active listener")
-	}
-	e.closing = true
-	e.mu.Unlock()
-	// Wake up the poller so it notices it should quit.
-	e.wakeUpLoop(nil)
-	// It is important to wait for the loop() function to exit, as EpollWait()
-	// will not return on a closed file handle.
-	e.wg.Wait()
-	e.mu.Lock()
-	_ = e.w.Close()
-	e.w = nil
-	_ = e.r.Close()
-	e.r = nil
-	err := syscall.Close(e.epollFd)
-	e.epollFd = 0
-	e.mu.Unlock()
-	return err
-}
-
 // loop is the main event loop.
 func (e *eventsListener) loop() {
-	defer e.wg.Done()
 	var events []syscall.EpollEvent
 	type lookup struct {
 		c     chan<- time.Time
@@ -238,14 +204,9 @@ func (e *eventsListener) loop() {
 		if len(events) < len(e.fds) {
 			events = make([]syscall.EpollEvent, len(e.fds))
 		}
-		closing := e.closing
 		e.mu.Unlock()
 		first = false
 
-		if closing {
-			// We're done.
-			return
-		}
 		if len(events) == 0 {
 			panic("internal error: there's should be at least one pipe")
 		}
@@ -368,13 +329,6 @@ func (e *eventsListener) removeFd(fd uintptr) error {
 //
 // Must not be called with the lock held.
 func (e *eventsListener) wakeUpLoop(c <-chan time.Time) time.Time {
-	e.mu.Lock()
-	running := e.epollFd != 0
-	e.mu.Unlock()
-	if !running {
-		// The loop is not running, nothing to wake up.
-		return time.Now()
-	}
 	// TODO(maruel): Figure out a way to wake up that doesn't require emptying.
 	var b [1]byte
 	_, _ = e.w.Write(b[:])

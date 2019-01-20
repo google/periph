@@ -26,8 +26,7 @@ func TestEpollEvent_String(t *testing.T) {
 
 func TestAddFd_Zero(t *testing.T) {
 	// We assume this is a bad file descriptor.
-	ev, cancelEv := getListener(t)
-	defer cancelEv()
+	ev := getListener(t)
 
 	const flags = epollET | epollPRI
 	if err := ev.addFd(0xFFFFFFFF, make(chan time.Time), flags); err == nil || err.Error() != "bad file descriptor" {
@@ -37,8 +36,7 @@ func TestAddFd_Zero(t *testing.T) {
 
 func TestAddFd_File(t *testing.T) {
 	// listen cannot listen to a file.
-	ev, cancelEv := getListener(t)
-	defer cancelEv()
+	ev := getListener(t)
 
 	f, err := ioutil.TempFile("", "periph_fs")
 	if err != nil {
@@ -58,8 +56,7 @@ func TestAddFd_File(t *testing.T) {
 
 func TestListen_Pipe(t *testing.T) {
 	start := time.Now()
-	ev, cancelEv := getListener(t)
-	defer cancelEv()
+	ev := getListener(t)
 
 	r, w, err := os.Pipe()
 	if err != nil {
@@ -101,7 +98,7 @@ func TestListen_Pipe(t *testing.T) {
 
 func TestListen_Socket(t *testing.T) {
 	start := time.Now()
-	ev, _ := getListener(t)
+	ev := getListener(t)
 
 	ln, err := net.ListenTCP("tcp4", nil)
 	if err != nil {
@@ -194,25 +191,17 @@ func TestListen_Socket(t *testing.T) {
 	}
 }
 
-func TestWakeUpLoop(t *testing.T) {
-	// Make sure it doesn't hang when the loop is not running.
-	ev := &eventsListener{}
-	ev.wakeUpLoop(nil)
-}
-
 //
 
-// getListener returns a preinitialized eventsListenenr
-func getListener(t *testing.T) (*eventsListener, func()) {
+// getListener returns a preinitialized eventsListener.
+//
+// Note: This object creates a goroutine once initialized that will leak.
+func getListener(t *testing.T) *eventsListener {
 	ev := &eventsListener{}
 	if err := ev.init(); err != nil {
 		t.Fatal(err)
 	}
-	return ev, func() {
-		if err := ev.stopLoop(); err != nil {
-			t.Fatal(err)
-		}
-	}
+	return ev
 }
 
 func expectChan(t *testing.T, c <-chan time.Time, start time.Time) {
