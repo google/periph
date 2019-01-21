@@ -137,6 +137,13 @@ func TestFrequency_Period(t *testing.T) {
 	}
 }
 
+func TestFrequency_Duration(t *testing.T) {
+	// TODO(maruel): To be removed in v4.0.0.
+	if MicroHertz.Duration() != MicroHertz.Period() {
+		t.Fatal("should have the same result")
+	}
+}
+
 func TestFrequency_PeriodToFrequency(t *testing.T) {
 	data := []struct {
 		in       time.Duration
@@ -665,36 +672,34 @@ func TestAtod(t *testing.T) {
 		{"-+100ma", decimal{}, 0},
 	}
 
-	for _, tt := range succeeds {
+	for i, tt := range succeeds {
 		got, n, err := atod(tt.in)
-
 		if got != tt.expected {
-			t.Errorf("case atod(\"%s\") got %v expected %v", tt.in, got, tt.expected)
+			t.Errorf("#%d: case atod(\"%s\") got %v expected %v", i, tt.in, got, tt.expected)
 		}
 		if err != nil {
-			t.Errorf("case atod(\"%s\") unexpected expected error %v", tt.in, err)
+			t.Errorf("#%d: case atod(\"%s\") unexpected expected error %v", i, tt.in, err)
 		}
 		if n != tt.n {
-			t.Errorf("case atod(\"%s\") expected to consume %d char but used %d", tt.in, tt.n, n)
+			t.Errorf("#%d: case atod(\"%s\") expected to consume %d char but used %d", i, tt.in, tt.n, n)
 		}
 	}
 
-	for _, tt := range fails {
+	for i, tt := range fails {
 		got, n, err := atod(tt.in)
-
 		if got != tt.expected {
-			t.Errorf("case atod(\"%s\") got %v expected %v", tt.in, got, tt.expected)
+			t.Errorf("#%d: case atod(\"%s\") got %v expected %v", i, tt.in, got, tt.expected)
 		}
 		if err == nil {
-			t.Errorf("case atod(\"%s\") expected error %v", tt.in, err)
+			t.Errorf("#%d: case atod(\"%s\") expected error %v", i, tt.in, err)
 		}
 		if n != tt.n {
-			t.Errorf("case atod(\"%s\") expected to consume %d char but used %d", tt.in, tt.n, n)
+			t.Errorf("#%d: case atod(\"%s\") expected to consume %d char but used %d", i, tt.in, tt.n, n)
 		}
 	}
 }
 
-func TestDoti(t *testing.T) {
+func TestDtoi(t *testing.T) {
 	const (
 		negative = true
 		positive = false
@@ -727,38 +732,35 @@ func TestDoti(t *testing.T) {
 	}
 
 	fails := []struct {
-		name     string
-		in       decimal
-		expected int64
+		name string
+		in   decimal
 	}{
-		{"max+1", decimal{9223372036854775808, 0, positive}, 9223372036854775807},
-		{"-max-1", decimal{9223372036854775808, 0, negative}, -9223372036854775807},
-		{"exponet too large for int64", decimal{123, 20, positive}, 0},
-		{"exponet too small for int64", decimal{123, -20, positive}, 0},
-		{"max*10^1", decimal{9223372036854775807, 1, positive}, 9223372036854775807},
-		{"-max*10^1", decimal{9223372036854775807, 1, negative}, -9223372036854775807},
-		{"overflow", decimal{7588728005190, 9, positive}, 9223372036854775807},
+		{"max+1", decimal{9223372036854775808, 0, positive}},
+		{"-max-1", decimal{9223372036854775808, 0, negative}},
+		{"exponent too large for int64", decimal{123, 20, positive}},
+		{"exponent too large negative for int64", decimal{123, -20, positive}},
+		{"max*10^1", decimal{9223372036854775807, 1, positive}},
+		{"-max*10^1", decimal{9223372036854775807, 1, negative}},
+		{"overflow", decimal{7588728005190, 9, positive}},
 	}
 
-	for _, tt := range succeeds {
-		got, err := dtoi(tt.in, 0)
-
+	for i, tt := range succeeds {
+		got, overflow := dtoi(tt.in, 0)
 		if got != tt.expected {
-			t.Errorf("case dtoi() %s got %v expected %v", tt.name, got, tt.expected)
+			t.Errorf("#%d: case dtoi() %s got %v expected %v", i, tt.name, got, tt.expected)
 		}
-		if err != nil {
-			t.Errorf("case dtoi() %s got an unexpected error %v", tt.name, err)
+		if overflow {
+			t.Errorf("#%d: case dtoi() %s got an unexpected overflow", i, tt.name)
 		}
 	}
 
-	for _, tt := range fails {
-		got, err := dtoi(tt.in, 0)
-
-		if got != tt.expected {
-			t.Errorf("case dtoi() %s got %v expected %v", tt.name, got, tt.expected)
+	for i, tt := range fails {
+		got, overflow := dtoi(tt.in, 0)
+		if got != 0 {
+			t.Errorf("#%d: case dtoi() %s got %v expected %v", i, tt.name, got, 0)
 		}
-		if err == nil {
-			t.Errorf("case dtoi() %s expected %v but got nil", tt.name, err)
+		if !overflow {
+			t.Errorf("#%d: case dtoi() %s expected overflow", i, tt.name)
 		}
 	}
 }
@@ -908,23 +910,23 @@ func Test_decimalMulScale(t *testing.T) {
 		},
 	}
 
-	for _, tt := range succeeds {
+	for i, tt := range succeeds {
 		got, loss := decimalMul(tt.a, tt.b)
 		if loss != tt.loss {
-			t.Errorf("decimalMulScale(%v,%v) expected %d loss but got %d", tt.a, tt.b, tt.loss, loss)
+			t.Errorf("#%d: decimalMulScale(%v,%v) expected %d loss but got %d", i, tt.a, tt.b, tt.loss, loss)
 		}
 		if got != tt.expect {
-			t.Errorf("decimalMulScale(%v,%v) got: %v expected: %v", tt.a, tt.b, got, tt.expect)
+			t.Errorf("#%d: decimalMulScale(%v,%v) got: %v expected: %v", i, tt.a, tt.b, got, tt.expect)
 		}
 	}
 
-	for _, tt := range fails {
+	for i, tt := range fails {
 		got, loss := decimalMul(tt.a, tt.b)
 		if loss != tt.loss {
-			t.Errorf("decimalMulScale(%v,%v) expected %d loss but got %d", tt.a, tt.b, tt.loss, loss)
+			t.Errorf("#%d: decimalMulScale(%v,%v) expected %d loss but got %d", i, tt.a, tt.b, tt.loss, loss)
 		}
 		if got != tt.expect {
-			t.Errorf("decimalMulScale(%v,%v) got: %v expected: %v", tt.a, tt.b, got, tt.expect)
+			t.Errorf("#%d: decimalMulScale(%v,%v) got: %v expected: %v", i, tt.a, tt.b, got, tt.expect)
 		}
 	}
 }
@@ -947,11 +949,10 @@ func TestPrefix(t *testing.T) {
 		{"giga", 'G', giga, 1},
 		{"tera", 'T', tera, 1},
 	}
-	for _, tt := range tests {
+	for i, tt := range tests {
 		got, n := parseSIPrefix(tt.prefix)
-
 		if got != tt.want || n != tt.n {
-			t.Errorf("wanted prefix %d, and len %d, but got prefix %d, and len %d", tt.want, tt.n, got, n)
+			t.Errorf("#%d: wanted prefix %d, and len %d, but got prefix %d, and len %d", i, tt.want, tt.n, got, n)
 		}
 	}
 }
@@ -962,15 +963,12 @@ func TestParseError(t *testing.T) {
 		err  error
 		want string
 	}{
-		{"empty", &parseError{msg: "", err: nil}, "parse error"},
-		{"empty", &parseError{msg: "", err: errors.New("test")}, "test"},
-		{"noUnits", noUnits("someunit"), "no units provided, need someunit"},
+		{"empty", &parseError{errors.New("test")}, "test"},
+		{"noUnits", noUnitErr("someunit"), "no unit provided; need someunit"},
 	}
-	for _, tt := range tests {
-		got := tt.err.Error()
-
-		if got != tt.want {
-			t.Errorf("wanted err string:\n%s but got:\n%s", tt.want, got)
+	for i, tt := range tests {
+		if got := tt.err.Error(); got != tt.want {
+			t.Errorf("#%d: not the expected error.\nwanted: %s\ngot:    %s", i, tt.want, got)
 		}
 	}
 }
@@ -1070,30 +1068,27 @@ func TestValueOfUnitString(t *testing.T) {
 		{string([]byte{0x31, 0x01}), nano}, // 0x01 is a invalid utf8 start byte.
 	}
 
-	for _, tt := range succeeds {
+	for i, tt := range succeeds {
 		got, used, err := valueOfUnitString(tt.in, tt.uintbase)
-
 		if got != tt.expected {
-			t.Errorf("valueOfUnitString(%s,%d) wanted: %v(%d) but got: %v(%d)", tt.in, tt.uintbase, tt.expected, tt.expected, got, got)
+			t.Errorf("#%d: valueOfUnitString(%s,%d) wanted: %v(%d) but got: %v(%d)", i, tt.in, tt.uintbase, tt.expected, tt.expected, got, got)
 		}
 		if used != tt.usedChars {
-			t.Errorf("valueOfUnitString(%s,%d) used %d chars but should use: %d chars", tt.in, tt.uintbase, used, tt.usedChars)
+			t.Errorf("#%d: valueOfUnitString(%s,%d) used %d chars but should use: %d chars", i, tt.in, tt.uintbase, used, tt.usedChars)
 		}
 		if err != nil {
-			t.Errorf("valueOfUnitString(%s,%d) unexpected error: %v", tt.in, tt.uintbase, err)
+			t.Errorf("#%d: valueOfUnitString(%s,%d) unexpected error: %v", i, tt.in, tt.uintbase, err)
 		}
 	}
 
-	for _, tt := range fails {
-		_, _, err := valueOfUnitString(tt.in, tt.prefix)
-
-		if err == nil {
-			t.Errorf("valueOfUnitString(%s,%d) expected an error", tt.in, tt.prefix)
+	for i, tt := range fails {
+		if _, _, err := valueOfUnitString(tt.in, tt.prefix); err == nil {
+			t.Errorf("#%d: valueOfUnitString(%s,%d) expected an error", i, tt.in, tt.prefix)
 		}
 	}
 }
 
-func TestAngleSet(t *testing.T) {
+func TestAngle_Set(t *testing.T) {
 	succeeds := []struct {
 		in       string
 		expected Angle
@@ -1106,11 +1101,13 @@ func TestAngleSet(t *testing.T) {
 		{"100urad", 100 * MicroRadian},
 		{"1µrad", 1 * MicroRadian},
 		{"10µrad", 10 * MicroRadian},
+		{"10µRad", 10 * MicroRadian},
 		{"100µrad", 100 * MicroRadian},
 		{"1mrad", 1 * MilliRadian},
 		{"10mrad", 10 * MilliRadian},
 		{"100mrad", 100 * MilliRadian},
 		{"1rad", 1 * Radian},
+		{"1Rad", 1 * Radian},
 		{"10rad", 10 * Radian},
 		{"100rad", 100 * Radian},
 		{"1krad", 1000 * Radian},
@@ -1124,7 +1121,9 @@ func TestAngleSet(t *testing.T) {
 		{"-12.345rad", -12345 * MilliRadian},
 		{fmt.Sprintf("%dnrad", maxAngle), maxAngle},
 		{"1deg", 1 * Degree},
+		{"1Deg", 1 * Degree},
 		{"1Mdeg", 1000000 * Degree},
+		{"1MDeg", 1000000 * Degree},
 		{"100Gdeg", 100000000000 * Degree},
 		{"500Gdeg", 500000000000 * Degree},
 		{maxAngle.String(), 528460276055 * Degree},
@@ -1138,28 +1137,20 @@ func TestAngleSet(t *testing.T) {
 		err string
 	}{
 		{
-			"10000000000Tdeg",
-			"exponent exceeds int64",
-		},
-		{
-			"10Trad",
-			"exponent exceeds int64",
-		},
-		{
 			"10Erad",
-			"contains unknown unit prefix \"E\". valid prefixes for \"Rad\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit prefix; valid prefixes for \"rad\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10Exarad",
-			"contains unknown unit prefix \"Exa\". valid prefixes for \"Rad\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit prefix; valid prefixes for \"rad\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10eRadianE",
-			"contains unknown unit prefix \"e\". valid prefixes for \"Rad\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit provided; need Rad, Deg or °",
 		},
 		{
 			"10",
-			"no units provided, need Rad",
+			"no unit provided; need Rad, Deg or °",
 		},
 		{
 			fmt.Sprintf("%dnrad", uint64(maxAngle)+1),
@@ -1179,6 +1170,7 @@ func TestAngleSet(t *testing.T) {
 		},
 		{
 			"-9.223372036854775808Grad",
+			// TODO(maruel): Investigate.
 			"minimum value is -528460276055°",
 		},
 		{
@@ -1186,40 +1178,40 @@ func TestAngleSet(t *testing.T) {
 			"maximum value is 528460276055°",
 		},
 		{
-			"9.224Grad",
-			"maximum value is 528460276055°",
+			"9.224GRad",
+			"maximum value is 9.223GRad",
 		},
 		{
-			"-9.224Grad",
-			"minimum value is -528460276055°",
+			"-9.224GRad",
+			"minimum value is -9.223GRad",
 		},
 		{
-			"1cup",
-			"\"cup\" is not a valid unit for physic.Angle",
+			"1random",
+			"unknown unit provided; need Rad, Deg or °",
 		},
 		{
 			"rad",
-			"does not contain number",
+			"not a number",
 		},
 		{
 			"RPM",
-			"does not contain number or unit \"Rad\"",
+			"does not contain number or unit Rad, Deg or °",
 		},
 		{
 			"++1rad",
-			"multiple plus symbols ++1rad",
+			"contains multiple plus symbols",
 		},
 		{
 			"--1rad",
-			"multiple minus symbols --1rad",
+			"contains multiple minus symbols",
 		},
 		{
 			"+-1rad",
-			"can't contain both plus and minus symbols +-1rad",
+			"contains both plus and minus symbols",
 		},
 		{
 			"1.1.1.1rad",
-			"multiple decimal points 1.1.1.1rad",
+			"contains multiple decimal points",
 		},
 		{
 			string([]byte{0x33, 0x01}),
@@ -1227,24 +1219,20 @@ func TestAngleSet(t *testing.T) {
 		},
 	}
 
-	for _, tt := range succeeds {
+	for i, tt := range succeeds {
 		var got Angle
 		if err := got.Set(tt.in); err != nil {
-			t.Errorf("Angle.Set(%s) got unexpected error: %v", tt.in, err)
+			t.Errorf("#%d: Angle.Set(%s) got unexpected error: %v", i, tt.in, err)
 		}
 		if got != tt.expected {
-			t.Errorf("Angle.Set(%s) expected: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+			t.Errorf("#%d: Angle.Set(%s) expected: %v(%d) but got: %v(%d)", i, tt.in, tt.expected, tt.expected, got, got)
 		}
 	}
 
-	for _, tt := range fails {
+	for i, tt := range fails {
 		var got Angle
-		if err := got.Set(tt.in); err != nil {
-			if err.Error() != tt.err {
-				t.Errorf("Angle.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
-			}
-		} else {
-			t.Errorf("Angle.Set(%s) expected error: %s but got none", tt.in, tt.err)
+		if err := got.Set(tt.in); err == nil || err.Error() != tt.err {
+			t.Errorf("#%d: Angle.Set(%s) \nexpected: %s\ngot:      %s", i, tt.in, tt.err, err)
 		}
 	}
 }
@@ -1295,11 +1283,14 @@ func TestDistance_Set(t *testing.T) {
 		{"-9.223372036854775807Gm", -9223372036854775807 * NanoMetre},
 		{"1Mm", 1 * MegaMetre},
 		{"5Mile", 8046720000000 * NanoMetre},
+		{"5mile", 8046720000000 * NanoMetre},
 		{"3ft", 914400000 * NanoMetre},
 		{"10Yard", 9144000000 * NanoMetre},
 		{"5731.137678988Mile", 9223372036853264 * NanoMetre},
 		{"-5731.137678988Mile", -9223372036853264 * NanoMetre},
 		{"1.008680231502051MYard", 922337203685475 * NanoMetre},
+		{"1Yard", 914400 * MicroMetre},
+		{"1yard", 914400 * MicroMetre},
 		{"-1008680.231502051Yard", -922337203685475 * NanoMetre},
 		{"3026040.694506158ft", 922337203685477 * NanoMetre},
 		{"-3.026040694506158Mft", -922337203685477 * NanoMetre},
@@ -1313,23 +1304,23 @@ func TestDistance_Set(t *testing.T) {
 	}{
 		{
 			"10Tm",
-			"exponent exceeds int64",
+			"maximum value is 9.223Gm",
 		},
 		{
 			"10Em",
-			"contains unknown unit prefix \"E\". valid prefixes for \"m\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit prefix; valid prefixes for \"m\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10Exam",
-			"contains unknown unit prefix \"Exa\". valid prefixes for \"m\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit prefix; valid prefixes for \"m\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10eMetreE",
-			"contains unknown unit prefix \"e\". valid prefixes for \"m\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit provided; need m, Mile, in, ft or Yard",
 		},
 		{
 			"10",
-			"no units provided, need m, Mile, in, ft or Yard",
+			"no unit provided; need m, Mile, in, ft or Yard",
 		},
 		{
 			"9.3Gm",
@@ -1385,7 +1376,7 @@ func TestDistance_Set(t *testing.T) {
 		},
 		{
 			"-3.026040694506159Mft",
-			"minimum value is 3 Million ft",
+			"minimum value is -3 Million ft",
 		},
 		{
 			"36.312488334073901Min",
@@ -1393,43 +1384,39 @@ func TestDistance_Set(t *testing.T) {
 		},
 		{
 			"-36312488.334073901in",
-			"minimum value is 36 Million inch",
+			"minimum value is -36 Million inch",
 		},
 		{
 			"1random",
-			"contains unknown unit prefix \"rando\". valid prefixes for \"m\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit prefix; valid prefixes for \"m\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"m",
-			"does not contain number",
+			"not a number",
 		},
 		{
 			"RPM",
-			"does not contain number",
+			"does not contain number or unit m, Mile, in, ft or Yard",
 		},
 		{
 			"cd",
-			"does not contain number or unit \"m\"",
-		},
-		{
-			"1Jaunt",
-			"\"Jaunt\" is not a valid unit for physic.Distance",
+			"does not contain number or unit m, Mile, in, ft or Yard",
 		},
 		{
 			"++1m",
-			"multiple plus symbols ++1m",
+			"contains multiple plus symbols",
 		},
 		{
 			"--1m",
-			"multiple minus symbols --1m",
+			"contains multiple minus symbols",
 		},
 		{
 			"+-1m",
-			"can't contain both plus and minus symbols +-1m",
+			"contains both plus and minus symbols",
 		},
 		{
 			"1.1.1.1m",
-			"multiple decimal points 1.1.1.1m",
+			"contains multiple decimal points",
 		},
 		{
 			string([]byte{0x31, 0x01}),
@@ -1437,24 +1424,20 @@ func TestDistance_Set(t *testing.T) {
 		},
 	}
 
-	for _, tt := range succeeds {
+	for i, tt := range succeeds {
 		var got Distance
 		if err := got.Set(tt.in); err != nil {
-			t.Errorf("Distance.Set(%s) got unexpected error: %v", tt.in, err)
+			t.Errorf("#%d: Distance.Set(%s) got unexpected error: %v", i, tt.in, err)
 		}
 		if got != tt.expected {
-			t.Errorf("Distance.Set(%s) expected: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+			t.Errorf("#%d: Distance.Set(%s) expected: %v(%d) but got: %v(%d)", i, tt.in, tt.expected, tt.expected, got, got)
 		}
 	}
 
-	for _, tt := range fails {
+	for i, tt := range fails {
 		var got Distance
-		if err := got.Set(tt.in); err != nil {
-			if err.Error() != tt.err {
-				t.Errorf("Distance.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
-			}
-		} else {
-			t.Errorf("Distance.Set(%s) expected error: %s but got none", tt.in, tt.err)
+		if err := got.Set(tt.in); err == nil || err.Error() != tt.err {
+			t.Errorf("#%d: Distance.Set(%s) \nexpected: %s\ngot:      %s", i, tt.in, tt.err, err)
 		}
 	}
 }
@@ -1488,9 +1471,11 @@ func TestElectricPotential_Set(t *testing.T) {
 		{"10mV", 10 * MilliVolt},
 		{"100mV", 100 * MilliVolt},
 		{"1V", 1 * Volt},
+		{"1v", 1 * Volt},
 		{"10V", 10 * Volt},
 		{"100V", 100 * Volt},
 		{"1kV", 1 * KiloVolt},
+		{"1kv", 1 * KiloVolt},
 		{"10kV", 10 * KiloVolt},
 		{"100kV", 100 * KiloVolt},
 		{"1MV", 1 * MegaVolt},
@@ -1510,19 +1495,19 @@ func TestElectricPotential_Set(t *testing.T) {
 	}{
 		{
 			"10TV",
-			"exponent exceeds int64",
+			"maximum value is 9.223GV",
 		},
 		{
 			"10EV",
-			"contains unknown unit prefix \"E\". valid prefixes for \"V\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit prefix; valid prefixes for \"V\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10eVoltE",
-			"contains unknown unit prefix \"e\". valid prefixes for \"V\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit provided; need V",
 		},
 		{
 			"10",
-			"no units provided, need V",
+			"no unit provided; need V",
 		},
 		{
 			"9223372036854775808",
@@ -1550,48 +1535,48 @@ func TestElectricPotential_Set(t *testing.T) {
 		},
 		{
 			"1random",
-			"\"random\" is not a valid unit for physic.ElectricPotential",
+			"unknown unit provided; need V",
 		},
 		{
 			"V",
-			"does not contain number",
+			"not a number",
 		},
 		{
 			"RPM",
-			"does not contain number or unit \"V\"",
+			"does not contain number or unit V",
 		},
 		{
 			"++1V",
-			"multiple plus symbols ++1V",
+			"contains multiple plus symbols",
 		},
 		{
 			"--1V",
-			"multiple minus symbols --1V",
+			"contains multiple minus symbols",
 		},
 		{
 			"+-1V",
-			"can't contain both plus and minus symbols +-1V",
+			"contains both plus and minus symbols",
 		},
 		{
 			"1.1.1.1V",
-			"multiple decimal points 1.1.1.1V",
+			"contains multiple decimal points",
 		},
 	}
 
-	for _, tt := range succeeds {
+	for i, tt := range succeeds {
 		var got ElectricPotential
 		if err := got.Set(tt.in); err != nil {
-			t.Errorf("ElectricPotential.Set(%s) got unexpected error: %v", tt.in, err)
+			t.Errorf("#%d: ElectricPotential.Set(%s) got unexpected error: %v", i, tt.in, err)
 		}
 		if got != tt.expected {
-			t.Errorf("ElectricPotential.Set(%s) expected: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+			t.Errorf("#%d: ElectricPotential.Set(%s) expected: %v(%d) but got: %v(%d)", i, tt.in, tt.expected, tt.expected, got, got)
 		}
 	}
 
-	for _, tt := range fails {
+	for i, tt := range fails {
 		var got ElectricPotential
-		if err := got.Set(tt.in); err.Error() != tt.err {
-			t.Errorf("ElectricPotential.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+		if err := got.Set(tt.in); err == nil || err.Error() != tt.err {
+			t.Errorf("#%d: ElectricPotential.Set(%s) \nexpected: %s\ngot:      %s", i, tt.in, tt.err, err)
 		}
 	}
 }
@@ -1625,9 +1610,11 @@ func TestElectricCurrent_Set(t *testing.T) {
 		{"10mA", 10 * MilliAmpere},
 		{"100mA", 100 * MilliAmpere},
 		{"1A", 1 * Ampere},
+		{"1a", 1 * Ampere},
 		{"10A", 10 * Ampere},
 		{"100A", 100 * Ampere},
 		{"1kA", 1 * KiloAmpere},
+		{"1ka", 1 * KiloAmpere},
 		{"10kA", 10 * KiloAmpere},
 		{"100kA", 100 * KiloAmpere},
 		{"1MA", 1 * MegaAmpere},
@@ -1647,19 +1634,19 @@ func TestElectricCurrent_Set(t *testing.T) {
 	}{
 		{
 			"10TA",
-			"exponent exceeds int64",
+			"maximum value is 9.223GA",
 		},
 		{
 			"10EA",
-			"contains unknown unit prefix \"E\". valid prefixes for \"A\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit prefix; valid prefixes for \"A\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10eAmpE",
-			"contains unknown unit prefix \"e\". valid prefixes for \"A\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit provided; need A",
 		},
 		{
 			"10",
-			"no units provided, need A",
+			"no unit provided; need A",
 		},
 		{
 			"922337203685477580",
@@ -1686,49 +1673,49 @@ func TestElectricCurrent_Set(t *testing.T) {
 			"minimum value is -9.223GA",
 		},
 		{
-			"1junk",
-			"\"junk\" is not a valid unit for physic.ElectricCurrent",
+			"1random",
+			"unknown unit provided; need A",
 		},
 		{
 			"A",
-			"does not contain number",
+			"not a number",
 		},
 		{
 			"RPM",
-			"does not contain number or unit \"A\"",
+			"does not contain number or unit A",
 		},
 		{
 			"++1A",
-			"multiple plus symbols ++1A",
+			"contains multiple plus symbols",
 		},
 		{
 			"--1A",
-			"multiple minus symbols --1A",
+			"contains multiple minus symbols",
 		},
 		{
 			"+-1A",
-			"can't contain both plus and minus symbols +-1A",
+			"contains both plus and minus symbols",
 		},
 		{
 			"1.1.1.1A",
-			"multiple decimal points 1.1.1.1A",
+			"contains multiple decimal points",
 		},
 	}
 
-	for _, tt := range succeeds {
+	for i, tt := range succeeds {
 		var got ElectricCurrent
 		if err := got.Set(tt.in); err != nil {
-			t.Errorf("ElectricCurrent.Set(%s) unexpected error: %v", tt.in, err)
+			t.Errorf("#%d: ElectricCurrent.Set(%s) unexpected error: %v", i, tt.in, err)
 		}
 		if got != tt.expected {
-			t.Errorf("ElectricCurrent.Set(%s) wanted: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+			t.Errorf("#%d: ElectricCurrent.Set(%s) wanted: %v(%d) but got: %v(%d)", i, tt.in, tt.expected, tt.expected, got, got)
 		}
 	}
 
-	for _, tt := range fails {
+	for i, tt := range fails {
 		var got ElectricCurrent
-		if err := got.Set(tt.in); err.Error() != tt.err {
-			t.Errorf("ElectricCurrent.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+		if err := got.Set(tt.in); err == nil || err.Error() != tt.err {
+			t.Errorf("#%d: ElectricCurrent.Set(%s) \nexpected: %s\ngot:      %s", i, tt.in, tt.err, err)
 		}
 	}
 }
@@ -1762,6 +1749,7 @@ func TestElectricResistance_Set(t *testing.T) {
 		{"10mOhm", 10 * MilliOhm},
 		{"100mOhm", 100 * MilliOhm},
 		{"1Ohm", 1 * Ohm},
+		{"1ohm", 1 * Ohm},
 		{"10Ohm", 10 * Ohm},
 		{"100Ohm", 100 * Ohm},
 		{"1kOhm", 1 * KiloOhm},
@@ -1784,23 +1772,23 @@ func TestElectricResistance_Set(t *testing.T) {
 	}{
 		{
 			"10TOhm",
-			"exponent exceeds int64",
+			"maximum value is 9.223GΩ",
 		},
 		{
 			"10EOhm",
-			"contains unknown unit prefix \"E\". valid prefixes for \"Ohm\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit prefix; valid prefixes for \"Ohm\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10ExaOhm",
-			"contains unknown unit prefix \"Exa\". valid prefixes for \"Ohm\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit prefix; valid prefixes for \"Ohm\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10eOhmE",
-			"contains unknown unit prefix \"e\". valid prefixes for \"Ohm\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit provided; need Ohm or Ω",
 		},
 		{
 			"10",
-			"no units provided, need Ohm",
+			"no unit provided; need Ohm or Ω",
 		},
 		{
 			"9223372036854775808",
@@ -1828,48 +1816,48 @@ func TestElectricResistance_Set(t *testing.T) {
 		},
 		{
 			"1random",
-			"\"random\" is not a valid unit for physic.ElectricResistance",
+			"unknown unit provided; need Ohm or Ω",
 		},
 		{
 			"Ohm",
-			"does not contain number",
+			"not a number",
 		},
 		{
 			"RPM",
-			"does not contain number or unit \"Ohm\"",
+			"does not contain number or unit Ohm or Ω",
 		},
 		{
 			"++1Ohm",
-			"multiple plus symbols ++1Ohm",
+			"contains multiple plus symbols",
 		},
 		{
 			"--1Ohm",
-			"multiple minus symbols --1Ohm",
+			"contains multiple minus symbols",
 		},
 		{
 			"+-1Ohm",
-			"can't contain both plus and minus symbols +-1Ohm",
+			"contains both plus and minus symbols",
 		},
 		{
 			"1.1.1.1Ohm",
-			"multiple decimal points 1.1.1.1Ohm",
+			"contains multiple decimal points",
 		},
 	}
 
-	for _, tt := range succeeds {
+	for i, tt := range succeeds {
 		var got ElectricResistance
 		if err := got.Set(tt.in); err != nil {
-			t.Errorf("ElectricResistance.Set(%s) got unexpected error: %v", tt.in, err)
+			t.Errorf("#%d: ElectricResistance.Set(%s) got unexpected error: %v", i, tt.in, err)
 		}
 		if got != tt.expected {
-			t.Errorf("ElectricResistance.Set(%s) expected: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+			t.Errorf("#%d: ElectricResistance.Set(%s) expected: %v(%d) but got: %v(%d)", i, tt.in, tt.expected, tt.expected, got, got)
 		}
 	}
 
-	for _, tt := range fails {
+	for i, tt := range fails {
 		var got ElectricResistance
-		if err := got.Set(tt.in); err.Error() != tt.err {
-			t.Errorf("ElectricResistance.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+		if err := got.Set(tt.in); err == nil || err.Error() != tt.err {
+			t.Errorf("#%d: ElectricResistance.Set(%s) \nexpected: %s\ngot:      %s", i, tt.in, tt.err, err)
 		}
 	}
 }
@@ -1885,7 +1873,7 @@ func TestElectricResistance_RoundTrip(t *testing.T) {
 	}
 }
 
-func TestForceSet(t *testing.T) {
+func TestForce_Set(t *testing.T) {
 	succeeds := []struct {
 		in       string
 		expected Force
@@ -1946,28 +1934,28 @@ func TestForceSet(t *testing.T) {
 			"converting to nano Newtons would overflow, consider using nN for maximum precision",
 		},
 		{
-			"100000000000Tlbf",
-			"exponent exceeds int64",
-		},
-		{
 			"10TN",
-			"exponent exceeds int64",
+			"maximum value is 9.223GN",
 		},
 		{
 			"10EN",
-			"contains unknown unit prefix \"E\". valid prefixes for \"N\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit prefix; valid prefixes for \"N\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10ExaN",
-			"contains unknown unit prefix \"Exa\". valid prefixes for \"N\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit prefix; valid prefixes for \"N\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10eNewtonE",
-			"contains unknown unit prefix \"e\". valid prefixes for \"N\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit provided; need N or lbf",
 		},
 		{
 			"10",
-			"no units provided, need N",
+			"no unit provided; need N or lbf",
+		},
+		{
+			"10n",
+			"no unit provided; need N or lbf",
 		},
 		{
 			"9223372036854775808",
@@ -2003,35 +1991,31 @@ func TestForceSet(t *testing.T) {
 		},
 		{
 			"1random",
-			"contains unknown unit prefix \"ra\". valid prefixes for \"N\" are p,n,u,µ,m,k,M,G or T",
-		},
-		{
-			"1cup",
-			"\"cup\" is not a valid unit for physic.Force",
+			"unknown unit provided; need N or lbf",
 		},
 		{
 			"N",
-			"does not contain number",
+			"not a number",
 		},
 		{
 			"RPM",
-			"does not contain number or unit \"N\" or \"lbf\"",
+			"does not contain number or unit N or lbf",
 		},
 		{
 			"++1N",
-			"multiple plus symbols ++1N",
+			"contains multiple plus symbols",
 		},
 		{
 			"--1N",
-			"multiple minus symbols --1N",
+			"contains multiple minus symbols",
 		},
 		{
 			"+-1N",
-			"can't contain both plus and minus symbols +-1N",
+			"contains both plus and minus symbols",
 		},
 		{
 			"1.1.1.1N",
-			"multiple decimal points 1.1.1.1N",
+			"contains multiple decimal points",
 		},
 		{
 			string([]byte{0x33, 0x01}),
@@ -2039,24 +2023,20 @@ func TestForceSet(t *testing.T) {
 		},
 	}
 
-	for _, tt := range succeeds {
+	for i, tt := range succeeds {
 		var got Force
 		if err := got.Set(tt.in); err != nil {
-			t.Errorf("Force.Set(%s) got unexpected error: %v", tt.in, err)
+			t.Errorf("#%d: Force.Set(%s) got unexpected error: %v", i, tt.in, err)
 		}
 		if got != tt.expected {
-			t.Errorf("Force.Set(%s) expected: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+			t.Errorf("#%d: Force.Set(%s) expected: %v(%d) but got: %v(%d)", i, tt.in, tt.expected, tt.expected, got, got)
 		}
 	}
 
-	for _, tt := range fails {
+	for i, tt := range fails {
 		var got Force
-		if err := got.Set(tt.in); err != nil {
-			if err.Error() != tt.err {
-				t.Errorf("Force.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
-			}
-		} else {
-			t.Errorf("Force.Set(%s) expected error: %s but got none", tt.in, tt.err)
+		if err := got.Set(tt.in); err == nil || err.Error() != tt.err {
+			t.Errorf("#%d: Force.Set(%s) \nexpected: %s\ngot:      %s", i, tt.in, tt.err, err)
 		}
 	}
 }
@@ -2086,10 +2066,14 @@ func TestFrequency_Set(t *testing.T) {
 		{"1mHz", 1 * MilliHertz},
 		{"10mHz", 10 * MilliHertz},
 		{"100mHz", 100 * MilliHertz},
+		{"1hz", 1 * Hertz},
 		{"1Hz", 1 * Hertz},
+		{"10", 10 * Hertz},
 		{"10Hz", 10 * Hertz},
 		{"100Hz", 100 * Hertz},
 		{"1kHz", 1 * KiloHertz},
+		{"1khz", 1 * KiloHertz},
+		{"1k", 1 * KiloHertz},
 		{"10kHz", 10 * KiloHertz},
 		{"100kHz", 100 * KiloHertz},
 		{"1MHz", 1 * MegaHertz},
@@ -2111,23 +2095,19 @@ func TestFrequency_Set(t *testing.T) {
 	}{
 		{
 			"10THz",
-			"exponent exceeds int64",
+			"maximum value is 9.223THz",
 		},
 		{
 			"10EHz",
-			"contains unknown unit prefix \"E\". valid prefixes for \"Hz\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit prefix; valid prefixes for \"Hz\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10ExaHz",
-			"contains unknown unit prefix \"Exa\". valid prefixes for \"Hz\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit prefix; valid prefixes for \"Hz\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10eHzE",
-			"contains unknown unit prefix \"e\". valid prefixes for \"Hz\" are p,n,u,µ,m,k,M,G or T",
-		},
-		{
-			"10",
-			"no units provided, need Hz",
+			"unknown unit provided; need Hz",
 		},
 		{
 			"922337203685477580",
@@ -2155,48 +2135,48 @@ func TestFrequency_Set(t *testing.T) {
 		},
 		{
 			"1random",
-			"\"random\" is not a valid unit for physic.Frequency",
+			"unknown unit provided; need Hz",
 		},
 		{
 			"Hz",
-			"does not contain number",
+			"not a number",
 		},
 		{
 			"RPM",
-			"does not contain number or unit \"Hz\"",
+			"does not contain number or unit Hz",
 		},
 		{
 			"++1Hz",
-			"multiple plus symbols ++1Hz",
+			"contains multiple plus symbols",
 		},
 		{
 			"--1Hz",
-			"multiple minus symbols --1Hz",
+			"contains multiple minus symbols",
 		},
 		{
 			"+-1Hz",
-			"can't contain both plus and minus symbols +-1Hz",
+			"contains both plus and minus symbols",
 		},
 		{
 			"1.1.1.1Hz",
-			"multiple decimal points 1.1.1.1Hz",
+			"contains multiple decimal points",
 		},
 	}
 
-	for _, tt := range succeeds {
+	for i, tt := range succeeds {
 		var got Frequency
 		if err := got.Set(tt.in); err != nil {
-			t.Errorf("Frequency.Set(%s) unexpected error: %v", tt.in, err)
+			t.Errorf("#%d: Frequency.Set(%s) unexpected error: %v", i, tt.in, err)
 		}
 		if got != tt.expected {
-			t.Errorf("Frequency.Set(%s) wanted: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+			t.Errorf("#%d: Frequency.Set(%s) wanted: %v(%d) but got: %v(%d)", i, tt.in, tt.expected, tt.expected, got, got)
 		}
 	}
 
-	for _, tt := range fails {
+	for i, tt := range fails {
 		var got Frequency
-		if err := got.Set(tt.in); err.Error() != tt.err {
-			t.Errorf("Frequency.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+		if err := got.Set(tt.in); err == nil || err.Error() != tt.err {
+			t.Errorf("#%d: Frequency.Set(%s) \nexpected: %s\ngot:      %s", i, tt.in, tt.err, err)
 		}
 	}
 }
@@ -2232,6 +2212,8 @@ func TestMass_Set(t *testing.T) {
 		{"-9.223372036854775807Gg", -9223372036854775807},
 		{"20334054lb", maxPoundMass * PoundMass},
 		{"-20334054lb", minPoundMass * PoundMass},
+		{"325344874oz", maxOunceMass * OunceMass},
+		{"-325344874oz", minOunceMass * OunceMass},
 	}
 
 	fails := []struct {
@@ -2239,16 +2221,12 @@ func TestMass_Set(t *testing.T) {
 		err string
 	}{
 		{
-			"10Gg",
-			"exponent exceeds int64",
-		},
-		{
 			"10Eg",
-			"contains unknown unit prefix \"E\". valid prefixes for \"g\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit prefix; valid prefixes for \"g\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10",
-			"no units provided, need g",
+			"no unit provided; need g, lb or oz",
 		},
 		{
 			fmt.Sprintf("%dlb", maxPoundMass+1),
@@ -2292,68 +2270,68 @@ func TestMass_Set(t *testing.T) {
 		},
 		{
 			"1random",
-			"\"random\" is not a valid unit for physic.Mass",
+			"unknown unit provided; need g, lb or oz",
 		},
 		{
 			"g",
-			"does not contain number",
+			"not a number",
 		},
 		{
 			"oz",
-			"does not contain number",
+			"not a number",
 		},
 		{
 			"lb",
-			"does not contain number",
+			"not a number",
 		},
 		{
 			"RPM",
-			"does not contain number or unit \"g\"",
+			"does not contain number or unit g, lb or oz",
 		},
 		{
 			"++1g",
-			"multiple plus symbols ++1g",
+			"contains multiple plus symbols",
 		},
 		{
 			"--1g",
-			"multiple minus symbols --1g",
+			"contains multiple minus symbols",
 		},
 		{
 			"+-1g",
-			"can't contain both plus and minus symbols +-1g",
+			"contains both plus and minus symbols",
 		},
 		{
 			"1.1.1.1g",
-			"multiple decimal points 1.1.1.1g",
+			"contains multiple decimal points",
 		},
 		{
 			string([]byte{0x33, 0x01}),
 			"unexpected end of string",
 		},
 		{
-			"10000000Tlb",
-			errExponentOverflow.Error(),
+			"20334055lb",
+			"maximum value is 20334054lb",
 		},
 		{
-			"10000000Toz",
-			errExponentOverflow.Error(),
+			"325344875oz",
+			"maximum value is 325344874oz",
 		},
 	}
 
-	for _, tt := range succeeds {
+	for i, tt := range succeeds {
 		var got Mass
 		if err := got.Set(tt.in); err != nil {
-			t.Errorf("Mass.Set(%s) unexpected error: %v", tt.in, err)
+			t.Errorf("#%d: Mass.Set(%s) unexpected error: %v", i, tt.in, err)
 		}
 		if got != tt.expected {
-			t.Errorf("Mass.Set(%s) wanted: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+			t.Errorf("#%d: Mass.Set(%s) wanted: %v(%d) but got: %v(%d)", i, tt.in, tt.expected, tt.expected, got, got)
 		}
 	}
 
-	for _, tt := range fails {
+	for i, tt := range fails {
 		var got Mass
-		if err := got.Set(tt.in); err.Error() != tt.err {
-			t.Errorf("Mass.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+		if err := got.Set(tt.in); err == nil || err.Error() != tt.err {
+			t.Errorf("#%d: Mass.Set(%s) \nexpected: %s\ngot:      %s", i, tt.in, tt.err, err)
 		}
 	}
 }
@@ -2409,23 +2387,23 @@ func TestPressure_Set(t *testing.T) {
 	}{
 		{
 			"10TPa",
-			"exponent exceeds int64",
+			"maximum value is 9.223GPa",
 		},
 		{
 			"10EPa",
-			"contains unknown unit prefix \"E\". valid prefixes for \"Pa\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit prefix; valid prefixes for \"Pa\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10ExaPa",
-			"contains unknown unit prefix \"Exa\". valid prefixes for \"Pa\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit prefix; valid prefixes for \"Pa\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10ePascalE",
-			"contains unknown unit prefix \"e\". valid prefixes for \"Pa\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit provided; need Pa",
 		},
 		{
 			"10",
-			"no units provided, need Pa",
+			"no unit provided; need Pa",
 		},
 		{
 			"9223372036854775808",
@@ -2453,48 +2431,48 @@ func TestPressure_Set(t *testing.T) {
 		},
 		{
 			"1random",
-			"\"random\" is not a valid unit for physic.Pressure",
+			"unknown unit provided; need Pa",
 		},
 		{
 			"Pa",
-			"does not contain number",
+			"not a number",
 		},
 		{
 			"RPM",
-			"does not contain number or unit \"Pa\"",
+			"does not contain number or unit Pa",
 		},
 		{
 			"++1Pa",
-			"multiple plus symbols ++1Pa",
+			"contains multiple plus symbols",
 		},
 		{
 			"--1Pa",
-			"multiple minus symbols --1Pa",
+			"contains multiple minus symbols",
 		},
 		{
 			"+-1Pa",
-			"can't contain both plus and minus symbols +-1Pa",
+			"contains both plus and minus symbols",
 		},
 		{
 			"1.1.1.1Pa",
-			"multiple decimal points 1.1.1.1Pa",
+			"contains multiple decimal points",
 		},
 	}
 
-	for _, tt := range succeeds {
+	for i, tt := range succeeds {
 		var got Pressure
 		if err := got.Set(tt.in); err != nil {
-			t.Errorf("Pressure.Set(%s) got unexpected error: %v", tt.in, err)
+			t.Errorf("#%d: Pressure.Set(%s) got unexpected error: %v", i, tt.in, err)
 		}
 		if got != tt.expected {
-			t.Errorf("Pressure.Set(%s) expected: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+			t.Errorf("#%d: Pressure.Set(%s) expected: %v(%d) but got: %v(%d)", i, tt.in, tt.expected, tt.expected, got, got)
 		}
 	}
 
-	for _, tt := range fails {
+	for i, tt := range fails {
 		var got Pressure
-		if err := got.Set(tt.in); err.Error() != tt.err {
-			t.Errorf("Pressure.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+		if err := got.Set(tt.in); err == nil || err.Error() != tt.err {
+			t.Errorf("#%d: Pressure.Set(%s) \nexpected: %s\ngot:      %s", i, tt.in, tt.err, err)
 		}
 	}
 }
@@ -2534,16 +2512,12 @@ func TestRelativeHumidity_Set(t *testing.T) {
 		err string
 	}{
 		{
-			"1000T%rH",
-			"exponent exceeds int64",
-		},
-		{
 			"10E%rH",
-			"contains unknown unit prefix \"E\". valid prefixes for \"%rH\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit prefix; valid prefixes for \"%rH\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10",
-			"no units provided, need %rH",
+			"no unit provided; need %rH or %",
 		},
 		{
 			"21474836.48m%rH",
@@ -2563,54 +2537,52 @@ func TestRelativeHumidity_Set(t *testing.T) {
 		},
 		{
 			"1random",
-			"\"random\" is not a valid unit for physic.RelativeHumidity",
+			"unknown unit provided; need %rH or %",
 		},
 		{
 			"%rH",
-			"does not contain number",
+			"not a number",
 		},
 		{
 			"%",
-			"does not contain number",
+			"not a number",
 		},
 		{
 			"RPM",
-			"does not contain number or unit \"%rH\"",
+			"does not contain number or unit %rH or %",
 		},
 		{
 			"++1%rH",
-			"multiple plus symbols ++1%rH",
+			"contains multiple plus symbols",
 		},
 		{
 			"--1%rH",
-			"multiple minus symbols --1%rH",
+			"contains multiple minus symbols",
 		},
 		{
 			"+-1%rH",
-			"can't contain both plus and minus symbols +-1%rH",
+			"contains both plus and minus symbols",
 		},
 		{
 			"1.1.1.1%rH",
-			"multiple decimal points 1.1.1.1%rH",
+			"contains multiple decimal points",
 		},
 	}
 
-	for _, tt := range succeeds {
+	for i, tt := range succeeds {
 		var got RelativeHumidity
 		if err := got.Set(tt.in); err != nil {
-			t.Errorf("RelativeHumidity.Set(%s) unexpected error: %v", tt.in, err)
+			t.Errorf("#%d: RelativeHumidity.Set(%s) unexpected error: %v", i, tt.in, err)
 		}
 		if got != tt.expected {
-			t.Errorf("RelativeHumidity.Set(%s) wanted: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+			t.Errorf("#%d: RelativeHumidity.Set(%s) wanted: %v(%d) but got: %v(%d)", i, tt.in, tt.expected, tt.expected, got, got)
 		}
 	}
 
-	for _, tt := range fails {
+	for i, tt := range fails {
 		var got RelativeHumidity
-		if err := got.Set(tt.in); err == nil {
-			t.Errorf("RelativeHumidity.Set(%s) \nexpected: error %v but got none", tt.in, tt.err)
-		} else if err.Error() != tt.err {
-			t.Errorf("RelativeHumidity.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+		if err := got.Set(tt.in); err == nil || err.Error() != tt.err {
+			t.Errorf("#%d: RelativeHumidity.Set(%s) \nexpected: %s\ngot:      %s", i, tt.in, tt.err, err)
 		}
 	}
 }
@@ -2667,15 +2639,15 @@ func TestSpeed_Set(t *testing.T) {
 	}{
 		{
 			"10Gm/s",
-			"exponent exceeds int64",
+			"maximum value is 9.223Gm/s",
 		},
 		{
 			"10Em/s",
-			"contains unknown unit prefix \"E\". valid prefixes for \"m/s\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit prefix; valid prefixes for \"m/s\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10",
-			"no units provided, need m/s",
+			"no unit provided; need m/s, mps, kph, fps or mph",
 		},
 		{
 			fmt.Sprintf("%dkph", maxKilometrePerHour+1),
@@ -2719,76 +2691,64 @@ func TestSpeed_Set(t *testing.T) {
 		},
 		{
 			"1random",
-			"\"random\" is not a valid unit for physic.Speed",
+			"unknown unit provided; need m/s, mps, kph, fps or mph",
 		},
 		{
 			"m/s",
-			"does not contain number",
+			"not a number",
 		},
 		{
 			"fps",
-			"does not contain number",
+			"not a number",
 		},
 		{
 			"mph",
-			"does not contain number",
+			"not a number",
 		},
 		{
 			"kph",
-			"does not contain number",
+			"not a number",
 		},
 		{
 			"RPM",
-			"does not contain number or unit \"m/s\"",
+			"does not contain number or unit m/s, mps, kph, fps or mph",
 		},
 		{
 			"++1m/s",
-			"multiple plus symbols ++1m/s",
+			"contains multiple plus symbols",
 		},
 		{
 			"--1m/s",
-			"multiple minus symbols --1m/s",
+			"contains multiple minus symbols",
 		},
 		{
 			"+-1m/s",
-			"can't contain both plus and minus symbols +-1m/s",
+			"contains both plus and minus symbols",
 		},
 		{
 			"1.1.1.1m/s",
-			"multiple decimal points 1.1.1.1m/s",
+			"contains multiple decimal points",
 		},
 		{
 			string([]byte{0x33, 0x01}),
 			"unexpected end of string",
 		},
-		{
-			"10000000Tmph",
-			errExponentOverflow.Error(),
-		},
-		{
-			"10000000Tfps",
-			errExponentOverflow.Error(),
-		},
-		{
-			"10000000Tkph",
-			errExponentOverflow.Error(),
-		},
 	}
 
-	for _, tt := range succeeds {
+	for i, tt := range succeeds {
 		var got Speed
 		if err := got.Set(tt.in); err != nil {
-			t.Errorf("Speed.Set(%s) unexpected error: %v", tt.in, err)
+			t.Errorf("#%d: Speed.Set(%s) unexpected error: %v", i, tt.in, err)
 		}
 		if got != tt.expected {
-			t.Errorf("Speed.Set(%s) wanted: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+			t.Errorf("#%d: Speed.Set(%s) wanted: %v(%d) but got: %v(%d)", i, tt.in, tt.expected, tt.expected, got, got)
 		}
 	}
 
-	for _, tt := range fails {
+	for i, tt := range fails {
 		var got Speed
-		if err := got.Set(tt.in); err.Error() != tt.err {
-			t.Errorf("Speed.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+		if err := got.Set(tt.in); err == nil || err.Error() != tt.err {
+			t.Errorf("#%d: Speed.Set(%s) \nexpected: %s\ngot:      %s", i, tt.in, tt.err, err)
 		}
 	}
 }
@@ -2887,64 +2847,52 @@ func TestTemperature_Set(t *testing.T) {
 			"minimum value is -459.67F",
 		},
 		{
-			"100000000000TF",
-			errExponentOverflow.Error(),
-		},
-		{
-			"1000000000TC",
-			errExponentOverflow.Error(),
-		},
-		{
-			"1000000000TK",
-			errExponentOverflow.Error(),
-		},
-		{
 			"10E°C",
-			"contains unknown unit prefix \"E\". valid prefixes for \"°C\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit prefix; valid prefixes for \"°C\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10",
-			"no units provided, need °C",
+			"no unit provided; need K, °C, C, °F or F",
 		},
 		{
 			"1random",
-			"\"random\" is not a valid unit for physic.Temperature",
+			"unknown unit provided; need K, °C, C, °F or F",
 		},
 		{
 			"C",
-			"does not contain number",
+			"not a number",
 		},
 		{
 			"°C",
-			"does not contain number",
+			"not a number",
 		},
 		{
 			"K",
-			"does not contain number",
+			"not a number",
 		},
 		{
 			"F",
-			"does not contain number",
+			"not a number",
 		},
 		{
 			"RPM",
-			"does not contain number or unit \"°C\"",
+			"does not contain number or unit K, °C, C, °F or F",
 		},
 		{
 			"++1°C",
-			"multiple plus symbols ++1°C",
+			"contains multiple plus symbols",
 		},
 		{
 			"--1°C",
-			"multiple minus symbols --1°C",
+			"contains multiple minus symbols",
 		},
 		{
 			"+-1°C",
-			"can't contain both plus and minus symbols +-1°C",
+			"contains both plus and minus symbols",
 		},
 		{
 			"1.1.1.1°C",
-			"multiple decimal points 1.1.1.1°C",
+			"contains multiple decimal points",
 		},
 		{
 			string([]byte{0x33, 0x01}),
@@ -2952,22 +2900,20 @@ func TestTemperature_Set(t *testing.T) {
 		},
 	}
 
-	for _, tt := range succeeds {
+	for i, tt := range succeeds {
 		var got Temperature
 		if err := got.Set(tt.in); err != nil {
-			t.Errorf("Temperature.Set(%s) unexpected error: %v", tt.in, err)
+			t.Errorf("#%d: Temperature.Set(%s) unexpected error: %v", i, tt.in, err)
 		}
 		if got != tt.expected {
-			t.Errorf("Temperature.Set(%s) wanted: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+			t.Errorf("#%d: Temperature.Set(%s) wanted: %v(%d) but got: %v(%d)", i, tt.in, tt.expected, tt.expected, got, got)
 		}
 	}
 
-	for _, tt := range fails {
+	for i, tt := range fails {
 		var got Temperature
-		if err := got.Set(tt.in); err == nil {
-			t.Errorf("Temperature.Set(%s) \nexpected: error %v but got none", tt.in, tt.err)
-		} else if err.Error() != tt.err {
-			t.Errorf("Temperature.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+		if err := got.Set(tt.in); err == nil || err.Error() != tt.err {
+			t.Errorf("#%d: Temperature.Set(%s) \nexpected: %s\ngot:      %s", i, tt.in, tt.err, err)
 		}
 	}
 }
@@ -3000,10 +2946,12 @@ func TestPower_Set(t *testing.T) {
 		{"1mW", 1 * MilliWatt},
 		{"10mW", 10 * MilliWatt},
 		{"100mW", 100 * MilliWatt},
+		{"1w", 1 * Watt},
 		{"1W", 1 * Watt},
 		{"10W", 10 * Watt},
 		{"100W", 100 * Watt},
 		{"1kW", 1 * KiloWatt},
+		{"1kw", 1 * KiloWatt},
 		{"10kW", 10 * KiloWatt},
 		{"100kW", 100 * KiloWatt},
 		{"1MW", 1 * MegaWatt},
@@ -3023,23 +2971,23 @@ func TestPower_Set(t *testing.T) {
 	}{
 		{
 			"10TW",
-			"exponent exceeds int64",
+			"maximum value is 9.223GW",
 		},
 		{
 			"10EW",
-			"contains unknown unit prefix \"E\". valid prefixes for \"W\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit prefix; valid prefixes for \"W\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10ExaW",
-			"contains unknown unit prefix \"Exa\". valid prefixes for \"W\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit prefix; valid prefixes for \"W\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10eWattE",
-			"contains unknown unit prefix \"e\". valid prefixes for \"W\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit provided; need W",
 		},
 		{
 			"10",
-			"no units provided, need W",
+			"no unit provided; need W",
 		},
 		{
 			"9223372036854775808",
@@ -3067,48 +3015,48 @@ func TestPower_Set(t *testing.T) {
 		},
 		{
 			"1random",
-			"\"random\" is not a valid unit for physic.Power",
+			"unknown unit provided; need W",
 		},
 		{
 			"W",
-			"does not contain number",
+			"not a number",
 		},
 		{
 			"RPM",
-			"does not contain number or unit \"W\"",
+			"does not contain number or unit W",
 		},
 		{
 			"++1W",
-			"multiple plus symbols ++1W",
+			"contains multiple plus symbols",
 		},
 		{
 			"--1W",
-			"multiple minus symbols --1W",
+			"contains multiple minus symbols",
 		},
 		{
 			"+-1W",
-			"can't contain both plus and minus symbols +-1W",
+			"contains both plus and minus symbols",
 		},
 		{
 			"1.1.1.1W",
-			"multiple decimal points 1.1.1.1W",
+			"contains multiple decimal points",
 		},
 	}
 
-	for _, tt := range succeeds {
+	for i, tt := range succeeds {
 		var got Power
 		if err := got.Set(tt.in); err != nil {
-			t.Errorf("Power.Set(%s) got unexpected error: %v", tt.in, err)
+			t.Errorf("#%d: Power.Set(%s) got unexpected error: %v", i, tt.in, err)
 		}
 		if got != tt.expected {
-			t.Errorf("Power.Set(%s) expected: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+			t.Errorf("#%d: Power.Set(%s) expected: %v(%d) but got: %v(%d)", i, tt.in, tt.expected, tt.expected, got, got)
 		}
 	}
 
-	for _, tt := range fails {
+	for i, tt := range fails {
 		var got Power
-		if err := got.Set(tt.in); err.Error() != tt.err {
-			t.Errorf("Power.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+		if err := got.Set(tt.in); err == nil || err.Error() != tt.err {
+			t.Errorf("#%d: Power.Set(%s) \nexpected: %s\ngot:      %s", i, tt.in, tt.err, err)
 		}
 	}
 }
@@ -3142,9 +3090,11 @@ func TestEnergy_Set(t *testing.T) {
 		{"10mJ", 10 * MilliJoule},
 		{"100mJ", 100 * MilliJoule},
 		{"1J", 1 * Joule},
+		{"1j", 1 * Joule},
 		{"10J", 10 * Joule},
 		{"100J", 100 * Joule},
 		{"1kJ", 1 * KiloJoule},
+		{"1kj", 1 * KiloJoule},
 		{"10kJ", 10 * KiloJoule},
 		{"100kJ", 100 * KiloJoule},
 		{"1MJ", 1 * MegaJoule},
@@ -3164,23 +3114,23 @@ func TestEnergy_Set(t *testing.T) {
 	}{
 		{
 			"10TJ",
-			"exponent exceeds int64",
+			"maximum value is 9.223GJ",
 		},
 		{
 			"10EJ",
-			"contains unknown unit prefix \"E\". valid prefixes for \"J\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit prefix; valid prefixes for \"J\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10ExaJ",
-			"contains unknown unit prefix \"Exa\". valid prefixes for \"J\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit prefix; valid prefixes for \"J\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10eJouleE",
-			"contains unknown unit prefix \"e\". valid prefixes for \"J\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit provided; need J",
 		},
 		{
 			"10",
-			"no units provided, need J",
+			"no unit provided; need J",
 		},
 		{
 			"9223372036854775808",
@@ -3208,48 +3158,48 @@ func TestEnergy_Set(t *testing.T) {
 		},
 		{
 			"1random",
-			"\"random\" is not a valid unit for physic.Energy",
+			"unknown unit provided; need J",
 		},
 		{
 			"J",
-			"does not contain number",
+			"not a number",
 		},
 		{
 			"RPM",
-			"does not contain number or unit \"J\"",
+			"does not contain number or unit J",
 		},
 		{
 			"++1J",
-			"multiple plus symbols ++1J",
+			"contains multiple plus symbols",
 		},
 		{
 			"--1J",
-			"multiple minus symbols --1J",
+			"contains multiple minus symbols",
 		},
 		{
 			"+-1J",
-			"can't contain both plus and minus symbols +-1J",
+			"contains both plus and minus symbols",
 		},
 		{
 			"1.1.1.1J",
-			"multiple decimal points 1.1.1.1J",
+			"contains multiple decimal points",
 		},
 	}
 
-	for _, tt := range succeeds {
+	for i, tt := range succeeds {
 		var got Energy
 		if err := got.Set(tt.in); err != nil {
-			t.Errorf("Energy.Set(%s) got unexpected error: %v", tt.in, err)
+			t.Errorf("#%d: Energy.Set(%s) got unexpected error: %v", i, tt.in, err)
 		}
 		if got != tt.expected {
-			t.Errorf("Energy.Set(%s) expected: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+			t.Errorf("#%d: Energy.Set(%s) expected: %v(%d) but got: %v(%d)", i, tt.in, tt.expected, tt.expected, got, got)
 		}
 	}
 
-	for _, tt := range fails {
+	for i, tt := range fails {
 		var got Energy
-		if err := got.Set(tt.in); err.Error() != tt.err {
-			t.Errorf("Energy.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+		if err := got.Set(tt.in); err == nil || err.Error() != tt.err {
+			t.Errorf("#%d: Energy.Set(%s) \nexpected: %s\ngot:      %s", i, tt.in, tt.err, err)
 		}
 	}
 }
@@ -3286,9 +3236,11 @@ func TestElectricalCapacitance_Set(t *testing.T) {
 		{"10mF", 10 * MilliFarad},
 		{"100mF", 100 * MilliFarad},
 		{"1F", 1 * Farad},
+		{"1f", 1 * Farad},
 		{"10F", 10 * Farad},
 		{"100F", 100 * Farad},
 		{"1kF", 1 * KiloFarad},
+		{"1kf", 1 * KiloFarad},
 		{"10kF", 10 * KiloFarad},
 		{"100kF", 100 * KiloFarad},
 		{"1MF", 1 * MegaFarad},
@@ -3305,23 +3257,23 @@ func TestElectricalCapacitance_Set(t *testing.T) {
 	}{
 		{
 			"10TF",
-			"exponent exceeds int64",
+			"maximum value is 9.223MF",
 		},
 		{
 			"10EF",
-			"contains unknown unit prefix \"E\". valid prefixes for \"F\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit prefix; valid prefixes for \"F\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10ExaF",
-			"contains unknown unit prefix \"Exa\". valid prefixes for \"F\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit prefix; valid prefixes for \"F\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10eFaradE",
-			"contains unknown unit prefix \"e\". valid prefixes for \"F\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit provided; need F",
 		},
 		{
 			"10",
-			"no units provided, need F",
+			"no unit provided; need F",
 		},
 		{
 			"9223372036854775808",
@@ -3349,48 +3301,48 @@ func TestElectricalCapacitance_Set(t *testing.T) {
 		},
 		{
 			"1random",
-			"\"random\" is not a valid unit for physic.ElectricalCapacitance",
+			"unknown unit provided; need F",
 		},
 		{
 			"F",
-			"does not contain number",
+			"not a number",
 		},
 		{
 			"RPM",
-			"does not contain number or unit \"F\"",
+			"does not contain number or unit F",
 		},
 		{
 			"++1F",
-			"multiple plus symbols ++1F",
+			"contains multiple plus symbols",
 		},
 		{
 			"--1F",
-			"multiple minus symbols --1F",
+			"contains multiple minus symbols",
 		},
 		{
 			"+-1F",
-			"can't contain both plus and minus symbols +-1F",
+			"contains both plus and minus symbols",
 		},
 		{
 			"1.1.1.1F",
-			"multiple decimal points 1.1.1.1F",
+			"contains multiple decimal points",
 		},
 	}
 
-	for _, tt := range succeeds {
+	for i, tt := range succeeds {
 		var got ElectricalCapacitance
 		if err := got.Set(tt.in); err != nil {
-			t.Errorf("ElectricalCapacitance.Set(%s) got unexpected error: %v", tt.in, err)
+			t.Errorf("#%d: ElectricalCapacitance.Set(%s) got unexpected error: %v", i, tt.in, err)
 		}
 		if got != tt.expected {
-			t.Errorf("ElectricalCapacitance.Set(%s) expected: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+			t.Errorf("#%d: ElectricalCapacitance.Set(%s) expected: %v(%d) but got: %v(%d)", i, tt.in, tt.expected, tt.expected, got, got)
 		}
 	}
 
-	for _, tt := range fails {
+	for i, tt := range fails {
 		var got ElectricalCapacitance
-		if err := got.Set(tt.in); err.Error() != tt.err {
-			t.Errorf("ElectricalCapacitance.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+		if err := got.Set(tt.in); err == nil || err.Error() != tt.err {
+			t.Errorf("#%d: ElectricalCapacitance.Set(%s) \nexpected: %s\ngot:      %s", i, tt.in, tt.err, err)
 		}
 	}
 }
@@ -3446,23 +3398,23 @@ func TestLuminousIntensity_Set(t *testing.T) {
 	}{
 		{
 			"10Tcd",
-			"exponent exceeds int64",
+			"maximum value is 9.223Gcd",
 		},
 		{
 			"10Ecd",
-			"contains unknown unit prefix \"E\". valid prefixes for \"cd\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit prefix; valid prefixes for \"cd\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10Exacd",
-			"contains unknown unit prefix \"Exa\". valid prefixes for \"cd\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit prefix; valid prefixes for \"cd\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10ecdE",
-			"contains unknown unit prefix \"e\". valid prefixes for \"cd\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit provided; need cd",
 		},
 		{
 			"10",
-			"no units provided, need cd",
+			"no unit provided; need cd",
 		},
 		{
 			"9223372036854775808",
@@ -3490,48 +3442,48 @@ func TestLuminousIntensity_Set(t *testing.T) {
 		},
 		{
 			"1random",
-			"\"random\" is not a valid unit for physic.LuminousIntensity",
+			"unknown unit provided; need cd",
 		},
 		{
 			"cd",
-			"does not contain number",
+			"not a number",
 		},
 		{
 			"RPM",
-			"does not contain number or unit \"cd\"",
+			"does not contain number or unit cd",
 		},
 		{
 			"++1cd",
-			"multiple plus symbols ++1cd",
+			"contains multiple plus symbols",
 		},
 		{
 			"--1cd",
-			"multiple minus symbols --1cd",
+			"contains multiple minus symbols",
 		},
 		{
 			"+-1cd",
-			"can't contain both plus and minus symbols +-1cd",
+			"contains both plus and minus symbols",
 		},
 		{
 			"1.1.1.1cd",
-			"multiple decimal points 1.1.1.1cd",
+			"contains multiple decimal points",
 		},
 	}
 
-	for _, tt := range succeeds {
+	for i, tt := range succeeds {
 		var got LuminousIntensity
 		if err := got.Set(tt.in); err != nil {
-			t.Errorf("LuminousIntensity.Set(%s) got unexpected error: %v", tt.in, err)
+			t.Errorf("#%d: LuminousIntensity.Set(%s) got unexpected error: %v", i, tt.in, err)
 		}
 		if got != tt.expected {
-			t.Errorf("LuminousIntensity.Set(%s) expected: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+			t.Errorf("#%d: LuminousIntensity.Set(%s) expected: %v(%d) but got: %v(%d)", i, tt.in, tt.expected, tt.expected, got, got)
 		}
 	}
 
-	for _, tt := range fails {
+	for i, tt := range fails {
 		var got LuminousIntensity
-		if err := got.Set(tt.in); err.Error() != tt.err {
-			t.Errorf("LuminousIntensity.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+		if err := got.Set(tt.in); err == nil || err.Error() != tt.err {
+			t.Errorf("#%d: LuminousIntensity.Set(%s) \nexpected: %s\ngot:      %s", i, tt.in, tt.err, err)
 		}
 	}
 }
@@ -3587,23 +3539,23 @@ func TestLuminousFlux_Set(t *testing.T) {
 	}{
 		{
 			"10Tlm",
-			"exponent exceeds int64",
+			"maximum value is 9.223Glm",
 		},
 		{
 			"10Elm",
-			"contains unknown unit prefix \"E\". valid prefixes for \"lm\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit prefix; valid prefixes for \"lm\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10Exalm",
-			"contains unknown unit prefix \"Exa\". valid prefixes for \"lm\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit prefix; valid prefixes for \"lm\" are p,n,u,µ,m,k,M,G or T",
 		},
 		{
 			"10elmE",
-			"contains unknown unit prefix \"e\". valid prefixes for \"lm\" are p,n,u,µ,m,k,M,G or T",
+			"unknown unit provided; need lm",
 		},
 		{
 			"10",
-			"no units provided, need lm",
+			"no unit provided; need lm",
 		},
 		{
 			"9223372036854775808",
@@ -3631,48 +3583,48 @@ func TestLuminousFlux_Set(t *testing.T) {
 		},
 		{
 			"1random",
-			"\"random\" is not a valid unit for physic.LuminousFlux",
+			"unknown unit provided; need lm",
 		},
 		{
 			"lm",
-			"does not contain number",
+			"not a number",
 		},
 		{
 			"RPM",
-			"does not contain number or unit \"lm\"",
+			"does not contain number or unit lm",
 		},
 		{
 			"++1lm",
-			"multiple plus symbols ++1lm",
+			"contains multiple plus symbols",
 		},
 		{
 			"--1lm",
-			"multiple minus symbols --1lm",
+			"contains multiple minus symbols",
 		},
 		{
 			"+-1lm",
-			"can't contain both plus and minus symbols +-1lm",
+			"contains both plus and minus symbols",
 		},
 		{
 			"1.1.1.1lm",
-			"multiple decimal points 1.1.1.1lm",
+			"contains multiple decimal points",
 		},
 	}
 
-	for _, tt := range succeeds {
+	for i, tt := range succeeds {
 		var got LuminousFlux
 		if err := got.Set(tt.in); err != nil {
-			t.Errorf("LuminousFlux.Set(%s) got unexpected error: %v", tt.in, err)
+			t.Errorf("#%d: LuminousFlux.Set(%s) got unexpected error: %v", i, tt.in, err)
 		}
 		if got != tt.expected {
-			t.Errorf("LuminousFlux.Set(%s) expected: %v(%d) but got: %v(%d)", tt.in, tt.expected, tt.expected, got, got)
+			t.Errorf("#%d: LuminousFlux.Set(%s) expected: %v(%d) but got: %v(%d)", i, tt.in, tt.expected, tt.expected, got, got)
 		}
 	}
 
-	for _, tt := range fails {
+	for i, tt := range fails {
 		var got LuminousFlux
-		if err := got.Set(tt.in); err.Error() != tt.err {
-			t.Errorf("LuminousFlux.Set(%s) \nexpected: %s\ngot: %s", tt.in, tt.err, err)
+		if err := got.Set(tt.in); err == nil || err.Error() != tt.err {
+			t.Errorf("#%d: LuminousFlux.Set(%s) \nexpected: %s\ngot:      %s", i, tt.in, tt.err, err)
 		}
 	}
 }
@@ -3687,6 +3639,8 @@ func TestLuminousFlux_RoundTrip(t *testing.T) {
 		t.Fatalf("LuminousFlux expected %s to equal %s", x, y)
 	}
 }
+
+// Benchmarks
 
 func BenchmarkDecimal(b *testing.B) {
 	var d decimal
@@ -3703,11 +3657,11 @@ func BenchmarkDecimal(b *testing.B) {
 
 func BenchmarkDecimal2Int(b *testing.B) {
 	d := decimal{1234, 5, false}
-	var err error
+	overflow := false
 	var v int64
 	for i := 0; i < b.N; i++ {
-		if v, err = dtoi(d, 0); err != nil {
-			b.Fatal(err)
+		if v, overflow = dtoi(d, 0); overflow {
+			b.Fatal("unexpected overflow")
 		}
 	}
 	b.StopTimer()
@@ -3718,13 +3672,14 @@ func BenchmarkString2Decimal2Int(b *testing.B) {
 	var d decimal
 	var n int
 	var err error
+	overflow := false
 	var v int64
 	for i := 0; i < b.N; i++ {
 		if d, n, err = atod("337.2m"); err != nil {
 			b.Fatal(err)
 		}
-		if v, err = dtoi(d, 0); err != nil {
-			b.Fatal(err)
+		if v, overflow = dtoi(d, 0); overflow {
+			b.Fatal("unexpected overflow")
 		}
 	}
 	b.StopTimer()
@@ -3748,13 +3703,14 @@ func BenchmarkString2Decimal2IntNeg(b *testing.B) {
 	var d decimal
 	var n int
 	var err error
+	overflow := false
 	var v int64
 	for i := 0; i < b.N; i++ {
 		if d, n, err = atod("-337.2m"); err != nil {
 			b.Fatal(err)
 		}
-		if v, err = dtoi(d, 0); err != nil {
-			b.Fatal(err)
+		if v, overflow = dtoi(d, 0); overflow {
+			b.Fatal("unexpected overflow")
 		}
 	}
 	b.StopTimer()
