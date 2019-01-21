@@ -383,8 +383,10 @@ func grabFrame(dev *lepton.Dev, path string, meta bool) error {
 func mainImpl() error {
 	i2cID := flag.String("i2c", "", "I²C bus to use")
 	spiID := flag.String("spi", "", "SPI port to use")
-	i2cHz := flag.Int("i2chz", 0, "I²C bus speed")
-	spiHz := flag.Int("spihz", 0, "SPI port speed")
+	var i2cHz physic.Frequency
+	flag.Var(&i2cHz, "i2chz", "I²C bus speed")
+	var spiHz physic.Frequency
+	flag.Var(&spiHz, "spihz", "SPI port speed")
 
 	meta := flag.Bool("meta", false, "print metadata")
 	output := flag.String("o", "", "PNG file to save")
@@ -415,8 +417,8 @@ func mainImpl() error {
 		return err
 	}
 	defer spiPort.Close()
-	if *spiHz != 0 {
-		if err := spiPort.LimitSpeed(physic.Frequency(*spiHz) * physic.Hertz); err != nil {
+	if spiHz != 0 {
+		if err := spiPort.LimitSpeed(spiHz); err != nil {
 			return err
 		}
 	}
@@ -426,8 +428,8 @@ func mainImpl() error {
 		return err
 	}
 	defer i2cBus.Close()
-	if *i2cHz != 0 {
-		if err := i2cBus.SetSpeed(physic.Frequency(*i2cHz) * physic.Hertz); err != nil {
+	if i2cHz != 0 {
+		if err := i2cBus.SetSpeed(i2cHz); err != nil {
 			return err
 		}
 	}

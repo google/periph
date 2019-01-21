@@ -119,7 +119,8 @@ func mainImpl() error {
 	intensity := flag.Int("l", int(apa102.DefaultOpts.Intensity), "light intensity [1-255]; 255 is full intensity")
 	temperature := flag.Int("t", int(apa102.DefaultOpts.Temperature), "light temperature in Kelvin [3500-7500]; 6500 is neutral")
 	globalPWM := flag.Bool("g", false, "disable the global PWM and perceptual mapping")
-	hz := flag.Int("hz", 0, "SPI port speed")
+	var hz physic.Frequency
+	flag.Var(&hz, "hz", "SPI port speed")
 	color := flag.String("color", "208020", "hex encoded color to show")
 	imgName := flag.String("img", "", "image to load")
 	lineMs := flag.Int("linems", 2, "number of ms to show each line of the image")
@@ -149,8 +150,8 @@ func mainImpl() error {
 		return err
 	}
 	defer s.Close()
-	if *hz != 0 {
-		if err := s.LimitSpeed(physic.Frequency(*hz) * physic.Hertz); err != nil {
+	if hz != 0 {
+		if err := s.LimitSpeed(hz); err != nil {
 			return err
 		}
 	}

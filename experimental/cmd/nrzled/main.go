@@ -125,7 +125,8 @@ func mainImpl() error {
 	spiID := flag.String("spi", "", "Use SPI MOSI implemntation")
 	clear := flag.Bool("clear", false, "Blank the lights on exit")
 	numPixels := flag.Int("n", nrzled.DefaultOpts.NumPixels, "number of pixels on the strip")
-	hz := flag.Int("s", int(nrzled.DefaultOpts.Freq/physic.Hertz), "speed in Hz")
+	hz := nrzled.DefaultOpts.Freq
+	flag.Var(&hz, "s", "speed in Hz")
 	channels := flag.Int("channels", nrzled.DefaultOpts.Channels, "number of color channels, use 4 for RGBW")
 	color := flag.String("color", "208020", "hex encoded color to show")
 	imgName := flag.String("img", "", "image to load")
@@ -179,7 +180,7 @@ func mainImpl() error {
 			}
 			opts := nrzled.DefaultOpts
 			opts.NumPixels = *numPixels
-			opts.Freq = physic.Frequency(*hz) * physic.Hertz
+			opts.Freq = hz
 			opts.Channels = *channels
 			if disp, err = nrzled.NewStream(s, &opts); err != nil {
 				return err
