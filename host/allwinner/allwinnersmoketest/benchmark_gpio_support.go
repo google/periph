@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/physic"
 )
 
 // runGPIOBenchmark runs the standardized GPIO benchmark for this specific
@@ -367,19 +368,36 @@ func printBench(name string, r testing.BenchmarkResult) {
 		fmt.Fprintf(os.Stderr, "unexpected %d bytes allocated as %d calls\n", r.MemBytes, r.MemAllocs)
 		return
 	}
-	fmt.Printf("%s \t%s\t%s\n", name, r, toHz(r.N, r.T))
+	fmt.Printf("%s \t%s\t%s\n", name, r, toHz(&r))
 }
 
-func toHz(n int, t time.Duration) string {
-	// Periph has a ban on float64 on the library but it's not too bad on unit
-	// and smoke tests.
-	hz := float64(n) * float64(time.Second) / float64(t)
-	switch {
-	case hz >= 1000000:
-		return fmt.Sprintf("%.1fMHz", hz*0.000001)
-	case hz >= 1000:
-		return fmt.Sprintf("%.1fkHz", hz*0.001)
-	default:
-		return fmt.Sprintf("%.1fHz", hz)
+// toHz converts a benchmark result to a frequency keeping the most precision
+// as possible.
+//
+// Time is used at 1µs resolution, and lowered at 1ms resolution if the
+// duration is over 10s.
+func toHz(r *testing.BenchmarkResult) physic.Frequency {
+	if r.T <= 0 {
+		return 0
 	}
+	n := int64(r.N)
+	t := r.T.Nanoseconds()
+
+	timeRes := time.Microsecond
+	if r.T > 10*time.Second {
+		// Reduce the resolution to millisecond. This is needed to not overflow
+		// int64.
+		timeRes = time.Millisecond
+	}
+
+	// Leverage the fact that the number of occurences is generally a large
+	// base10. Still, make sure to keep at least 6 digits of resolution.
+	factor := int64(1)
+	for (n%10) == 0 && n > 1000000 {
+		n /= 10
+		factor *= 10
+	}
+	n *= int64(physic.Hertz) * int64(time.Second/timeRes)
+	t /= int64(timeRes)
+	return physic.Frequency(((n + (t / 2)) / t) * factor)
 }
