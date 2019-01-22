@@ -26,7 +26,8 @@ func mainImpl() error {
 	// TODO(maruel): This is not generic enough.
 	write := flag.Bool("w", false, "write instead of reading")
 	reg := flag.Int("r", -1, "register to address")
-	hz := flag.Int("hz", 0, "I²C bus speed (may require root)")
+	var hz physic.Frequency
+	flag.Var(&hz, "hz", "I²C bus speed (may require root)")
 	l := flag.Int("l", 1, "length of data to read; ignored if -w is specified")
 	flag.Parse()
 	if !*verbose {
@@ -78,8 +79,8 @@ func mainImpl() error {
 	}
 	defer bus.Close()
 
-	if *hz != 0 {
-		if err := bus.SetSpeed(physic.Frequency(*hz) * physic.Hertz); err != nil {
+	if hz != 0 {
+		if err := bus.SetSpeed(hz); err != nil {
 			return err
 		}
 	}

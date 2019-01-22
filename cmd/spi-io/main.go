@@ -88,7 +88,8 @@ func runTx(s spi.Conn, args []string) error {
 
 func mainImpl() error {
 	spiID := flag.String("b", "", "SPI port to use")
-	hz := flag.Int("hz", 1000000, "SPI port speed")
+	hz := physic.MegaHertz
+	flag.Var(&hz, "hz", "SPI port speed")
 
 	nocs := flag.Bool("nocs", false, "do not assert the CS line")
 	half := flag.Bool("half", false, "half duplex mode, sharing MOSI and MISO")
@@ -127,7 +128,7 @@ func mainImpl() error {
 		return err
 	}
 	defer s.Close()
-	c, err := s.Connect(physic.Frequency(*hz)*physic.Hertz, m, *bits)
+	c, err := s.Connect(hz, m, *bits)
 	if err != nil {
 		return err
 	}

@@ -131,7 +131,8 @@ func mainImpl() error {
 	i2cID := flag.String("i2c", "", "I²C bus to use")
 	spiID := flag.String("spi", "", "SPI port to use")
 	dcName := flag.String("dc", "", "DC pin to use in 4-wire SPI mode")
-	hz := flag.Int("hz", 0, "I²C bus/SPI port speed")
+	var hz physic.Frequency
+	flag.Var(&hz, "hz", "I²C bus/SPI port speed")
 
 	h := flag.Int("h", 64, "display height")
 	w := flag.Int("w", 128, "display width")
@@ -165,8 +166,8 @@ func mainImpl() error {
 			return err
 		}
 		defer c.Close()
-		if *hz != 0 {
-			if err := c.LimitSpeed(physic.Frequency(*hz) * physic.Hertz); err != nil {
+		if hz != 0 {
+			if err := c.LimitSpeed(hz); err != nil {
 				return err
 			}
 		}
@@ -188,8 +189,8 @@ func mainImpl() error {
 			return err
 		}
 		defer c.Close()
-		if *hz != 0 {
-			if err := c.SetSpeed(physic.Frequency(*hz) * physic.Hertz); err != nil {
+		if hz != 0 {
+			if err := c.SetSpeed(hz); err != nil {
 				return err
 			}
 		}

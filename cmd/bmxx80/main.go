@@ -72,7 +72,8 @@ func mainImpl() error {
 	i2cID := flag.String("i2c", "", "I²C bus to use (default, uses the first I²C found)")
 	i2cAddr := flag.Uint("ia", 0x76, "I²C bus address to use; either 0x76 (BMx280, the default) or 0x77 (BMP180)")
 	spiID := flag.String("spi", "", "SPI port to use")
-	hz := flag.Int("hz", 0, "I²C bus/SPI port speed")
+	var hz physic.Frequency
+	flag.Var(&hz, "hz", "I²C bus/SPI port speed")
 	sample1x := flag.Bool("s1", false, "sample at 1x")
 	sample2x := flag.Bool("s2", false, "sample at 2x")
 	sample4x := flag.Bool("s4", false, "sample at 4x")
@@ -145,8 +146,8 @@ func mainImpl() error {
 			printPin("MISO", p.MISO())
 			printPin("CS", p.CS())
 		}
-		if *hz != 0 {
-			if err := s.LimitSpeed(physic.Frequency(*hz) * physic.Hertz); err != nil {
+		if hz != 0 {
+			if err := s.LimitSpeed(hz); err != nil {
 				return err
 			}
 		}
@@ -163,8 +164,8 @@ func mainImpl() error {
 			printPin("SCL", p.SCL())
 			printPin("SDA", p.SDA())
 		}
-		if *hz != 0 {
-			if err := i.SetSpeed(physic.Frequency(*hz) * physic.Hertz); err != nil {
+		if hz != 0 {
+			if err := i.SetSpeed(hz); err != nil {
 				return err
 			}
 		}

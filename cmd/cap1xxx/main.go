@@ -28,7 +28,8 @@ import (
 func mainImpl() error {
 	i2cID := flag.String("i2c", "", "I²C bus to use")
 	i2cAddr := flag.Uint("ia", 0x29, "I²C bus address to use, Pimoroni's Drum Hat is 0x2c")
-	hz := flag.Int("hz", 0, "I²C bus/SPI port speed")
+	var hz physic.Frequency
+	flag.Var(&hz, "hz", "I²C bus/SPI port speed")
 	verbose := flag.Bool("v", false, "verbose mode")
 	alertPinName := flag.String("alert", "GPIO25", "Name of the alert/interrupt pin")
 	resetPinName := flag.String("reset", "GPIO21", "Name of the reset pin")
@@ -61,8 +62,8 @@ func mainImpl() error {
 		printPin("SDA", p.SDA())
 	}
 
-	if *hz != 0 {
-		if err := i2cBus.SetSpeed(physic.Frequency(*hz) * physic.Hertz); err != nil {
+	if hz != 0 {
+		if err := i2cBus.SetSpeed(hz); err != nil {
 			return fmt.Errorf("couldn't set the i2c bus speed - %s", err)
 		}
 	}
