@@ -94,6 +94,38 @@ func ExampleDistance_flag() {
 	flag.Parse()
 }
 
+func ExampleElectricalCapacitance() {
+	fmt.Println(1 * physic.Farad)
+	fmt.Println(22 * physic.PicoFarad)
+	// Output:
+	// 1F
+	// 22pF
+}
+
+func ExampleElectricalCapacitance_Set() {
+	var c physic.ElectricalCapacitance
+
+	if err := c.Set("1F"); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(c)
+
+	if err := c.Set("22pF"); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(c)
+	// Output:
+	// 1F
+	// 22pF
+}
+
+func ExampleElectricalCapacitance_flag() {
+	var c physic.ElectricalCapacitance
+
+	flag.Var(&c, "mintouch", "minimum touch sensitivity")
+	flag.Parse()
+}
+
 func ExampleElectricCurrent() {
 	fmt.Println(10010 * physic.MilliAmpere)
 	fmt.Println(10 * physic.Ampere)
@@ -144,12 +176,6 @@ func ExampleElectricPotential() {
 	// -10mV
 }
 
-func ExampleElectricPotential_flag() {
-	var v physic.ElectricPotential
-	flag.Var(&v, "cutout", "battery full charge voltage")
-	flag.Parse()
-}
-
 func ExampleElectricPotential_Set() {
 	var v physic.ElectricPotential
 	if err := v.Set("250uV"); err != nil {
@@ -170,6 +196,12 @@ func ExampleElectricPotential_Set() {
 	// 250µV
 	// 100kV
 	// 12V
+}
+
+func ExampleElectricPotential_flag() {
+	var v physic.ElectricPotential
+	flag.Var(&v, "cutout", "battery full charge voltage")
+	flag.Parse()
 }
 
 func ExampleElectricResistance() {
@@ -209,6 +241,41 @@ func ExampleElectricResistance_flag() {
 	var r physic.ElectricResistance
 
 	flag.Var(&r, "shunt", "shunt resistor value")
+	flag.Parse()
+}
+
+func ExampleEnergy() {
+	fmt.Println(1 * physic.Joule)
+	fmt.Println(1 * physic.WattSecond)
+	fmt.Println(1 * physic.KiloWattHour)
+	// Output:
+	// 1J
+	// 1J
+	// 3.600MJ
+}
+
+func ExampleEnergy_Set() {
+	var e physic.Energy
+
+	if err := e.Set("2.6kJ"); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(e)
+
+	if err := e.Set("45mJ"); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(e)
+
+	// Output:
+	// 2.600kJ
+	// 45mJ
+}
+
+func ExampleEnergy_flag() {
+	var e physic.Energy
+
+	flag.Var(&e, "capacity", "capacity of battery")
 	flag.Parse()
 }
 
@@ -259,6 +326,14 @@ func ExampleFrequency() {
 	// 1Hz
 }
 
+func ExampleFrequency_Period() {
+	fmt.Println(physic.MilliHertz.Period())
+	fmt.Println(physic.MegaHertz.Period())
+	// Output:
+	// 16m40s
+	// 1µs
+}
+
 func ExampleFrequency_Set() {
 	var f physic.Frequency
 
@@ -289,20 +364,68 @@ func ExampleFrequency_flag() {
 	flag.Parse()
 }
 
-func ExampleFrequency_Period() {
-	fmt.Println(physic.MilliHertz.Period())
-	fmt.Println(physic.MegaHertz.Period())
-	// Output:
-	// 16m40s
-	// 1µs
-}
-
 func ExamplePeriodToFrequency() {
 	fmt.Println(physic.PeriodToFrequency(time.Microsecond))
 	fmt.Println(physic.PeriodToFrequency(time.Minute))
 	// Output:
 	// 1MHz
 	// 16.667mHz
+}
+
+func ExampleLuminousFlux() {
+	fmt.Println(18282 * physic.Lumen)
+	// Output:
+	// 18.282klm
+}
+
+func ExampleLuminousFlux_Set() {
+	var l physic.LuminousFlux
+
+	if err := l.Set("25mlm"); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(l)
+
+	if err := l.Set("2.5Mlm"); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(l)
+
+	// Output:
+	// 25mlm
+	// 2.500Mlm
+}
+
+func ExampleLuminousFlux_flag() {
+	var l physic.LuminousFlux
+
+	flag.Var(&l, "low", "mood light level")
+	flag.Parse()
+}
+
+func ExampleLuminousIntensity() {
+	fmt.Println(12 * physic.Candela)
+	// Output:
+	// 12cd
+}
+
+func ExampleLuminousIntensity_Set() {
+	var l physic.LuminousIntensity
+
+	if err := l.Set("16cd"); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(l)
+
+	// Output:
+	// 16cd
+}
+
+func ExampleLuminousIntensity_flag() {
+	var l physic.LuminousIntensity
+
+	flag.Var(&l, "dusk", "light level to turn on light")
+	flag.Parse()
 }
 
 func ExampleMass() {
@@ -350,6 +473,47 @@ func ExampleMass_flag() {
 	var m physic.Mass
 
 	flag.Var(&m, "weight", "amount of cat food to dispense")
+	flag.Parse()
+}
+
+func ExamplePower() {
+	fmt.Println(1 * physic.Watt)
+	fmt.Println(16 * physic.MilliWatt)
+	fmt.Println(1210 * physic.MegaWatt)
+	// Output:
+	// 1W
+	// 16mW
+	// 1.210GW
+}
+
+func ExamplePower_Set() {
+	var p physic.Power
+
+	if err := p.Set("25mW"); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(p)
+
+	if err := p.Set("1W"); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(p)
+
+	if err := p.Set("1.21GW"); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(p)
+
+	// Output:
+	// 25mW
+	// 1W
+	// 1.210GW
+}
+
+func ExamplePower_flag() {
+	var p physic.Power
+
+	flag.Var(&p, "power", "heater maximum power")
 	flag.Parse()
 }
 
@@ -517,168 +681,5 @@ func ExampleTemperature_flag() {
 	var t physic.Temperature
 
 	flag.Var(&t, "temp", "thermostat setpoint")
-	flag.Parse()
-}
-
-func ExamplePower() {
-	fmt.Println(1 * physic.Watt)
-	fmt.Println(16 * physic.MilliWatt)
-	fmt.Println(1210 * physic.MegaWatt)
-	// Output:
-	// 1W
-	// 16mW
-	// 1.210GW
-}
-
-func ExamplePower_Set() {
-	var p physic.Power
-
-	if err := p.Set("25mW"); err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(p)
-
-	if err := p.Set("1W"); err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(p)
-
-	if err := p.Set("1.21GW"); err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(p)
-
-	// Output:
-	// 25mW
-	// 1W
-	// 1.210GW
-}
-
-func ExamplePower_flag() {
-	var p physic.Power
-
-	flag.Var(&p, "power", "heater maximum power")
-	flag.Parse()
-}
-
-func ExampleElectricalCapacitance() {
-	fmt.Println(1 * physic.Farad)
-	fmt.Println(22 * physic.PicoFarad)
-	// Output:
-	// 1F
-	// 22pF
-}
-
-func ExampleElectricalCapacitance_Set() {
-	var c physic.ElectricalCapacitance
-
-	if err := c.Set("1F"); err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(c)
-
-	if err := c.Set("22pF"); err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(c)
-	// Output:
-	// 1F
-	// 22pF
-}
-
-func ExampleElectricalCapacitance_flag() {
-	var c physic.ElectricalCapacitance
-
-	flag.Var(&c, "mintouch", "minimum touch sensitivity")
-	flag.Parse()
-}
-
-func ExampleLuminousFlux() {
-	fmt.Println(18282 * physic.Lumen)
-	// Output:
-	// 18.282klm
-}
-
-func ExampleLuminousFlux_Set() {
-	var l physic.LuminousFlux
-
-	if err := l.Set("25mlm"); err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(l)
-
-	if err := l.Set("2.5Mlm"); err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(l)
-
-	// Output:
-	// 25mlm
-	// 2.500Mlm
-}
-func ExampleLuminousFlux_flag() {
-	var l physic.LuminousFlux
-
-	flag.Var(&l, "low", "mood light level")
-	flag.Parse()
-}
-
-func ExampleLuminousIntensity() {
-	fmt.Println(12 * physic.Candela)
-	// Output:
-	// 12cd
-}
-
-func ExampleLuminousIntensity_Set() {
-	var l physic.LuminousIntensity
-
-	if err := l.Set("16cd"); err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(l)
-
-	// Output:
-	// 16cd
-}
-
-func ExampleLuminousIntensity_flag() {
-	var l physic.LuminousIntensity
-
-	flag.Var(&l, "dusk", "light level to turn on light")
-	flag.Parse()
-}
-
-func ExampleEnergy() {
-	fmt.Println(1 * physic.Joule)
-	fmt.Println(1 * physic.WattSecond)
-	fmt.Println(1 * physic.KiloWattHour)
-	// Output:
-	// 1J
-	// 1J
-	// 3.600MJ
-}
-
-func ExampleEnergy_Set() {
-	var e physic.Energy
-
-	if err := e.Set("2.6kJ"); err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(e)
-
-	if err := e.Set("45mJ"); err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(e)
-
-	// Output:
-	// 2.600kJ
-	// 45mJ
-}
-
-func ExampleEnergy_flag() {
-	var e physic.Energy
-
-	flag.Var(&e, "capacity", "capacity of battery")
 	flag.Parse()
 }
