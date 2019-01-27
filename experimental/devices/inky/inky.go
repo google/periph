@@ -47,8 +47,8 @@ var borderColor = map[Color]byte{
 	White:  0xff,
 }
 
-// New opens a handle to an Inky.
-func New(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn, color Color) (*Dev, error) {
+// New opens a handle to an Inky pHAT.
+func NewpHAT(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn, color Color) (*Dev, error) {
 	if color != Black && color != Red && color != Yellow {
 		return nil, fmt.Errorf("Unsupported color: %v", color)
 	}
