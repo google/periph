@@ -244,13 +244,11 @@ func (d *Dev) sendCommand(command byte, data []byte) error {
 	d.dc.Out(spiCommand)
 	err := d.c.Tx([]byte{command}, nil)
 	if err != nil {
-		panic("halp")
 		return fmt.Errorf("failed to send command %x to inky: %v", command, err)
 	}
 	if data != nil {
 		err = d.sendData(data)
 		if err != nil {
-			panic("halp")
 			return fmt.Errorf("failed to send data for command %x to inky: %v", command, err)
 		}
 	}
@@ -264,7 +262,6 @@ func (d *Dev) sendData(data []byte) error {
 	d.dc.Out(spiData)
 	err := d.c.Tx(data, nil)
 	if err != nil {
-		panic("halp")
 		return fmt.Errorf("failed to send data to inky: %v", err)
 	}
 	return nil
