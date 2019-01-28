@@ -27,8 +27,6 @@ const (
 	speed      = 488 * physic.KiloHertz
 	spiBits    = 8
 	chunkSize  = 4096
-	spiCommand = gpio.Low
-	spiData    = gpio.High
 )
 
 type Color int
@@ -241,7 +239,7 @@ func (d *Dev) reset() {
 }
 
 func (d *Dev) sendCommand(command byte, data []byte) error {
-	d.dc.Out(spiCommand)
+	d.dc.Out(gpio.Low)
 	if err := d.c.Tx([]byte{command}, nil); err != nil {
 		return fmt.Errorf("failed to send command %x to inky: %v", command, err)
 	}
@@ -258,7 +256,7 @@ func (d *Dev) sendData(data []byte) error {
 	if len(data) > 4096 {
 		return fmt.Errorf("Sending more data than chunk size: %d > 4096", len(data))
 	}
-	d.dc.Out(spiData)
+	d.dc.Out(gpio.High)
 	if err := d.c.Tx(data, nil); err != nil {
 		return fmt.Errorf("failed to send data to inky: %v", err)
 	}
