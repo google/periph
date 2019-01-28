@@ -25,6 +25,8 @@ const (
 	rows = 212
 )
 
+// Color is used to define which model of inky is being used, and also for
+// setting the border color.
 type Color int
 
 const (
