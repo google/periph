@@ -23,9 +23,6 @@ const (
 	// Constants for an Inky pHAT
 	cols = 104
 	rows = 212
-
-	speed      = 488 * physic.KiloHertz
-	spiBits    = 8
 )
 
 type Color int
@@ -50,7 +47,7 @@ func NewpHAT(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn, col
 		return nil, fmt.Errorf("Unsupported color: %v", color)
 	}
 
-	c, err := p.Connect(speed, spi.Mode0, spiBits)
+	c, err := p.Connect(488 * physic.KiloHertz, spi.Mode0, 8)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to inky over spi: %v", err)
 	}
