@@ -2,6 +2,7 @@ package inky_test
 
 import (
 	"flag"
+	"image"
 	"image/png"
 	"log"
 	"os"
