@@ -310,18 +310,11 @@ func pack(bits []bool) ([]byte, error) {
 
 	ret := make([]byte, len(bits)/8)
 	for i, b := range bits {
-		index := i / 8
-		shift := 7 - uint(i)%8
-		ret[index] |= (boolToByte(b) << shift)
+		if b {
+			ret[i/8] |= 1 << (7 - uint(i)%8)
+		}
 	}
 	return ret, nil
-}
-
-func boolToByte(b bool) byte {
-	if b {
-		return 1
-	}
-	return 0
 }
 
 var _ display.Drawer = &Dev{}
