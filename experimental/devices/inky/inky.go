@@ -157,9 +157,9 @@ func (d *Dev) Draw(dstRect image.Rectangle, src image.Image, srcPtrs image.Point
 			srcX := x
 			srcY := b.Max.Y - y - 1
 			r, g, b, _ := d.ColorModel().Convert(src.At(srcX, srcY)).RGBA()
-			if r == 0xffff && g == 0xffff && b == 0xffff {
+			if r >= 0x8000 && g >= 0x8000 && b >= 0x8000 {
 				white[i] = true
-			} else if r == 0xffff {
+			} else if r >= 0x8000 {
 				// Red pixels also need white behind them.
 				white[i] = true
 				red[i] = true
