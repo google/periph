@@ -53,6 +53,25 @@ func ExampleAngle_flag() {
 	flag.Parse()
 }
 
+func ExampleAngle_float64() {
+	// A 45° angle. The +2 here is to help integer based rounding.
+	v := (physic.Pi + 2) / 4
+
+	// Convert to float64 as degree.
+	fd := float64(v) / float64(physic.Degree)
+
+	// Convert to float64 as radian.
+	fr := float64(v) / float64(physic.Radian)
+
+	fmt.Println(v)
+	fmt.Printf("%.1fdeg\n", fd)
+	fmt.Printf("%frad\n", fr)
+	// Output:
+	// 45.00°
+	// 45.0deg
+	// 0.785398rad
+}
+
 func ExampleDistance() {
 	fmt.Println(physic.Inch)
 	fmt.Println(physic.Foot)
@@ -94,6 +113,25 @@ func ExampleDistance_flag() {
 	flag.Parse()
 }
 
+func ExampleDistance_float64() {
+	// Distance between the Earth and the Moon.
+	v := 384400 * physic.KiloMetre
+
+	// Convert to float64 as meter.
+	fm := float64(v) / float64(physic.Metre)
+
+	// Convert to float64 as inches.
+	fi := float64(v) / float64(physic.Inch)
+
+	fmt.Println(v)
+	fmt.Printf("%.0fm\n", fm)
+	fmt.Printf("%.0fin\n", fi)
+	// Output:
+	// 384.400Mm
+	// 384400000m
+	// 15133858268in
+}
+
 func ExampleElectricalCapacitance() {
 	fmt.Println(1 * physic.Farad)
 	fmt.Println(22 * physic.PicoFarad)
@@ -124,6 +162,20 @@ func ExampleElectricalCapacitance_flag() {
 
 	flag.Var(&c, "mintouch", "minimum touch sensitivity")
 	flag.Parse()
+}
+
+func ExampleElectricalCapacitance_float64() {
+	// A typical condensator.
+	v := 4700 * physic.NanoFarad
+
+	// Convert to float64 as microfarad.
+	f := float64(v) / float64(physic.MicroFarad)
+
+	fmt.Println(v)
+	fmt.Printf("%.1fµF\n", f)
+	// Output:
+	// 4.700µF
+	// 4.7µF
 }
 
 func ExampleElectricCurrent() {
@@ -166,6 +218,20 @@ func ExampleElectricCurrent_flag() {
 	flag.Parse()
 }
 
+func ExampleElectricCurrent_float64() {
+	// The maximum current that can be drawn from all Raspberry Pi GPIOs combined.
+	v := 51 * physic.MilliAmpere
+
+	// Convert to float64 as ampere.
+	f := float64(v) / float64(physic.Ampere)
+
+	fmt.Println(v)
+	fmt.Printf("%.3fA\n", f)
+	// Output:
+	// 51mA
+	// 0.051A
+}
+
 func ExampleElectricPotential() {
 	fmt.Println(10010 * physic.MilliVolt)
 	fmt.Println(10 * physic.Volt)
@@ -202,6 +268,20 @@ func ExampleElectricPotential_flag() {
 	var v physic.ElectricPotential
 	flag.Var(&v, "cutout", "battery full charge voltage")
 	flag.Parse()
+}
+
+func ExampleElectricPotential_float64() {
+	// The level of Raspberry Pi GPIO when high.
+	v := 3300 * physic.MilliVolt
+
+	// Convert to float64 as volt.
+	f := float64(v) / float64(physic.Volt)
+
+	fmt.Println(v)
+	fmt.Printf("%.1fV\n", f)
+	// Output:
+	// 3.300V
+	// 3.3V
 }
 
 func ExampleElectricResistance() {
@@ -244,6 +324,20 @@ func ExampleElectricResistance_flag() {
 	flag.Parse()
 }
 
+func ExampleElectricResistance_float64() {
+	// A common resistor value.
+	v := 4700 * physic.Ohm
+
+	// Convert to float64 as ohm.
+	f := float64(v) / float64(physic.Ohm)
+
+	fmt.Println(v)
+	fmt.Printf("%.0fOhm\n", f)
+	// Output:
+	// 4.700kΩ
+	// 4700Ohm
+}
+
 func ExampleEnergy() {
 	fmt.Println(1 * physic.Joule)
 	fmt.Println(1 * physic.WattSecond)
@@ -279,6 +373,22 @@ func ExampleEnergy_flag() {
 	flag.Parse()
 }
 
+func ExampleEnergy_float64() {
+	// BTU is used in barbecue rating. It is a measure of the thermal energy
+	// content of the of fuel consumed by the barbecue at its maximum rate. A
+	// 35000 BTU barbecue is an average power.
+	v := 35000 * physic.BTU
+
+	// Convert to float64 as joule.
+	f := float64(v) / float64(physic.Joule)
+
+	fmt.Println(v)
+	fmt.Printf("%.0f\n", f)
+	// Output:
+	// 36.927MJ
+	// 36927100
+}
+
 func ExampleForce() {
 	fmt.Println(10 * physic.MilliNewton)
 	fmt.Println(physic.EarthGravity)
@@ -312,6 +422,25 @@ func ExampleForce_flag() {
 
 	flag.Var(&f, "force", "load cell wakeup force")
 	flag.Parse()
+}
+
+func ExampleForce_float64() {
+	// The gravity of Earth.
+	v := physic.EarthGravity
+
+	// Convert to float64 as newton.
+	fn := float64(v) / float64(physic.Newton)
+
+	// Convert to float64 as lbf.
+	fl := float64(v) / float64(physic.PoundForce)
+
+	fmt.Println(v)
+	fmt.Printf("%fN\n", fn)
+	fmt.Printf("%flbf\n", fl)
+	// Output:
+	// 9.807N
+	// 9.806650N
+	// 2.204623lbf
 }
 
 func ExampleFrequency() {
@@ -364,6 +493,20 @@ func ExampleFrequency_flag() {
 	flag.Parse()
 }
 
+func ExampleFrequency_float64() {
+	// NTSC color subcarrier.
+	v := (315*physic.MegaHertz + 44) / 88
+
+	// Convert to float64 as hertz.
+	f := float64(v) / float64(physic.Hertz)
+
+	fmt.Println(v)
+	fmt.Printf("%fHz\n", f)
+	// Output:
+	// 3.580MHz
+	// 3579545.454545Hz
+}
+
 func ExamplePeriodToFrequency() {
 	fmt.Println(physic.PeriodToFrequency(time.Microsecond))
 	fmt.Println(physic.PeriodToFrequency(time.Minute))
@@ -403,6 +546,20 @@ func ExampleLuminousFlux_flag() {
 	flag.Parse()
 }
 
+func ExampleLuminousFlux_float64() {
+	// Typical output of a 7W LED.
+	v := 450 * physic.Lumen
+
+	// Convert to float64 as lumen.
+	f := float64(v) / float64(physic.Lumen)
+
+	fmt.Println(v)
+	fmt.Printf("%.0f\n", f)
+	// Output:
+	// 450lm
+	// 450
+}
+
 func ExampleLuminousIntensity() {
 	fmt.Println(12 * physic.Candela)
 	// Output:
@@ -426,6 +583,21 @@ func ExampleLuminousIntensity_flag() {
 
 	flag.Var(&l, "dusk", "light level to turn on light")
 	flag.Parse()
+}
+
+func ExampleLuminousIntensity_float64() {
+	// A 7W LED generating 450lm in all directions (4π steradian) will have an
+	// intensity of 450lm/4π = ~35.8cd.
+	v := 35800 * physic.MilliCandela
+
+	// Convert to float64 as candela.
+	f := float64(v) / float64(physic.Candela)
+
+	fmt.Println(v)
+	fmt.Printf("%.1f\n", f)
+	// Output:
+	// 35.800cd
+	// 35.8
 }
 
 func ExampleMass() {
@@ -476,6 +648,20 @@ func ExampleMass_flag() {
 	flag.Parse()
 }
 
+func ExampleMass_float64() {
+	// Weight of a Loonie (Canadian metal piece).
+	v := 6270 * physic.MilliGram
+
+	// Convert to float64 as gram.
+	f := float64(v) / float64(physic.Gram)
+
+	fmt.Println(v)
+	fmt.Printf("%.2fg\n", f)
+	// Output:
+	// 6.270g
+	// 6.27g
+}
+
 func ExamplePower() {
 	fmt.Println(1 * physic.Watt)
 	fmt.Println(16 * physic.MilliWatt)
@@ -517,6 +703,20 @@ func ExamplePower_flag() {
 	flag.Parse()
 }
 
+func ExamplePower_float64() {
+	// Maximum emitted power by Bluetooth class 2 device.
+	v := 2500 * physic.MicroWatt
+
+	// Convert to float64 as watt.
+	f := float64(v) / float64(physic.Watt)
+
+	fmt.Println(v)
+	fmt.Printf("%.4f\n", f)
+	// Output:
+	// 2.500mW
+	// 0.0025
+}
+
 func ExamplePressure() {
 	fmt.Println(101010 * physic.Pascal)
 	fmt.Println(101 * physic.KiloPascal)
@@ -549,6 +749,20 @@ func ExamplePressure_flag() {
 	flag.Parse()
 }
 
+func ExamplePressure_float64() {
+	// A typical tire pressure in North America (33psi).
+	v := 227526990 * physic.MicroPascal
+
+	// Convert to float64 as pascal.
+	f := float64(v) / float64(physic.Pascal)
+
+	fmt.Println(v)
+	fmt.Printf("%f\n", f)
+	// Output:
+	// 227.527Pa
+	// 227.526990
+}
+
 func ExampleRelativeHumidity() {
 	fmt.Println(506 * physic.MilliRH)
 	fmt.Println(20 * physic.PercentRH)
@@ -579,6 +793,20 @@ func ExampleRelativeHumidity_flag() {
 
 	flag.Var(&h, "humidity", "green house humidity high alarm level")
 	flag.Parse()
+}
+
+func ExampleRelativeHumidity_float64() {
+	// Yearly humidity average of Nadi, Fiji.
+	v := 800 * physic.MilliRH
+
+	// Convert to float64 as %.
+	f := float64(v) / float64(physic.PercentRH)
+
+	fmt.Println(v)
+	fmt.Printf("%.0f\n", f)
+	// Output:
+	// 80%rH
+	// 80
 }
 
 func ExampleSpeed() {
@@ -629,6 +857,30 @@ func ExampleSpeed_flag() {
 
 	flag.Var(&s, "speed", "window shutter closing speed")
 	flag.Parse()
+}
+
+func ExampleSpeed_float64() {
+	// Speed of light in vacuum.
+	v := physic.LightSpeed
+
+	// Convert to float64 as m/s.
+	fms := float64(v) / float64(physic.MetrePerSecond)
+
+	// Convert to float64 as km/h.
+	fkh := float64(v) / float64(physic.KilometrePerHour)
+
+	// Convert to float64 as mph.
+	fmh := float64(v) / float64(physic.MilePerHour)
+
+	fmt.Println(v)
+	fmt.Printf("%.0fm/s\n", fms)
+	fmt.Printf("%.1fkm/h\n", fkh)
+	fmt.Printf("%.1fmph\n", fmh)
+	// Output:
+	// 299.792Mm/s
+	// 299792458m/s
+	// 1079252847.9km/h
+	// 670616629.4mph
 }
 
 func ExampleTemperature() {
@@ -682,4 +934,28 @@ func ExampleTemperature_flag() {
 
 	flag.Var(&t, "temp", "thermostat setpoint")
 	flag.Parse()
+}
+
+func ExampleTemperature_float64() {
+	// Normal average human body temperature.
+	v := 37*physic.Celsius + physic.ZeroCelsius
+
+	// Convert to float64 as Kelvin.
+	fk := float64(v) / float64(physic.Kelvin)
+
+	// Convert to float64 as Celsius.
+	fc := float64(v-physic.ZeroCelsius) / float64(physic.Celsius)
+
+	// Convert to float64 as Fahrenheit.
+	ff := float64(v-physic.ZeroFahrenheit) / float64(physic.Fahrenheit)
+
+	fmt.Println(v)
+	fmt.Printf("%.1fK\n", fk)
+	fmt.Printf("%.1f°C\n", fc)
+	fmt.Printf("%.1f°F\n", ff)
+	// Output:
+	// 37°C
+	// 310.1K
+	// 37.0°C
+	// 98.6°F
 }
