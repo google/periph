@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"log"
 	"time"
 
 	"periph.io/x/periph/conn"
@@ -169,58 +168,99 @@ func (d *Dev) Draw(dstRect image.Rectangle, src image.Image, srcPtrs image.Point
 }
 
 func (d *Dev) update(border byte, black []byte, red []byte) error {
-	d.reset()
+	if err := d.reset(); err != nil {
+		return err
+	}
 
-	d.sendCommand(0x74, []byte{0x54}) // Set Analog Block Control.
-	d.sendCommand(0x7e, []byte{0x3b}) // Set Digital Block Control.
+	if err := d.sendCommand(0x74, []byte{0x54}); err != nil { // Set Analog Block Control.
+		return err
+	}
+	if err := d.sendCommand(0x7e, []byte{0x3b}); err != nil { // Set Digital Block Control.
+		return err
+	}
 
 	r := make([]byte, 3)
 	binary.LittleEndian.PutUint16(r, rows)
-	d.sendCommand(0x01, r) // Gate setting
+	if err := d.sendCommand(0x01, r); err != nil { // Gate setting
+		return err
+	}
 
-	d.sendCommand(0x03, []byte{0x10, 0x01}) // Gate Driving Voltage.
+	init := []struct {
+		cmd  byte
+		data []byte
+	}{
+		{0x03, []byte{0x10, 0x01}}, // Gate Driving Voltage.
+		{0x3a, []byte{0x07}},       // Dummy line period
+		{0x3b, []byte{0x04}},       // Gate line width
+		{0x11, []byte{0x03}},       // Data entry mode setting 0x03 = X/Y increment
+		{0x04, nil},                // Power on
+		{0x2c, []byte{0x3c}},       // VCOM Register, 0x3c = -1.5v?
+		{0x3c, []byte{0x00}},
+		{0x3c, []byte{byte(border)}}, // Border colour
+	}
 
-	d.sendCommand(0x3a, []byte{0x07}) // Dummy line period
-	d.sendCommand(0x3b, []byte{0x04}) // Gate line width
-	d.sendCommand(0x11, []byte{0x03}) // Data entry mode setting 0x03 = X/Y increment
-
-	d.sendCommand(0x04, nil)          // Power on
-	d.sendCommand(0x2c, []byte{0x3c}) // VCOM Register, 0x3c = -1.5v?
-
-	d.sendCommand(0x3c, []byte{0x00})
-	d.sendCommand(0x3c, []byte{byte(border)}) // Border colour.
+	for _, c := range init {
+		if err := d.sendCommand(c.cmd, c.data); err != nil {
+			return err
+		}
+	}
 
 	switch d.color {
 	case Black:
-		d.sendCommand(0x32, blackLUT)
+		if err := d.sendCommand(0x32, blackLUT[:]); err != nil {
+			return err
+		}
 	case Red:
-		d.sendCommand(0x32, redLUT)
+		if err := d.sendCommand(0x32, redLUT[:]); err != nil {
+			return err
+		}
 	case Yellow:
-		d.sendCommand(0x04, []byte{0x07}) // Set voltage of VSH and VSL.
-		d.sendCommand(0x32, yellowLUT)
+		if err := d.sendCommand(0x04, []byte{0x07}); err != nil { // Set voltage of VSH and VSL.
+			return err
+		}
+		if err := d.sendCommand(0x32, yellowLUT[:]); err != nil {
+			return err
+		}
 	}
 
-	d.sendCommand(0x44, []byte{0x00, cols/8 - 1}) // Set RAM X Start/End
 	h := make([]byte, 4)
 	binary.LittleEndian.PutUint16(h[2:], rows)
-	d.sendCommand(0x45, h) // Set RAM Y Start/End
+	write := []struct {
+		cmd  byte
+		data []byte
+	}{
+		{0x44, []byte{0x00, cols/8 - 1}}, // Set RAM X Start/End
+		{0x45, h},                        // Set RAM Y Start/End
+		{0x43, []byte{0x00}},
 
-	d.sendCommand(0x4e, []byte{0x00})
-	d.sendCommand(0x4f, []byte{0x00, 0x00})
-	d.sendCommand(0x24, black)
+		{0x4e, []byte{0x00}},
+		{0x4f, []byte{0x00, 0x00}},
+		{0x24, black},
 
-	d.sendCommand(0x43, []byte{0x00})
-	d.sendCommand(0x4f, []byte{0x00, 0x00})
-	d.sendCommand(0x26, red)
+		{0x43, []byte{0x00}},
+		{0x4f, []byte{0x00, 0x00}},
+		{0x26, red},
 
-	d.sendCommand(0x22, []byte{0xc7})
+		{0x22, []byte{0xc7}},
+	}
+
+	for _, c := range write {
+		if err := d.sendCommand(c.cmd, c.data); err != nil {
+			return err
+		}
+	}
+
 	d.busy.In(gpio.PullUp, gpio.FallingEdge)
 	defer d.busy.In(gpio.PullUp, gpio.NoEdge)
-	d.sendCommand(0x20, nil)
+	if err := d.sendCommand(0x20, nil); err != nil {
+		return err
+	}
 
 	d.busy.WaitForEdge(-1)
 
-	d.sendCommand(0x10, []byte{0x01}) // Enter deep sleep.
+	if err := d.sendCommand(0x10, []byte{0x01}); err != nil { // Enter deep sleep.
+		return err
+	}
 	return nil
 }
 
@@ -236,6 +276,7 @@ func (d *Dev) reset() error {
 		return fmt.Errorf("failed to reset inky: %v", err)
 	}
 	d.busy.WaitForEdge(-1)
+	return nil
 }
 
 func (d *Dev) sendCommand(command byte, data []byte) error {
@@ -244,8 +285,7 @@ func (d *Dev) sendCommand(command byte, data []byte) error {
 		return fmt.Errorf("failed to send command %x to inky: %v", command, err)
 	}
 	if data != nil {
-		err = d.sendData(data)
-		if err != nil {
+		if err := d.sendData(data); err != nil {
 			return fmt.Errorf("failed to send data for command %x to inky: %v", command, err)
 		}
 	}
