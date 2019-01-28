@@ -42,10 +42,29 @@ var borderColor = map[Color]byte{
 	White:  0xff,
 }
 
+// Model lists the supported e-ink display models.
+type Model int
+
+const (
+	PHAT Model = iota
+	// TODO: Add wHAT here when supported.
+)
+
+// Opts is the options to specify which device is being controlled and its
+// default settings.
+type Opts struct {
+	// Model being used.
+	Model Model
+	// Model color.
+	ModelColor Color
+	// Initial border color. Will be set on the first Draw().
+	BorderColor Color
+}
+
 // NewpHAT opens a handle to an Inky pHAT.
-func NewpHAT(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn, color Color) (*Dev, error) {
-	if color != Black && color != Red && color != Yellow {
-		return nil, fmt.Errorf("Unsupported color: %v", color)
+func New(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn, o *Opts) (*Dev, error) {
+	if o.ModelColor != Black && o.ModelColor != Red && o.ModelColor != Yellow {
+		return nil, fmt.Errorf("Unsupported color: %v", o.ModelColor)
 	}
 
 	c, err := p.Connect(488*physic.KiloHertz, spi.Mode0, 8)
@@ -58,8 +77,8 @@ func NewpHAT(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn, col
 		dc:     dc,
 		r:      reset,
 		busy:   busy,
-		color:  color,
-		border: Black,
+		color:  o.ModelColor,
+		border: o.BorderColor,
 	}
 
 	return d, nil
@@ -88,7 +107,7 @@ func (d *Dev) SetBorder(c Color) {
 
 // String implements conn.Resource.
 func (d *Dev) String() string {
-	return "InkyPHat"
+	return "Inky pHAT"
 }
 
 // Halt implements conn.Resource
@@ -318,3 +337,4 @@ func pack(bits []bool) ([]byte, error) {
 }
 
 var _ display.Drawer = &Dev{}
+var _ conn.Resource = &Dev{}
