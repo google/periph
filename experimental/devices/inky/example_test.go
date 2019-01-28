@@ -17,9 +17,8 @@ import (
 	"periph.io/x/periph/host"
 )
 
-var path = flag.String("image", "", "Path to image file (212x104) to display")
-
 func Example() {
+	path := flag.String("image", "", "Path to image file (212x104) to display")
 	flag.Parse()
 
 	f, err := os.Open(*path)
@@ -55,5 +54,7 @@ func Example() {
 		log.Fatal(err)
 	}
 
-	dev.Draw(img.Bounds(), img, image.ZP)
+	if err := dev.Draw(img.Bounds(), img, image.ZP); err != nil {
+		log.Fatal(err)
+	}
 }
