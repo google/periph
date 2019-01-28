@@ -283,19 +283,29 @@ func (d *Dev) update(border byte, black []byte, red []byte) error {
 	return nil
 }
 
-func (d *Dev) reset() error {
-	d.r.Out(gpio.Low)
+func (d *Dev) reset() (err error) {
+	if err = d.r.Out(gpio.Low); err != nil {
+		return err
+	}
 	time.Sleep(100 * time.Millisecond)
-	d.r.Out(gpio.High)
+	if err = d.r.Out(gpio.High); err != nil {
+		return err
+	}
 	time.Sleep(100 * time.Millisecond)
 
-	d.busy.In(gpio.PullUp, gpio.FallingEdge)
-	defer d.busy.In(gpio.PullUp, gpio.NoEdge)
+	if err = d.busy.In(gpio.PullUp, gpio.FallingEdge); err != nil {
+		return err
+	}
+	defer func() {
+		if err2 := d.busy.In(gpio.PullUp, gpio.NoEdge); err2 != nil {
+			err = err2
+		}
+	}()
 	if err := d.sendCommand(0x12, nil); err != nil { // Soft Reset
 		return fmt.Errorf("failed to reset inky: %v", err)
 	}
 	d.busy.WaitForEdge(-1)
-	return nil
+	return
 }
 
 func (d *Dev) sendCommand(command byte, data []byte) error {
@@ -315,7 +325,9 @@ func (d *Dev) sendData(data []byte) error {
 	if len(data) > 4096 {
 		return fmt.Errorf("Sending more data than chunk size: %d > 4096", len(data))
 	}
-	d.dc.Out(gpio.High)
+	if err := d.dc.Out(gpio.High); err != nil {
+		return err
+	}
 	if err := d.c.Tx(data, nil); err != nil {
 		return fmt.Errorf("failed to send data to inky: %v", err)
 	}
