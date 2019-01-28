@@ -242,8 +242,7 @@ func (d *Dev) reset() {
 
 func (d *Dev) sendCommand(command byte, data []byte) error {
 	d.dc.Out(spiCommand)
-	err := d.c.Tx([]byte{command}, nil)
-	if err != nil {
+	if err := d.c.Tx([]byte{command}, nil); err != nil {
 		return fmt.Errorf("failed to send command %x to inky: %v", command, err)
 	}
 	if data != nil {
@@ -257,11 +256,10 @@ func (d *Dev) sendCommand(command byte, data []byte) error {
 
 func (d *Dev) sendData(data []byte) error {
 	if len(data) > 4096 {
-		log.Fatalf("Sending more data than chunk size")
+		return fmt.Errorf("Sending more data than chunk size: %d > 4096", len(data))
 	}
 	d.dc.Out(spiData)
-	err := d.c.Tx(data, nil)
-	if err != nil {
+	if err := d.c.Tx(data, nil); err != nil {
 		return fmt.Errorf("failed to send data to inky: %v", err)
 	}
 	return nil
