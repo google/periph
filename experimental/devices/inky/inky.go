@@ -26,7 +26,6 @@ const (
 
 	speed      = 488 * physic.KiloHertz
 	spiBits    = 8
-	chunkSize  = 4096
 )
 
 type Color int
