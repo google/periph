@@ -49,7 +49,7 @@ func NewpHAT(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn, col
 		return nil, fmt.Errorf("Unsupported color: %v", color)
 	}
 
-	c, err := p.Connect(488 * physic.KiloHertz, spi.Mode0, 8)
+	c, err := p.Connect(488*physic.KiloHertz, spi.Mode0, 8)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to inky over spi: %v", err)
 	}
@@ -224,7 +224,7 @@ func (d *Dev) update(border byte, black []byte, red []byte) error {
 	return nil
 }
 
-func (d *Dev) reset() {
+func (d *Dev) reset() error {
 	d.r.Out(gpio.Low)
 	time.Sleep(100 * time.Millisecond)
 	d.r.Out(gpio.High)
@@ -232,7 +232,9 @@ func (d *Dev) reset() {
 
 	d.busy.In(gpio.PullUp, gpio.FallingEdge)
 	defer d.busy.In(gpio.PullUp, gpio.NoEdge)
-	d.sendCommand(0x12, nil) // Soft Reset
+	if err := d.sendCommand(0x12, nil); err != nil { // Soft Reset
+		return fmt.Errorf("failed to reset inky: %v", err)
+	}
 	d.busy.WaitForEdge(-1)
 }
 
