@@ -1227,6 +1227,16 @@ func (t *Temperature) Set(s string) error {
 	return nil
 }
 
+// Celsius returns the temperature as a floating number of °Celsius.
+func (t Temperature) Celsius() float64 {
+	return float64(t-ZeroCelsius) / float64(Celsius)
+}
+
+// Fahrenheit returns the temperature as a floating number of °Fahrenheit.
+func (t Temperature) Fahrenheit() float64 {
+	return float64(t-ZeroFahrenheit) / float64(Fahrenheit)
+}
+
 const (
 	NanoKelvin  Temperature = 1
 	MicroKelvin Temperature = 1000 * NanoKelvin

@@ -2929,6 +2929,24 @@ func TestTemperature_RoundTrip(t *testing.T) {
 	}
 }
 
+func TestTemperature_Celsius(t *testing.T) {
+	if v := ZeroCelsius.Celsius(); v != 0. {
+		t.Fatal(v)
+	}
+	if v := Temperature(0).Celsius(); v != -273.150 {
+		t.Fatal(v)
+	}
+}
+
+func TestTemperature_Fahrenheit(t *testing.T) {
+	if v := ZeroFahrenheit.Fahrenheit(); v != 0. {
+		t.Fatal(v)
+	}
+	if v := Temperature(0).Fahrenheit(); v != -459.67000045927 {
+		t.Fatal(v)
+	}
+}
+
 func TestPower_Set(t *testing.T) {
 	succeeds := []struct {
 		in       string
