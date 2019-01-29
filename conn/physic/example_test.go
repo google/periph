@@ -893,6 +893,34 @@ func ExampleTemperature() {
 	// 26.667°C
 }
 
+func ExampleTemperature_Celsius() {
+	// Normal average human body temperature.
+	v := 37*physic.Celsius + physic.ZeroCelsius
+
+	// Convert to float64 as Celsius.
+	f := v.Celsius()
+
+	fmt.Println(v)
+	fmt.Printf("%.1f°C\n", f)
+	// Output:
+	// 37°C
+	// 37.0°C
+}
+
+func ExampleTemperature_Fahrenheit() {
+	// Normal average human body temperature.
+	v := 37*physic.Celsius + physic.ZeroCelsius
+
+	// Convert to float64 as Fahrenheit.
+	f := v.Fahrenheit()
+
+	fmt.Println(v)
+	fmt.Printf("%.1f°F\n", f)
+	// Output:
+	// 37°C
+	// 98.6°F
+}
+
 func ExampleTemperature_Set() {
 	var t physic.Temperature
 
@@ -941,21 +969,11 @@ func ExampleTemperature_float64() {
 	v := 37*physic.Celsius + physic.ZeroCelsius
 
 	// Convert to float64 as Kelvin.
-	fk := float64(v) / float64(physic.Kelvin)
-
-	// Convert to float64 as Celsius.
-	fc := float64(v-physic.ZeroCelsius) / float64(physic.Celsius)
-
-	// Convert to float64 as Fahrenheit.
-	ff := float64(v-physic.ZeroFahrenheit) / float64(physic.Fahrenheit)
+	f := float64(v) / float64(physic.Kelvin)
 
 	fmt.Println(v)
-	fmt.Printf("%.1fK\n", fk)
-	fmt.Printf("%.1f°C\n", fc)
-	fmt.Printf("%.1f°F\n", ff)
+	fmt.Printf("%.1fK\n", f)
 	// Output:
 	// 37°C
 	// 310.1K
-	// 37.0°C
-	// 98.6°F
 }
