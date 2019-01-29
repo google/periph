@@ -186,7 +186,7 @@ func (d *Dev) Draw(dstRect image.Rectangle, src image.Image, srcPtrs image.Point
 	return d.update(borderColor[d.border], bufA, bufB)
 }
 
-func (d *Dev) update(border byte, black []byte, red []byte) error {
+func (d *Dev) update(border byte, black []byte, red []byte) (err error) {
 	if err := d.reset(); err != nil {
 		return err
 	}
@@ -269,8 +269,14 @@ func (d *Dev) update(border byte, black []byte, red []byte) error {
 		}
 	}
 
-	d.busy.In(gpio.PullUp, gpio.FallingEdge)
-	defer d.busy.In(gpio.PullUp, gpio.NoEdge)
+	if err := d.busy.In(gpio.PullUp, gpio.FallingEdge); err != nil {
+		return err
+	}
+	defer func() {
+		if err2 := d.busy.In(gpio.PullUp, gpio.NoEdge); err2 != nil {
+			err = err2
+		}
+	}()
 	if err := d.sendCommand(0x20, nil); err != nil {
 		return err
 	}
@@ -280,7 +286,7 @@ func (d *Dev) update(border byte, black []byte, red []byte) error {
 	if err := d.sendCommand(0x10, []byte{0x01}); err != nil { // Enter deep sleep.
 		return err
 	}
-	return nil
+	return
 }
 
 func (d *Dev) reset() (err error) {
@@ -309,7 +315,9 @@ func (d *Dev) reset() (err error) {
 }
 
 func (d *Dev) sendCommand(command byte, data []byte) error {
-	d.dc.Out(gpio.Low)
+	if err := d.dc.Out(gpio.Low); err != nil {
+		return err
+	}
 	if err := d.c.Tx([]byte{command}, nil); err != nil {
 		return fmt.Errorf("failed to send command %x to inky: %v", command, err)
 	}
