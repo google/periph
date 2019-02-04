@@ -23,11 +23,3 @@ func (e *event) makeEvent(f uintptr) error {
 func (e *event) wait(timeoutms int) (int, error) {
 	return 0, errors.New("fs: unreachable code")
 }
-
-type eventsListener struct {
-}
-
-// events is the global events listener.
-//
-// It is not used outside linux.
-var events eventsListener
