@@ -5,6 +5,7 @@
 package sysfs
 
 import (
+	"context"
 	"errors"
 	"os"
 	"strconv"
@@ -312,6 +313,18 @@ func (e *eventsListener) wakeUpLoop(c <-chan time.Time) time.Time {
 	// time.
 	_, _ = e.r.Read(b[:])
 	return t
+}
+
+// listen wraps addFd() and removeFd(), and listens for edges on the file
+// descriptor fd.
+//
+// Returns an error if listening to the file descriptor failed.
+func (e *eventsListener) listen(ctx context.Context, fd uintptr, c chan<- time.Time) error {
+	if err := e.addFd(fd, c, epollET|epollPRI); err != nil {
+		return err
+	}
+	<-ctx.Done()
+	return e.removeFd(fd)
 }
 
 // events is the global events listener.

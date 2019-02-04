@@ -5,6 +5,7 @@
 package sysfs
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -20,7 +21,6 @@ import (
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/pin"
-	"periph.io/x/periph/host/fs"
 )
 
 // Pins is all the pins exported by GPIO sysfs.
@@ -35,9 +35,12 @@ var Pins map[int]*Pin
 
 // Pin represents one GPIO pin as found by sysfs.
 type Pin struct {
-	number int
-	name   string
-	root   string // Something like /sys/class/gpio/gpio%d/
+	number         int
+	name           string
+	root           string         // Something like /sys/class/gpio/gpio%d/
+	edgeChan       chan time.Time // Used for edge detection
+	cancelWaitChan chan struct{}  // Used to unblock WaitForEdge
+	wg             sync.WaitGroup
 
 	mu         sync.Mutex
 	err        error     // If open() failed
@@ -46,8 +49,11 @@ type Pin struct {
 	fDirection fileIO    // handle to /sys/class/gpio/gpio*/direction; never closed
 	fEdge      fileIO    // handle to /sys/class/gpio/gpio*/edge; never closed
 	fValue     fileIO    // handle to /sys/class/gpio/gpio*/value; never closed
-	event      fs.Event  // Initialized once
 	buf        [4]byte   // scratch buffer for Func(), Read() and Out()
+
+	muCancel         sync.Mutex // Used in haltEdge() and WaitForEdge()
+	cancelListenEdge func()     // Cancels a pending ListenEdges()
+	until            time.Time  // Edges before this timestamp are ignored
 }
 
 // String implements conn.Resource.
@@ -145,13 +151,6 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 		}
 		p.direction = dIn
 	}
-	// Always push none to help accumulated flush edges. This is not fool proof
-	// but it seems to help.
-	if p.fEdge != nil {
-		if err := seekWrite(p.fEdge, bNone); err != nil {
-			return p.wrap(err)
-		}
-	}
 	// Assume that when the pin was switched, the driver doesn't recall if edge
 	// triggering was enabled.
 	if edge != gpio.NoEdge {
@@ -161,43 +160,42 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 			if err != nil {
 				return p.wrap(err)
 			}
-			if err = p.event.MakeEvent(p.fValue.Fd()); err != nil {
-				_ = p.fEdge.Close()
-				p.fEdge = nil
+		}
+
+		// Cancel any previous event loop.
+		p.muCancel.Lock()
+		p.cancelWait()
+		// Create a new context for the new event loop.
+		ctx, cancel := context.WithCancel(context.Background())
+		p.cancelListenEdge = cancel
+
+		if p.edge != edge {
+			var b []byte
+			switch edge {
+			case gpio.RisingEdge:
+				b = bRising
+			case gpio.FallingEdge:
+				b = bFalling
+			case gpio.BothEdges:
+				b = bBoth
+			}
+			if err := seekWrite(p.fEdge, b); err != nil {
 				return p.wrap(err)
 			}
+			p.edge = edge
 		}
-		// Always reset the edge detection mode to none after starting the epoll
-		// otherwise edges are not always delivered, as observed on an Allwinner A20
-		// running kernel 4.14.14.
-		if err := seekWrite(p.fEdge, bNone); err != nil {
-			return p.wrap(err)
-		}
-		var b []byte
-		switch edge {
-		case gpio.RisingEdge:
-			b = bRising
-		case gpio.FallingEdge:
-			b = bFalling
-		case gpio.BothEdges:
-			b = bBoth
-		}
-		if err := seekWrite(p.fEdge, b); err != nil {
-			return p.wrap(err)
-		}
+
+		fd := p.fValue.Fd()
+		p.wg.Add(1)
+		go func() {
+			p.until = time.Now()
+			p.muCancel.Unlock()
+			events.listen(ctx, fd, p.edgeChan)
+			p.wg.Done()
+		}()
+		return nil
 	}
-	p.edge = edge
-	// This helps to remove accumulated edges but this is not 100% sufficient.
-	// Most of the time the interrupts are handled promptly enough that this loop
-	// flushes the accumulated interrupt.
-	// Sometimes the kernel may have accumulated interrupts that haven't been
-	// processed for a long time, it can easily be >300µs even on a quite idle
-	// CPU. In this case, the loop below is not sufficient, since the interrupt
-	// will happen afterward "out of the blue".
-	if edge != gpio.NoEdge {
-		p.WaitForEdge(0)
-	}
-	return nil
+	return p.haltEdge()
 }
 
 // Read implements gpio.PinIn.
@@ -222,27 +220,58 @@ func (p *Pin) Read() gpio.Level {
 
 // WaitForEdge implements gpio.PinIn.
 func (p *Pin) WaitForEdge(timeout time.Duration) bool {
-	// Run lockless, as the normal use is to call in a busy loop.
-	var ms int
-	if timeout == -1 {
-		ms = -1
-	} else {
-		ms = int(timeout / time.Millisecond)
+	// Run "mostly" lockless.
+	p.muCancel.Lock()
+	until := p.until
+	p.muCancel.Unlock()
+
+	// Edge detection is not enabled.
+	if until.IsZero() {
+		return false
 	}
-	start := time.Now()
+
+	if timeout == -1 {
+		// No timeout.
+		for {
+			select {
+			case t := <-p.edgeChan:
+				if until.Before(t) {
+					return true
+				}
+				// Else loop again.
+			case <-p.cancelWaitChan:
+				// Edge waiting was canceled.
+				return false
+			}
+		}
+	}
+
+	if timeout == 0 {
+		// Do a quick peek, ignoring the rest. Empties p.edgeChan if needed.
+		for {
+			select {
+			case t := <-p.edgeChan:
+				if until.Before(t) {
+					return true
+				}
+			default:
+				return false
+			}
+		}
+	}
+
+	// Normal timeout.
+	c := time.After(timeout)
 	for {
-		if nr, err := p.event.Wait(ms); err != nil {
+		select {
+		case t := <-p.edgeChan:
+			if until.Before(t) {
+				return true
+			}
+		case <-c:
 			return false
-		} else if nr == 1 {
-			// TODO(maruel): According to pigpio, the correct way to consume the
-			// interrupt is to call Seek().
-			return true
-		}
-		// A signal occurred.
-		if timeout != -1 {
-			ms = int((timeout - time.Since(start)) / time.Millisecond)
-		}
-		if ms <= 0 {
+		case <-p.cancelWaitChan:
+			// Edge waiting was canceled.
 			return false
 		}
 	}
@@ -364,17 +393,39 @@ direction:
 	return p.err
 }
 
-// haltEdge stops any on-going edge detection.
+// haltEdge disables edge detection and unblocks any pending WaitforEdge().
+//
+// Must be called with mu held.
 func (p *Pin) haltEdge() error {
 	if p.edge != gpio.NoEdge {
 		if err := seekWrite(p.fEdge, bNone); err != nil {
 			return p.wrap(err)
 		}
 		p.edge = gpio.NoEdge
-		// This is still important to remove an accumulated edge.
-		p.WaitForEdge(0)
+		p.muCancel.Lock()
+		p.cancelWait()
+		p.muCancel.Unlock()
 	}
 	return nil
+}
+
+// cancelWait unblocks any pending WaitForEdge(), and stop edge listening.
+//
+// Must be called with p.muCancel held.
+func (p *Pin) cancelWait() {
+	p.cancelListenEdge()
+	for {
+		select {
+		case p.cancelWaitChan <- struct{}{}:
+		case <-p.edgeChan:
+		default:
+			goto end
+		}
+	}
+end:
+	p.wg.Wait()
+	p.cancelListenEdge = func() {}
+	p.until = time.Time{}
 }
 
 func (p *Pin) wrap(err error) error {
@@ -488,9 +539,12 @@ func (d *driverGPIO) parseGPIOChip(path string) error {
 			return fmt.Errorf("found two pins with number %d", i)
 		}
 		p := &Pin{
-			number: i,
-			name:   fmt.Sprintf("GPIO%d", i),
-			root:   fmt.Sprintf("/sys/class/gpio/gpio%d/", i),
+			number:           i,
+			name:             fmt.Sprintf("GPIO%d", i),
+			root:             fmt.Sprintf("/sys/class/gpio/gpio%d/", i),
+			edgeChan:         make(chan time.Time),
+			cancelListenEdge: func() {},
+			cancelWaitChan:   make(chan struct{}),
 		}
 		Pins[i] = p
 		if err := gpioreg.Register(p); err != nil {

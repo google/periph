@@ -6,7 +6,17 @@
 
 package sysfs
 
+import (
+	"context"
+	"errors"
+	"time"
+)
+
 type eventsListener struct {
+}
+
+func (e *eventsListener) listen(ctx context.Context, fd uintptr, c chan<- time.Time) error {
+	return errors.New("not implemented")
 }
 
 // events is the global events listener.

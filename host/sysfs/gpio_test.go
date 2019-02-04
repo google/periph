@@ -7,6 +7,7 @@ package sysfs
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/physic"
@@ -14,37 +15,68 @@ import (
 )
 
 func TestPin_String(t *testing.T) {
-	p := Pin{number: 42, name: "foo", root: "/tmp/gpio/priv/"}
+	p := Pin{
+		number:           42,
+		name:             "foo",
+		root:             "/tmp/gpio/priv/",
+		edgeChan:         make(chan time.Time),
+		cancelWaitChan:   make(chan struct{}),
+		cancelListenEdge: func() {},
+	}
 	if s := p.String(); s != "foo" {
 		t.Fatal(s)
 	}
 }
 
 func TestPin_Name(t *testing.T) {
-	p := Pin{number: 42, name: "foo", root: "/tmp/gpio/priv/"}
+	p := Pin{
+		number:           42,
+		name:             "foo",
+		root:             "/tmp/gpio/priv/",
+		edgeChan:         make(chan time.Time),
+		cancelWaitChan:   make(chan struct{}),
+		cancelListenEdge: func() {},
+	}
 	if s := p.Name(); s != "foo" {
 		t.Fatal(s)
 	}
 }
 
 func TestPin_Number(t *testing.T) {
-	p := Pin{number: 42, name: "foo", root: "/tmp/gpio/priv/"}
+	p := Pin{
+		number:           42,
+		name:             "foo",
+		root:             "/tmp/gpio/priv/",
+		edgeChan:         make(chan time.Time),
+		cancelWaitChan:   make(chan struct{}),
+		cancelListenEdge: func() {},
+	}
 	if n := p.Number(); n != 42 {
 		t.Fatal(n)
 	}
 }
 
 func TestPin_Func(t *testing.T) {
-	p := Pin{number: 42, name: "foo", root: "/tmp/gpio/priv/"}
+	p := Pin{
+		number:           42,
+		name:             "foo",
+		root:             "/tmp/gpio/priv/",
+		edgeChan:         make(chan time.Time),
+		cancelWaitChan:   make(chan struct{}),
+		cancelListenEdge: func() {},
+	}
 	// Fails because open is not mocked.
 	if s := p.Func(); s != pin.FuncNone {
 		t.Fatal(s)
 	}
 	p = Pin{
-		number:     42,
-		name:       "foo",
-		root:       "/tmp/gpio/priv/",
-		fDirection: &fakeGPIOFile{},
+		number:           42,
+		name:             "foo",
+		root:             "/tmp/gpio/priv/",
+		fDirection:       &fakeGPIOFile{},
+		edgeChan:         make(chan time.Time),
+		cancelWaitChan:   make(chan struct{}),
+		cancelListenEdge: func() {},
 	}
 	if s := p.Func(); s != pin.FuncNone {
 		t.Fatal(s)
@@ -64,15 +96,26 @@ func TestPin_Func(t *testing.T) {
 }
 
 func TestPin_In(t *testing.T) {
-	p := Pin{number: 42, name: "foo", root: "/tmp/gpio/priv/"}
+	p := Pin{
+		number:           42,
+		name:             "foo",
+		root:             "/tmp/gpio/priv/",
+		edgeChan:         make(chan time.Time),
+		cancelWaitChan:   make(chan struct{}),
+		cancelListenEdge: func() {},
+	}
 	if p.In(gpio.PullNoChange, gpio.NoEdge) == nil {
 		t.Fatal("can't open")
 	}
 	p = Pin{
-		number:     42,
-		name:       "foo",
-		root:       "/tmp/gpio/priv/",
-		fDirection: &fakeGPIOFile{},
+		number:           42,
+		name:             "foo",
+		root:             "/tmp/gpio/priv/",
+		fValue:           &fakeGPIOFile{},
+		fDirection:       &fakeGPIOFile{},
+		edgeChan:         make(chan time.Time),
+		cancelWaitChan:   make(chan struct{}),
+		cancelListenEdge: func() {},
 	}
 	if p.In(gpio.PullNoChange, gpio.NoEdge) == nil {
 		t.Fatal("can't read direction")
@@ -90,8 +133,8 @@ func TestPin_In(t *testing.T) {
 	}
 
 	p.fEdge = &fakeGPIOFile{}
-	if p.In(gpio.PullNoChange, gpio.NoEdge) == nil {
-		t.Fatal("edge I/O failed")
+	if err := p.In(gpio.PullNoChange, gpio.NoEdge); err != nil {
+		t.Fatal("edge I/O failed", err)
 	}
 
 	p.fEdge = &fakeGPIOFile{data: []byte("none")}
@@ -110,7 +153,14 @@ func TestPin_In(t *testing.T) {
 }
 
 func TestPin_Read(t *testing.T) {
-	p := Pin{number: 42, name: "foo", root: "/tmp/gpio/priv/"}
+	p := Pin{
+		number:           42,
+		name:             "foo",
+		root:             "/tmp/gpio/priv/",
+		edgeChan:         make(chan time.Time),
+		cancelWaitChan:   make(chan struct{}),
+		cancelListenEdge: func() {},
+	}
 	if l := p.Read(); l != gpio.Low {
 		t.Fatal("broken pin is always low")
 	}
@@ -133,21 +183,44 @@ func TestPin_Read(t *testing.T) {
 }
 
 func TestPin_WaitForEdges(t *testing.T) {
-	p := Pin{number: 42, name: "foo", root: "/tmp/gpio/priv/"}
+	p := Pin{
+		number:           42,
+		name:             "foo",
+		root:             "/tmp/gpio/priv/",
+		edgeChan:         make(chan time.Time),
+		cancelWaitChan:   make(chan struct{}),
+		cancelListenEdge: func() {},
+	}
 	if p.WaitForEdge(-1) {
 		t.Fatal("broken pin doesn't have edge triggered")
 	}
 }
 
 func TestPin_Pull(t *testing.T) {
-	p := Pin{number: 42, name: "foo", root: "/tmp/gpio/priv/"}
+	p := Pin{
+		number:           42,
+		name:             "foo",
+		root:             "/tmp/gpio/priv/",
+		edgeChan:         make(chan time.Time),
+		cancelWaitChan:   make(chan struct{}),
+		cancelListenEdge: func() {},
+	}
 	if pull := p.Pull(); pull != gpio.PullNoChange {
 		t.Fatal(pull)
 	}
 }
 
 func TestPin_Out(t *testing.T) {
-	p := Pin{number: 42, name: "foo", root: "/tmp/gpio/priv/", direction: dIn, edge: gpio.NoEdge}
+	p := Pin{
+		number:           42,
+		name:             "foo",
+		root:             "/tmp/gpio/priv/",
+		direction:        dIn,
+		edge:             gpio.NoEdge,
+		edgeChan:         make(chan time.Time),
+		cancelWaitChan:   make(chan struct{}),
+		cancelListenEdge: func() {},
+	}
 	if p.Out(gpio.High) == nil {
 		t.Fatal("can't open fake root")
 	}
@@ -191,7 +264,14 @@ func TestPin_Out(t *testing.T) {
 }
 
 func TestPin_PWM(t *testing.T) {
-	p := Pin{number: 42, name: "foo", root: "/tmp/gpio/priv/"}
+	p := Pin{
+		number:           42,
+		name:             "foo",
+		root:             "/tmp/gpio/priv/",
+		edgeChan:         make(chan time.Time),
+		cancelWaitChan:   make(chan struct{}),
+		cancelListenEdge: func() {},
+	}
 	if p.PWM(gpio.DutyHalf, physic.KiloHertz) == nil {
 		t.Fatal("sysfs-gpio doesn't support PWM")
 	}

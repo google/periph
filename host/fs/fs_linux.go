@@ -82,6 +82,9 @@ func ioctl(f uintptr, op uint, arg uintptr) error {
 	return nil
 }
 
+// event listens for events for a single file thru events.
+//
+// Deprecated: to be removed in v4.0.0.
 type event struct {
 	event   [1]syscall.EpollEvent
 	epollFd int

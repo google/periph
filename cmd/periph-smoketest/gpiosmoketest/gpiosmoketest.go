@@ -239,7 +239,7 @@ func (s *SmokeTest) testEdgesBoth(p1, p2 gpio.PinIO) error {
 	}
 	time.Sleep(s.shortDelay)
 	if !<-s.expectNoEdge(p1) {
-		fmt.Printf("    warning: there should be no edge right after setting a pin\n")
+		return errors.New("spurious edge 1")
 	}
 	s.slowSleep()
 
@@ -340,12 +340,8 @@ func (s *SmokeTest) testWaitForEdge(p1, p2 gpio.PinIO) (err error) {
 	if d := time.Since(now); d < short {
 		return fmt.Errorf("wait returned too early after %s; < %s", d, short)
 	} else if d >= timeout {
-		//return fmt.Errorf("wait timed out after %s; >= %s", d, timeout)
-		fmt.Println("Known failure due to https://github.com/google/periph/issues/323")
-		return nil
+		return fmt.Errorf("wait timed out after %s", d)
 	}
-	return errors.New("unexpected success; https://github.com/google/periph/issues/323")
-	/* Need to comment out otherwise go vet will be unhappy.
 	s.slowSleep()
 
 	fmt.Printf("  Testing WaitForEdge+In\n")
@@ -385,7 +381,6 @@ func (s *SmokeTest) testWaitForEdge(p1, p2 gpio.PinIO) (err error) {
 		return fmt.Errorf("second wait timed out after %s; > %s", d, timeout)
 	}
 	return nil
-	*/
 }
 
 // testEdgesSide tests with gpio.RisingEdge or gpio.FallingEdge.

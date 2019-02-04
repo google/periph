@@ -82,6 +82,8 @@ type Event struct {
 // epoll_wait() call is running, so no edge is missed. Two edges will be
 // coallesced into one if the user mode process can't keep up. There's no
 // accumulation of edges.
+//
+// Deprecated: to be removed in v4.0.0.
 func (e *Event) MakeEvent(fd uintptr) error {
 	return e.event.makeEvent(fd)
 }

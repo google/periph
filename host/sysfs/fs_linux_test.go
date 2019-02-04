@@ -6,6 +6,7 @@ package sysfs
 
 import (
 	"bytes"
+	"context"
 	"io/ioutil"
 	"net"
 	"os"
@@ -200,7 +201,74 @@ func TestManual_Listen_Socket(t *testing.T) {
 	}
 }
 
+func TestListen_Zero(t *testing.T) {
+	// Sockets do support epollPRI on out-of-band data but here, we only use it
+	// to test hang.
+	ev := getListener(t)
+
+	ln, err := net.ListenTCP("tcp4", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := ln.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	conn, err := net.DialTCP("tcp4", nil, ln.Addr().(*net.TCPAddr))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := conn.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	recv, err := ln.Accept()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := recv.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	f, err := recv.(*net.TCPConn).File()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Cancel the context, so listen() will return without an error.
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	c := make(chan time.Time)
+	if err := ev.listen(ctx, f.Fd(), c); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestWakeUpLoop(t *testing.T) {
+	// Make sure it doesn't hang when the loop is not running.
+	ev := &eventsListener{}
+	ev.wakeUpLoop(nil)
+}
+
 //
+
+// getContext returns an auto-cancelling context after 5 seconds.
+func getContext(t *testing.T) (context.Context, func()) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	go func() {
+		<-ctx.Done()
+		if err := ctx.Err(); err != context.Canceled {
+			t.Fatalf("getContext() time out; test was too slow: %v", err)
+		}
+	}()
+	return ctx, cancel
+}
 
 // getListener returns a preinitialized eventsListener.
 //
