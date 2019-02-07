@@ -40,13 +40,7 @@ func New(bus i2c.Bus, opts *Opts) (*Dev, error) {
 		interrupt: opts.InterruptPin,
 		cancel:    func() {},
 		done: func() <-chan struct{} {
-			c := make(chan struct{})
-			go func() {
-				select {
-				case c <- struct{}{}:
-				}
-			}()
-			return c
+			return make(chan struct{})
 		},
 	}, nil
 }
@@ -146,7 +140,7 @@ func (d *Dev) Sense(ledDrive physic.ElectricCurrent, senseTime time.Duration) (S
 	d.cancelMu.Unlock()
 	defer d.cancel()
 
-	if err := d.writeVirtualRegister(ctx, intergrationReg, it); err != nil {
+	if err := d.writeVirtualRegister(ctx, integrationReg, it); err != nil {
 		return Spectrum{}, err
 	}
 	led, drive := calcLed(ledDrive)
@@ -244,7 +238,8 @@ func (d *Dev) Halt() error {
 	case <-d.done():
 		// Halted.
 	case <-time.After(time.Second):
-		return errors.New("halt timeout")
+		// Prevent Halt() from hanging forever if Sense() has not been called.
+		return errHaltTimeout
 	}
 	return nil
 }
@@ -552,6 +547,7 @@ var (
 	errPinTimeout     = errors.New("timeout waiting for interrupt signal on pin")
 	errHalted         = errors.New("received halt command")
 	errGainValue      = errors.New("invalid gain value")
+	errHaltTimeout    = errors.New("halt timeout, sensor may not have been started")
 )
 
 const (
@@ -561,7 +557,7 @@ const (
 	hardwareVersion      = 0x00
 	firmwareVersion      = 0x02
 	controlReg           = 0x04
-	intergrationReg      = 0x05
+	integrationReg       = 0x05
 	deviceTemperatureReg = 0x06
 	ledControlReg        = 0x07
 	// RawBase used as base for reading uint16 values, data must be sequentially.

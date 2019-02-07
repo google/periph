@@ -800,8 +800,8 @@ func TestNew(t *testing.T) {
 
 		// Halt with empty context.
 		err = d.Halt()
-		if err != nil {
-			t.Errorf("New Sensor halt wanted nil but got %v", err)
+		if err != errHaltTimeout {
+			t.Errorf("New Sensor halt wanted %v but got %v", errHaltTimeout, err)
 		}
 	}
 }
