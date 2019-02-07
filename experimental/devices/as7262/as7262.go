@@ -39,12 +39,21 @@ func New(bus i2c.Bus, opts *Opts) (*Dev, error) {
 		gain:      opts.Gain,
 		interrupt: opts.InterruptPin,
 		cancel:    func() {},
+		done: func() <-chan struct{} {
+			c := make(chan struct{})
+			go func() {
+				select {
+				case c <- struct{}{}:
+				}
+			}()
+			return c
+		},
 	}, nil
 }
 
 var sensorTimeout = 200 * time.Millisecond
 
-// WaitForSensor is overridden in tests.
+// waitForSensor is overridden in tests.
 var waitForSensor = time.After
 
 // Dev is a handle to the as7262 sensor.
@@ -56,9 +65,10 @@ type Dev struct {
 	mu   sync.Mutex
 	gain Gain
 
-	// cancelMu guards just cancelFunc
+	// cancelMu guards cancel and done.
 	cancelMu sync.Mutex
 	cancel   context.CancelFunc
+	done     func() <-chan struct{}
 }
 
 // Spectrum is the reading from the sensor including the actual sensor state for
@@ -132,6 +142,7 @@ func (d *Dev) Sense(ledDrive physic.ElectricCurrent, senseTime time.Duration) (S
 	ctx, cancel := context.WithCancel(context.Background())
 	d.cancelMu.Lock()
 	d.cancel = cancel
+	d.done = ctx.Done
 	d.cancelMu.Unlock()
 	defer d.cancel()
 
@@ -229,6 +240,12 @@ func (d *Dev) Halt() error {
 	d.cancelMu.Lock()
 	defer d.cancelMu.Unlock()
 	d.cancel()
+	select {
+	case <-d.done():
+		// Halted.
+	case <-time.After(time.Second):
+		return errors.New("halt timeout")
+	}
 	return nil
 }
 

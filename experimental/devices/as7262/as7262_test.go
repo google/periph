@@ -26,7 +26,7 @@ func TestDev_Sense(t *testing.T) {
 	haltit := func(dev *Dev) func(time.Duration) <-chan time.Time {
 		return func(d time.Duration) <-chan time.Time {
 			t := make(chan time.Time, 1)
-			dev.Halt()
+			go dev.Halt()
 			return t
 		}
 	}
@@ -354,10 +354,11 @@ func TestDev_pollStatus(t *testing.T) {
 			d := &Dev{
 				c:      &i2c.Dev{Bus: bus, Addr: 0x49},
 				cancel: cancel,
+				done:   ctx.Done,
 			}
 
 			if tt.halt != 0 {
-				d.Halt()
+				go d.Halt()
 			}
 
 			got := d.pollStatus(ctx, tt.dir)
@@ -453,10 +454,11 @@ func TestDev_writeVirtualRegister(t *testing.T) {
 			d := &Dev{
 				c:      &i2c.Dev{Bus: bus, Addr: 0x49},
 				cancel: cancel,
+				done:   ctx.Done,
 			}
 
 			if tt.halt != 0 {
-				d.Halt()
+				go d.Halt()
 			}
 
 			got := d.writeVirtualRegister(ctx, 0x04, 0xFF)
@@ -590,10 +592,11 @@ func TestDev_readVirtualRegister(t *testing.T) {
 			d := &Dev{
 				c:      &i2c.Dev{Bus: bus, Addr: 0x49},
 				cancel: cancel,
+				done:   ctx.Done,
 			}
 
 			if tt.halt != 0 {
-				d.Halt()
+				go d.Halt()
 			}
 
 			got := d.readVirtualRegister(ctx, 0x04, tt.data)
@@ -625,7 +628,7 @@ func TestDev_pollDataReady(t *testing.T) {
 				{Addr: 0x49, W: []byte{statusReg}, R: []byte{0x00}},
 				{Addr: 0x49, W: []byte{writeReg, controlReg}, R: []byte{}},
 				{Addr: 0x49, W: []byte{statusReg}, R: []byte{0x01}},
-				{Addr: 0x49, W: []byte{readReg}, R: []byte{0x03}},
+				{Addr: 0x49, W: []byte{readReg}, R: []byte{0x01}},
 			},
 			halt:    1,
 			timeout: time.Millisecond * 1000,
@@ -742,10 +745,11 @@ func TestDev_pollDataReady(t *testing.T) {
 			d := &Dev{
 				c:      &i2c.Dev{Bus: bus, Addr: 0x49},
 				cancel: cancel,
+				done:   ctx.Done,
 			}
 
 			if tt.halt != 0 {
-				d.Halt()
+				go d.Halt()
 			}
 
 			got := d.pollDataReady(ctx)
@@ -792,6 +796,12 @@ func TestNew(t *testing.T) {
 		}
 		if tt.want2 != d.interrupt {
 			t.Errorf("New() wanted %v but got %v", tt.want2, d.interrupt)
+		}
+
+		// Halt with empty context.
+		err = d.Halt()
+		if err != nil {
+			t.Errorf("New Sensor halt wanted nil but got %v", err)
 		}
 	}
 }
@@ -921,20 +931,3 @@ func TestIOError_Error(t *testing.T) {
 		}
 	}
 }
-
-// func TestIntergration_AfterHalt(t *testing.T) {
-// 	bus := &i2ctest.Playback{
-// 		Ops:       sensorTestCaseValidRead,
-// 		DontPanic: true,
-// 	}
-// 	d, _ := New(bus, &DefaultOpts)
-
-// 	d.Halt()
-// 	if _, err := d.Sense(physic.MilliAmpere*100, time.Millisecond*3); err == errHalted {
-// 		t.Errorf("got %v expected nil", errHalted)
-// 	}
-// 	d.Halt()
-// 	if err := d.Gain(G1x); err == errHalted {
-// 		t.Errorf("got %v expected nil", errHalted)
-// 	}
-// }
