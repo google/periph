@@ -17,7 +17,7 @@ import (
 	"periph.io/x/periph/conn/physic"
 )
 
-var defaultSensorTimeOut = time.Millisecond * 200
+var defaultSensorTimeOut = sensorTimeout
 
 func TestDev_Sense(t *testing.T) {
 
