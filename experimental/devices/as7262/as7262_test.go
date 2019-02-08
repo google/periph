@@ -17,7 +17,7 @@ import (
 	"periph.io/x/periph/conn/physic"
 )
 
-var defaultSensorTimeOut = sensorTimeout
+var defaultSensorTimeOut = time.Millisecond * 200
 
 func TestDev_Sense(t *testing.T) {
 
@@ -800,8 +800,8 @@ func TestNew(t *testing.T) {
 
 		// Halt with empty context.
 		err = d.Halt()
-		if err != errHaltTimeout {
-			t.Errorf("New Sensor halt wanted %v but got %v", errHaltTimeout, err)
+		if err != nil {
+			t.Errorf("New Sensor halt wanted nil but got %v", err)
 		}
 	}
 }
