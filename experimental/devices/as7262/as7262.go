@@ -5,6 +5,7 @@
 package as7262
 
 import (
+	"context"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -33,29 +34,35 @@ var DefaultOpts = Opts{
 // New opens a handle to an AS7262 sensor.
 func New(bus i2c.Bus, opts *Opts) (*Dev, error) {
 	// The nil or zero values for gain and interrupt are valid
+	c := make(chan struct{})
+	close(c)
 	return &Dev{
 		c:         &i2c.Dev{Bus: bus, Addr: 0x49},
 		gain:      opts.Gain,
 		interrupt: opts.InterruptPin,
-		done:      make(chan struct{}, 1),
-		timeout:   200 * time.Millisecond,
+		cancel:    func() {},
+		done:      c,
 	}, nil
 }
+
+var sensorTimeout = 200 * time.Millisecond
+
+// waitForSensor is overridden in tests.
+var waitForSensor = time.After
 
 // Dev is a handle to the as7262 sensor.
 type Dev struct {
 	c         conn.Conn
-	timeout   time.Duration
 	interrupt gpio.PinIn
 
 	// Mutable
 	mu   sync.Mutex
 	gain Gain
-	done chan struct{}
 
-	// Guards canceled
-	canceledMu sync.Mutex
-	canceled   bool
+	// cancelMu guards cancel and done.
+	cancelMu sync.Mutex
+	cancel   context.CancelFunc
+	done     chan struct{}
 }
 
 // Spectrum is the reading from the sensor including the actual sensor state for
@@ -123,25 +130,30 @@ func (b Band) String() string {
 func (d *Dev) Sense(ledDrive physic.ElectricCurrent, senseTime time.Duration) (Spectrum, error) {
 
 	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	done := make(chan struct{}, 1)
-	d.canceledMu.Lock()
-	d.done = done
-	d.canceled = false
-	d.canceledMu.Unlock()
 
 	it, integration := calcSenseTime(senseTime)
-	if err := d.writeVirtualRegister(intergrationReg, it); err != nil {
+	ctx, cancel := context.WithCancel(context.Background())
+	d.cancelMu.Lock()
+	d.cancel = cancel
+	d.done = make(chan struct{})
+	d.cancelMu.Unlock()
+
+	defer func() {
+		close(d.done)
+		d.cancel()
+		d.mu.Unlock()
+	}()
+
+	if err := d.writeVirtualRegister(ctx, integrationReg, it); err != nil {
 		return Spectrum{}, err
 	}
 	led, drive := calcLed(ledDrive)
 
-	if err := d.writeVirtualRegister(ledControlReg, led); err != nil {
+	if err := d.writeVirtualRegister(ctx, ledControlReg, led); err != nil {
 		return Spectrum{}, err
 	}
 
-	if err := d.writeVirtualRegister(controlReg, uint8(allOneShot)|uint8(d.gain)); err != nil {
+	if err := d.writeVirtualRegister(ctx, controlReg, uint8(allOneShot)|uint8(d.gain)); err != nil {
 		return Spectrum{}, err
 	}
 
@@ -149,40 +161,40 @@ func (d *Dev) Sense(ledDrive physic.ElectricCurrent, senseTime time.Duration) (S
 		isEdge := make(chan bool)
 		go func() {
 			// TODO(NeuralSpaz): Test on hardware.
-			isEdge <- d.interrupt.WaitForEdge(integration*2 + d.timeout)
+			isEdge <- d.interrupt.WaitForEdge(integration*2 + sensorTimeout)
 		}()
 		select {
 		case edge := <-isEdge:
 			if !edge {
 				return Spectrum{}, errPinTimeout
 			}
-		case <-d.done:
+		case <-ctx.Done():
 			return Spectrum{}, errHalted
 		}
 	} else {
 		select {
 		// WaitForSensor is time.After().
 		case <-waitForSensor(integration * 2):
-			if err := d.pollDataReady(); err != nil {
+			if err := d.pollDataReady(ctx); err != nil {
 				return Spectrum{}, err
 			}
-		case <-d.done:
+		case <-ctx.Done():
 			return Spectrum{}, errHalted
 		}
 
 	}
 
-	if err := d.writeVirtualRegister(ledControlReg, 0x00); err != nil {
+	if err := d.writeVirtualRegister(ctx, ledControlReg, 0x00); err != nil {
 		return Spectrum{}, err
 	}
 
 	raw := make([]byte, 12)
-	if err := d.readVirtualRegister(rawBase, raw); err != nil {
+	if err := d.readVirtualRegister(ctx, rawBase, raw); err != nil {
 		return Spectrum{}, err
 	}
 
 	cal := make([]byte, 24)
-	if err := d.readVirtualRegister(calBase, cal); err != nil {
+	if err := d.readVirtualRegister(ctx, calBase, cal); err != nil {
 		return Spectrum{}, err
 	}
 
@@ -201,7 +213,7 @@ func (d *Dev) Sense(ledDrive physic.ElectricCurrent, senseTime time.Duration) (S
 	rcal := float64(math.Float32frombits(binary.BigEndian.Uint32(cal[20:24])))
 
 	traw := make([]byte, 1)
-	if err := d.readVirtualRegister(deviceTemperatureReg, traw); err != nil {
+	if err := d.readVirtualRegister(ctx, deviceTemperatureReg, traw); err != nil {
 		return Spectrum{}, err
 	}
 	temperature := physic.Temperature(int8(traw[0]))*physic.Kelvin + physic.ZeroCelsius
@@ -221,17 +233,14 @@ func (d *Dev) Sense(ledDrive physic.ElectricCurrent, senseTime time.Duration) (S
 	}, nil
 }
 
-var waitForSensor = time.After
-
 // Halt stops any pending operations. Repeated calls to Halt do nothing.
 func (d *Dev) Halt() error {
-	d.canceledMu.Lock()
-	defer d.canceledMu.Unlock()
-
-	if !d.canceled {
-		d.done <- struct{}{}
-		d.canceled = true
-	}
+	d.cancelMu.Lock()
+	defer d.cancelMu.Unlock()
+	d.cancel()
+	// A receive can always proceed on a closed channel we can use that
+	// to signal that the running process has been canceled correctly.
+	_, _ = <-d.done
 	return nil
 }
 
@@ -284,13 +293,7 @@ func (d *Dev) Gain(gain Gain) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	done := make(chan struct{}, 1)
-	d.canceledMu.Lock()
-	d.done = done
-	d.canceled = false
-	d.canceledMu.Unlock()
-
-	if err := d.writeVirtualRegister(controlReg, uint8(gain)); err != nil {
+	if err := d.writeVirtualRegister(context.Background(), controlReg, uint8(gain)); err != nil {
 		return err
 	}
 	d.gain = gain
@@ -301,10 +304,10 @@ func (d *Dev) Gain(gain Gain) error {
 // MSB of the register must be set when writing the register to the write
 // register, also status register must be checked for pending writes or data may
 // be discarded.
-func (d *Dev) writeVirtualRegister(register, data byte) error {
+func (d *Dev) writeVirtualRegister(ctx context.Context, register, data byte) error {
 
 	// Check for pending writes.
-	if err := d.pollStatus(writing); err != nil {
+	if err := d.pollStatus(ctx, writing); err != nil {
 		return err
 	}
 
@@ -314,7 +317,7 @@ func (d *Dev) writeVirtualRegister(register, data byte) error {
 	}
 
 	// Check for pending writes again.
-	if err := d.pollStatus(writing); err != nil {
+	if err := d.pollStatus(ctx, writing); err != nil {
 		return err
 	}
 
@@ -324,18 +327,17 @@ func (d *Dev) writeVirtualRegister(register, data byte) error {
 	}
 
 	return nil
-
 }
 
 // AS7262 protocol uses virtual registers. To read a virtual register the
 // pointer to the virtual register must be written to the write register. Status
 // register must be checked for any pending reads or data may be invalid, then
 // data maybe read from the read register.
-func (d *Dev) readVirtualRegister(register byte, data []byte) error {
+func (d *Dev) readVirtualRegister(ctx context.Context, register byte, data []byte) error {
 	rx := make([]byte, 1)
 	for i := 0; i < len(data); i++ {
 		// Check for pending reads.
-		if err := d.pollStatus(clearBuffer); err != nil {
+		if err := d.pollStatus(ctx, clearBuffer); err != nil {
 			return err
 		}
 
@@ -345,7 +347,7 @@ func (d *Dev) readVirtualRegister(register byte, data []byte) error {
 		}
 
 		// Check if read buffer is ready.
-		if err := d.pollStatus(reading); err != nil {
+		if err := d.pollStatus(ctx, reading); err != nil {
 			return err
 		}
 
@@ -360,12 +362,12 @@ func (d *Dev) readVirtualRegister(register byte, data []byte) error {
 }
 
 // Polls the data ready bit in the control register(virtual)
-func (d *Dev) pollDataReady() error {
-	timeout := time.NewTimer(d.timeout)
+func (d *Dev) pollDataReady(ctx context.Context) error {
+	timeout := time.NewTimer(sensorTimeout)
 	defer timeout.Stop()
 
 	for {
-		if err := d.pollStatus(clearBuffer); err != nil {
+		if err := d.pollStatus(ctx, clearBuffer); err != nil {
 			return err
 		}
 
@@ -375,7 +377,7 @@ func (d *Dev) pollDataReady() error {
 		}
 
 		// Check if read buffer is ready.
-		if err := d.pollStatus(reading); err != nil {
+		if err := d.pollStatus(ctx, reading); err != nil {
 			return err
 		}
 
@@ -394,11 +396,10 @@ func (d *Dev) pollDataReady() error {
 		case <-timeout.C:
 			// Return error if it takes too long.
 			return errStatusDeadline
-		case <-d.done:
+		case <-ctx.Done():
 			return errHalted
 		}
 	}
-
 }
 
 type direction byte
@@ -416,19 +417,18 @@ const (
 // provides a way to repeatedly check if there are any pending reads or writes
 // in the relevent buffer before a transaction while with a timeout.
 // Direction is used to set which buffer is being polled to be ready.
-func (d *Dev) pollStatus(dir direction) error {
-	timeout := time.NewTimer(d.timeout)
+func (d *Dev) pollStatus(ctx context.Context, dir direction) error {
+	timeout := time.NewTimer(sensorTimeout)
 	defer timeout.Stop()
-	// Check if already canceled first
+
 	select {
-	case <-d.done:
+	case <-ctx.Done():
 		return errHalted
 	default:
-		// Proceed.
 	}
+
 	status := make([]byte, 1)
 	for {
-
 		// Read status register.
 		err := d.c.Tx([]byte{statusReg}, status)
 		if err != nil {
@@ -462,13 +462,14 @@ func (d *Dev) pollStatus(dir direction) error {
 				return nil
 			}
 		}
+
 		select {
 		case <-time.After(5 * time.Millisecond):
 			// Polling interval.
 		case <-timeout.C:
 			// Return error if it takes too long.
 			return errStatusDeadline
-		case <-d.done:
+		case <-ctx.Done():
 			return errHalted
 		}
 	}
@@ -551,7 +552,7 @@ const (
 	hardwareVersion      = 0x00
 	firmwareVersion      = 0x02
 	controlReg           = 0x04
-	intergrationReg      = 0x05
+	integrationReg       = 0x05
 	deviceTemperatureReg = 0x06
 	ledControlReg        = 0x07
 	// RawBase used as base for reading uint16 values, data must be sequentially.
