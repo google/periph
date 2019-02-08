@@ -130,7 +130,6 @@ func (b Band) String() string {
 func (d *Dev) Sense(ledDrive physic.ElectricCurrent, senseTime time.Duration) (Spectrum, error) {
 
 	d.mu.Lock()
-	defer d.mu.Unlock()
 
 	it, integration := calcSenseTime(senseTime)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -138,7 +137,12 @@ func (d *Dev) Sense(ledDrive physic.ElectricCurrent, senseTime time.Duration) (S
 	d.cancel = cancel
 	d.done = make(chan struct{})
 	d.cancelMu.Unlock()
-	defer d.cancel()
+
+	defer func() {
+		close(d.done)
+		d.cancel()
+		d.mu.Unlock()
+	}()
 
 	if err := d.writeVirtualRegister(ctx, integrationReg, it); err != nil {
 		return Spectrum{}, err
@@ -165,7 +169,6 @@ func (d *Dev) Sense(ledDrive physic.ElectricCurrent, senseTime time.Duration) (S
 				return Spectrum{}, errPinTimeout
 			}
 		case <-ctx.Done():
-			close(d.done)
 			return Spectrum{}, errHalted
 		}
 	} else {
@@ -176,7 +179,6 @@ func (d *Dev) Sense(ledDrive physic.ElectricCurrent, senseTime time.Duration) (S
 				return Spectrum{}, err
 			}
 		case <-ctx.Done():
-			close(d.done)
 			return Spectrum{}, errHalted
 		}
 
@@ -240,8 +242,8 @@ func (d *Dev) Halt() error {
 	// A receive can always proceed on a closed channel we can use that
 	// to signal that the running process has been canceled correctly.
 	case _, open := <-d.done:
-		if !open {
-			return nil
+		if open {
+			return errors.New("not closed")
 		}
 	}
 	return nil
@@ -332,7 +334,6 @@ func (d *Dev) writeVirtualRegister(ctx context.Context, register, data byte) err
 	}
 
 	return nil
-
 }
 
 // AS7262 protocol uses virtual registers. To read a virtual register the
@@ -403,11 +404,9 @@ func (d *Dev) pollDataReady(ctx context.Context) error {
 			// Return error if it takes too long.
 			return errStatusDeadline
 		case <-ctx.Done():
-			close(d.done)
 			return errHalted
 		}
 	}
-
 }
 
 type direction byte
@@ -431,7 +430,6 @@ func (d *Dev) pollStatus(ctx context.Context, dir direction) error {
 
 	select {
 	case <-ctx.Done():
-		close(d.done)
 		return errHalted
 	default:
 	}
@@ -479,7 +477,6 @@ func (d *Dev) pollStatus(ctx context.Context, dir direction) error {
 			// Return error if it takes too long.
 			return errStatusDeadline
 		case <-ctx.Done():
-			close(d.done)
 			return errHalted
 		}
 	}

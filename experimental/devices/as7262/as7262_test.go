@@ -358,7 +358,11 @@ func TestDev_pollStatus(t *testing.T) {
 			}
 
 			if tt.halt != 0 {
-				go d.Halt()
+				go func() {
+					if err := d.Halt(); err != nil {
+						t.Errorf("Halt() expected nil but got %v", err)
+					}
+				}()
 			}
 
 			got := d.pollStatus(ctx, tt.dir)
@@ -458,7 +462,11 @@ func TestDev_writeVirtualRegister(t *testing.T) {
 			}
 
 			if tt.halt != 0 {
-				go d.Halt()
+				go func() {
+					if err := d.Halt(); err != nil {
+						t.Errorf("Halt() expected nil but got %v", err)
+					}
+				}()
 			}
 
 			got := d.writeVirtualRegister(ctx, 0x04, 0xFF)
@@ -596,7 +604,11 @@ func TestDev_readVirtualRegister(t *testing.T) {
 			}
 
 			if tt.halt != 0 {
-				go d.Halt()
+				go func() {
+					if err := d.Halt(); err != nil {
+						t.Errorf("Halt() expected nil but got %v", err)
+					}
+				}()
 			}
 
 			got := d.readVirtualRegister(ctx, 0x04, tt.data)
@@ -749,7 +761,11 @@ func TestDev_pollDataReady(t *testing.T) {
 			}
 
 			if tt.halt != 0 {
-				go d.Halt()
+				go func() {
+					if err := d.Halt(); err != nil {
+						t.Errorf("Halt() expected nil but got %v", err)
+					}
+				}()
 			}
 
 			got := d.pollDataReady(ctx)
