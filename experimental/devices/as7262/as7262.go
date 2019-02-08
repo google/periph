@@ -243,8 +243,6 @@ func (d *Dev) Halt() error {
 		if !open {
 			return nil
 		}
-	case <-time.After(time.Second):
-		return errHaltTimeout
 	}
 	return nil
 }
@@ -555,7 +553,6 @@ var (
 	errPinTimeout     = errors.New("timeout waiting for interrupt signal on pin")
 	errHalted         = errors.New("received halt command")
 	errGainValue      = errors.New("invalid gain value")
-	errHaltTimeout    = errors.New("halt timeout, sensor may not have been started")
 )
 
 const (
