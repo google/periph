@@ -238,14 +238,9 @@ func (d *Dev) Halt() error {
 	d.cancelMu.Lock()
 	defer d.cancelMu.Unlock()
 	d.cancel()
-	select {
 	// A receive can always proceed on a closed channel we can use that
 	// to signal that the running process has been canceled correctly.
-	case _, open := <-d.done:
-		if open {
-			return errors.New("not closed")
-		}
-	}
+	_, _ = <-d.done
 	return nil
 }
 
@@ -298,9 +293,7 @@ func (d *Dev) Gain(gain Gain) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	ctx, cancel := context.WithTimeout(context.Background(), sensorTimeout)
-	defer cancel()
-	if err := d.writeVirtualRegister(ctx, controlReg, uint8(gain)); err != nil {
+	if err := d.writeVirtualRegister(context.Background(), controlReg, uint8(gain)); err != nil {
 		return err
 	}
 	d.gain = gain
