@@ -39,9 +39,7 @@ func New(bus i2c.Bus, opts *Opts) (*Dev, error) {
 		gain:      opts.Gain,
 		interrupt: opts.InterruptPin,
 		cancel:    func() {},
-		done: func() <-chan struct{} {
-			return make(chan struct{})
-		},
+		done:      make(chan struct{}),
 	}, nil
 }
 
@@ -62,7 +60,7 @@ type Dev struct {
 	// cancelMu guards cancel and done.
 	cancelMu sync.Mutex
 	cancel   context.CancelFunc
-	done     func() <-chan struct{}
+	done     chan struct{}
 }
 
 // Spectrum is the reading from the sensor including the actual sensor state for
@@ -136,7 +134,7 @@ func (d *Dev) Sense(ledDrive physic.ElectricCurrent, senseTime time.Duration) (S
 	ctx, cancel := context.WithCancel(context.Background())
 	d.cancelMu.Lock()
 	d.cancel = cancel
-	d.done = ctx.Done
+	d.done = make(chan struct{})
 	d.cancelMu.Unlock()
 	defer d.cancel()
 
@@ -165,6 +163,7 @@ func (d *Dev) Sense(ledDrive physic.ElectricCurrent, senseTime time.Duration) (S
 				return Spectrum{}, errPinTimeout
 			}
 		case <-ctx.Done():
+			close(d.done)
 			return Spectrum{}, errHalted
 		}
 	} else {
@@ -175,6 +174,7 @@ func (d *Dev) Sense(ledDrive physic.ElectricCurrent, senseTime time.Duration) (S
 				return Spectrum{}, err
 			}
 		case <-ctx.Done():
+			close(d.done)
 			return Spectrum{}, errHalted
 		}
 
@@ -235,10 +235,13 @@ func (d *Dev) Halt() error {
 	defer d.cancelMu.Unlock()
 	d.cancel()
 	select {
-	case <-d.done():
-		// Halted.
+	// A receive can always proceed on a closed channel we can use that
+	// to signal that the running process has been canceled correctly.
+	case _, open := <-d.done:
+		if !open {
+			return nil
+		}
 	case <-time.After(time.Second):
-		// Prevent Halt() from hanging forever if Sense() has not been called.
 		return errHaltTimeout
 	}
 	return nil
@@ -400,6 +403,7 @@ func (d *Dev) pollDataReady(ctx context.Context) error {
 			// Return error if it takes too long.
 			return errStatusDeadline
 		case <-ctx.Done():
+			close(d.done)
 			return errHalted
 		}
 	}
@@ -427,6 +431,7 @@ func (d *Dev) pollStatus(ctx context.Context, dir direction) error {
 
 	select {
 	case <-ctx.Done():
+		close(d.done)
 		return errHalted
 	default:
 	}
@@ -474,6 +479,7 @@ func (d *Dev) pollStatus(ctx context.Context, dir direction) error {
 			// Return error if it takes too long.
 			return errStatusDeadline
 		case <-ctx.Done():
+			close(d.done)
 			return errHalted
 		}
 	}

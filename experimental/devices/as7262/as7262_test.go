@@ -354,7 +354,7 @@ func TestDev_pollStatus(t *testing.T) {
 			d := &Dev{
 				c:      &i2c.Dev{Bus: bus, Addr: 0x49},
 				cancel: cancel,
-				done:   ctx.Done,
+				done:   make(chan struct{}),
 			}
 
 			if tt.halt != 0 {
@@ -454,7 +454,7 @@ func TestDev_writeVirtualRegister(t *testing.T) {
 			d := &Dev{
 				c:      &i2c.Dev{Bus: bus, Addr: 0x49},
 				cancel: cancel,
-				done:   ctx.Done,
+				done:   make(chan struct{}),
 			}
 
 			if tt.halt != 0 {
@@ -592,7 +592,7 @@ func TestDev_readVirtualRegister(t *testing.T) {
 			d := &Dev{
 				c:      &i2c.Dev{Bus: bus, Addr: 0x49},
 				cancel: cancel,
-				done:   ctx.Done,
+				done:   make(chan struct{}),
 			}
 
 			if tt.halt != 0 {
@@ -745,7 +745,7 @@ func TestDev_pollDataReady(t *testing.T) {
 			d := &Dev{
 				c:      &i2c.Dev{Bus: bus, Addr: 0x49},
 				cancel: cancel,
-				done:   ctx.Done,
+				done:   make(chan struct{}),
 			}
 
 			if tt.halt != 0 {
