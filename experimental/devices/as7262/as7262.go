@@ -34,12 +34,14 @@ var DefaultOpts = Opts{
 // New opens a handle to an AS7262 sensor.
 func New(bus i2c.Bus, opts *Opts) (*Dev, error) {
 	// The nil or zero values for gain and interrupt are valid
+	c := make(chan struct{})
+	close(c)
 	return &Dev{
 		c:         &i2c.Dev{Bus: bus, Addr: 0x49},
 		gain:      opts.Gain,
 		interrupt: opts.InterruptPin,
 		cancel:    func() {},
-		done:      make(chan struct{}),
+		done:      c,
 	}, nil
 }
 
