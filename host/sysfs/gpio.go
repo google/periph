@@ -320,12 +320,21 @@ func (p *Pin) open() error {
 	if drvGPIO.exportHandle == nil {
 		return errors.New("sysfs gpio is not initialized")
 	}
-	var err error
-	_, err = drvGPIO.exportHandle.Write([]byte(strconv.Itoa(p.number)))
-	if err != nil && !isErrBusy(err) {
-		p.err = err
+
+	// Try to open the pin if it was there. It's possible it had been exported
+	// already.
+	if p.fValue, p.err = fileIOOpen(p.root+"value", os.O_RDWR); p.err == nil {
+		// Fast track.
+		goto direction
+	} else if !os.IsNotExist(p.err) {
+		// It exists but not accessible, not worth doing the remainder.
+		p.err = fmt.Errorf("need more access, try as root or setup udev rules: %v", p.err)
+		return p.err
+	}
+
+	if _, p.err = drvGPIO.exportHandle.Write([]byte(strconv.Itoa(p.number))); p.err != nil && !isErrBusy(p.err) {
 		if os.IsPermission(p.err) {
-			return fmt.Errorf("need more access, try as root or setup udev rules: %v", p.err)
+			p.err = fmt.Errorf("need more access, try as root or setup udev rules: %v", p.err)
 		}
 		return p.err
 	}
@@ -334,25 +343,21 @@ func (p *Pin) open() error {
 	// running the Raspbian udev rule to make it readable to the current user.
 	// It's simpler to just loop a little as if /export is accessible, it doesn't
 	// make sense that gpioN/value doesn't become accessible eventually.
-	timeout := 5 * time.Second
-	for start := time.Now(); time.Since(start) < timeout; {
-		p.fValue, err = fileIOOpen(p.root+"value", os.O_RDWR)
-		// The virtual file creation is synchronous when writing to /export for
-		// udev rule execution is asynchronous.
-		if err == nil {
-			break
-		}
-		if !os.IsPermission(err) {
-			p.err = err
+	for start := time.Now(); time.Since(start) < 5*time.Second; {
+		// The virtual file creation is synchronous when writing to /export; albeit
+		// udev rule execution is asynchronous, so file mode change via udev rules
+		// takes some time to propagate.
+		if p.fValue, p.err = fileIOOpen(p.root+"value", os.O_RDWR); p.err == nil || !os.IsPermission(p.err) {
+			// Either success or a failure that is not a permission error.
 			break
 		}
 	}
 	if p.err != nil {
 		return p.err
 	}
-	p.fDirection, err = fileIOOpen(p.root+"direction", os.O_RDWR)
-	if err != nil {
-		p.err = err
+
+direction:
+	if p.fDirection, p.err = fileIOOpen(p.root+"direction", os.O_RDWR); p.err != nil {
 		_ = p.fValue.Close()
 		p.fValue = nil
 	}
