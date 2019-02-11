@@ -54,7 +54,7 @@ func TestAddFd_File(t *testing.T) {
 	}
 }
 
-func TestListen_Pipe(t *testing.T) {
+func TestManual_Listen_Pipe(t *testing.T) {
 	start := time.Now()
 	ev := getListener(t)
 
@@ -96,7 +96,7 @@ func TestListen_Pipe(t *testing.T) {
 	}
 }
 
-func TestListen_Socket(t *testing.T) {
+func TestManual_Listen_Socket(t *testing.T) {
 	start := time.Now()
 	ev := getListener(t)
 

@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 )
@@ -82,26 +83,34 @@ func (e epollEvent) String() string {
 // One OS thread is needed for all the events. This is more efficient on single
 // core system.
 type eventsListener struct {
-	// file descriptor of the epoll handle itself.
-	epollFd int
-	// pipes to wake up the loop()
-	r, w   *os.File
-	wakeUp <-chan time.Time
+	// Atomic value set to one once fully initialized.
+	initialized int32
 
 	// Mapping of file descriptors to wait on with their corresponding channels.
-	mu  sync.Mutex
+	mu sync.Mutex
+	// File descriptor of the epoll handle itself.
+	epollFd int
+	// Pipes to wake up the EpollWait() system call inside loop().
+	r, w *os.File
+	// Return channel to confirm that EpollWait() was woken up.
+	wakeUp <-chan time.Time
+	// Map of file handles to user listening channel.
 	fds map[int32]chan<- time.Time
 }
 
 // init must be called on a fresh instance.
 func (e *eventsListener) init() error {
-	// In theory this check should be done with a lock but in practice this is
-	// not necessary, as this value is only set with a lock.
-	if e.fds != nil {
+	if atomic.LoadInt32(&e.initialized) != 0 {
 		// Was already initialized.
 		return nil
 	}
 	e.mu.Lock()
+	if atomic.LoadInt32(&e.initialized) != 0 {
+		// Was already initialized, but this was done concurrently with another
+		// thread.
+		e.mu.Unlock()
+		return nil
+	}
 	var err error
 	e.epollFd, err = syscall.EpollCreate(1)
 	switch {
@@ -119,8 +128,7 @@ func (e *eventsListener) init() error {
 	}
 	e.r, e.w, err = os.Pipe()
 	// Only need epollIN. epollPRI has no effect on pipes.
-	const flags = epollET | epollIN
-	if err := e.addFdInner(e.r.Fd(), flags); err != nil {
+	if err := e.addFdInner(e.r.Fd(), epollET|epollIN); err != nil {
 		// This object will not be reusable at this point.
 		e.mu.Unlock()
 		return err
@@ -129,11 +137,13 @@ func (e *eventsListener) init() error {
 	e.wakeUp = wakeUp
 	e.fds = map[int32]chan<- time.Time{}
 	e.fds[int32(e.r.Fd())] = wakeUp
-	// The mutexes are still held after this function exits, it's loop() that will
-	// release the mutexes.
+	// The mutex is still held after this function exits, it's loop() that will
+	// release the mutex.
 	//
 	// This forces loop() to be started before addFd() can be called by users.
 	go e.loop()
+	// Initialization is now good to go.
+	atomic.StoreInt32(&e.initialized, 1)
 	return nil
 }
 
@@ -198,13 +208,10 @@ func (e *eventsListener) loop() {
 				continue
 			}
 			// Look at the event to determine if it's worth sending a pulse. It's
-			// maybe not worth it.
-			if ep&epollERR != 0 {
-				// TODO(maruel): We should stop listening to this file descriptor.
-				// Same for epollHUP.
-			}
-			// pipe and sockets trigger epollIN and epollOUT, but GPIO sysfs
-			// triggers epollPRI.
+			// maybe not worth it. Ignore epollERR, since it's always set for GPIO
+			// sysfs.
+			// Pipe and socket trigger epollIN and epollOUT, but GPIO sysfs triggers
+			// epollPRI.
 			if ep&(epollPRI|epollIN|epollOUT) != 0 {
 				lookups = append(lookups, lookup{c: c, event: ep})
 			}
@@ -277,6 +284,9 @@ func (e *eventsListener) removeFd(fd uintptr) error {
 //
 // Must not be called with the lock held.
 func (e *eventsListener) wakeUpLoop(c <-chan time.Time) time.Time {
+	if atomic.LoadInt32(&e.initialized) == 0 {
+		return time.Time{}
+	}
 	// TODO(maruel): Figure out a way to wake up that doesn't require emptying.
 	var b [1]byte
 	_, _ = e.w.Write(b[:])
