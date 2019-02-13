@@ -412,21 +412,14 @@ func (s *spiConn) txPackets(p []spi.Packet) error {
 }
 
 func (s *spiConn) setFlag(op uint, arg uint64) error {
-	if err := s.f.Ioctl(op|0x40000000, uintptr(unsafe.Pointer(&arg))); err != nil {
-		return err
-	}
-	if false {
-		// Verification.
-		actual := uint64(0)
-		// getFlag() equivalent.
-		if err := s.f.Ioctl(op|0x80000000, uintptr(unsafe.Pointer(&actual))); err != nil {
-			return err
-		}
-		if actual != arg {
-			return fmt.Errorf("sysfs-spi: op 0x%x: set 0x%x, read 0x%x", op, arg, actual)
-		}
-	}
-	return nil
+	return s.f.Ioctl(op, uintptr(unsafe.Pointer(&arg)))
+}
+
+// GetFlag allows to read back flags set via a ioctl, i.e. setFlag. It is
+// exported to allow calling it from the smoke test.
+func (s *spiConn) GetFlag(op uint) (arg uint64, err error) {
+	err = s.f.Ioctl(op, uintptr(unsafe.Pointer(&arg)))
+	return
 }
 
 func (s *spiConn) initPins() {
@@ -469,42 +462,20 @@ const (
 //
 // Constants and structure definition can be found at
 // /usr/include/linux/spi/spidev.h.
-const (
-	spiIOCMode        = 0x16B01 // SPI_IOC_WR_MODE (8 bits)
-	spiIOLSBFirst     = 0x16B02 // SPI_IOC_WR_LSB_FIRST
-	spiIOCBitsPerWord = 0x16B03 // SPI_IOC_WR_BITS_PER_WORD
-	spiIOCMaxSpeedHz  = 0x46B04 // SPI_IOC_WR_MAX_SPEED_HZ
-	spiIOCMode32      = 0x46B05 // SPI_IOC_WR_MODE32 (32 bits)
+const spiIOCMagic uint = 'k'
+
+var (
+	spiIOCMode        = fs.IOW(spiIOCMagic, 1, 1) // SPI_IOC_WR_MODE (8 bits)
+	spiIOLSBFirst     = fs.IOW(spiIOCMagic, 2, 1) // SPI_IOC_WR_LSB_FIRST
+	spiIOCBitsPerWord = fs.IOW(spiIOCMagic, 3, 1) // SPI_IOC_WR_BITS_PER_WORD
+	spiIOCMaxSpeedHz  = fs.IOW(spiIOCMagic, 4, 4) // SPI_IOC_WR_MAX_SPEED_HZ
+	spiIOCMode32      = fs.IOW(spiIOCMagic, 5, 4) // SPI_IOC_WR_MODE32 (32 bits)
 )
 
 // spiIOCTx(l) calculates the equivalent of SPI_IOC_MESSAGE(l) to execute a
 // transaction.
-//
-// The IOCTL for TX was deduced from this C code:
-//
-//   #include "linux/spi/spidev.h"
-//   #include "sys/ioctl.h"
-//   #include <stdio.h>
-//   int main() {
-//     for (int i = 1; i < 10; i++) {
-//       printf("len(%d) = 0x%08X\n", i, SPI_IOC_MESSAGE(i));
-//     }
-//     return 0;
-//   }
-//
-//   $ gcc a.cc && ./a.out
-//   len(1) = 0x40206B00
-//   len(2) = 0x40406B00
-//   len(3) = 0x40606B00
-//   len(4) = 0x40806B00
-//   len(5) = 0x40A06B00
-//   len(6) = 0x40C06B00
-//   len(7) = 0x40E06B00
-//   len(8) = 0x41006B00
-//   len(9) = 0x41206B00
 func spiIOCTx(l int) uint {
-	op := uint(0x40006B00)
-	return op | uint(0x200000)*uint(l)
+	return fs.IOW(spiIOCMagic, 0, uint(l)*32)
 }
 
 // spiIOCTransfer is spi_ioc_transfer in linux/spi/spidev.h.

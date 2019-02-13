@@ -6,4 +6,11 @@
 
 package fs
 
-const isMIPS = false
+const (
+	iocNone  uint = 0
+	iocWrite uint = 1
+	iocRead  uint = 2
+
+	iocSizebits uint = 14
+	iocDirbits  uint = 2
+)
