@@ -120,6 +120,13 @@ func TestGenPacket(t *testing.T) {
 	}
 }
 
+func TestMbIoctl(t *testing.T) {
+	var expected uint = 0xc0046400
+	if mbIoctl != expected {
+		t.Errorf("mbIoctl: got 0x%x, expected 0x%x", mbIoctl, expected)
+	}
+}
+
 //
 
 type dummy struct{}

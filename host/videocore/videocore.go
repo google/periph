@@ -94,10 +94,13 @@ var (
 	mu         sync.Mutex
 	mailbox    messager
 	mailboxErr error
+
+	// The 4 corresponds to the pointer size on the target platform. That means
+	// that this is incorrect on 64 bit platforms.
+	mbIoctl = fs.IOWR('d', 0, 4)
 )
 
 const (
-	mbIoctl = 0xc0046400 //_IOWR(0x100, 0, char *)
 	// All of these return anything but zero (‽)
 	mbFirmwareVersion = 0x1     // 0, 4
 	mbBoardModel      = 0x10001 // 0, 4
