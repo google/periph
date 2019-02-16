@@ -95,9 +95,7 @@ var (
 	mailbox    messager
 	mailboxErr error
 
-	// The 4 corresponds to the pointer size on the target platform. That means
-	// that this is incorrect on 64 bit platforms.
-	mbIoctl = fs.IOWR('d', 0, 4)
+	mbIoctl = fs.IOWR('d', 0, uint(unsafe.Sizeof(new(byte))))
 )
 
 const (
