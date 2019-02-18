@@ -62,12 +62,6 @@ type File struct {
 
 // Ioctl sends an ioctl to the file handle.
 func (f *File) Ioctl(op uint, data uintptr) error {
-	if isMIPS {
-		var err error
-		if op, err = translateOpMIPS(op); err != nil {
-			return err
-		}
-	}
 	return ioctl(f.Fd(), op, data)
 }
 
@@ -104,27 +98,3 @@ var (
 	inhibited bool
 	used      bool
 )
-
-func translateOpMIPS(op uint) (uint, error) {
-	// Decode the arm/x64 encoding and reencode as MIPS specific linux ioctl.
-	// arm/x64: DIR(2), SIZE(14), TYPE(8), NR(8)
-	// mips:    DIR(3), SIZE(13), TYPE(8), NR(8)
-	// Check for size overflow.
-	if (op & (1 << (13 + 8 + 8))) != 0 {
-		return 0, errors.New("fs: op code size is too large")
-	}
-	const mask = (1 << (13 + 8 + 8)) - 1
-	out := op & mask
-	// Convert dir.
-	switch op >> (14 + 8 + 8) {
-	case 0: // none
-		out |= 1 << (13 + 8 + 8)
-	case 1: // write
-		out |= 4 << (13 + 8 + 8)
-	case 2: // read
-		out |= 2 << (13 + 8 + 8)
-	default:
-		return 0, errors.New("fs: op code dir is invalid")
-	}
-	return out, nil
-}

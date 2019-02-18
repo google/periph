@@ -269,15 +269,6 @@ func TestSPI_Connect_Half(t *testing.T) {
 	}
 }
 
-func TestSPIIOCTX(t *testing.T) {
-	if v := spiIOCTx(1); v != 0x40206B00 {
-		t.Fatalf("Expected 0x40206B00, got 0x%08X", v)
-	}
-	if v := spiIOCTx(9); v != 0x41206B00 {
-		t.Fatalf("Expected 0x41206B00, got 0x%08X", v)
-	}
-}
-
 func TestSPIDriver(t *testing.T) {
 	if len((&driverSPI{}).Prerequisites()) != 0 {
 		t.Fatal("unexpected SPI prerequisites")
