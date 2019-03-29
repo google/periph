@@ -94,7 +94,8 @@ func TestSense(t *testing.T) {
 		{
 			name: "-10C",
 			tx: []i2ctest.IO{
-				{Addr: 0x18, W: []byte{temperature}, R: []byte{0x10, 0xa0}},
+				// 0x1f60 is -10°C in two's complement. See page 24-25 of the datasheet.
+				{Addr: 0x18, W: []byte{temperature}, R: []byte{0x1f, 0x60}},
 			},
 			enabled: true,
 			want:    physic.ZeroCelsius - 10*physic.Kelvin,
@@ -284,7 +285,8 @@ func TestSenseTemp(t *testing.T) {
 		{
 			name: "-10C",
 			tx: []i2ctest.IO{
-				{Addr: 0x18, W: []byte{temperature}, R: []byte{0x10, 0xa0}},
+				// 0x1f60 is -10°C in two's complement. See page 24-25 of the datasheet.
+				{Addr: 0x18, W: []byte{temperature}, R: []byte{0x1f, 0x60}},
 			},
 			want: physic.ZeroCelsius - 10*physic.Kelvin,
 			err:  nil,
@@ -356,7 +358,9 @@ func TestSenseWithAlerts(t *testing.T) {
 				{Addr: 0x18, W: []byte{critAlert, 0x00, 0xa0}, R: nil},
 				{Addr: 0x18, W: []byte{upperAlert, 0x00, 0x50}, R: nil},
 				{Addr: 0x18, W: []byte{lowerAlert, 0x00, 0x00}, R: nil},
-				{Addr: 0x18, W: []byte{temperature}, R: []byte{0x30, 0x10}},
+				// 0x3ff0 is -1°C in two's complement with the lower alert bit set (bit 13).
+				// See page 24-25 of the datasheet.
+				{Addr: 0x18, W: []byte{temperature}, R: []byte{0x3f, 0xf0}},
 				{Addr: 0x18, W: []byte{lowerAlert}, R: []byte{0x00, 0x00}},
 			},
 			err: nil,
@@ -487,7 +491,9 @@ func TestSenseWithAlerts(t *testing.T) {
 				{Addr: 0x18, W: []byte{critAlert, 0x00, 0xa0}, R: nil},
 				{Addr: 0x18, W: []byte{upperAlert, 0x00, 0x50}, R: nil},
 				{Addr: 0x18, W: []byte{lowerAlert, 0x00, 0x00}, R: nil},
-				{Addr: 0x18, W: []byte{temperature}, R: []byte{0x30, 0x10}},
+				// 0x3ff0 is -1°C in two's complement with the lower alert bit set (bit 13).
+				// See page 24-25 of the datasheet.
+				{Addr: 0x18, W: []byte{temperature}, R: []byte{0x3f, 0xf0}},
 			},
 			err: errReadLowerAlert,
 		},
@@ -897,7 +903,9 @@ func Test_alertBitsToTemperature(t *testing.T) {
 	}{
 		{"0°C", 0x0000, physic.ZeroCelsius},
 		{"0.25°C", 0x0004, physic.ZeroCelsius + 250*physic.MilliKelvin},
-		{"-0.25°C", 0x1004, physic.ZeroCelsius - 250*physic.MilliKelvin},
+		// Negative values are in two's complement. See page 22 of the datasheet.
+		{"-0.25°C", 0x1ffc, physic.ZeroCelsius - 250*physic.MilliKelvin},
+		{"-39.75°C", 0x1d84, physic.ZeroCelsius - 39750*physic.MilliKelvin},
 	}
 
 	for _, tt := range tests {
@@ -907,7 +915,7 @@ func Test_alertBitsToTemperature(t *testing.T) {
 	}
 }
 
-func Test_temperatureToAlertBits(t *testing.T) {
+func Test_alertTemperatureToBits(t *testing.T) {
 	succeeds := []struct {
 		name  string
 		alert physic.Temperature
@@ -915,9 +923,10 @@ func Test_temperatureToAlertBits(t *testing.T) {
 	}{
 		{"0°C", physic.ZeroCelsius, 0x0000},
 		{"0.25°C", physic.ZeroCelsius + 250*physic.MilliKelvin, 0x0004},
-		{"-0.25°C", physic.ZeroCelsius - 250*physic.MilliKelvin, 0x1004},
 		{"124.75°C", physic.ZeroCelsius + 124750*physic.MilliKelvin, 0x07cc},
-		{"-39.75°C", physic.ZeroCelsius - 39750*physic.MilliKelvin, 0x127c},
+		// Negative values are in two's complement. See page 22 of the datasheet.
+		{"-0.25°C", physic.ZeroCelsius - 250*physic.MilliKelvin, 0x1ffc},
+		{"-39.75°C", physic.ZeroCelsius - 39750*physic.MilliKelvin, 0x1d84},
 	}
 
 	fails := []struct {
@@ -932,16 +941,16 @@ func Test_temperatureToAlertBits(t *testing.T) {
 	for _, tt := range succeeds {
 		got, err := alertTemperatureToBits(tt.alert)
 		if got != tt.want && err == nil {
-			t.Errorf("alertBitsToTemperature(%s) = %x, want %x", tt.name, got, tt.want)
+			t.Errorf("alertTemperatureToBits(%s) = %x, want %x", tt.name, got, tt.want)
 		}
 		if err != nil {
-			t.Errorf("alertBitsToTemperature(%s) got unexpected error: %v", tt.name, err)
+			t.Errorf("alertTemperatureToBits(%s) got unexpected error: %v", tt.name, err)
 		}
 	}
 
 	for _, tt := range fails {
 		if _, err := alertTemperatureToBits(tt.alert); err == nil {
-			t.Errorf("alertBitsToTemperature(%s) expected error %v", tt.name, tt.want)
+			t.Errorf("alertTemperatureToBits(%s) expected error %v", tt.name, tt.want)
 		}
 	}
 }
