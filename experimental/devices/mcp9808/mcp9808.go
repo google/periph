@@ -264,7 +264,7 @@ func (d *Dev) readTemperature() (physic.Temperature, uint8, error) {
 		return 0, 0, errReadTemperature
 	}
 	// Convert to physic.Temperature 0.0625°C per bit
-	t := physic.Temperature(tbits&0x0fff) * 62500 * physic.MicroKelvin
+	t := physic.Temperature(tbits&0x0FFF) * 62500 * physic.MicroKelvin
 	if tbits&0x1000 > 0 {
 		// Check for sign bit.
 		t -= 256 * physic.Celsius
@@ -383,8 +383,8 @@ var (
 )
 
 func alertBitsToTemperature(b uint16) physic.Temperature {
-	b = (b >> 2) & 0x07ff
-	t := physic.Temperature(b&0x03ff) * 250 * physic.MilliKelvin
+	b = (b >> 2) & 0x07FF
+	t := physic.Temperature(b&0x03FF) * 250 * physic.MilliKelvin
 	if b&0x400 > 0 {
 		t -= 256 * physic.Celsius
 	}
