@@ -266,8 +266,8 @@ func (d *Dev) readTemperature() (physic.Temperature, uint8, error) {
 	// Convert to physic.Temperature 0.0625°C per bit
 	t := physic.Temperature(tbits&0x0FFF) * 62500 * physic.MicroKelvin
 	if tbits&0x1000 > 0 {
-		// Check for bit sign.
-		t = -t
+		// Check for sign bit.
+		t -= 256 * physic.Celsius
 	}
 	t += physic.ZeroCelsius
 	return t, uint8(tbits>>8) & 0xe0, nil
@@ -386,7 +386,7 @@ func alertBitsToTemperature(b uint16) physic.Temperature {
 	b = (b >> 2) & 0x07FF
 	t := physic.Temperature(b&0x03FF) * 250 * physic.MilliKelvin
 	if b&0x400 > 0 {
-		t = -t
+		t -= 256 * physic.Celsius
 	}
 	t += physic.ZeroCelsius
 	return t
@@ -403,13 +403,14 @@ func alertTemperatureToBits(t physic.Temperature) (uint16, error) {
 	// 0.25°C per bit.
 	t /= 250 * physic.MilliKelvin
 
-	var bits uint16
-	if t < 0 {
-		t = -t
-		bits |= 0x400
-	}
-	bits |= uint16(t)
-	bits = bits << 2
+	// We don't need to explicitly handle negative temperatures because both Go and the MCP9808
+	// store negative values using two's complement. We can rely on Go's implementation since
+	// we know that the bits of a negative value are already in two's complement, implying that
+	// the sign bit will already be set to 1 due to the range check. We need to be sure to mask
+	// off the 3 most significant bits after shifting though: they will all be set to 1 if the
+	// value is negative. Also mask off the 2 least significant bits. While not strictly necessary,
+	// the MCP9808 doesn't use them.
+	bits := (uint16(t) << 2) & 0x1ffc
 	return bits, nil
 }
 
