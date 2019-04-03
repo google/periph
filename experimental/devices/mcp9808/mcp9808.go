@@ -190,8 +190,7 @@ func (d *Dev) SenseWithAlerts(lower, upper, critical physic.Temperature) (physic
 			if err != nil {
 				return t, nil, errReadCriticalAlert
 			}
-			t := bitsToTemperature(crit)
-			as = append(as, Alert{"critical", t})
+			as = append(as, Alert{"critical", bitsToTemperature(crit)})
 		}
 
 		if alertBits&0x40 != 0 {
@@ -200,8 +199,7 @@ func (d *Dev) SenseWithAlerts(lower, upper, critical physic.Temperature) (physic
 			if err != nil {
 				return t, nil, errReadUpperAlert
 			}
-			t := bitsToTemperature(upper)
-			as = append(as, Alert{"upper", t})
+			as = append(as, Alert{"upper", bitsToTemperature(upper)})
 		}
 
 		if alertBits&0x20 != 0 {
@@ -210,8 +208,7 @@ func (d *Dev) SenseWithAlerts(lower, upper, critical physic.Temperature) (physic
 			if err != nil {
 				return t, nil, errReadLowerAlert
 			}
-			t := bitsToTemperature(lower)
-			as = append(as, Alert{"lower", t})
+			as = append(as, Alert{"lower", bitsToTemperature(lower)})
 		}
 
 		return t, as, nil
