@@ -182,9 +182,9 @@ func (d *Dev) SenseWithAlerts(lower, upper, critical physic.Temperature) (physic
 	}
 
 	// Check for Alerts.
-	if alertBits&0xe0 > 0 {
+	if alertBits&0xe0 != 0 {
 		var as []Alert
-		if alertBits&0x80 > 0 {
+		if alertBits&0x80 != 0 {
 			// Critical Alert bit set.
 			crit, err := d.m.ReadUint16(critAlert)
 			if err != nil {
@@ -194,7 +194,7 @@ func (d *Dev) SenseWithAlerts(lower, upper, critical physic.Temperature) (physic
 			as = append(as, Alert{"critical", t})
 		}
 
-		if alertBits&0x40 > 0 {
+		if alertBits&0x40 != 0 {
 			// Upper Alert bit set.
 			upper, err := d.m.ReadUint16(upperAlert)
 			if err != nil {
@@ -204,7 +204,7 @@ func (d *Dev) SenseWithAlerts(lower, upper, critical physic.Temperature) (physic
 			as = append(as, Alert{"upper", t})
 		}
 
-		if alertBits&0x20 > 0 {
+		if alertBits&0x20 != 0 {
 			// Lower Alert bit set.
 			lower, err := d.m.ReadUint16(lowerAlert)
 			if err != nil {
@@ -384,7 +384,7 @@ var (
 // datasheet.
 func bitsToTemperature(b uint16) physic.Temperature {
 	t := physic.Temperature(b&0x0fff) * 62500 * physic.MicroKelvin
-	if b&0x1000 > 0 {
+	if b&0x1000 != 0 {
 		// Account for sign bit.
 		t -= 256 * physic.Celsius
 	}
