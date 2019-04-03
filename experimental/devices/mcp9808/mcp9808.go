@@ -182,36 +182,33 @@ func (d *Dev) SenseWithAlerts(lower, upper, critical physic.Temperature) (physic
 	}
 
 	// Check for Alerts.
-	if alertBits&0xe0 > 0 {
+	if alertBits&0xe0 != 0 {
 		var as []Alert
-		if alertBits&0x80 > 0 {
+		if alertBits&0x80 != 0 {
 			// Critical Alert bit set.
 			crit, err := d.m.ReadUint16(critAlert)
 			if err != nil {
 				return t, nil, errReadCriticalAlert
 			}
-			t := alertBitsToTemperature(crit)
-			as = append(as, Alert{"critical", t})
+			as = append(as, Alert{"critical", bitsToTemperature(crit)})
 		}
 
-		if alertBits&0x40 > 0 {
+		if alertBits&0x40 != 0 {
 			// Upper Alert bit set.
 			upper, err := d.m.ReadUint16(upperAlert)
 			if err != nil {
 				return t, nil, errReadUpperAlert
 			}
-			t := alertBitsToTemperature(upper)
-			as = append(as, Alert{"upper", t})
+			as = append(as, Alert{"upper", bitsToTemperature(upper)})
 		}
 
-		if alertBits&0x20 > 0 {
+		if alertBits&0x20 != 0 {
 			// Lower Alert bit set.
 			lower, err := d.m.ReadUint16(lowerAlert)
 			if err != nil {
 				return t, nil, errReadLowerAlert
 			}
-			t := alertBitsToTemperature(lower)
-			as = append(as, Alert{"lower", t})
+			as = append(as, Alert{"lower", bitsToTemperature(lower)})
 		}
 
 		return t, as, nil
@@ -263,14 +260,8 @@ func (d *Dev) readTemperature() (physic.Temperature, uint8, error) {
 	if err != nil {
 		return 0, 0, errReadTemperature
 	}
-	// Convert to physic.Temperature 0.0625°C per bit
-	t := physic.Temperature(tbits&0x0FFF) * 62500 * physic.MicroKelvin
-	if tbits&0x1000 > 0 {
-		// Check for sign bit.
-		t -= 256 * physic.Celsius
-	}
-	t += physic.ZeroCelsius
-	return t, uint8(tbits>>8) & 0xe0, nil
+
+	return bitsToTemperature(tbits), uint8(tbits>>8) & 0xe0, nil
 }
 
 func (d *Dev) setResolution(r resolution) error {
@@ -382,14 +373,19 @@ var (
 	errTooShortInterval     = errors.New("too short interval for resolution")
 )
 
-func alertBitsToTemperature(b uint16) physic.Temperature {
-	b = (b >> 2) & 0x07FF
-	t := physic.Temperature(b&0x03FF) * 250 * physic.MilliKelvin
-	if b&0x400 > 0 {
+// bitsToTemperature converts the given bits to a physic.Temperature, assuming the
+// bit layout common to the ambient temperature register and the alert registers.
+// This works for the alert registers because while they do not make use of the 2
+// least significant bits (i.e. they have resolution of 0.25°C vs. 0.0625°C for the
+// ambient temp register) those 2 bits are always read as 0. See page 22 of the
+// datasheet.
+func bitsToTemperature(b uint16) physic.Temperature {
+	t := physic.Temperature(b&0x0fff) * 62500 * physic.MicroKelvin
+	if b&0x1000 != 0 {
+		// Account for sign bit.
 		t -= 256 * physic.Celsius
 	}
-	t += physic.ZeroCelsius
-	return t
+	return t + physic.ZeroCelsius
 }
 
 func alertTemperatureToBits(t physic.Temperature) (uint16, error) {

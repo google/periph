@@ -895,7 +895,7 @@ func TestDev_setLowerAlert(t *testing.T) {
 	}
 }
 
-func Test_alertBitsToTemperature(t *testing.T) {
+func Test_bitsToTemperature(t *testing.T) {
 	tests := []struct {
 		name string
 		bits uint16
@@ -903,14 +903,16 @@ func Test_alertBitsToTemperature(t *testing.T) {
 	}{
 		{"0°C", 0x0000, physic.ZeroCelsius},
 		{"0.25°C", 0x0004, physic.ZeroCelsius + 250*physic.MilliKelvin},
+		{"0.9375°C", 0x000f, physic.ZeroCelsius + 937500*physic.MicroKelvin},
+		{"124.75°C", 0x07cc, physic.ZeroCelsius + 124750*physic.MilliKelvin},
 		// Negative values are in two's complement. See page 22 of the datasheet.
 		{"-0.25°C", 0x1ffc, physic.ZeroCelsius - 250*physic.MilliKelvin},
 		{"-39.75°C", 0x1d84, physic.ZeroCelsius - 39750*physic.MilliKelvin},
 	}
 
 	for _, tt := range tests {
-		if got := alertBitsToTemperature(tt.bits); got != tt.want {
-			t.Errorf("alertBitsToTemperature(%s) = %v, want %v", tt.name, got, tt.want)
+		if got := bitsToTemperature(tt.bits); got != tt.want {
+			t.Errorf("bitsToTemperature(%s) = %v, want %v", tt.name, got, tt.want)
 		}
 	}
 }
