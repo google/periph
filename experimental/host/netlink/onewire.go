@@ -1,10 +1,11 @@
-// Copyright 2016 The Periph Authors. All rights reserved.
+// Copyright 2019 The Periph Authors. All rights reserved.
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
 package netlink
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"sync"
@@ -15,7 +16,7 @@ import (
 	"periph.io/x/periph/conn/onewire/onewirereg"
 )
 
-// NewOneWire opens a 1-wire bus via its netlink interface as described at
+// New opens a 1-wire bus via its netlink interface as described at
 // https://www.kernel.org/doc/Documentation/w1/w1.netlink
 //
 // masterID is the bus number reported by the netlink W1_LIST_MASTERS command.
@@ -25,12 +26,7 @@ import (
 // write operations. Hence this driver does not support this feature either. The
 // pull-up argument passed to Tx() is ignored. Devices may need to be powered
 // externally to work with this driver.
-//
-// Do not use netlink.NewOneWire() directly as package netink is providing a
-// Linux-specific implementation. Instead, use
-// https://periph.io/x/periph/conn/onewire/onewirereg#Open. This permits it to
-// work on all operating systems.
-func NewOneWire(masterID uint32) (*OneWire, error) {
+func New(masterID uint32) (*OneWire, error) {
 	if isLinux {
 		return newOneWire(masterID)
 	}
@@ -79,7 +75,7 @@ func (o *OneWire) Tx(w, r []byte, _ onewire.Pullup) error {
 		cmds = append(cmds, w1CmdRead(l))
 	}
 	m := &w1Msg{
-		typ:      W1_MASTER_CMD,
+		typ:      msgMasterCmd,
 		masterID: o.masterID,
 		cmds:     cmds,
 	}
@@ -107,7 +103,7 @@ func (o *OneWire) Search(alarmOnly bool) ([]onewire.Address, error) {
 		cmd = w1CmdAlarmSearch()
 	}
 	m := &w1Msg{
-		typ:      W1_MASTER_CMD,
+		typ:      msgMasterCmd,
 		masterID: o.masterID,
 		cmds:     []*w1Cmd{cmd},
 	}
@@ -129,7 +125,7 @@ func (o *OneWire) Search(alarmOnly bool) ([]onewire.Address, error) {
 
 	var addrs []onewire.Address
 	for len(d) > 0 {
-		addr := getUint64(d)
+		addr := binary.LittleEndian.Uint64(d)
 		addrs = append(addrs, onewire.Address(addr))
 
 		d = d[8:]
@@ -155,19 +151,19 @@ func newOneWire(masterID uint32) (*OneWire, error) {
 
 const (
 	// Supported netlink message type.
-	NLMSG_DONE = uint16(0x3)
+	nlMsgDone = uint16(0x3)
 
 	// 1-Wire connector IDs.
-	CN_W1_IDX = uint32(0x3)
-	CN_W1_VAL = uint32(0x1)
+	cnW1Idx = uint32(0x3)
+	cnW1Val = uint32(0x1)
 )
 
 type msgType uint8
 
 // Supported netlink message types.
 const (
-	W1_MASTER_CMD   = msgType(4)
-	W1_LIST_MASTERS = msgType(6)
+	msgMasterCmd   = msgType(4)
+	msgListMasters = msgType(6)
 )
 
 // w1Msg holds the information required to create a buffer that represents a C
@@ -188,8 +184,8 @@ func (m *w1Msg) serialize() []byte {
 
 	b := make([]byte, 12+l)
 	b[0] = byte(m.typ)
-	putUint16(b[2:4], uint16(l))
-	putUint32(b[4:8], m.masterID)
+	binary.LittleEndian.PutUint16(b[2:4], uint16(l))
+	binary.LittleEndian.PutUint32(b[4:8], m.masterID)
 
 	d := b[12:]
 	for _, cmd := range m.cmds {
@@ -201,13 +197,13 @@ func (m *w1Msg) serialize() []byte {
 
 type cmdType uint8
 
-// Supported OneWire commands.
+// Supported commands of the w1 module.
 const (
-	W1_CMD_READ         = cmdType(0)
-	W1_CMD_WRITE        = cmdType(1)
-	W1_CMD_SEARCH       = cmdType(2)
-	W1_CMD_ALARM_SEARCH = cmdType(3)
-	W1_CMD_RESET        = cmdType(5)
+	cmdRead        = cmdType(0)
+	cmdWrite       = cmdType(1)
+	cmdSearch      = cmdType(2)
+	cmdAlarmSearch = cmdType(3)
+	cmdReset       = cmdType(5)
 )
 
 // w1Cmd holds the information required to create a buffer that represents a C
@@ -228,7 +224,7 @@ func (c *w1Cmd) serialize() []byte {
 	b := make([]byte, 4+c.payloadLen)
 	b[0] = byte(c.typ)
 	// b[1]: reserved
-	putUint16(b[2:4], uint16(c.payloadLen))
+	binary.LittleEndian.PutUint16(b[2:4], uint16(c.payloadLen))
 	if len(c.payload) > 0 {
 		copy(b[4:], c.payload)
 	}
@@ -239,15 +235,15 @@ func (c *w1Cmd) len() int {
 	return 4 + c.payloadLen
 }
 
-func w1CmdReset() *w1Cmd { return &w1Cmd{typ: W1_CMD_RESET} }
+func w1CmdReset() *w1Cmd { return &w1Cmd{typ: cmdReset} }
 
-func w1CmdSearch() *w1Cmd { return &w1Cmd{typ: W1_CMD_SEARCH, wantResponse: true} }
+func w1CmdSearch() *w1Cmd { return &w1Cmd{typ: cmdSearch, wantResponse: true} }
 
-func w1CmdAlarmSearch() *w1Cmd { return &w1Cmd{typ: W1_CMD_ALARM_SEARCH, wantResponse: true} }
+func w1CmdAlarmSearch() *w1Cmd { return &w1Cmd{typ: cmdAlarmSearch, wantResponse: true} }
 
-func w1CmdRead(l int) *w1Cmd { return &w1Cmd{typ: W1_CMD_READ, payloadLen: l, wantResponse: true} }
+func w1CmdRead(l int) *w1Cmd { return &w1Cmd{typ: cmdRead, payloadLen: l, wantResponse: true} }
 
-func w1CmdWrite(d []byte) *w1Cmd { return &w1Cmd{typ: W1_CMD_WRITE, payloadLen: len(d), payload: d} }
+func w1CmdWrite(d []byte) *w1Cmd { return &w1Cmd{typ: cmdWrite, payloadLen: len(d), payload: d} }
 
 //
 
@@ -308,16 +304,16 @@ func (s *socket) sendMsg(data []byte, seq uint32) error {
 
 	// Populate required fields of struct nlmsghdr.
 	nl := make([]byte, nlLen+(4-nlLen%4)%4)
-	putUint32(nl[0:4], uint32(nlLen))
-	putUint16(nl[4:6], NLMSG_DONE)
-	putUint32(nl[8:12], seq)
+	binary.LittleEndian.PutUint32(nl[0:4], uint32(nlLen))
+	binary.LittleEndian.PutUint16(nl[4:6], nlMsgDone)
+	binary.LittleEndian.PutUint32(nl[8:12], seq)
 
 	// Populate required fields of struct cn_msg.
 	cn := nl[16:]
-	putUint32(cn[0:4], CN_W1_IDX)
-	putUint32(cn[4:8], CN_W1_VAL)
-	putUint32(cn[8:12], seq)
-	putUint16(cn[16:18], uint16(dataLen))
+	binary.LittleEndian.PutUint32(cn[0:4], cnW1Idx)
+	binary.LittleEndian.PutUint32(cn[4:8], cnW1Val)
+	binary.LittleEndian.PutUint32(cn[8:12], seq)
+	binary.LittleEndian.PutUint16(cn[16:18], uint16(dataLen))
 
 	// Append payload.
 	copy(cn[20:], data)
@@ -344,11 +340,11 @@ func (s *socket) recvMsg(wantSeq, wantAck uint32, wantType msgType) ([]byte, err
 	b := data[:n]
 
 	// Check struct nlmsghdr fields len and type, and strip off netlink header.
-	nlLen := int(getUint32(b[0:4]))
+	nlLen := int(binary.LittleEndian.Uint32(b[0:4]))
 	if n < nlLen {
 		return nil, fmt.Errorf("received message size (%d bytes) < netlink header length (%d bytes)", n, nlLen)
 	}
-	if gotType, wantType := getUint16(b[4:6]), NLMSG_DONE; gotType != wantType {
+	if gotType, wantType := binary.LittleEndian.Uint16(b[4:6]), nlMsgDone; gotType != wantType {
 		return nil, fmt.Errorf("received netlink message type %d, want %d", gotType, wantType)
 	}
 	b = b[syscall.SizeofNlMsghdr:nlLen]
@@ -358,18 +354,18 @@ func (s *socket) recvMsg(wantSeq, wantAck uint32, wantType msgType) ([]byte, err
 	}
 
 	// Check struct cn_msg fields idx, val, seq and ack.
-	if gotIdx, wantIdx := getUint32(b[0:4]), CN_W1_IDX; gotIdx != wantIdx {
+	if gotIdx, wantIdx := binary.LittleEndian.Uint32(b[0:4]), cnW1Idx; gotIdx != wantIdx {
 		return nil, fmt.Errorf("got connector index %d, want %d", gotIdx, wantIdx)
 	}
-	if gotSeq := getUint32(b[8:12]); gotSeq != wantSeq {
+	if gotSeq := binary.LittleEndian.Uint32(b[8:12]); gotSeq != wantSeq {
 		return nil, fmt.Errorf("received connector seq %d, want %d", gotSeq, wantSeq)
 	}
-	if gotAck := getUint32(b[12:16]); gotAck != wantAck {
+	if gotAck := binary.LittleEndian.Uint32(b[12:16]); gotAck != wantAck {
 		return nil, fmt.Errorf("received connector ack %d, want %d", gotAck, wantAck)
 	}
 
 	// Check payload length and strip off struct cn_msg.
-	wantLen := getUint16(b[16:18])
+	wantLen := binary.LittleEndian.Uint16(b[16:18])
 	b = b[20:]
 	if gotLen := len(b); gotLen != int(wantLen) {
 		return nil, fmt.Errorf("invalid w1_netlink_msg length %d, want %d", gotLen, wantLen)
@@ -388,7 +384,7 @@ func (s *socket) recvMsg(wantSeq, wantAck uint32, wantType msgType) ([]byte, err
 	if status := b[1]; status != 0 {
 		return nil, fmt.Errorf("invalid w1_netlink_msg status %d", status)
 	}
-	wantLen = getUint16(b[2:4])
+	wantLen = binary.LittleEndian.Uint16(b[2:4])
 	b = b[12:]
 	if gotLen := len(b); gotLen != int(wantLen) {
 		return nil, fmt.Errorf("invalid w1_netlink_msg payload length %d, want %d", gotLen, wantLen)
@@ -416,7 +412,7 @@ func (s *socket) recvCmd(wantSeq, wantAck uint32, wantMsgType msgType, wantCmdTy
 	if gotCmdType := cmdType(b[0]); gotCmdType != wantCmdType {
 		return nil, fmt.Errorf("invalid w1_netlink_cmd type %v, want %v", gotCmdType, wantCmdType)
 	}
-	wantLen := getUint16(b[2:4])
+	wantLen := binary.LittleEndian.Uint16(b[2:4])
 	b = b[4:]
 	if gotLen := len(b); gotLen != int(wantLen) {
 		return nil, fmt.Errorf("invalid w1_netlink_cmd payload length %d, want %d", gotLen, wantLen)
@@ -458,12 +454,12 @@ func (d *driver1W) Init() (bool, error) {
 	defer s.close()
 
 	// Find bus masters.
-	m := &w1Msg{typ: W1_LIST_MASTERS}
+	m := &w1Msg{typ: msgListMasters}
 	if err := s.sendMsg(m.serialize(), 0); err != nil {
 		return false, fmt.Errorf("netlink-onewire: failed to send list bus msg: %v", err)
 	}
 
-	b, err := s.recvMsg(0, 1, W1_LIST_MASTERS)
+	b, err := s.recvMsg(0, 1, msgListMasters)
 	if err != nil {
 		return false, fmt.Errorf("netlink-onewire: failed to receive bus IDs: %v", err)
 	}
@@ -475,7 +471,7 @@ func (d *driver1W) Init() (bool, error) {
 
 	var ids []uint32
 	for len(b) > 0 {
-		ids = append(ids, getUint32(b))
+		ids = append(ids, binary.LittleEndian.Uint32(b))
 		b = b[4:]
 	}
 
@@ -493,47 +489,10 @@ func (d *driver1W) Init() (bool, error) {
 
 //
 
-func putUint16(b []byte, v uint16) {
-	b[0] = byte(v)
-	b[1] = byte(v >> 8)
-}
-
-func putUint32(b []byte, v uint32) {
-	b[0] = byte(v)
-	b[1] = byte(v >> 8)
-	b[2] = byte(v >> 16)
-	b[3] = byte(v >> 24)
-}
-
-func getUint16(b []byte) uint16 {
-	return uint16(b[0]) +
-		uint16(b[1])<<8
-}
-
-func getUint32(b []byte) uint32 {
-	return uint32(b[0]) +
-		uint32(b[1])<<8 +
-		uint32(b[2])<<16 +
-		uint32(b[3])<<24
-}
-
-func getUint64(b []byte) uint64 {
-	return uint64(b[0]) +
-		uint64(b[1])<<8 +
-		uint64(b[2])<<16 +
-		uint64(b[3])<<24 +
-		uint64(b[4])<<32 +
-		uint64(b[5])<<40 +
-		uint64(b[6])<<48 +
-		uint64(b[7])<<56
-}
-
-//
-
 type openerOneWire int
 
 func (o openerOneWire) Open() (onewire.BusCloser, error) {
-	b, err := NewOneWire(uint32(o))
+	b, err := New(uint32(o))
 	if err != nil {
 		return nil, err
 	}
