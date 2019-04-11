@@ -40,7 +40,7 @@ type OneWire struct {
 	masterID uint32
 
 	mu  sync.Mutex
-	s   *socket
+	s   *w1Socket
 	seq uint32
 }
 
@@ -98,9 +98,11 @@ func (o *OneWire) Tx(w, r []byte, _ onewire.Pullup) error {
 // device addresses are returned. If alarmOnly is true, only devices in alarm
 // state are returned.
 func (o *OneWire) Search(alarmOnly bool) ([]onewire.Address, error) {
-	cmd := w1CmdSearch()
+	var cmd *w1Cmd
 	if alarmOnly {
 		cmd = w1CmdAlarmSearch()
+	} else {
+		cmd = w1CmdSearch()
 	}
 	m := &w1Msg{
 		typ:      msgMasterCmd,
@@ -136,7 +138,7 @@ func (o *OneWire) Search(alarmOnly bool) ([]onewire.Address, error) {
 // Private details.
 
 func newOneWire(masterID uint32) (*OneWire, error) {
-	s, err := newSocket()
+	s, err := newW1Socket()
 	if err != nil {
 		return nil, fmt.Errorf("netlink-onewire: failed to create socket: %v", err)
 	}
@@ -247,35 +249,38 @@ func w1CmdWrite(d []byte) *w1Cmd { return &w1Cmd{typ: cmdWrite, payloadLen: len(
 
 //
 
-// socket is a netlink connector socket for reading and writing 1-wire messages.
-type socket struct {
-	fd int
+type socket interface {
+	send(w []byte) error
+	recv(r []byte) (int, error)
+	close() error
 }
 
-// newSocket returns a socket instance.
-func newSocket() (*socket, error) {
+// w1Socket is a netlink connector socket for communicating with the w1 Linux
+// kernel module.
+type w1Socket struct {
+	s socket
+}
+
+// newW1Socket returns a socket instance.
+func newW1Socket() (*w1Socket, error) {
 	// Open netlink socket.
-	fd, err := syscall.Socket(syscall.AF_NETLINK, syscall.SOCK_DGRAM, syscall.NETLINK_CONNECTOR)
+	s, err := newConnSocket()
 	if err != nil {
 		return nil, fmt.Errorf("failed to open netlink socket: %v", err)
 	}
 
-	if err := syscall.Bind(fd, &syscall.SockaddrNetlink{Family: syscall.AF_NETLINK}); err != nil {
-		return nil, fmt.Errorf("failed to bind netlink socket: %v", err)
-	}
-
-	return &socket{fd: fd}, nil
+	return &w1Socket{s: s}, nil
 }
 
-func (s *socket) sendAndRecv(seq uint32, m *w1Msg) ([]byte, error) {
-	if err := s.sendMsg(m.serialize(), seq); err != nil {
+func (ws *w1Socket) sendAndRecv(seq uint32, m *w1Msg) ([]byte, error) {
+	if err := ws.sendMsg(m.serialize(), seq); err != nil {
 		return nil, fmt.Errorf("failed to send W1 message: %v", err)
 	}
 
 	var data []byte
 	for _, cmd := range m.cmds {
 		if cmd.wantResponse {
-			d, err := s.recvCmd(seq, seq+1, m.typ, cmd.typ)
+			d, err := ws.recvCmd(seq, seq+1, m.typ, cmd.typ)
 			if err != nil {
 				return nil, fmt.Errorf("failed to receive command payload: %v", err)
 			}
@@ -284,7 +289,7 @@ func (s *socket) sendAndRecv(seq uint32, m *w1Msg) ([]byte, error) {
 
 		// Every command is ack'ed with a separate message, including commands
 		// for which a response has already been returned.
-		if _, err := s.recvCmd(seq, 0, m.typ, cmd.typ); err != nil {
+		if _, err := ws.recvCmd(seq, 0, m.typ, cmd.typ); err != nil {
 			return nil, fmt.Errorf("failed to receive command ack message: %v", err)
 		}
 	}
@@ -296,7 +301,7 @@ func (s *socket) sendAndRecv(seq uint32, m *w1Msg) ([]byte, error) {
 // writes it to the socket. seq is the sequence number in the connector message
 // (C struct cn_msg). The same sequence number must be passed to subsequent
 // readMsg or readCmd calls.
-func (s *socket) sendMsg(data []byte, seq uint32) error {
+func (ws *w1Socket) sendMsg(data []byte, seq uint32) error {
 	dataLen := len(data)
 
 	// Total size of message, with padding for 4 byte alignment.
@@ -318,7 +323,7 @@ func (s *socket) sendMsg(data []byte, seq uint32) error {
 	// Append payload.
 	copy(cn[20:], data)
 
-	if err := syscall.Sendto(s.fd, nl, 0, &syscall.SockaddrNetlink{Family: syscall.AF_NETLINK}); err != nil {
+	if err := ws.s.send(nl); err != nil {
 		return fmt.Errorf("failed to send message: %v", err)
 	}
 	return nil
@@ -330,10 +335,10 @@ func (s *socket) sendMsg(data []byte, seq uint32) error {
 // to wantSeq and wantAck, respectively. The W1 message must have type wantType.
 // recvMsg returns an error if either of these conditions are not satisfied.
 // Multiple (bundled) messages are not supported.
-func (s *socket) recvMsg(wantSeq, wantAck uint32, wantType msgType) ([]byte, error) {
+func (ws *w1Socket) recvMsg(wantSeq, wantAck uint32, wantType msgType) ([]byte, error) {
 	data := make([]byte, 1024)
 
-	n, _, err := syscall.Recvfrom(s.fd, data, 0)
+	n, err := ws.s.recv(data)
 	if err != nil {
 		return nil, err
 	}
@@ -399,8 +404,8 @@ func (s *socket) recvMsg(wantSeq, wantAck uint32, wantType msgType) ([]byte, err
 // acknowledgement numbers, respectively. wantMsgType and wantCmdType are the
 // expected W1 message and command types, respectively. An error is returned if
 // the received data does not match either of these values.
-func (s *socket) recvCmd(wantSeq, wantAck uint32, wantMsgType msgType, wantCmdType cmdType) ([]byte, error) {
-	b, err := s.recvMsg(wantSeq, wantAck, wantMsgType)
+func (ws *w1Socket) recvCmd(wantSeq, wantAck uint32, wantMsgType msgType, wantCmdType cmdType) ([]byte, error) {
+	b, err := ws.recvMsg(wantSeq, wantAck, wantMsgType)
 	if err != nil {
 		return nil, err
 	}
@@ -421,10 +426,8 @@ func (s *socket) recvCmd(wantSeq, wantAck uint32, wantMsgType msgType, wantCmdTy
 	return b, nil
 }
 
-func (s *socket) close() error {
-	fd := s.fd
-	s.fd = 0
-	return syscall.Close(fd)
+func (ws *w1Socket) close() error {
+	return ws.s.close()
 }
 
 //
@@ -447,7 +450,7 @@ func (d *driver1W) After() []string {
 }
 
 func (d *driver1W) Init() (bool, error) {
-	s, err := newSocket()
+	s, err := newW1Socket()
 	if err != nil {
 		return false, fmt.Errorf("netlink-onewire: failed to open socket: %v", err)
 	}
