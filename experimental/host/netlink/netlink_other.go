@@ -16,14 +16,14 @@ func newConnSocket() (*connSocket, error) {
 	return nil, errors.New("netlink sockets are not supported")
 }
 
-func (s *connSocket) send(_ []byte) error {
+func (*connSocket) send(_ []byte) error {
 	return errors.New("not implemented")
 }
 
-func (s *connSocket) recv(_ []byte) (int, error) {
+func (*connSocket) recv(_ []byte) (int, error) {
 	return 0, errors.New("not implemented")
 }
 
-func (s *connSocket) close() error {
+func (*connSocket) close() error {
 	return errors.New("not implemented")
 }
