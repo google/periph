@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"syscall"
 
 	"periph.io/x/periph"
 	"periph.io/x/periph/conn/onewire"
@@ -152,6 +151,11 @@ func newOneWire(masterID uint32) (*OneWire, error) {
 //
 
 const (
+	// Size of struct nlmsghdr.
+	sizeofNlMsghdr = 16
+	// Size of struct cn_msg.
+	sizeofCnMsg = 20
+
 	// Supported netlink message type.
 	nlMsgDone = uint16(0x3)
 
@@ -305,7 +309,7 @@ func (ws *w1Socket) sendMsg(data []byte, seq uint32) error {
 	dataLen := len(data)
 
 	// Total size of message, with padding for 4 byte alignment.
-	nlLen := syscall.SizeofNlMsghdr + 20 + dataLen
+	nlLen := sizeofNlMsghdr + sizeofCnMsg + dataLen
 
 	// Populate required fields of struct nlmsghdr.
 	nl := make([]byte, nlLen+(4-nlLen%4)%4)
@@ -321,7 +325,7 @@ func (ws *w1Socket) sendMsg(data []byte, seq uint32) error {
 	binary.LittleEndian.PutUint16(cn[16:18], uint16(dataLen))
 
 	// Append payload.
-	copy(cn[20:], data)
+	copy(cn[sizeofCnMsg:], data)
 
 	if err := ws.s.send(nl); err != nil {
 		return fmt.Errorf("failed to send message: %v", err)
@@ -352,10 +356,10 @@ func (ws *w1Socket) recvMsg(wantSeq, wantAck uint32, wantType msgType) ([]byte, 
 	if gotType, wantType := binary.LittleEndian.Uint16(b[4:6]), nlMsgDone; gotType != wantType {
 		return nil, fmt.Errorf("received netlink message type %d, want %d", gotType, wantType)
 	}
-	b = b[syscall.SizeofNlMsghdr:nlLen]
+	b = b[sizeofNlMsghdr:nlLen]
 
-	if l := len(b); l < 20 {
-		return nil, fmt.Errorf("incomplete netlink connector message; got %d bytes, want 20", l)
+	if l := len(b); l < sizeofCnMsg {
+		return nil, fmt.Errorf("incomplete netlink connector message; got %d bytes, want %d", l, sizeofCnMsg)
 	}
 
 	// Check struct cn_msg fields idx, val, seq and ack.
@@ -371,7 +375,7 @@ func (ws *w1Socket) recvMsg(wantSeq, wantAck uint32, wantType msgType) ([]byte, 
 
 	// Check payload length and strip off struct cn_msg.
 	wantLen := binary.LittleEndian.Uint16(b[16:18])
-	b = b[20:]
+	b = b[sizeofCnMsg:]
 	if gotLen := len(b); gotLen != int(wantLen) {
 		return nil, fmt.Errorf("invalid w1_netlink_msg length %d, want %d", gotLen, wantLen)
 	}
