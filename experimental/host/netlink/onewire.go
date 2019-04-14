@@ -151,7 +151,7 @@ func newOneWire(masterID uint32) (*OneWire, error) {
 //
 
 const (
-	// Size of struct nlmsghdr.
+	// Size of struct nlmsghdr, the value of syscall.SizeofNlMsghdr.
 	sizeofNlMsghdr = 16
 	// Size of struct cn_msg.
 	sizeofCnMsg = 20
