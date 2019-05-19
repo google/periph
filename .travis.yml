@@ -29,7 +29,7 @@ matrix:
 before_script:
   - echo $TRAVIS_GO_VERSION
   - go get -t -v periph.io/x/periph/...
-  - if [[ $TRAVIS_GO_VERSION != 1.7.6 ]]; then go get -u -v github.com/client9/misspell/cmd/misspell github.com/gordonklaus/ineffassign golang.org/x/lint/golint golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow; fi
+  - if [[ $TRAVIS_GO_VERSION != 1.7.6 ]]; then go get -u -v github.com/client9/misspell/cmd/misspell github.com/gordonklaus/ineffassign golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow; fi
 
 script:
   # Checks run on latest version.
