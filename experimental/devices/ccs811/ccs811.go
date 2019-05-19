@@ -240,8 +240,9 @@ func (d *Dev) SetEnvironmentData(temp, humidity float32) error {
 	return nil
 }
 
-// GetBaseline provides current baseline used by internal measurement alogrithm.
-// For better understanding how to use this value, check the SetBaseline and documentation.
+// GetBaseline provides current baseline used by internal measurement algorithm.
+// For better understanding how to use this value, check the SetBaseline and
+// documentation.
 func (d *Dev) GetBaseline() ([]byte, error) {
 	r := make([]byte, 2)
 	if err := d.c.Tx([]byte{baselineReg}, r); err != nil {
@@ -330,7 +331,7 @@ func (d *Dev) Sense(values *SensorValues) error {
 	return d.SensePartial(ReadAll, values)
 }
 
-// SensePartial provides marginaly more efficient reading from the sensor.
+// SensePartial provides marginally more efficient reading from the sensor.
 // You can specify what subset of data you want through NeededData constants.
 func (d *Dev) SensePartial(requested NeededData, values *SensorValues) error {
 	read := make([]byte, requested)

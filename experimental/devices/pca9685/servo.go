@@ -26,7 +26,7 @@ type Servo struct {
 	maxAngle physic.Angle
 }
 
-// NewServoGroup returns a servo group connected throught the pca9685 module
+// NewServoGroup returns a servo group connected through the pca9685 module
 // some pwm and angle limits can be set
 func NewServoGroup(dev *Dev, minPwm, maxPwm gpio.Duty, minAngle, maxAngle physic.Angle) *ServoGroup {
 	return &ServoGroup{

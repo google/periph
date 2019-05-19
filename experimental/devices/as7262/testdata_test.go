@@ -200,7 +200,7 @@ var sensorTestCaseValidRead = []i2ctest.IO{
 	{Addr: 0x49, W: []byte{statusReg}, R: []byte{0x00}},
 }
 
-// Same as sensorTestCaseValidRead but omiting polling for data ready.
+// Same as sensorTestCaseValidRead but omitting polling for data ready.
 var sensorTestCaseInteruptValidRead = []i2ctest.IO{
 	{Addr: 0x49, W: []byte{statusReg}, R: []byte{0x00}},
 	{Addr: 0x49, W: []byte{writeReg, 0x85}, R: []byte{}},

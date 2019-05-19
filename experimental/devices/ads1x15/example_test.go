@@ -50,7 +50,7 @@ func Example() {
 
 	fmt.Println(reading)
 
-	// Read values continously from ADC.
+	// Read values continuously from ADC.
 	fmt.Println("Continuous reading")
 	c := pin.ReadContinuous()
 

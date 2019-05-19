@@ -792,7 +792,7 @@ func TestNew(t *testing.T) {
 		want2   gpio.PinIn
 		wantErr bool
 	}{
-		{name: "defautls",
+		{name: "defaults",
 			opts:    DefaultOpts,
 			want1:   G1x,
 			want2:   nil,

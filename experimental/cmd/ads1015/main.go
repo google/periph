@@ -54,7 +54,7 @@ func main() {
 	actualV := (reading.V * (r1 + r2) / r2)
 	fmt.Println(actualV)
 
-	// Read values continously from ADC.
+	// Read values continuously from ADC.
 	fmt.Println("Continuous reading")
 	c := pin.ReadContinuous()
 

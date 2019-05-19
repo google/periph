@@ -116,7 +116,7 @@ func (b Band) String() string {
 //
 // Led Drive Current
 //
-// The AS7262 provides a current limated intergated led drive circuit. Valid
+// The AS7262 provides a current-limited integrated led drive circuit. Valid
 // limits for the drive current are 0mA, 12.5mA, 25mA, 50mA and 100mA. If non
 // valid values are given the next lowest valid value is used.
 //
@@ -415,7 +415,7 @@ const (
 
 // The as7262 registers are implemented as virtual registers pollStatus
 // provides a way to repeatedly check if there are any pending reads or writes
-// in the relevent buffer before a transaction while with a timeout.
+// in the relevant buffer before a transaction while with a timeout.
 // Direction is used to set which buffer is being polled to be ready.
 func (d *Dev) pollStatus(ctx context.Context, dir direction) error {
 	timeout := time.NewTimer(sensorTimeout)
@@ -517,10 +517,10 @@ const (
 	// Bank 2 consists of data from the G, Y, O, R photodiodes.
 	bank2 mode = 0x04
 	// AllContinuously gets data from both banks continuously, requires 2x
-	// the intergration time.
+	// the integration time.
 	allContinuously mode = 0x08
 	// AllOneShot gets data from both banks once, and set the data ready bit in
-	// the status control register when complete requires 2x the intergration
+	// the status control register when complete requires 2x the integration
 	// time.
 	allOneShot mode = 0x0c
 )

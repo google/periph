@@ -436,7 +436,7 @@ func (p *analogPin) ReadContinuous() <-chan analog.Sample {
 			case <-t.C:
 				value, err := p.Read()
 				if err != nil {
-					// In continous mode, we'll ignore errors silently.
+					// In continuous mode, we'll ignore errors silently.
 					continue
 				}
 				reading <- value

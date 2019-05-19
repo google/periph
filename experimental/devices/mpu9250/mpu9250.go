@@ -1428,7 +1428,7 @@ func (m *MPU9250) GetClockSource() (byte, error) {
 	return m.transport.readMaskedReg(reg.MPU9250_PWR_MGMT_1, reg.MPU9250_CLKSEL_MASK)
 }
 
-// GetDeviceID Returns the devide ID
+// GetDeviceID Returns the device ID
 func (m *MPU9250) GetDeviceID() (byte, error) {
 	return m.transport.readByte(reg.MPU9250_WHO_AM_I)
 }

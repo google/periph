@@ -72,7 +72,7 @@ func (d *Dev) Switch(channel int, state bool) error {
 	return d.updateStates()
 }
 
-// SwitchAll switches all channels accoring to the state (on/off).
+// SwitchAll switches all channels according to the state (on/off).
 func (d *Dev) SwitchAll(state bool) error {
 	for i := 0; i < 18; i++ {
 		d.on[i] = state

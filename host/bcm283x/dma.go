@@ -1113,8 +1113,8 @@ type driverDMA struct {
 	// - Load data from a FIFO storage block, to extent to 8 32-bit words (256
 	//   bits).
 	//
-	// Author note: 100Mhz base resolution with a 256 bits 1-bit stream is actually
-	// good enough to generate a DAC.
+	// Author note: 100Mhz base resolution with a 256 bits 1-bit stream is
+	// actually good enough to generate a DAC.
 	pwmMemory *pwmMap
 
 	// These clocks are shared with hardware PWM, DMA driven PWM and BitStream.
@@ -1123,7 +1123,7 @@ type driverDMA struct {
 	pwmDMACh    *dmaChannel
 	pwmDMABuf   *videocore.Mem
 
-	// dmaBufAllocator is overriden for unit testing.
+	// dmaBufAllocator is overridden for unit testing.
 	dmaBufAllocator func(s int) (*videocore.Mem, error) // Set to videocore.Alloc
 }
 
