@@ -6,6 +6,7 @@ package uart
 
 import "periph.io/x/periph/conn/pin"
 
+// Well known pin functionality.
 const (
 	RX  pin.Func = "UART_RX"  // Receive
 	TX  pin.Func = "UART_TX"  // Transmit

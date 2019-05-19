@@ -35,6 +35,7 @@ type Key [6]byte
 // DefaultKey  provides the default bytes for card authentication for method B.
 var DefaultKey = Key{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
 
+// TODO(maruel): Move to Opts pattern. Even golint complains about this.
 type config struct {
 	defaultTimeout time.Duration
 	beforeCall     func()
@@ -51,7 +52,7 @@ func WithTimeout(timeout time.Duration) configF {
 	}
 }
 
-// WithSyncsets the synchronization for the entire device, using internal mutex.
+// WithSync sets the synchronization for the entire device, using internal mutex.
 func WithSync() configF {
 	var mu sync.Mutex
 	return func(c *config) *config {

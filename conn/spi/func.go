@@ -6,6 +6,7 @@ package spi
 
 import "periph.io/x/periph/conn/pin"
 
+// Well known pin functionality.
 const (
 	CLK  pin.Func = "SPI_CLK"  // Clock
 	CS   pin.Func = "SPI_CS"   // Chip select

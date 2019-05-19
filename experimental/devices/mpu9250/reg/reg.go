@@ -1,5 +1,8 @@
 package reg
 
+// Unsorted mix of register addresses, commands and constants.
+//
+// TODO(maruel): Needs to be redone.
 const (
 	MPU9250_DEFAULT_ADDRESS     = 0xD1
 	MPU9250_ALT_DEFAULT_ADDRESS = 0xD2

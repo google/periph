@@ -6,6 +6,7 @@ package jtag
 
 import "periph.io/x/periph/conn/pin"
 
+// Well known pin functionality.
 const (
 	TCK  pin.Func = "JTAG_TCK"  // Test clock
 	TDI  pin.Func = "JTAG_TDI"  // Test mode data input

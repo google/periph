@@ -232,7 +232,7 @@ func setPWMClockSource() (physic.Frequency, error) {
 	}
 
 	if e := actual / physic.Frequency(divs*div); drvDMA.pwmDMAFreq != e {
-		return 0, fmt.Errorf("Unexpected DMA frequency %s != %s (%d/%d/%d)", drvDMA.pwmDMAFreq, e, actual, divs, div)
+		return 0, fmt.Errorf("unexpected DMA frequency %s != %s (%d/%d/%d)", drvDMA.pwmDMAFreq, e, actual, divs, div)
 	}
 	// It acts as a clock multiplier, since this amount of data is sent per
 	// clock tick.

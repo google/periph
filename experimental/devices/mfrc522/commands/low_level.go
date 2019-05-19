@@ -96,7 +96,7 @@ func (r *LowLevel) Init() error {
 	return r.SetAntenna(true)
 }
 
-// setAntenna configures the antenna state, on/off.
+// SetAntenna configures the antenna state, on/off.
 func (r *LowLevel) SetAntenna(state bool) error {
 	if state {
 		current, err := r.DevRead(TxControlReg)

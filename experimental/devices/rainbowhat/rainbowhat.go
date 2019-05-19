@@ -176,9 +176,5 @@ func (d *Dev) Halt() error {
 		return err
 	}
 
-	if err := d.buttonC.Halt(); err != nil {
-		return err
-	}
-
-	return nil
+	return d.buttonC.Halt()
 }

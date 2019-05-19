@@ -174,16 +174,16 @@ func (s *SmokeTest) testFunc(p *loggingPin) error {
 	}
 	// This is dependent on testPWM() succeeding.
 	if p.Func() != gpio.IN_LOW {
-		return fmt.Errorf("Expected %q, got %q", gpio.IN_LOW, p.Func())
+		return fmt.Errorf("expected %q, got %q", gpio.IN_LOW, p.Func())
 	}
 	if f := p.SupportedFuncs(); !reflect.DeepEqual(f, []pin.Func{gpio.IN, gpio.OUT, gpio.CLK.Specialize(-1, 2)}) {
-		return fmt.Errorf("Unexpected functions %q", f)
+		return fmt.Errorf("unexpected functions %q", f)
 	}
 	if err := p.SetFunc(gpio.CLK); err != nil {
-		return fmt.Errorf("Failed to set %q", gpio.CLK)
+		return fmt.Errorf("failed to set %q", gpio.CLK)
 	}
 	if err := p.SetFunc(gpio.CLK.Specialize(-1, 2)); err != nil {
-		return fmt.Errorf("Failed to set %q", gpio.CLK.Specialize(-1, 2))
+		return fmt.Errorf("failed to set %q", gpio.CLK.Specialize(-1, 2))
 	}
 	return p.Halt()
 }

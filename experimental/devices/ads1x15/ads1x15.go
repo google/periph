@@ -24,6 +24,7 @@ const I2CAddr uint16 = 0x48
 // a differential reading between two pins.
 type Channel int
 
+// Value channels.
 const (
 	// Absolute reading.
 	Channel0 Channel = 4

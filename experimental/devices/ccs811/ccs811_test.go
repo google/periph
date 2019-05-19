@@ -40,7 +40,7 @@ func TestBasicInitialisationAndDataRead(t *testing.T) {
 		if data.ECO2 != 0x102 &&
 			data.VOC != 0x203 &&
 			data.Status != 0xF &&
-			data.Error != fmt.Errorf("Sensor error: %s", "HEATER_FAULT: The Heater current in the CCS811 is not in range.") &&
+			data.Error != fmt.Errorf("sensor error: %s", "HEATER_FAULT: The Heater current in the CCS811 is not in range.") &&
 			data.RawDataCurrent != cExpected &&
 			data.RawDataVoltage != vExpected {
 			t.Fatalf("Data parsed incorrectly, got %v", data)

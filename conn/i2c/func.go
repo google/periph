@@ -6,6 +6,7 @@ package i2c
 
 import "periph.io/x/periph/conn/pin"
 
+// Well known pin functionality.
 const (
 	SCL pin.Func = "I2C_SCL" // Clock
 	SDA pin.Func = "I2C_SDA" // Data

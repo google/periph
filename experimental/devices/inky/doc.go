@@ -3,7 +3,7 @@
 // that can be found in the LICENSE file.
 
 // Package inky drives an Inky pHAT E ink display.
-
+//
 // Datasheet
 //
 // Inky lacks a true datasheet, so the code here is derived from the reference

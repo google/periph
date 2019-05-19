@@ -6,6 +6,7 @@ package gpio
 
 import "periph.io/x/periph/conn/pin"
 
+// Well known pin functionality.
 const (
 	// Inputs
 	IN      pin.Func = "IN"      // Input

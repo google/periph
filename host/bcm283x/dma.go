@@ -865,7 +865,7 @@ func dmaWriteStreamEdges(p *Pin, w gpiostream.Stream) error {
 		bits = v.Bits
 		msb = !v.LSBF
 	default:
-		return fmt.Errorf("Unknown type: %T", v)
+		return fmt.Errorf("unknown type: %T", v)
 	}
 	skip, err := overSamples(w)
 	if err != nil {

@@ -82,15 +82,11 @@ func (m *MPU9250) Debug(f DebugF) {
 
 // Init initializes the device
 func (m *MPU9250) Init() error {
-	if err := m.transferBatch(initSequence, "error initializing %d: [%x:%x] => %v"); err != nil {
-		return err
-	}
-	return nil
+	return m.transferBatch(initSequence, "error initializing %d: [%x:%x] => %v")
 }
 
 // Calibrate Calibrates the device using maximum precision for both Gyroscope and Accelerometer.
 func (m *MPU9250) Calibrate() error {
-
 	if err := m.transferBatch(calibrateSequence, "error calibrating %d: [%x:%x] => %v"); err != nil {
 		return err
 	}

@@ -71,18 +71,13 @@ func (d *Dev) init() error {
 	}
 
 	// Set display to full brightness.
-	if err := d.SetBrightness(15); err != nil {
-		return err
-	}
-	return nil
+	return d.SetBrightness(15)
 }
 
 // SetBlink Blink display at specified frequency.
 func (d *Dev) SetBlink(freq BlinkFrequency) error {
-	if _, err := d.dev.Write([]byte{displaySetup | displayOn | byte(freq)}); err != nil {
-		return err
-	}
-	return nil
+	_, err := d.dev.Write([]byte{displaySetup | displayOn | byte(freq)})
+	return err
 }
 
 // SetBrightness of entire display to specified value.

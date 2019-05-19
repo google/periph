@@ -359,11 +359,7 @@ func (d *Dev) Init() error {
 		return err
 	}
 
-	if err := d.setLut(Full); err != nil {
-		return err
-	}
-
-	return nil
+	return d.setLut(Full)
 }
 
 // Reset can be also used to awaken the device
@@ -429,11 +425,7 @@ func (d *Dev) setMemoryArea(xStart, yStart, xEnd, yEnd int) error {
 	if err := d.sendData([]byte{byte(yEnd & 0xFF)}); err != nil {
 		return err
 	}
-	if err := d.sendData([]byte{byte((yEnd >> 8) & 0xFF)}); err != nil {
-		return err
-	}
-
-	return nil
+	return d.sendData([]byte{byte((yEnd >> 8) & 0xFF)})
 }
 
 func (d *Dev) setLut(update PartialUpdate) error {

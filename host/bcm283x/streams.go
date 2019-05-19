@@ -51,7 +51,7 @@ func raster32Bits(s gpiostream.Stream, skip int, clear, set []uint32, mask uint3
 		msb = !b.LSBF
 		bits = b.Bits
 	default:
-		return fmt.Errorf("Unsupported type %T", b)
+		return fmt.Errorf("unsupported type %T", b)
 	}
 	m := len(clear) / 8
 	if n := len(bits); n < m {
@@ -129,6 +129,6 @@ func copyStreamToDMABuf(w gpiostream.Stream, dst []uint32) error {
 	case *gpiostream.EdgeStream:
 		return errors.New("TODO(simokawa): handle EdgeStream")
 	default:
-		return errors.New("Unsupported Stream type")
+		return errors.New("unsupported Stream type")
 	}
 }

@@ -28,11 +28,12 @@ const (
 // setting the border color.
 type Color int
 
+// Valid Color.
 const (
-	Black  = iota
-	Red    = iota
-	Yellow = iota
-	White  = iota
+	Black Color = iota
+	Red
+	Yellow
+	White
 )
 
 var borderColor = map[Color]byte{
@@ -45,6 +46,7 @@ var borderColor = map[Color]byte{
 // Model lists the supported e-ink display models.
 type Model int
 
+// Supported Model.
 const (
 	PHAT Model = iota
 	// TODO: Add wHAT here when supported.
@@ -61,10 +63,10 @@ type Opts struct {
 	BorderColor Color
 }
 
-// NewpHAT opens a handle to an Inky pHAT.
+// New opens a handle to an Inky pHAT.
 func New(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn, o *Opts) (*Dev, error) {
 	if o.ModelColor != Black && o.ModelColor != Red && o.ModelColor != Yellow {
-		return nil, fmt.Errorf("Unsupported color: %v", o.ModelColor)
+		return nil, fmt.Errorf("unsupported color: %v", o.ModelColor)
 	}
 
 	c, err := p.Connect(488*physic.KiloHertz, spi.Mode0, 8)
@@ -153,11 +155,11 @@ func (d *Dev) Bounds() image.Rectangle {
 // Draw implements display.Drawer
 func (d *Dev) Draw(dstRect image.Rectangle, src image.Image, srcPtrs image.Point) error {
 	if dstRect != d.Bounds() {
-		return fmt.Errorf("Partial update not supported")
+		return fmt.Errorf("partial update not supported")
 	}
 
 	if src.Bounds() != d.Bounds() {
-		return fmt.Errorf("Image must be the same size as bounds: %v", d.Bounds())
+		return fmt.Errorf("image must be the same size as bounds: %v", d.Bounds())
 	}
 
 	b := src.Bounds()
@@ -331,7 +333,7 @@ func (d *Dev) sendCommand(command byte, data []byte) error {
 
 func (d *Dev) sendData(data []byte) error {
 	if len(data) > 4096 {
-		return fmt.Errorf("Sending more data than chunk size: %d > 4096", len(data))
+		return fmt.Errorf("sending more data than chunk size: %d > 4096", len(data))
 	}
 	if err := d.dc.Out(gpio.High); err != nil {
 		return err

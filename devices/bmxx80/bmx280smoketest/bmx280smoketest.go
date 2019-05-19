@@ -173,15 +173,15 @@ func run(i2cBus i2c.Bus, i2cAddr uint16, spiPort spi.PortCloser) (err error) {
 
 	// 1°C
 	if delta.Temperature > 1000 || delta.Temperature < -1000 {
-		return fmt.Errorf("Temperature delta higher than expected (%s): I²C got %s; SPI got %s", delta.Temperature, i2cEnv.Temperature, spiEnv.Temperature)
+		return fmt.Errorf("temperature delta higher than expected (%s): I²C got %s; SPI got %s", delta.Temperature, i2cEnv.Temperature, spiEnv.Temperature)
 	}
 	// 0.1kPa
 	if delta.Pressure > 100 || delta.Pressure < -100 {
-		return fmt.Errorf("Pressure delta higher than expected (%s): I²C got %s; SPI got %s", delta.Pressure, i2cEnv.Pressure, spiEnv.Pressure)
+		return fmt.Errorf("pressure delta higher than expected (%s): I²C got %s; SPI got %s", delta.Pressure, i2cEnv.Pressure, spiEnv.Pressure)
 	}
 	// 4%rH
 	if delta.Humidity > 400 || delta.Humidity < -400 {
-		return fmt.Errorf("Humidity delta higher than expected (%s): I²C got %s; SPI got %s", delta.Humidity, i2cEnv.Humidity, spiEnv.Humidity)
+		return fmt.Errorf("humidity delta higher than expected (%s): I²C got %s; SPI got %s", delta.Humidity, i2cEnv.Humidity, spiEnv.Humidity)
 	}
 	return nil
 }

@@ -30,6 +30,7 @@ var (
 // with a gain of 32.
 type InputMode int
 
+// Valid InputMode.
 const (
 	CHANNEL_A_GAIN_128 InputMode = 1
 	CHANNEL_A_GAIN_64  InputMode = 3

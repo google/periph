@@ -73,7 +73,7 @@ func mainImpl() error {
 
 	rsPinReg := gpioreg.ByName(*rsPin)
 	if rsPinReg == nil {
-		return fmt.Errorf("Reset pin %s can not be found", *rsPin)
+		return fmt.Errorf("reset pin %s can not be found", *rsPin)
 	}
 
 	irqPinReg := gpioreg.ByName(*irqPin)

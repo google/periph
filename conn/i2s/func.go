@@ -6,6 +6,7 @@ package i2s
 
 import "periph.io/x/periph/conn/pin"
 
+// Well known pin functionality.
 const (
 	SCK  pin.Func = "I2S_SCK"  // Clock; occasionally named BCLK
 	WS   pin.Func = "I2S_WS"   // Word (Function) select; occasionally named FS or LRCLK
