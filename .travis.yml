@@ -15,11 +15,13 @@ cache:
     # Cache tools sources. Manually verified that both misspell and ineffassign
     # only depend on the stdlib.
     - $GOPATH/src/github.com
+    # For shadow.
+    - $GOPATH/src/golang.org
 
 before_script:
   - echo $TRAVIS_GO_VERSION
   - go get -t -v periph.io/x/periph/...
-  - if [[ $TRAVIS_GO_VERSION != 1.7.6 ]]; then go get -u github.com/client9/misspell/cmd/misspell github.com/gordonklaus/ineffassign; fi
+  - if [[ $TRAVIS_GO_VERSION != 1.7.6 ]]; then go get -u github.com/client9/misspell/cmd/misspell github.com/gordonklaus/ineffassign golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow; fi
 
 script:
   # Checks run on latest version.
@@ -31,6 +33,7 @@ script:
   - if [[ $TRAVIS_GO_VERSION != 1.7.6 ]]; then echo 'Erroring on /conn depending on /host:'; ! go list -f '{{.ImportPath}} depends on {{join .Imports ", "}}' periph.io/x/periph/conn/... | sort | uniq | grep periph.io/x/periph/host; fi
   - if [[ $TRAVIS_GO_VERSION != 1.7.6 ]]; then echo 'Erroring on misspelling'; ! misspell . | grep a; fi
   - if [[ $TRAVIS_GO_VERSION != 1.7.6 ]]; then ineffassign .; fi
+  - if [[ $TRAVIS_GO_VERSION != 1.7.6 ]]; then go vet -vettool=$GOPATH/bin/shadow; fi
   - if [[ $TRAVIS_GO_VERSION != 1.7.6 ]]; then bash -c 'set -e; echo "" > coverage.txt; for d in $(go list ./...); do go test -covermode=count -coverprofile=p.out $d; if [ -f p.out ]; then cat p.out >> coverage.txt; rm p.out; fi; done'; fi
   - if [[ $TRAVIS_GO_VERSION != 1.7.6 ]]; then go test -race ./...; fi
   # Checks run on older version.
