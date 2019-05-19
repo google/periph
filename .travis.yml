@@ -1,5 +1,6 @@
 language: go
 sudo: false
+dist: xenial
 go_import_path: periph.io/x/periph
 go:
     # Dear future me: if you touch this line, don't forget to update the
