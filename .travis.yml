@@ -5,7 +5,12 @@ go:
     # Dear future me: if you touch this line, don't forget to update the
     # conditions below!
   - 1.7.6
-  - 1.12.1
+  - 1.12.x
+
+cache:
+  directories:
+    # go1.10+ 'go test' cache on linux (macOS and Windows are different).
+    - $HOME/.cache/go-build
 
 before_script:
   - echo $TRAVIS_GO_VERSION
