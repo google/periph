@@ -131,6 +131,9 @@ func (c *Conn) readData(r *bufio.Reader) error {
 	switch cmd {
 	case "SIGHUP":
 		_, err = c.w.Write([]byte("LIST\n"))
+		if err != nil {
+			return err
+		}
 	default:
 		// In case of any error, ignore the rest.
 		line, err := read(r)

@@ -384,7 +384,7 @@ func (r *Dev) write(blockAddr byte, data []byte) error {
 	if backLen != 4 || read[0]&0x0F != 0x0A {
 		err = wrapf("can't write data")
 	}
-	return nil
+	return err
 }
 
 // preAccess  calculates CRC of the block address to be accessed and sends it to the device for verification.
