@@ -1,4 +1,4 @@
-# periph/cmd - read-to-use executables
+# periph/cmd - ready-to-use executables
 
 This directory contains directly usable tools installable via:
 
