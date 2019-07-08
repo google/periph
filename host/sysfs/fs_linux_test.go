@@ -105,7 +105,7 @@ func TestManual_Listen_Socket(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() {
-		if err := ln.Close(); err != nil {
+		if err = ln.Close(); err != nil {
 			t.Fatal(err)
 		}
 	}()
@@ -115,7 +115,7 @@ func TestManual_Listen_Socket(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() {
-		if err := conn.Close(); err != nil {
+		if err = conn.Close(); err != nil {
 			t.Fatal(err)
 		}
 	}()
@@ -125,7 +125,7 @@ func TestManual_Listen_Socket(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() {
-		if err := recv.Close(); err != nil {
+		if err = recv.Close(); err != nil {
 			t.Fatal(err)
 		}
 	}()
@@ -141,7 +141,7 @@ func TestManual_Listen_Socket(t *testing.T) {
 	// TODO(maruel): Sockets do support epollPRI on out-of-band data. This would
 	// make this test a bit more similar to testing a GPIO sysfs file descriptor.
 	const flags = epollET | epollIN
-	if err := ev.addFd(f.Fd(), c, flags); err != nil {
+	if err = ev.addFd(f.Fd(), c, flags); err != nil {
 		t.Fatal(err)
 	}
 	notExpectChan(t, c, "starting should not produce an event")
@@ -149,10 +149,10 @@ func TestManual_Listen_Socket(t *testing.T) {
 	// Produce one or two events.
 	// It's a race condition between EpollWait() and reading back from the
 	// channel.
-	if _, err := conn.Write([]byte("bar\n")); err != nil {
+	if _, err = conn.Write([]byte("bar\n")); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := conn.Write([]byte("baz\n")); err != nil {
+	if _, err = conn.Write([]byte("baz\n")); err != nil {
 		t.Fatal(err)
 	}
 	expectChan(t, c, start)
@@ -166,7 +166,8 @@ func TestManual_Listen_Socket(t *testing.T) {
 	// Empty the buffer.
 	var buf [16]byte
 	expected := "bar\nbaz\n"
-	if n, err := recv.Read(buf[:]); n != len(expected) || err != nil {
+	n := 0
+	if n, err = recv.Read(buf[:]); n != len(expected) || err != nil {
 		t.Fatal(n, err)
 	}
 	if s := string(buf[:len(expected)]); s != expected {
@@ -174,7 +175,7 @@ func TestManual_Listen_Socket(t *testing.T) {
 	}
 
 	// Produce one event.
-	if _, err := conn.Write([]byte("foo\n")); err != nil {
+	if _, err = conn.Write([]byte("foo\n")); err != nil {
 		t.Fatal(err)
 	}
 	expectChan(t, c, start)
@@ -186,7 +187,7 @@ func TestManual_Listen_Socket(t *testing.T) {
 	default:
 	}
 
-	if err := ev.removeFd(f.Fd()); err != nil {
+	if err = ev.removeFd(f.Fd()); err != nil {
 		t.Fatal(err)
 	}
 }

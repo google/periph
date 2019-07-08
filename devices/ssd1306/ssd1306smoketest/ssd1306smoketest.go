@@ -75,7 +75,7 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) (err error) {
 		return err2
 	}
 	defer func() {
-		if err2 := i2cBus.Close(); err == nil {
+		if err2 = i2cBus.Close(); err == nil {
 			err = err2
 		}
 	}()

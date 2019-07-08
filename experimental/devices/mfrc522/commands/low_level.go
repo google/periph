@@ -301,8 +301,8 @@ func (r *LowLevel) CardWrite(command byte, data []byte) ([]byte, int, error) {
 	n := byte(0)
 
 	for ; i > 0; i-- {
-		n, err := r.DevRead(CommIrqReg)
-		if err != nil {
+		var err error
+		if n, err = r.DevRead(CommIrqReg); err != nil {
 			return nil, -1, err
 		}
 		if n&(irqWait|1) != 0 {

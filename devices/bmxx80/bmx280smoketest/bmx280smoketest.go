@@ -55,7 +55,7 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) (err error) {
 		return err2
 	}
 	defer func() {
-		if err2 := i2cBus.Close(); err == nil {
+		if err2 = i2cBus.Close(); err == nil {
 			err = err2
 		}
 	}()
@@ -65,7 +65,7 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) (err error) {
 		return err2
 	}
 	defer func() {
-		if err2 := spiPort.Close(); err == nil {
+		if err2 = spiPort.Close(); err == nil {
 			err = err2
 		}
 	}()
@@ -139,7 +139,7 @@ func run(i2cBus i2c.Bus, i2cAddr uint16, spiPort spi.PortCloser) (err error) {
 		return err2
 	}
 	defer func() {
-		if err2 := i2cDev.Halt(); err == nil {
+		if err2 = i2cDev.Halt(); err == nil {
 			err = err2
 		}
 	}()
@@ -149,14 +149,14 @@ func run(i2cBus i2c.Bus, i2cAddr uint16, spiPort spi.PortCloser) (err error) {
 		return err2
 	}
 	defer func() {
-		if err2 := spiDev.Halt(); err == nil {
+		if err2 = spiDev.Halt(); err == nil {
 			err = err2
 		}
 	}()
 
 	i2cEnv := physic.Env{}
 	spiEnv := physic.Env{}
-	if err2 := i2cDev.Sense(&i2cEnv); err2 != nil {
+	if err2 = i2cDev.Sense(&i2cEnv); err2 != nil {
 		return err2
 	}
 	printEnv(i2cDev, &i2cEnv)

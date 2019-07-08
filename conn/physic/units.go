@@ -166,7 +166,7 @@ func (d Distance) String() string {
 // be provided in "m", "Mile", "Yard", "in", or "ft" with an optional SI
 // prefix: "p", "n", "u", "µ", "m", "k", "M", "G" or "T".
 func (d *Distance) Set(s string) error {
-	decimal, n, err := atod(s)
+	dc, n, err := atod(s)
 	if err != nil {
 		if e, ok := err.(*parseError); ok {
 			switch e.error {
@@ -203,9 +203,9 @@ func (d *Distance) Set(s string) error {
 			n += siSize
 		}
 	}
-	v, overflow := dtoi(decimal, int(si-nano))
+	v, overflow := dtoi(dc, int(si-nano))
 	if overflow {
-		if decimal.neg {
+		if dc.neg {
 			return minValueErr(minDistance.String())
 		}
 		return maxValueErr(maxDistance.String())
