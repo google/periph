@@ -15,32 +15,31 @@ import (
 // I2CAddr i2c default address.
 const I2CAddr uint16 = 0x40
 
-// PCA9685 Commands
+// PCA9685 registers.
 const (
-	mode1      byte = 0x00
-	mode2      byte = 0x01
-	subAdr1    byte = 0x02
-	subAdr2    byte = 0x03
-	subAdr3    byte = 0x04
-	prescale   byte = 0xFE
-	led0OnL    byte = 0x06
-	led0OnH    byte = 0x07
-	led0OffL   byte = 0x08
-	led0OffH   byte = 0x09
-	allLedOnL  byte = 0xFA
-	allLedOnH  byte = 0xFB
-	allLedOffL byte = 0xFC
-	allLedOffH byte = 0xFD
-
-	// Bits
-	restart byte = 0x80
-	sleep   byte = 0x10
-	allCall byte = 0x01
-	invrt   byte = 0x10
-	outDrv  byte = 0x04
+	mode1    byte = 0x00
+	mode2    byte = 0x01
+	prescale byte = 0xFE
+	// Each channel has two 12-bit registers (on & off time).
+	led0OnL   byte = 0x06 // Start address for setting channel 0.
+	allLedOnL byte = 0xFA // Start address for setting all channels.
 )
 
-// Dev is a handler to pca9685 controller
+// Mode register 1, mode1.
+const (
+	restart byte = 0x80
+	ai      byte = 0x20 // Auto-increment register after each read and write.
+	sleep   byte = 0x10
+	allCall byte = 0x01
+)
+
+// Mode register 2, mode2.
+const (
+	invrt  byte = 0x10
+	outDrv byte = 0x04
+)
+
+// Dev is a handler to pca9685 controller.
 type Dev struct {
 	dev *i2c.Dev
 }
@@ -79,7 +78,7 @@ func (d *Dev) init() error {
 		return err
 	}
 
-	mode := modeRead[0] & ^sleep
+	mode := (modeRead[0] & ^sleep) | ai
 	if _, err := d.dev.Write([]byte{mode1, mode}); err != nil {
 		return err
 	}
@@ -89,7 +88,7 @@ func (d *Dev) init() error {
 	return d.SetPwmFreq(50 * physic.Hertz)
 }
 
-// SetPwmFreq set the pwm frequency
+// SetPwmFreq set the PWM frequency.
 func (d *Dev) SetPwmFreq(freqHz physic.Frequency) error {
 	p := (25*physic.MegaHertz/4096 + freqHz/2) / freqHz
 
@@ -99,7 +98,7 @@ func (d *Dev) SetPwmFreq(freqHz physic.Frequency) error {
 	}
 
 	oldmode := modeRead[0]
-	if _, err := d.dev.Write([]byte{mode1, byte((oldmode & 0x7F) | 0x10)}); err != nil { // go to sleep;
+	if _, err := d.dev.Write([]byte{mode1, (oldmode & ^restart) | sleep}); err != nil {
 		return err
 	}
 	if _, err := d.dev.Write([]byte{prescale, byte(p)}); err != nil {
@@ -111,40 +110,29 @@ func (d *Dev) SetPwmFreq(freqHz physic.Frequency) error {
 
 	time.Sleep(100 * time.Millisecond)
 
-	_, err := d.dev.Write([]byte{mode1, (byte)(oldmode | 0x80)})
+	_, err := d.dev.Write([]byte{mode1, oldmode | restart})
 	return err
 }
 
-// SetAllPwm set a pwm value for all outputs
-func (d *Dev) SetAllPwm(on, off gpio.Duty) error {
-	if _, err := d.dev.Write([]byte{allLedOnL, byte(on)}); err != nil {
-		return err
-	}
-	if _, err := d.dev.Write([]byte{allLedOnH, byte(on >> 8)}); err != nil {
-		return err
-	}
-	if _, err := d.dev.Write([]byte{allLedOffL, byte(off)}); err != nil {
-		return err
-	}
-	if _, err := d.dev.Write([]byte{allLedOffH, byte(off >> 8)}); err != nil {
-		return err
-	}
-	return nil
+// setPWM writes a PWM value in a specific register.
+func (d *Dev) setPWM(register uint8, on, off gpio.Duty) error {
+	// Chained writes are possible due to auto-increment.
+	_, err := d.dev.Write([]byte{
+		register,
+		byte(on),
+		byte(on >> 8),
+		byte(off),
+		byte(off >> 8),
+	})
+	return err
 }
 
-// SetPwm set a pwm value for given pca9685 channel
+// SetAllPwm set a PWM value for all outputs.
+func (d *Dev) SetAllPwm(on, off gpio.Duty) error {
+	return d.setPWM(allLedOnL, on, off)
+}
+
+// SetPwm set a PWM value for a given PCA9685 channel.
 func (d *Dev) SetPwm(channel int, on, off gpio.Duty) error {
-	if _, err := d.dev.Write([]byte{led0OnL + byte(4*channel), byte(on)}); err != nil {
-		return err
-	}
-	if _, err := d.dev.Write([]byte{led0OnH + byte(4*channel), byte(on >> 8)}); err != nil {
-		return err
-	}
-	if _, err := d.dev.Write([]byte{led0OffL + byte(4*channel), byte(off)}); err != nil {
-		return err
-	}
-	if _, err := d.dev.Write([]byte{led0OffH + byte(4*channel), byte(off >> 8)}); err != nil {
-		return err
-	}
-	return nil
+	return d.setPWM(led0OnL+byte(4*channel), on, off)
 }
