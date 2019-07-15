@@ -349,21 +349,21 @@ func (d *driver) Init() (bool, error) {
 		// Ignore the overclock bit.
 		i &= 0xFFFFFF
 		switch i {
-		case 0x0002, 0x0003: // B v1.0
+		case 0x2, 0x3: // B v1.0
 			has26PinP1Header = true
 			hasAudio = true
-		case 0x0004, 0x0005, 0x0006, // B v2.0
-			0x0007, 0x0008, 0x0009, // A v2.0
-			0x000d, 0x000e, 0x000f: // B v2.0
+		case 0x4, 0x5, 0x6, // B v2.0
+			0x7, 0x8, 0x9, // A v2.0
+			0xd, 0xe, 0xf: // B v2.0
 			has26PinP1Header = true
 			// Only the v2 PCB has the P5 header.
 			hasP5Header = true
 			hasAudio = true
 			hasHDMI = true
-		case 0x0010, // B+ v1.0
-			0x0012,             // A+ v1.1
-			0x0013,             // B+ v1.2
-			0x0015,             // A+ v1.1
+		case 0x10, // B+ v1.0
+			0x12,               // A+ v1.1
+			0x13,               // B+ v1.2
+			0x15,               // A+ v1.1
 			0x90021,            // A+ v1.1
 			0x90032,            // B+ v1.2
 			0xa01040,           // 2 Model B v1.0
@@ -378,8 +378,8 @@ func (d *driver) Init() (bool, error) {
 			0x9000c1: // Zero W v1.1
 			has40PinP1Header = true
 			hasHDMI = true
-		case 0x0011, // Compute Module 1
-			0x0014: // Compute Module 1
+		case 0x11, // Compute Module 1
+			0x14: // Compute Module 1
 			// SODIMM not defined
 		case 0xa020a0: // Compute Module 3 v1.0
 			hasSODimm = true
