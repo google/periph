@@ -314,12 +314,15 @@ var (
 //
 
 // features represents the different features on various Raspberry Pi boards.
+//
+// See https://github.com/raspberrypi/firmware/blob/master/extra/dt-blob.dts
+// for the official mapping.
 type features struct {
 	hdrP1P26    bool // P1 has 26 pins
 	hdrP1P40    bool // P1 has 40 pins
 	hdrP5       bool // P5 is present
 	hdrAudio    bool // Audio header is present
-	audioLeft41 bool // AUDIO_LEFT uses GPIO41 (new boards) instead of GPIO45 (old boards)
+	audioLeft41 bool // AUDIO_LEFT uses GPIO41 (RPi3 and later) instead of GPIO45 (old boards)
 	hdrHDMI     bool // At least one HDMI port is present
 	hdrSODIMM   bool // SODIMM port is present
 }
@@ -636,6 +639,9 @@ func (d *driver) Init() (bool, error) {
 	}
 
 	if f.hdrAudio {
+		// Two early versions of RPi1 had left and right reversed but we don't
+		// bother handling this here.
+		// https://github.com/raspberrypi/firmware/blob/master/extra/dt-blob.dts
 		if !f.audioLeft41 {
 			AUDIO_LEFT = bcm283x.GPIO45 // PWM1 for older boards
 		}
