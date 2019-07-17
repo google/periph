@@ -327,85 +327,9 @@ type features struct {
 	hdrSODIMM   bool // SODIMM port is present
 }
 
-// driver implements periph.Driver.
-type driver struct {
-}
-
-func (d *driver) String() string {
-	return "rpi"
-}
-
-func (d *driver) Prerequisites() []string {
-	return nil
-}
-
-func (d *driver) After() []string {
-	return []string{"bcm283x-gpio"}
-}
-
-func (d *driver) Init() (bool, error) {
-	if !Present() {
-		return false, errors.New("Raspberry Pi board not detected")
-	}
-
-	// Setup headers based on board revision.
-	//
-	// This code is not futureproof, it will error out on a Raspberry Pi 4
-	// whenever it comes out.
-	// Revision codes from: http://elinux.org/RPi_HardwareHistory
-	f := features{}
-	rev := distro.CPUInfo()["Revision"]
-	if i, err := strconv.ParseInt(rev, 16, 32); err == nil {
-		// Ignore the overclock bit.
-		i &= 0xFFFFFF
-		switch i {
-		case 0x2, 0x3: // B v1.0
-			f.hdrP1P26 = true
-			f.hdrAudio = true
-		case 0x4, 0x5, 0x6, // B v2.0
-			0x7, 0x8, 0x9, // A v2.0
-			0xd, 0xe, 0xf: // B v2.0
-			f.hdrP1P26 = true
-			// Only the v2 PCB has the P5 header.
-			f.hdrP5 = true
-			f.hdrAudio = true
-			f.hdrHDMI = true
-		case 0x10, // B+ v1.0
-			0x12,               // A+ v1.1
-			0x13,               // B+ v1.2
-			0x15,               // A+ v1.1
-			0x90021,            // A+ v1.1
-			0x90032,            // B+ v1.2
-			0xa01040,           // 2 Model B v1.0
-			0xa01041, 0xa21041, // 2 Model B v1.1
-			0xa22042: // 2 Model B v1.2
-			f.hdrP1P40 = true
-			f.hdrAudio = true
-			f.hdrHDMI = true
-		case 0x900092, // Zero v1.2
-			0x900093, // Zero v1.3
-			0x920093, // Zero v1.3
-			0x9000c1: // Zero W v1.1
-			f.hdrP1P40 = true
-			f.hdrHDMI = true
-		case 0x11, // Compute Module 1
-			0x14: // Compute Module 1
-			// SODIMM not defined
-		case 0xa020a0: // Compute Module 3 v1.0
-			f.hdrSODIMM = true
-			// tell CM3 and CM3-Lite apart, if possible
-		case 0xa02082, 0xa22082, 0xa32082, 0xa020d3: // 3 Model B v1.2, B+
-			f.hdrP1P40 = true
-			f.hdrAudio = true
-			f.audioLeft41 = true
-			f.hdrHDMI = true
-		default:
-			return true, fmt.Errorf("rpi: unknown hardware version: 0x%x", i)
-		}
-	} else {
-		return true, fmt.Errorf("rpi: failed to read cpu_info: %v", err)
-	}
-
+// registerHeaders registers the headers for this board and fixes the GPIO
+// global variables.
+func (f features) registerHeaders() error {
 	if f.hdrP1P26 {
 		if err := pinreg.Register("P1", [][]pin.Pin{
 			{P1_1, P1_2},
@@ -422,7 +346,7 @@ func (d *driver) Init() (bool, error) {
 			{P1_23, P1_24},
 			{P1_25, P1_26},
 		}); err != nil {
-			return true, err
+			return err
 		}
 
 		// TODO(maruel): Models from 2012 and earlier have P1_3=GPIO0, P1_5=GPIO1 and P1_13=GPIO21.
@@ -465,7 +389,7 @@ func (d *driver) Init() (bool, error) {
 			{P1_37, P1_38},
 			{P1_39, P1_40},
 		}); err != nil {
-			return true, err
+			return err
 		}
 	} else {
 		P1_1 = pin.INVALID
@@ -518,7 +442,7 @@ func (d *driver) Init() (bool, error) {
 			{P5_5, P5_6},
 			{P5_7, P5_8},
 		}); err != nil {
-			return true, err
+			return err
 		}
 	} else {
 		P5_1 = pin.INVALID
@@ -634,7 +558,7 @@ func (d *driver) Init() (bool, error) {
 			{SO_197, SO_198},
 			{SO_199, SO_200},
 		}); err != nil {
-			return true, err
+			return err
 		}
 	}
 
@@ -649,16 +573,98 @@ func (d *driver) Init() (bool, error) {
 			{AUDIO_LEFT},
 			{AUDIO_RIGHT},
 		}); err != nil {
-			return true, err
+			return err
 		}
 	}
 
 	if f.hdrHDMI {
 		if err := pinreg.Register("HDMI", [][]pin.Pin{{HDMI_HOTPLUG_DETECT}}); err != nil {
-			return true, err
+			return err
 		}
 	}
-	return true, nil
+	return nil
+}
+
+// driver implements periph.Driver.
+type driver struct {
+}
+
+func (d *driver) String() string {
+	return "rpi"
+}
+
+func (d *driver) Prerequisites() []string {
+	return nil
+}
+
+func (d *driver) After() []string {
+	return []string{"bcm283x-gpio"}
+}
+
+func (d *driver) Init() (bool, error) {
+	if !Present() {
+		return false, errors.New("Raspberry Pi board not detected")
+	}
+
+	// Setup headers based on board revision.
+	//
+	// This code is not futureproof, it will error out on a Raspberry Pi 4
+	// whenever it comes out.
+	// Revision codes from: http://elinux.org/RPi_HardwareHistory
+	f := features{}
+	rev := distro.CPUInfo()["Revision"]
+	if i, err := strconv.ParseInt(rev, 16, 32); err == nil {
+		// Ignore the overclock bit.
+		i &= 0xFFFFFF
+		switch i {
+		case 0x2, 0x3: // B v1.0
+			f.hdrP1P26 = true
+			f.hdrAudio = true
+		case 0x4, 0x5, 0x6, // B v2.0
+			0x7, 0x8, 0x9, // A v2.0
+			0xd, 0xe, 0xf: // B v2.0
+			f.hdrP1P26 = true
+			// Only the v2 PCB has the P5 header.
+			f.hdrP5 = true
+			f.hdrAudio = true
+			f.hdrHDMI = true
+		case 0x10, // B+ v1.0
+			0x12,               // A+ v1.1
+			0x13,               // B+ v1.2
+			0x15,               // A+ v1.1
+			0x90021,            // A+ v1.1
+			0x90032,            // B+ v1.2
+			0xa01040,           // 2 Model B v1.0
+			0xa01041, 0xa21041, // 2 Model B v1.1
+			0xa22042: // 2 Model B v1.2
+			f.hdrP1P40 = true
+			f.hdrAudio = true
+			f.hdrHDMI = true
+		case 0x900092, // Zero v1.2
+			0x900093, // Zero v1.3
+			0x920093, // Zero v1.3
+			0x9000c1: // Zero W v1.1
+			f.hdrP1P40 = true
+			f.hdrHDMI = true
+		case 0x11, // Compute Module 1
+			0x14: // Compute Module 1
+			// SODIMM not defined
+		case 0xa020a0: // Compute Module 3 v1.0
+			f.hdrSODIMM = true
+			// tell CM3 and CM3-Lite apart, if possible
+		case 0xa02082, 0xa22082, 0xa32082, 0xa020d3: // 3 Model B v1.2, B+
+			f.hdrP1P40 = true
+			f.hdrAudio = true
+			f.audioLeft41 = true
+			f.hdrHDMI = true
+		default:
+			return true, fmt.Errorf("rpi: unknown hardware version: 0x%x", i)
+		}
+	} else {
+		return true, fmt.Errorf("rpi: failed to read cpu_info: %v", err)
+	}
+
+	return true, f.registerHeaders()
 }
 
 func init() {
