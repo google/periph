@@ -313,6 +313,109 @@ var (
 
 //
 
+// revisionCode processes the CPU revision code based on documentation at
+// https://www.raspberrypi.org/documentation/hardware/raspberrypi/revision-codes/README.md
+//
+//    Format is: uuuuuuuuFMMMCCCCPPPPTTTTTTTTRRRR
+//                       2  2   1   1       0   0
+//                       3  0   6   2       4   0
+type revisionCode uint32
+
+// parseRevision processes the old style revision codes to new style bitpacked
+// format.
+func parseRevision(v uint32) (revisionCode, error) {
+	w := revisionCode(v) & warrantyVoid
+	switch v &^ uint32(warrantyVoid) {
+	case 0x2, 0x3:
+		return w | newFormat | memory256MB | egoman | bcm2835 | boardB, nil
+	case 0x4:
+		return w | newFormat | memory256MB | sonyUK | bcm2835 | boardB | 2, nil // v2.0
+	case 0x5:
+		return w | newFormat | memory256MB | bcm2835 | boardB | 2, nil // v2.0 Qisda
+	case 0x6:
+		return w | newFormat | memory256MB | egoman | bcm2835 | boardB | 2, nil // v2.0
+	case 0x7:
+		return w | newFormat | memory256MB | egoman | bcm2835 | boardA | 2, nil // v2.0
+	case 0x8:
+		return w | newFormat | memory256MB | sonyUK | bcm2835 | boardA | 2, nil // v2.0
+	case 0x9:
+		return w | newFormat | memory256MB | bcm2835 | boardA | 2, nil // v2.0 Qisda
+	case 0xd:
+		return w | newFormat | memory512MB | egoman | bcm2835 | boardB | 2, nil // v2.0
+	case 0xe:
+		return w | newFormat | memory512MB | sonyUK | bcm2835 | boardB | 2, nil // v2.0
+	case 0xf:
+		return w | newFormat | memory512MB | egoman | bcm2835 | boardB | 2, nil // v2.0
+	case 0x10:
+		return w | newFormat | memory512MB | sonyUK | bcm2835 | boardBPlus | 2, nil // v1.2
+	case 0x11:
+		return w | newFormat | memory512MB | sonyUK | bcm2835 | boardCM1, nil
+	case 0x12:
+		return w | newFormat | memory256MB | sonyUK | bcm2835 | boardAPlus | 1, nil // v1.1
+	case 0x13:
+		return w | newFormat | memory512MB | embest | bcm2835 | boardBPlus | 2, nil // v1.2
+	case 0x14:
+		return w | newFormat | memory512MB | embest | bcm2835 | boardCM1, nil
+	case 0x15:
+		// Can be either 256MB or 512MB.
+		return w | newFormat | memory256MB | embest | bcm2835 | boardAPlus | 1, nil // v1.1
+	default:
+		if v&uint32(newFormat) == 0 {
+			return 0, fmt.Errorf("rpi: unknown hardware version: 0x%x", v)
+		}
+		return revisionCode(v), nil
+	}
+}
+
+const (
+	warrantyVoid      revisionCode = 1 << 24
+	newFormat         revisionCode = 1 << 23
+	memoryShift                    = 20
+	memoryMask        revisionCode = 0x7 << memoryShift
+	manufacturerShift              = 16
+	manufacturerMask  revisionCode = 0xf << manufacturerShift
+	processorShift                 = 12
+	processorMask     revisionCode = 0xf << processorShift
+	boardShift                     = 4
+	boardTypeMask     revisionCode = 0xff << boardShift
+	revisionMask      revisionCode = 0xf << 0
+
+	memory256MB revisionCode = 0 << memoryShift
+	memory512MB revisionCode = 1 << memoryShift
+	memory1GB   revisionCode = 2 << memoryShift
+	memory2GB   revisionCode = 3 << memoryShift
+	memory4GB   revisionCode = 4 << memoryShift
+
+	sonyUK    revisionCode = 0 << manufacturerShift
+	egoman    revisionCode = 1 << manufacturerShift
+	embest    revisionCode = 2 << manufacturerShift
+	sonyJapan revisionCode = 3 << manufacturerShift
+	embest2   revisionCode = 4 << manufacturerShift
+	stadium   revisionCode = 5 << manufacturerShift
+
+	bcm2835 revisionCode = 0 << processorShift
+	bcm2836 revisionCode = 1 << processorShift
+	bcm2837 revisionCode = 2 << processorShift
+	bcm2711 revisionCode = 3 << processorShift
+
+	boardA        revisionCode = 0x0 << boardShift
+	boardB        revisionCode = 0x1 << boardShift
+	boardAPlus    revisionCode = 0x2 << boardShift
+	boardBPlus    revisionCode = 0x3 << boardShift
+	board2B       revisionCode = 0x4 << boardShift
+	boardAlpha    revisionCode = 0x5 << boardShift
+	boardCM1      revisionCode = 0x6 << boardShift
+	board3B       revisionCode = 0x8 << boardShift
+	boardZero     revisionCode = 0x9 << boardShift
+	boardCM3      revisionCode = 0xa << boardShift
+	boardZeroW    revisionCode = 0xc << boardShift
+	board3BPlus   revisionCode = 0xd << boardShift
+	board3APlus   revisionCode = 0xe << boardShift
+	boardReserved revisionCode = 0xf << boardShift
+	boardCM3Plus  revisionCode = 0x10 << boardShift
+	board4B       revisionCode = 0x11 << boardShift
+)
+
 // features represents the different features on various Raspberry Pi boards.
 //
 // See https://github.com/raspberrypi/firmware/blob/master/extra/dt-blob.dts
@@ -613,10 +716,10 @@ func (d *driver) Init() (bool, error) {
 	// Revision codes from: http://elinux.org/RPi_HardwareHistory
 	f := features{}
 	rev := distro.CPUInfo()["Revision"]
-	if i, err := strconv.ParseInt(rev, 16, 32); err == nil {
+	if v, err := strconv.ParseInt(rev, 16, 32); err == nil {
 		// Ignore the overclock bit.
-		i &= 0xFFFFFF
-		switch i {
+		v &= 0xFFFFFF
+		switch v {
 		case 0x2, 0x3: // B v1.0
 			f.hdrP1P26 = true
 			f.hdrAudio = true
@@ -658,7 +761,7 @@ func (d *driver) Init() (bool, error) {
 			f.audioLeft41 = true
 			f.hdrHDMI = true
 		default:
-			return true, fmt.Errorf("rpi: unknown hardware version: 0x%x", i)
+			return true, fmt.Errorf("rpi: unknown hardware version: 0x%x", v)
 		}
 	} else {
 		return true, fmt.Errorf("rpi: failed to read cpu_info: %v", err)
