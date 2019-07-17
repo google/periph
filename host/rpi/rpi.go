@@ -311,6 +311,19 @@ var (
 	SO_200 pin.Pin    = pin.DC_IN      // VBAT
 )
 
+//
+
+// features represents the different features on various Raspberry Pi boards.
+type features struct {
+	hdrP1P26    bool // P1 has 26 pins
+	hdrP1P40    bool // P1 has 40 pins
+	hdrP5       bool // P5 is present
+	hdrAudio    bool // Audio header is present
+	audioLeft45 bool // AUDIO_LEFT uses GPIO45 instead of GPIO41
+	hdrHDMI     bool // At least one HDMI port is present
+	hdrSODIMM   bool // SODIMM port is present
+}
+
 // driver implements periph.Driver.
 type driver struct {
 }
@@ -337,29 +350,23 @@ func (d *driver) Init() (bool, error) {
 	// This code is not futureproof, it will error out on a Raspberry Pi 4
 	// whenever it comes out.
 	// Revision codes from: http://elinux.org/RPi_HardwareHistory
-	has26PinP1Header := false
-	has40PinP1Header := false
-	hasP5Header := false
-	hasAudio := false
-	hasNewAudio := false
-	hasHDMI := false
-	hasSODimm := false
+	f := features{}
 	rev := distro.CPUInfo()["Revision"]
 	if i, err := strconv.ParseInt(rev, 16, 32); err == nil {
 		// Ignore the overclock bit.
 		i &= 0xFFFFFF
 		switch i {
 		case 0x2, 0x3: // B v1.0
-			has26PinP1Header = true
-			hasAudio = true
+			f.hdrP1P26 = true
+			f.hdrAudio = true
 		case 0x4, 0x5, 0x6, // B v2.0
 			0x7, 0x8, 0x9, // A v2.0
 			0xd, 0xe, 0xf: // B v2.0
-			has26PinP1Header = true
+			f.hdrP1P26 = true
 			// Only the v2 PCB has the P5 header.
-			hasP5Header = true
-			hasAudio = true
-			hasHDMI = true
+			f.hdrP5 = true
+			f.hdrAudio = true
+			f.hdrHDMI = true
 		case 0x10, // B+ v1.0
 			0x12,               // A+ v1.1
 			0x13,               // B+ v1.2
@@ -369,26 +376,26 @@ func (d *driver) Init() (bool, error) {
 			0xa01040,           // 2 Model B v1.0
 			0xa01041, 0xa21041, // 2 Model B v1.1
 			0xa22042: // 2 Model B v1.2
-			has40PinP1Header = true
-			hasAudio = true
-			hasHDMI = true
+			f.hdrP1P40 = true
+			f.hdrAudio = true
+			f.hdrHDMI = true
 		case 0x900092, // Zero v1.2
 			0x900093, // Zero v1.3
 			0x920093, // Zero v1.3
 			0x9000c1: // Zero W v1.1
-			has40PinP1Header = true
-			hasHDMI = true
+			f.hdrP1P40 = true
+			f.hdrHDMI = true
 		case 0x11, // Compute Module 1
 			0x14: // Compute Module 1
 			// SODIMM not defined
 		case 0xa020a0: // Compute Module 3 v1.0
-			hasSODimm = true
+			f.hdrSODIMM = true
 			// tell CM3 and CM3-Lite apart, if possible
 		case 0xa02082, 0xa22082, 0xa32082, 0xa020d3: // 3 Model B v1.2, B+
-			has40PinP1Header = true
-			hasAudio = true
-			hasNewAudio = true
-			hasHDMI = true
+			f.hdrP1P40 = true
+			f.hdrAudio = true
+			f.audioLeft45 = true
+			f.hdrHDMI = true
 		default:
 			return true, fmt.Errorf("rpi: unknown hardware version: 0x%x", i)
 		}
@@ -396,7 +403,7 @@ func (d *driver) Init() (bool, error) {
 		return true, fmt.Errorf("rpi: failed to read cpu_info: %v", err)
 	}
 
-	if has26PinP1Header {
+	if f.hdrP1P26 {
 		if err := pinreg.Register("P1", [][]pin.Pin{
 			{P1_1, P1_2},
 			{P1_3, P1_4},
@@ -432,7 +439,7 @@ func (d *driver) Init() (bool, error) {
 		P1_38 = gpio.INVALID
 		P1_39 = pin.INVALID
 		P1_40 = gpio.INVALID
-	} else if has40PinP1Header {
+	} else if f.hdrP1P40 {
 		if err := pinreg.Register("P1", [][]pin.Pin{
 			{P1_1, P1_2},
 			{P1_3, P1_4},
@@ -501,7 +508,7 @@ func (d *driver) Init() (bool, error) {
 	}
 
 	// Only the A and B v2 PCB has the P5 header.
-	if hasP5Header {
+	if f.hdrP5 {
 		if err := pinreg.Register("P5", [][]pin.Pin{
 			{P5_1, P5_2},
 			{P5_3, P5_4},
@@ -521,7 +528,7 @@ func (d *driver) Init() (bool, error) {
 		P5_8 = pin.INVALID
 	}
 
-	if hasSODimm {
+	if f.hdrSODIMM {
 		if err := pinreg.Register("SO", [][]pin.Pin{
 			{SO_1, SO_2},
 			{SO_3, SO_4},
@@ -628,8 +635,8 @@ func (d *driver) Init() (bool, error) {
 		}
 	}
 
-	if hasAudio {
-		if !hasNewAudio {
+	if f.hdrAudio {
+		if !f.audioLeft45 {
 			AUDIO_LEFT = bcm283x.GPIO45 // PWM1
 		}
 		if err := pinreg.Register("AUDIO", [][]pin.Pin{
@@ -640,7 +647,7 @@ func (d *driver) Init() (bool, error) {
 		}
 	}
 
-	if hasHDMI {
+	if f.hdrHDMI {
 		if err := pinreg.Register("HDMI", [][]pin.Pin{{HDMI_HOTPLUG_DETECT}}); err != nil {
 			return true, err
 		}
