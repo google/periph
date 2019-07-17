@@ -319,7 +319,7 @@ type features struct {
 	hdrP1P40    bool // P1 has 40 pins
 	hdrP5       bool // P5 is present
 	hdrAudio    bool // Audio header is present
-	audioLeft45 bool // AUDIO_LEFT uses GPIO45 instead of GPIO41
+	audioLeft41 bool // AUDIO_LEFT uses GPIO41 (new boards) instead of GPIO45 (old boards)
 	hdrHDMI     bool // At least one HDMI port is present
 	hdrSODIMM   bool // SODIMM port is present
 }
@@ -394,7 +394,7 @@ func (d *driver) Init() (bool, error) {
 		case 0xa02082, 0xa22082, 0xa32082, 0xa020d3: // 3 Model B v1.2, B+
 			f.hdrP1P40 = true
 			f.hdrAudio = true
-			f.audioLeft45 = true
+			f.audioLeft41 = true
 			f.hdrHDMI = true
 		default:
 			return true, fmt.Errorf("rpi: unknown hardware version: 0x%x", i)
@@ -636,8 +636,8 @@ func (d *driver) Init() (bool, error) {
 	}
 
 	if f.hdrAudio {
-		if !f.audioLeft45 {
-			AUDIO_LEFT = bcm283x.GPIO45 // PWM1
+		if !f.audioLeft41 {
+			AUDIO_LEFT = bcm283x.GPIO45 // PWM1 for older boards
 		}
 		if err := pinreg.Register("AUDIO", [][]pin.Pin{
 			{AUDIO_LEFT},
