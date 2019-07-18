@@ -430,7 +430,14 @@ type features struct {
 	hdrSODIMM   bool // SODIMM port is present
 }
 
-func (f *features) init(r revisionCode) error {
+func (f *features) init(v uint32) error {
+	/*
+		r, err := parseRevision(v)
+		if err != nil {
+			return err
+		}
+	*/
+	r := v
 	// Ignore the overclock bit.
 	r &= 0xFFFFFF
 	switch r {
@@ -766,8 +773,8 @@ func (d *driver) Init() (bool, error) {
 	// Revision codes from: http://elinux.org/RPi_HardwareHistory
 	f := features{}
 	rev := distro.CPUInfo()["Revision"]
-	if v, err := strconv.ParseInt(rev, 16, 32); err == nil {
-		if err := f.init(revisionCode(v)); err != nil {
+	if v, err := strconv.ParseUint(rev, 16, 32); err == nil {
+		if err := f.init(uint32(v)); err != nil {
 			return true, err
 		}
 	} else {

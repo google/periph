@@ -84,7 +84,7 @@ func TestParseRevisionErr(t *testing.T) {
 
 func TestFeaturesInit(t *testing.T) {
 	data := []struct {
-		r revisionCode
+		v uint32
 		f features
 	}{
 		{0x2, features{hdrP1P26: true, hdrAudio: true}},                             // boardB
@@ -120,17 +120,17 @@ func TestFeaturesInit(t *testing.T) {
 	}
 	for i, line := range data {
 		f := features{}
-		if err := f.init(line.r); err != nil {
-			t.Fatalf("#%d: unexpected failure: %v", i, err)
+		if err := f.init(line.v); err != nil {
+			t.Fatalf("#%d: unexpected failure for %#x: %v", i, line.v, err)
 		}
 		if line.f != f {
-			t.Fatalf("#%d: unexpected for %#x:\nexpected: %#v\nactual:   %#v", i, line.r, line.f, f)
+			t.Fatalf("#%d: unexpected for %#x:\nexpected: %#v\nactual:   %#v", i, line.v, line.f, f)
 		}
 	}
 }
 
 func TestFeaturesInitErr(t *testing.T) {
-	data := []revisionCode{
+	data := []uint32{
 		0x0,
 		0x1,
 		0x16,
@@ -147,10 +147,10 @@ func TestFeaturesInitErr(t *testing.T) {
 		0xb03111, // board4B
 		0xc03111, // board4B
 	}
-	for i, r := range data {
+	for i, v := range data {
 		f := features{}
-		if err := f.init(r); err == nil {
-			t.Fatalf("#%d: unexpected success for %#x", i, r)
+		if err := f.init(v); err == nil {
+			t.Fatalf("#%d: unexpected success for %#x", i, v)
 		}
 	}
 }
