@@ -16,28 +16,28 @@ func TestParseRevision(t *testing.T) {
 	}{
 		// https://www.raspberrypi.org/documentation/hardware/raspberrypi/revision-codes/README.md
 		// Old style
-		{0x2, newFormat | memory256MB | egoman | bcm2835 | boardB},
-		{0x3, newFormat | memory256MB | egoman | bcm2835 | boardB},
-		{0x4, newFormat | memory256MB | sonyUK | bcm2835 | boardB | 2},
-		{0x5, newFormat | memory256MB | bcm2835 | boardB | 2},
-		{0x6, newFormat | memory256MB | egoman | bcm2835 | boardB | 2},
-		{0x7, newFormat | memory256MB | egoman | bcm2835 | boardA | 2},
-		{0x8, newFormat | memory256MB | sonyUK | bcm2835 | boardA | 2},
-		{0x9, newFormat | memory256MB | bcm2835 | boardA | 2},
-		{0xd, newFormat | memory512MB | egoman | bcm2835 | boardB | 2},
-		{0xe, newFormat | memory512MB | sonyUK | bcm2835 | boardB | 2},
-		{0xf, newFormat | memory512MB | egoman | bcm2835 | boardB | 2},
-		{0x10, newFormat | memory512MB | sonyUK | bcm2835 | boardBPlus | 2},
+		{0x2, newFormat | memory256MB | egoman | bcm2835 | board1B},
+		{0x3, newFormat | memory256MB | egoman | bcm2835 | board1B},
+		{0x4, newFormat | memory256MB | sonyUK | bcm2835 | board1B | 2},
+		{0x5, newFormat | memory256MB | bcm2835 | board1B | 2},
+		{0x6, newFormat | memory256MB | egoman | bcm2835 | board1B | 2},
+		{0x7, newFormat | memory256MB | egoman | bcm2835 | board1A | 2},
+		{0x8, newFormat | memory256MB | sonyUK | bcm2835 | board1A | 2},
+		{0x9, newFormat | memory256MB | bcm2835 | board1A | 2},
+		{0xd, newFormat | memory512MB | egoman | bcm2835 | board1B | 2},
+		{0xe, newFormat | memory512MB | sonyUK | bcm2835 | board1B | 2},
+		{0xf, newFormat | memory512MB | egoman | bcm2835 | board1B | 2},
+		{0x10, newFormat | memory512MB | sonyUK | bcm2835 | board1BPlus | 2},
 		{0x11, newFormat | memory512MB | sonyUK | bcm2835 | boardCM1},
-		{0x12, newFormat | memory256MB | sonyUK | bcm2835 | boardAPlus | 1},
-		{0x13, newFormat | memory512MB | embest | bcm2835 | boardBPlus | 2},
+		{0x12, newFormat | memory256MB | sonyUK | bcm2835 | board1APlus | 1},
+		{0x13, newFormat | memory512MB | embest | bcm2835 | board1BPlus | 2},
 		{0x14, newFormat | memory512MB | embest | bcm2835 | boardCM1},
-		{0x15, newFormat | memory256MB | embest | bcm2835 | boardAPlus | 1},
+		{0x15, newFormat | memory256MB | embest | bcm2835 | board1APlus | 1},
 		// Test warranty bit
-		{0x1000015, warrantyVoid | newFormat | memory256MB | embest | bcm2835 | boardAPlus | 1},
+		{0x1000015, warrantyVoid | newFormat | memory256MB | embest | bcm2835 | board1APlus | 1},
 		// New style
-		{0x900021, newFormat | memory512MB | sonyUK | bcm2835 | boardAPlus | 1},
-		{0x900032, newFormat | memory512MB | sonyUK | bcm2835 | boardBPlus | 2},
+		{0x900021, newFormat | memory512MB | sonyUK | bcm2835 | board1APlus | 1},
+		{0x900032, newFormat | memory512MB | sonyUK | bcm2835 | board1BPlus | 2},
 		{0x900092, newFormat | memory512MB | sonyUK | bcm2835 | boardZero | 2},
 		{0x900093, newFormat | memory512MB | sonyUK | bcm2835 | boardZero | 3},
 		{0x9000c1, newFormat | memory512MB | sonyUK | bcm2835 | boardZeroW | 1},
@@ -87,23 +87,23 @@ func TestFeaturesInit(t *testing.T) {
 		v uint32
 		f features
 	}{
-		{0x2, features{hdrP1P26: true, hdrAudio: true}},                             // boardB
-		{0x3, features{hdrP1P26: true, hdrAudio: true}},                             // boardB
-		{0x4, features{hdrP1P26: true, hdrP5: true, hdrAudio: true, hdrHDMI: true}}, // boardB
-		{0x5, features{hdrP1P26: true, hdrP5: true, hdrAudio: true, hdrHDMI: true}}, // boardB
-		{0x6, features{hdrP1P26: true, hdrP5: true, hdrAudio: true, hdrHDMI: true}}, // boardB
-		{0x7, features{hdrP1P26: true, hdrP5: true, hdrAudio: true, hdrHDMI: true}}, // boardA
-		{0x8, features{hdrP1P26: true, hdrP5: true, hdrAudio: true, hdrHDMI: true}}, // boardA
-		{0x9, features{hdrP1P26: true, hdrP5: true, hdrAudio: true, hdrHDMI: true}}, // boardA
-		{0xd, features{hdrP1P26: true, hdrP5: true, hdrAudio: true, hdrHDMI: true}}, // boardB
-		{0xe, features{hdrP1P26: true, hdrP5: true, hdrAudio: true, hdrHDMI: true}}, // boardB
-		{0xf, features{hdrP1P26: true, hdrP5: true, hdrAudio: true, hdrHDMI: true}}, // boardB
-		{0x10, features{hdrP1P40: true, hdrAudio: true, hdrHDMI: true}},             // boardBPlus
+		{0x2, features{hdrP1P26: true, hdrAudio: true}},                             // board1B
+		{0x3, features{hdrP1P26: true, hdrAudio: true}},                             // board1B
+		{0x4, features{hdrP1P26: true, hdrP5: true, hdrAudio: true, hdrHDMI: true}}, // board1B
+		{0x5, features{hdrP1P26: true, hdrP5: true, hdrAudio: true, hdrHDMI: true}}, // board1B
+		{0x6, features{hdrP1P26: true, hdrP5: true, hdrAudio: true, hdrHDMI: true}}, // board1B
+		{0x7, features{hdrP1P26: true, hdrP5: true, hdrAudio: true, hdrHDMI: true}}, // board1A
+		{0x8, features{hdrP1P26: true, hdrP5: true, hdrAudio: true, hdrHDMI: true}}, // board1A
+		{0x9, features{hdrP1P26: true, hdrP5: true, hdrAudio: true, hdrHDMI: true}}, // board1A
+		{0xd, features{hdrP1P26: true, hdrP5: true, hdrAudio: true, hdrHDMI: true}}, // board1B
+		{0xe, features{hdrP1P26: true, hdrP5: true, hdrAudio: true, hdrHDMI: true}}, // board1B
+		{0xf, features{hdrP1P26: true, hdrP5: true, hdrAudio: true, hdrHDMI: true}}, // board1B
+		{0x10, features{hdrP1P40: true, hdrAudio: true, hdrHDMI: true}},             // board1BPlus
 		{0x11, features{}}, // boardCM1
-		{0x12, features{hdrP1P40: true, hdrAudio: true, hdrHDMI: true}}, // boardAPlus
-		{0x13, features{hdrP1P40: true, hdrAudio: true, hdrHDMI: true}}, // boardBPlus
+		{0x12, features{hdrP1P40: true, hdrAudio: true, hdrHDMI: true}}, // board1APlus
+		{0x13, features{hdrP1P40: true, hdrAudio: true, hdrHDMI: true}}, // board1BPlus
 		{0x14, features{}}, // boardCM1
-		{0x15, features{hdrP1P40: true, hdrAudio: true, hdrHDMI: true}},                        // boardAPlus
+		{0x15, features{hdrP1P40: true, hdrAudio: true, hdrHDMI: true}},                        // board1APlus
 		{0x900092, features{hdrP1P40: true, hdrHDMI: true}},                                    // boardZero
 		{0x900093, features{hdrP1P40: true, hdrHDMI: true}},                                    // boardZero
 		{0x9000c1, features{hdrP1P40: true, hdrHDMI: true}},                                    // boardZeroW
@@ -134,8 +134,8 @@ func TestFeaturesInitErr(t *testing.T) {
 		0x0,
 		0x1,
 		0x16,
-		0x900021, // boardAPlus
-		0x900032, // boardBPlus
+		0x900021, // board1APlus
+		0x900032, // board1BPlus
 		0x9020e0, // board3APlus
 		0x920092, // boardZero
 		0x900061, // boardCM1

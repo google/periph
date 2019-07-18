@@ -327,38 +327,38 @@ func parseRevision(v uint32) (revisionCode, error) {
 	w := revisionCode(v) & warrantyVoid
 	switch v &^ uint32(warrantyVoid) {
 	case 0x2, 0x3:
-		return w | newFormat | memory256MB | egoman | bcm2835 | boardB, nil
+		return w | newFormat | memory256MB | egoman | bcm2835 | board1B, nil
 	case 0x4:
-		return w | newFormat | memory256MB | sonyUK | bcm2835 | boardB | 2, nil // v2.0
+		return w | newFormat | memory256MB | sonyUK | bcm2835 | board1B | 2, nil // v2.0
 	case 0x5:
-		return w | newFormat | memory256MB | bcm2835 | boardB | 2, nil // v2.0 Qisda
+		return w | newFormat | memory256MB | bcm2835 | board1B | 2, nil // v2.0 Qisda
 	case 0x6:
-		return w | newFormat | memory256MB | egoman | bcm2835 | boardB | 2, nil // v2.0
+		return w | newFormat | memory256MB | egoman | bcm2835 | board1B | 2, nil // v2.0
 	case 0x7:
-		return w | newFormat | memory256MB | egoman | bcm2835 | boardA | 2, nil // v2.0
+		return w | newFormat | memory256MB | egoman | bcm2835 | board1A | 2, nil // v2.0
 	case 0x8:
-		return w | newFormat | memory256MB | sonyUK | bcm2835 | boardA | 2, nil // v2.0
+		return w | newFormat | memory256MB | sonyUK | bcm2835 | board1A | 2, nil // v2.0
 	case 0x9:
-		return w | newFormat | memory256MB | bcm2835 | boardA | 2, nil // v2.0 Qisda
+		return w | newFormat | memory256MB | bcm2835 | board1A | 2, nil // v2.0 Qisda
 	case 0xd:
-		return w | newFormat | memory512MB | egoman | bcm2835 | boardB | 2, nil // v2.0
+		return w | newFormat | memory512MB | egoman | bcm2835 | board1B | 2, nil // v2.0
 	case 0xe:
-		return w | newFormat | memory512MB | sonyUK | bcm2835 | boardB | 2, nil // v2.0
+		return w | newFormat | memory512MB | sonyUK | bcm2835 | board1B | 2, nil // v2.0
 	case 0xf:
-		return w | newFormat | memory512MB | egoman | bcm2835 | boardB | 2, nil // v2.0
+		return w | newFormat | memory512MB | egoman | bcm2835 | board1B | 2, nil // v2.0
 	case 0x10:
-		return w | newFormat | memory512MB | sonyUK | bcm2835 | boardBPlus | 2, nil // v1.2
+		return w | newFormat | memory512MB | sonyUK | bcm2835 | board1BPlus | 2, nil // v1.2
 	case 0x11:
 		return w | newFormat | memory512MB | sonyUK | bcm2835 | boardCM1, nil
 	case 0x12:
-		return w | newFormat | memory256MB | sonyUK | bcm2835 | boardAPlus | 1, nil // v1.1
+		return w | newFormat | memory256MB | sonyUK | bcm2835 | board1APlus | 1, nil // v1.1
 	case 0x13:
-		return w | newFormat | memory512MB | embest | bcm2835 | boardBPlus | 2, nil // v1.2
+		return w | newFormat | memory512MB | embest | bcm2835 | board1BPlus | 2, nil // v1.2
 	case 0x14:
 		return w | newFormat | memory512MB | embest | bcm2835 | boardCM1, nil
 	case 0x15:
 		// Can be either 256MB or 512MB.
-		return w | newFormat | memory256MB | embest | bcm2835 | boardAPlus | 1, nil // v1.1
+		return w | newFormat | memory256MB | embest | bcm2835 | board1APlus | 1, nil // v1.1
 	default:
 		if v&uint32(newFormat) == 0 {
 			return 0, fmt.Errorf("rpi: unknown hardware version: 0x%x", v)
@@ -377,7 +377,7 @@ const (
 	processorShift                 = 12
 	processorMask     revisionCode = 0xf << processorShift
 	boardShift                     = 4
-	boardTypeMask     revisionCode = 0xff << boardShift
+	boardMask         revisionCode = 0xff << boardShift
 	revisionMask      revisionCode = 0xf << 0
 
 	memory256MB revisionCode = 0 << memoryShift
@@ -398,12 +398,12 @@ const (
 	bcm2837 revisionCode = 2 << processorShift
 	bcm2711 revisionCode = 3 << processorShift
 
-	boardA        revisionCode = 0x0 << boardShift
-	boardB        revisionCode = 0x1 << boardShift
-	boardAPlus    revisionCode = 0x2 << boardShift
-	boardBPlus    revisionCode = 0x3 << boardShift
+	board1A       revisionCode = 0x0 << boardShift
+	board1B       revisionCode = 0x1 << boardShift
+	board1APlus   revisionCode = 0x2 << boardShift
+	board1BPlus   revisionCode = 0x3 << boardShift
 	board2B       revisionCode = 0x4 << boardShift
-	boardAlpha    revisionCode = 0x5 << boardShift
+	board1Alpha   revisionCode = 0x5 << boardShift
 	boardCM1      revisionCode = 0x6 << boardShift
 	board3B       revisionCode = 0x8 << boardShift
 	boardZero     revisionCode = 0x9 << boardShift
