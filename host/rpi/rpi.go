@@ -403,7 +403,7 @@ const (
 	board1APlus   revisionCode = 0x2 << boardShift
 	board1BPlus   revisionCode = 0x3 << boardShift
 	board2B       revisionCode = 0x4 << boardShift
-	board1Alpha   revisionCode = 0x5 << boardShift
+	boardAlpha    revisionCode = 0x5 << boardShift
 	boardCM1      revisionCode = 0x6 << boardShift
 	board3B       revisionCode = 0x8 << boardShift
 	boardZero     revisionCode = 0x9 << boardShift
