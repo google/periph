@@ -430,9 +430,59 @@ type features struct {
 	hdrSODIMM   bool // SODIMM port is present
 }
 
+func (f *features) init(r revisionCode) error {
+	// Ignore the overclock bit.
+	r &= 0xFFFFFF
+	switch r {
+	case 0x2, 0x3: // B v1.0
+		f.hdrP1P26 = true
+		f.hdrAudio = true
+	case 0x4, 0x5, 0x6, // B v2.0
+		0x7, 0x8, 0x9, // A v2.0
+		0xd, 0xe, 0xf: // B v2.0
+		f.hdrP1P26 = true
+		// Only the v2 PCB has the P5 header.
+		f.hdrP5 = true
+		f.hdrAudio = true
+		f.hdrHDMI = true
+	case 0x10, // B+ v1.0
+		0x12,               // A+ v1.1
+		0x13,               // B+ v1.2
+		0x15,               // A+ v1.1
+		0x90021,            // A+ v1.1
+		0x90032,            // B+ v1.2
+		0xa01040,           // 2 Model B v1.0
+		0xa01041, 0xa21041, // 2 Model B v1.1
+		0xa22042: // 2 Model B v1.2
+		f.hdrP1P40 = true
+		f.hdrAudio = true
+		f.hdrHDMI = true
+	case 0x900092, // Zero v1.2
+		0x900093, // Zero v1.3
+		0x920093, // Zero v1.3
+		0x9000c1: // Zero W v1.1
+		f.hdrP1P40 = true
+		f.hdrHDMI = true
+	case 0x11, // Compute Module 1
+		0x14: // Compute Module 1
+		// SODIMM not defined
+	case 0xa020a0: // Compute Module 3 v1.0
+		f.hdrSODIMM = true
+		// tell CM3 and CM3-Lite apart, if possible
+	case 0xa02082, 0xa22082, 0xa32082, 0xa020d3: // 3 Model B v1.2, B+
+		f.hdrP1P40 = true
+		f.hdrAudio = true
+		f.audioLeft41 = true
+		f.hdrHDMI = true
+	default:
+		return fmt.Errorf("rpi: unknown hardware version: 0x%x", r)
+	}
+	return nil
+}
+
 // registerHeaders registers the headers for this board and fixes the GPIO
 // global variables.
-func (f features) registerHeaders() error {
+func (f *features) registerHeaders() error {
 	if f.hdrP1P26 {
 		if err := pinreg.Register("P1", [][]pin.Pin{
 			{P1_1, P1_2},
@@ -717,51 +767,8 @@ func (d *driver) Init() (bool, error) {
 	f := features{}
 	rev := distro.CPUInfo()["Revision"]
 	if v, err := strconv.ParseInt(rev, 16, 32); err == nil {
-		// Ignore the overclock bit.
-		v &= 0xFFFFFF
-		switch v {
-		case 0x2, 0x3: // B v1.0
-			f.hdrP1P26 = true
-			f.hdrAudio = true
-		case 0x4, 0x5, 0x6, // B v2.0
-			0x7, 0x8, 0x9, // A v2.0
-			0xd, 0xe, 0xf: // B v2.0
-			f.hdrP1P26 = true
-			// Only the v2 PCB has the P5 header.
-			f.hdrP5 = true
-			f.hdrAudio = true
-			f.hdrHDMI = true
-		case 0x10, // B+ v1.0
-			0x12,               // A+ v1.1
-			0x13,               // B+ v1.2
-			0x15,               // A+ v1.1
-			0x90021,            // A+ v1.1
-			0x90032,            // B+ v1.2
-			0xa01040,           // 2 Model B v1.0
-			0xa01041, 0xa21041, // 2 Model B v1.1
-			0xa22042: // 2 Model B v1.2
-			f.hdrP1P40 = true
-			f.hdrAudio = true
-			f.hdrHDMI = true
-		case 0x900092, // Zero v1.2
-			0x900093, // Zero v1.3
-			0x920093, // Zero v1.3
-			0x9000c1: // Zero W v1.1
-			f.hdrP1P40 = true
-			f.hdrHDMI = true
-		case 0x11, // Compute Module 1
-			0x14: // Compute Module 1
-			// SODIMM not defined
-		case 0xa020a0: // Compute Module 3 v1.0
-			f.hdrSODIMM = true
-			// tell CM3 and CM3-Lite apart, if possible
-		case 0xa02082, 0xa22082, 0xa32082, 0xa020d3: // 3 Model B v1.2, B+
-			f.hdrP1P40 = true
-			f.hdrAudio = true
-			f.audioLeft41 = true
-			f.hdrHDMI = true
-		default:
-			return true, fmt.Errorf("rpi: unknown hardware version: 0x%x", v)
+		if err := f.init(revisionCode(v)); err != nil {
+			return true, err
 		}
 	} else {
 		return true, fmt.Errorf("rpi: failed to read cpu_info: %v", err)

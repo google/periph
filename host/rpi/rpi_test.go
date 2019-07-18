@@ -4,7 +4,10 @@
 
 package rpi
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 func TestParseRevision(t *testing.T) {
 	data := []struct {
@@ -74,7 +77,92 @@ func TestParseRevisionErr(t *testing.T) {
 	data := []uint32{0, 1, 0xa, 0xb, 0xc, 0x16}
 	for i, v := range data {
 		if _, err := parseRevision(v); err == nil {
-			t.Fatalf("#%d: unexpected failure for %d", i, v)
+			t.Fatalf("#%d: unexpected success for %#x", i, v)
 		}
+	}
+}
+
+func TestFeaturesInit(t *testing.T) {
+	data := []struct {
+		r revisionCode
+		f features
+	}{
+		{0x2, features{hdrP1P26: true, hdrAudio: true}},                             // boardB
+		{0x3, features{hdrP1P26: true, hdrAudio: true}},                             // boardB
+		{0x4, features{hdrP1P26: true, hdrP5: true, hdrAudio: true, hdrHDMI: true}}, // boardB
+		{0x5, features{hdrP1P26: true, hdrP5: true, hdrAudio: true, hdrHDMI: true}}, // boardB
+		{0x6, features{hdrP1P26: true, hdrP5: true, hdrAudio: true, hdrHDMI: true}}, // boardB
+		{0x7, features{hdrP1P26: true, hdrP5: true, hdrAudio: true, hdrHDMI: true}}, // boardA
+		{0x8, features{hdrP1P26: true, hdrP5: true, hdrAudio: true, hdrHDMI: true}}, // boardA
+		{0x9, features{hdrP1P26: true, hdrP5: true, hdrAudio: true, hdrHDMI: true}}, // boardA
+		{0xd, features{hdrP1P26: true, hdrP5: true, hdrAudio: true, hdrHDMI: true}}, // boardB
+		{0xe, features{hdrP1P26: true, hdrP5: true, hdrAudio: true, hdrHDMI: true}}, // boardB
+		{0xf, features{hdrP1P26: true, hdrP5: true, hdrAudio: true, hdrHDMI: true}}, // boardB
+		{0x10, features{hdrP1P40: true, hdrAudio: true, hdrHDMI: true}},             // boardBPlus
+		{0x11, features{}}, // boardCM1
+		{0x12, features{hdrP1P40: true, hdrAudio: true, hdrHDMI: true}}, // boardAPlus
+		{0x13, features{hdrP1P40: true, hdrAudio: true, hdrHDMI: true}}, // boardBPlus
+		{0x14, features{}}, // boardCM1
+		{0x15, features{hdrP1P40: true, hdrAudio: true, hdrHDMI: true}},                        // boardAPlus
+		{0x900092, features{hdrP1P40: true, hdrHDMI: true}},                                    // boardZero
+		{0x900093, features{hdrP1P40: true, hdrHDMI: true}},                                    // boardZero
+		{0x9000c1, features{hdrP1P40: true, hdrHDMI: true}},                                    // boardZeroW
+		{0x920093, features{hdrP1P40: true, hdrHDMI: true}},                                    // boardZero
+		{0xa01040, features{hdrP1P40: true, hdrAudio: true, hdrHDMI: true}},                    // board2B
+		{0xa01041, features{hdrP1P40: true, hdrAudio: true, hdrHDMI: true}},                    // board2B
+		{0xa02082, features{hdrP1P40: true, hdrAudio: true, audioLeft41: true, hdrHDMI: true}}, // board3B
+		{0xa020a0, features{hdrSODIMM: true}},                                                  // boardCM3
+		{0xa020d3, features{hdrP1P40: true, hdrAudio: true, audioLeft41: true, hdrHDMI: true}}, // board3BPlus
+		{0xa21041, features{hdrP1P40: true, hdrAudio: true, hdrHDMI: true}},                    // board2B
+		{0xa22042, features{hdrP1P40: true, hdrAudio: true, hdrHDMI: true}},                    // board2B
+		{0xa22082, features{hdrP1P40: true, hdrAudio: true, audioLeft41: true, hdrHDMI: true}}, // board3B
+		{0xa32082, features{hdrP1P40: true, hdrAudio: true, audioLeft41: true, hdrHDMI: true}}, // board3B
+	}
+	for i, line := range data {
+		f := features{}
+		if err := f.init(line.r); err != nil {
+			t.Fatalf("#%d: unexpected failure: %v", i, err)
+		}
+		if line.f != f {
+			t.Fatalf("#%d: unexpected for %#x:\nexpected: %#v\nactual:   %#v", i, line.r, line.f, f)
+		}
+	}
+}
+
+func TestFeaturesInitErr(t *testing.T) {
+	data := []revisionCode{
+		0x0,
+		0x1,
+		0x16,
+		0x900021, // boardAPlus
+		0x900032, // boardBPlus
+		0x9020e0, // board3APlus
+		0x920092, // boardZero
+		0x900061, // boardCM1
+		0xa220a0, // boardCM3
+		0xa52082, // board3B
+		0xa22083, // board3B
+		0xa02100, // boardCM3Plus
+		0xa03111, // board4B
+		0xb03111, // board4B
+		0xc03111, // board4B
+	}
+	for i, r := range data {
+		f := features{}
+		if err := f.init(r); err == nil {
+			t.Fatalf("#%d: unexpected success for %#x", i, r)
+		}
+	}
+}
+
+func TestDriver(t *testing.T) {
+	if v := drv.String(); v != "rpi" {
+		t.Fatal(v)
+	}
+	if v := drv.Prerequisites(); v != nil {
+		t.Fatal(v)
+	}
+	if v := drv.After(); reflect.DeepEqual(v, []string{"bcm2835-gpio"}) {
+		t.Fatal(v)
 	}
 }
