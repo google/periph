@@ -431,52 +431,74 @@ type features struct {
 }
 
 func (f *features) init(v uint32) error {
-	/*
-		r, err := parseRevision(v)
-		if err != nil {
-			return err
-		}
-	*/
-	r := v
+	r, err := parseRevision(v)
+	if err != nil {
+		return err
+	}
 	// Ignore the overclock bit.
-	r &= 0xFFFFFF
-	switch r {
-	case 0x2, 0x3: // B v1.0
+	r &^= warrantyVoid
+	switch r & boardMask {
+	case board1A:
 		f.hdrP1P26 = true
 		f.hdrAudio = true
-	case 0x4, 0x5, 0x6, // B v2.0
-		0x7, 0x8, 0x9, // A v2.0
-		0xd, 0xe, 0xf: // B v2.0
-		f.hdrP1P26 = true
 		// Only the v2 PCB has the P5 header.
-		f.hdrP5 = true
+		if r&revisionMask == 2 {
+			f.hdrP5 = true
+			f.hdrHDMI = true
+		}
+	case board1B:
+		f.hdrP1P26 = true
 		f.hdrAudio = true
-		f.hdrHDMI = true
-	case 0x10, // B+ v1.0
-		0x12,               // A+ v1.1
-		0x13,               // B+ v1.2
-		0x15,               // A+ v1.1
-		0x90021,            // A+ v1.1
-		0x90032,            // B+ v1.2
-		0xa01040,           // 2 Model B v1.0
-		0xa01041, 0xa21041, // 2 Model B v1.1
-		0xa22042: // 2 Model B v1.2
+		// Only the v2 PCB has the P5 header.
+		if r&revisionMask == 2 {
+			f.hdrP5 = true
+			f.hdrHDMI = true
+		}
+	case board1APlus:
 		f.hdrP1P40 = true
 		f.hdrAudio = true
 		f.hdrHDMI = true
-	case 0x900092, // Zero v1.2
-		0x900093, // Zero v1.3
-		0x920093, // Zero v1.3
-		0x9000c1: // Zero W v1.1
+	case board1BPlus:
+		f.hdrP1P40 = true
+		f.hdrAudio = true
+		f.hdrHDMI = true
+	case board2B:
+		f.hdrP1P40 = true
+		f.hdrAudio = true
+		f.hdrHDMI = true
+	case boardAlpha:
+	case boardCM1:
+		// TODO: define CM1 SODIMM header if anyone ever needs it. Please file an
+		// issue at https://github.com/google/periph/issues/new/choose
+	case board3B:
+		f.hdrP1P40 = true
+		f.hdrAudio = true
+		f.audioLeft41 = true
+		f.hdrHDMI = true
+	case boardZero:
 		f.hdrP1P40 = true
 		f.hdrHDMI = true
-	case 0x11, // Compute Module 1
-		0x14: // Compute Module 1
-		// SODIMM not defined
-	case 0xa020a0: // Compute Module 3 v1.0
+	case boardCM3:
+		// Tell CM3 and CM3-Lite apart, if possible.
 		f.hdrSODIMM = true
-		// tell CM3 and CM3-Lite apart, if possible
-	case 0xa02082, 0xa22082, 0xa32082, 0xa020d3: // 3 Model B v1.2, B+
+	case boardZeroW:
+		f.hdrP1P40 = true
+		f.hdrHDMI = true
+	case board3BPlus:
+		f.hdrP1P40 = true
+		f.hdrAudio = true
+		f.audioLeft41 = true
+		f.hdrHDMI = true
+	case board3APlus:
+		f.hdrP1P40 = true
+		f.hdrAudio = true
+		f.audioLeft41 = true
+		f.hdrHDMI = true
+	case boardReserved:
+	case boardCM3Plus:
+		// Tell CM3 and CM3-Lite apart, if possible.
+		f.hdrSODIMM = true
+	case board4B:
 		f.hdrP1P40 = true
 		f.hdrAudio = true
 		f.audioLeft41 = true

@@ -117,6 +117,18 @@ func TestFeaturesInit(t *testing.T) {
 		{0xa22042, features{hdrP1P40: true, hdrAudio: true, hdrHDMI: true}},                    // board2B
 		{0xa22082, features{hdrP1P40: true, hdrAudio: true, audioLeft41: true, hdrHDMI: true}}, // board3B
 		{0xa32082, features{hdrP1P40: true, hdrAudio: true, audioLeft41: true, hdrHDMI: true}}, // board3B
+		{0x900021, features{hdrP1P40: true, hdrAudio: true, hdrHDMI: true}},                    // board1APlus
+		{0x900032, features{hdrP1P40: true, hdrAudio: true, hdrHDMI: true}},                    // board1BPlus
+		{0x9020e0, features{hdrP1P40: true, hdrAudio: true, audioLeft41: true, hdrHDMI: true}}, // board3APlus
+		{0x920092, features{hdrP1P40: true, hdrHDMI: true}},                                    // boardZero
+		{0x900061, features{}},                // boardCM1
+		{0xa220a0, features{hdrSODIMM: true}}, // boardCM3
+		{0xa52082, features{hdrP1P40: true, hdrAudio: true, audioLeft41: true, hdrHDMI: true}}, // board3B
+		{0xa22083, features{hdrP1P40: true, hdrAudio: true, audioLeft41: true, hdrHDMI: true}}, // board3B
+		{0xa02100, features{hdrSODIMM: true}},                                                  // boardCM3Plus
+		{0xa03111, features{hdrP1P40: true, hdrAudio: true, audioLeft41: true, hdrHDMI: true}}, // board4B
+		{0xb03111, features{hdrP1P40: true, hdrAudio: true, audioLeft41: true, hdrHDMI: true}}, // board4B
+		{0xc03111, features{hdrP1P40: true, hdrAudio: true, audioLeft41: true, hdrHDMI: true}}, // board4B
 	}
 	for i, line := range data {
 		f := features{}
@@ -134,18 +146,6 @@ func TestFeaturesInitErr(t *testing.T) {
 		0x0,
 		0x1,
 		0x16,
-		0x900021, // board1APlus
-		0x900032, // board1BPlus
-		0x9020e0, // board3APlus
-		0x920092, // boardZero
-		0x900061, // boardCM1
-		0xa220a0, // boardCM3
-		0xa52082, // board3B
-		0xa22083, // board3B
-		0xa02100, // boardCM3Plus
-		0xa03111, // board4B
-		0xb03111, // board4B
-		0xc03111, // board4B
 	}
 	for i, v := range data {
 		f := features{}
