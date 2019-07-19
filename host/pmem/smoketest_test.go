@@ -6,6 +6,7 @@ package pmem
 
 import (
 	"errors"
+	"reflect"
 	"testing"
 	"unsafe"
 )
@@ -50,7 +51,7 @@ func TestSmokeTest_fail(t *testing.T) {
 	}
 
 	copyHdr := func(d, s uint64) error {
-		toSlice(d)[0] = 0
+		toSlice(d, int(s))[0] = 0
 		return nil
 	}
 	if TestCopy(1024, 1, allocRAM, copyHdr) == nil {
@@ -58,7 +59,7 @@ func TestSmokeTest_fail(t *testing.T) {
 	}
 
 	copyFtr := func(d, s uint64) error {
-		toSlice(d)[1023] = 0
+		toSlice(d, int(s))[1023] = 0
 		return copyRAM(d, s, 1024, 1)
 	}
 	if TestCopy(1024, 1, allocRAM, copyFtr) == nil {
@@ -69,7 +70,7 @@ func TestSmokeTest_fail(t *testing.T) {
 		if err := copyRAM(d, s, 1024, 1); err != nil {
 			return err
 		}
-		toSlice(d)[3] = 0
+		toSlice(d, int(s))[3] = 0
 		return nil
 	}
 	if TestCopy(1024, 1, allocRAM, copyOffset) == nil {
@@ -91,7 +92,7 @@ func allocRAM(size int) (Mem, error) {
 		View: View{
 			Slice: Slice(p),
 			orig:  p,
-			phys:  uint64(uintptr(unsafe.Pointer(&p))),
+			phys:  uint64(uintptr(unsafe.Pointer(&p[0]))),
 		},
 	}, nil
 }
@@ -102,12 +103,17 @@ func copyOk(d, s uint64) error {
 
 // copyRAM copies the memory.
 func copyRAM(pDst, pSrc uint64, size, hole int) error {
-	dst := toSlice(pDst)
-	src := toSlice(pSrc)
+	dst := toSlice(pDst, size)
+	src := toSlice(pSrc, size)
 	copy(dst[hole:size-hole], src)
 	return nil
 }
 
-func toSlice(p uint64) []byte {
-	return *(*[]byte)(unsafe.Pointer(uintptr(p)))
+func toSlice(p uint64, size int) []byte {
+	h := &reflect.SliceHeader{
+		Data: uintptr(p),
+		Len:  size,
+		Cap:  size,
+	}
+	return *(*[]byte)(unsafe.Pointer(h))
 }
