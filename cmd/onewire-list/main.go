@@ -29,7 +29,7 @@ func mainImpl() error {
 		return errors.New("unexpected argument, try -help")
 	}
 
-	if _, err := hostInit(); err != nil {
+	if _, err := host.Init(); err != nil {
 		return err
 	}
 	for _, ref := range onewirereg.All() {
