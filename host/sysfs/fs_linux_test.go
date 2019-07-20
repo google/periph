@@ -5,9 +5,11 @@
 package sysfs
 
 import (
+	"bytes"
 	"io/ioutil"
 	"net"
 	"os"
+	"sync"
 	"testing"
 	"time"
 )
@@ -49,8 +51,14 @@ func TestAddFd_File(t *testing.T) {
 	}()
 
 	const flags = epollET | epollPRI
-	if err := ev.addFd(f.Fd(), make(chan time.Time), flags); err == nil || err.Error() != "operation not permitted" {
-		t.Fatal("expected failure", err)
+	if err = ev.addFd(f.Fd(), make(chan time.Time), flags); isWSL() {
+		if err != nil {
+			t.Fatalf("repeated addFd() fail silently on WSL, but got error: %v", err)
+		}
+	} else {
+		if err == nil || err.Error() != "operation not permitted" {
+			t.Fatal("expected failure", err)
+		}
 	}
 }
 
@@ -100,7 +108,7 @@ func TestManual_Listen_Socket(t *testing.T) {
 	start := time.Now()
 	ev := getListener(t)
 
-	ln, err := net.ListenTCP("tcp4", nil)
+	ln, err := net.ListenTCP("tcp4", &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -222,4 +230,19 @@ func notExpectChan(t *testing.T, c <-chan time.Time, errmsg string) {
 		t.Fatal(errmsg)
 	default:
 	}
+}
+
+var (
+	wslOnce    sync.Once
+	isWSLValue bool
+)
+
+// isWSL returns true if running under Windows Subsystem for Linux.
+func isWSL() bool {
+	wslOnce.Do(func() {
+		if c, err := ioutil.ReadFile("/proc/sys/kernel/osrelease"); err == nil {
+			isWSLValue = bytes.Contains(c, []byte("Microsoft"))
+		}
+	})
+	return isWSLValue
 }

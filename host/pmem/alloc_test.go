@@ -56,7 +56,7 @@ func TestAlloc(t *testing.T) {
 		return &simpleFile{data: []byte{1, 2, 3, 4, 5, 6, 7, 0x80}}, nil
 	}
 	_, err := allocLinux(4096)
-	if isLinux {
+	if isLinux && !isWSL() {
 		if err != nil {
 			t.Fatal(err)
 		}
