@@ -113,7 +113,7 @@ func TestPin_NoMem(t *testing.T) {
 func TestPin(t *testing.T) {
 	p := Pin{name: "Foo", number: 42, defaultPull: gpio.PullDown}
 	// pin.Pin
-	if s := p.Function(); s != "In/Low" {
+	if s := p.Func(); s != gpio.IN_LOW {
 		t.Fatal(s)
 	}
 
@@ -135,7 +135,7 @@ func TestPin(t *testing.T) {
 	if err := p.Out(gpio.Low); err != nil {
 		t.Fatal(err)
 	}
-	if s := p.Function(); s != "Out/Low" {
+	if s := p.Func(); s != gpio.OUT_LOW {
 		t.Fatal(s)
 	}
 	if err := p.Out(gpio.High); err != nil {
@@ -164,27 +164,27 @@ func TestPin(t *testing.T) {
 func TestPin_SetFunc_25(t *testing.T) {
 	p := Pin{name: "Foo", number: 25, defaultPull: gpio.PullDown}
 	p.setFunction(alt0)
-	if s := p.Function(); s != "ALT0" {
+	if s := p.Func(); s != "ALT0" {
 		t.Fatal(s)
 	}
 	p.setFunction(alt1)
-	if s := p.Function(); s != "ALT1" {
+	if s := p.Func(); s != "ALT1" {
 		t.Fatal(s)
 	}
 	p.setFunction(alt2)
-	if s := p.Function(); s != "ALT2" {
+	if s := p.Func(); s != "ALT2" {
 		t.Fatal(s)
 	}
 	p.setFunction(alt3)
-	if s := p.Function(); s != "ALT3" {
+	if s := p.Func(); s != "ALT3" {
 		t.Fatal(s)
 	}
 	p.setFunction(alt4)
-	if s := p.Function(); s != "ALT4" {
+	if s := p.Func(); s != "ALT4" {
 		t.Fatal(s)
 	}
 	p.setFunction(alt5)
-	if s := p.Function(); s != "ALT5" {
+	if s := p.Func(); s != "ALT5" {
 		t.Fatal(s)
 	}
 
@@ -206,14 +206,14 @@ func TestPin_SetFunc_33(t *testing.T) {
 		t.Fatal(err)
 	}
 	//p.setFunction(alt3)
-	if s := p.Function(); s != "UART0_RX" {
+	if s := p.Func(); s != uart.RX.Specialize(0, -1) {
 		t.Fatal(s)
 	}
 	if err := p.SetFunc(uart.RX.Specialize(1, -1)); err != nil {
 		t.Fatal(err)
 	}
 	//p.setFunction(alt5)
-	if s := p.Function(); s != "UART1_RX" {
+	if s := p.Func(); s != uart.RX.Specialize(1, -1) {
 		t.Fatal(s)
 	}
 }
@@ -224,28 +224,28 @@ func TestPin_SetFunc_45(t *testing.T) {
 		t.Fatal(err)
 	}
 	//p.setFunction(alt0)
-	if s := p.Function(); s != "PWM1" {
+	if s := p.Func(); s != gpio.PWM.Specialize(-1, 1) {
 		t.Fatal(s)
 	}
 	if err := p.SetFunc(i2c.SCL); err != nil {
 		t.Fatal(err)
 	}
 	//p.setFunction(alt1)
-	if s := p.Function(); s != "I2C0_SCL" {
+	if s := p.Func(); s != i2c.SCL.Specialize(0, -1) {
 		t.Fatal(s)
 	}
 	if err := p.SetFunc(i2c.SCL.Specialize(1, -1)); err != nil {
 		t.Fatal(err)
 	}
 	//p.setFunction(alt2)
-	if s := p.Function(); s != "I2C1_SCL" {
+	if s := p.Func(); s != i2c.SCL.Specialize(1, -1) {
 		t.Fatal(s)
 	}
 	if err := p.SetFunc(spi.CS); err != nil {
 		t.Fatal(err)
 	}
 	//p.setFunction(alt4)
-	if s := p.Function(); s != "SPI2_CS2" {
+	if s := p.Func(); s != spi.CS.Specialize(2, 2) {
 		t.Fatal(s)
 	}
 }
