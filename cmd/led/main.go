@@ -32,7 +32,7 @@ func mainImpl() error {
 		return err
 	}
 	for _, led := range sysfs.LEDs {
-		fmt.Printf("%s: %s\n", led, led.Function())
+		fmt.Printf("%s: %s\n", led, led.Func())
 	}
 	return nil
 }
