@@ -5,10 +5,13 @@
 package ads1x15
 
 import (
+	"reflect"
 	"testing"
 
 	"periph.io/x/periph/conn/i2c/i2ctest"
 	"periph.io/x/periph/conn/physic"
+	"periph.io/x/periph/conn/pin"
+	"periph.io/x/periph/experimental/conn/analog"
 )
 
 func TestChannel_String(t *testing.T) {
@@ -59,6 +62,7 @@ func TestChannel_number(t *testing.T) {
 
 func TestDev_String(t *testing.T) {
 	b := i2ctest.Playback{}
+	defer b.Close()
 	d, err := NewADS1115(&b, &DefaultOpts)
 	if err != nil {
 		t.Fatal(err)
@@ -68,6 +72,44 @@ func TestDev_String(t *testing.T) {
 	}
 	if err := d.Halt(); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestPinADC(t *testing.T) {
+	b := i2ctest.Playback{}
+	defer b.Close()
+	d, err := NewADS1015(&b, &DefaultOpts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Obtain an analog pin from the ADC
+	p, err := d.PinForChannel(Channel0Minus3, 5*physic.Volt, 1*physic.Hertz, BestQuality)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v := p.String(); v != "ADS1015(0-3)" {
+		t.Fatal(v)
+	}
+	if v := p.Name(); v != "ADS1015(0-3)" {
+		t.Fatal(v)
+	}
+	if v := p.Number(); v != 5 {
+		t.Fatal(v)
+	}
+	if v := p.Function(); v != "ADC" {
+		t.Fatal(v)
+	}
+	if v := p.(pin.PinFunc).Func(); v != analog.ADC {
+		t.Fatal(v)
+	}
+	if v := p.(pin.PinFunc).SupportedFuncs(); !reflect.DeepEqual(v, []pin.Func{analog.ADC}) {
+		t.Fatal(v)
+	}
+	if err := p.(pin.PinFunc).SetFunc(analog.ADC); err != nil {
+		t.Fatal(err)
+	}
+	if err := p.(pin.PinFunc).SetFunc(pin.FuncNone); err == nil {
+		t.Fatal("expected failure")
 	}
 }
 
@@ -86,19 +128,20 @@ func TestPinADC_Read(t *testing.T) {
 			},
 		},
 	}
+	defer b.Close()
 
 	d, err := NewADS1015(&b, &DefaultOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
 	// Obtain an analog pin from the ADC
-	pin, err := d.PinForChannel(Channel0Minus3, 5*physic.Volt, 1*physic.Hertz, BestQuality)
+	p, err := d.PinForChannel(Channel0Minus3, 5*physic.Volt, 1*physic.Hertz, BestQuality)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Read values from ADC.
-	reading, err := pin.Read()
+	reading, err := p.Read()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,7 +154,7 @@ func TestPinADC_Read(t *testing.T) {
 		t.Fatalf("Found %s, expected %s", reading.V, -33*physic.MilliVolt)
 	}
 
-	if err := pin.Halt(); err != nil {
+	if err := p.Halt(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -167,6 +210,7 @@ func TestPinADC_ReadContinous(t *testing.T) {
 		},
 		DontPanic: true,
 	}
+	defer b.Close()
 
 	rawValues := []int32{21200, 21184}
 	voltValues := []physic.ElectricPotential{3975 * physic.MilliVolt, 3972 * physic.MilliVolt}
@@ -176,13 +220,13 @@ func TestPinADC_ReadContinous(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Obtain an analog pin from the ADC
-	pin, err := d.PinForChannel(Channel0Minus3, 5*physic.Volt, 100*physic.Hertz, SaveEnergy)
+	p, err := d.PinForChannel(Channel0Minus3, 5*physic.Volt, 100*physic.Hertz, SaveEnergy)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Read values from ADC.
-	c := pin.ReadContinuous()
+	c := p.ReadContinuous()
 
 	var i = 0
 	for reading := range c {
@@ -200,7 +244,7 @@ func TestPinADC_ReadContinous(t *testing.T) {
 		}
 	}
 
-	if err := pin.Halt(); err != nil {
+	if err := p.Halt(); err != nil {
 		t.Fatal(err)
 	}
 

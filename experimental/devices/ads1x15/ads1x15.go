@@ -14,6 +14,7 @@ import (
 
 	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/physic"
+	"periph.io/x/periph/conn/pin"
 	"periph.io/x/periph/experimental/conn/analog"
 )
 
@@ -457,7 +458,25 @@ func (p *analogPin) Number() int {
 }
 
 func (p *analogPin) Function() string {
-	return "ADC"
+	return string(p.Func())
+}
+
+// Func implements pin.PinFunc.
+func (p *analogPin) Func() pin.Func {
+	return analog.ADC
+}
+
+// SupportedFuncs implements pin.PinFunc.
+func (p *analogPin) SupportedFuncs() []pin.Func {
+	return []pin.Func{analog.ADC}
+}
+
+// SetFunc implements pin.PinFunc.
+func (p *analogPin) SetFunc(f pin.Func) error {
+	if f == analog.ADC {
+		return nil
+	}
+	return errors.New("pin function cannot be changed")
 }
 
 func (p *analogPin) Halt() error {
@@ -476,3 +495,7 @@ func (p *analogPin) Halt() error {
 func (p *analogPin) String() string {
 	return p.Name()
 }
+
+var _ analog.PinADC = &analogPin{}
+var _ pin.Pin = &analogPin{}
+var _ pin.PinFunc = &analogPin{}
