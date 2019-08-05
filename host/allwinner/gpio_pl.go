@@ -89,7 +89,7 @@ func (p *PinPL) Func() pin.Func {
 	}
 	if drvGPIOPL.gpioMemoryPL == nil {
 		if p.sysfsPin == nil {
-			return pin.Func("ERR")
+			return pin.FuncNone
 		}
 		return p.sysfsPin.Func()
 	}

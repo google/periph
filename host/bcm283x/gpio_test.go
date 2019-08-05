@@ -62,12 +62,12 @@ func TestPin_NoMem(t *testing.T) {
 	if n := p.Number(); n != 42 {
 		t.Fatal(n)
 	}
-	if s := p.Function(); s != "ERR" {
+	if s := p.Function(); s != "" {
 		t.Fatal(s)
 	}
 
 	// pin.PinFunc
-	if s := p.Func(); s != pin.Func("ERR") {
+	if s := p.Func(); s != pin.FuncNone {
 		t.Fatal(s)
 	}
 	if f := p.SupportedFuncs(); !reflect.DeepEqual(f, []pin.Func{gpio.IN, gpio.OUT, gpio.CLK.Specialize(-1, 1), spi.CLK.Specialize(2, -1), uart.RTS.Specialize(1, -1)}) {

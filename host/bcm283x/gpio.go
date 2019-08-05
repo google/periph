@@ -243,7 +243,7 @@ func (p *Pin) Function() string {
 func (p *Pin) Func() pin.Func {
 	if drvGPIO.gpioMemory == nil {
 		if p.sysfsPin == nil {
-			return pin.Func("ERR")
+			return pin.FuncNone
 		}
 		return p.sysfsPin.Func()
 	}
@@ -289,7 +289,7 @@ func (p *Pin) Func() pin.Func {
 		}
 		return pin.Func("ALT5")
 	default:
-		return pin.Func("ERR")
+		return pin.FuncNone
 	}
 }
 
