@@ -12,6 +12,7 @@ import (
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpiostream"
 	"periph.io/x/periph/conn/physic"
+	"periph.io/x/periph/conn/pin"
 )
 
 // PinIn
@@ -34,8 +35,17 @@ func TestPinIn(t *testing.T) {
 	if n := p.Number(); n != -1 {
 		t.Fatal(n)
 	}
-	if s := p.Function(); s != "StreamIn" {
+	if s := p.Function(); s != "IN" {
 		t.Fatal(s)
+	}
+	if f := p.Func(); f != gpio.IN {
+		t.Fatal(f)
+	}
+	if v := p.SupportedFuncs(); !reflect.DeepEqual(v, []pin.Func{gpio.IN}) {
+		t.Fatal(v)
+	}
+	if err := p.SetFunc(gpio.IN); err != nil {
+		t.Fatal(err)
 	}
 	if err := p.Halt(); err != nil {
 		t.Fatal(err)
@@ -56,6 +66,9 @@ func TestPinIn_fail_type(t *testing.T) {
 	}
 	if p.Close() == nil {
 		t.Fatal("Count doesn't match Ops")
+	}
+	if err := p.SetFunc(pin.FuncNone); err == nil {
+		t.Fatal("expected failure")
 	}
 }
 
@@ -154,8 +167,17 @@ func TestPinOutPlayback(t *testing.T) {
 	if n := p.Number(); n != -1 {
 		t.Fatal(n)
 	}
-	if s := p.Function(); s != "StreamOutPlayback" {
+	if s := p.Function(); s != "OUT" {
 		t.Fatal(s)
+	}
+	if f := p.Func(); f != gpio.OUT {
+		t.Fatal(f)
+	}
+	if v := p.SupportedFuncs(); !reflect.DeepEqual(v, []pin.Func{gpio.OUT}) {
+		t.Fatal(v)
+	}
+	if err := p.SetFunc(gpio.OUT); err != nil {
+		t.Fatal(err)
 	}
 	if err := p.Halt(); err != nil {
 		t.Fatal(err)
@@ -176,6 +198,9 @@ func TestPinOutPlayback_fail(t *testing.T) {
 	}
 	p = &PinOutPlayback{DontPanic: true, Ops: []gpiostream.Stream{&gpiostream.BitStream{Freq: physic.Hertz, Bits: []byte{0xCC}, LSBF: true}}}
 	if p.Close() == nil {
+		t.Fatal("expected failure")
+	}
+	if err := p.SetFunc(pin.FuncNone); err == nil {
 		t.Fatal("expected failure")
 	}
 }
@@ -209,8 +234,17 @@ func TestPinOutRecord(t *testing.T) {
 	if n := p.Number(); n != -1 {
 		t.Fatal(n)
 	}
-	if s := p.Function(); s != "StreamOutRecord" {
+	if s := p.Function(); s != "OUT" {
 		t.Fatal(s)
+	}
+	if f := p.Func(); f != gpio.OUT {
+		t.Fatal(f)
+	}
+	if v := p.SupportedFuncs(); !reflect.DeepEqual(v, []pin.Func{gpio.OUT}) {
+		t.Fatal(v)
+	}
+	if err := p.SetFunc(gpio.OUT); err != nil {
+		t.Fatal(err)
 	}
 	if err := p.Halt(); err != nil {
 		t.Fatal(err)
@@ -223,6 +257,9 @@ func TestPinOutRecord_fail(t *testing.T) {
 		t.Fatal("expected failure")
 	}
 	if p.StreamOut(&gpiostream.Program{Parts: []gpiostream.Stream{nil}}) == nil {
+		t.Fatal("expected failure")
+	}
+	if err := p.SetFunc(pin.FuncNone); err == nil {
 		t.Fatal("expected failure")
 	}
 }

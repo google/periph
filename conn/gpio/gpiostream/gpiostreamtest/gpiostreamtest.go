@@ -16,6 +16,7 @@ import (
 	"periph.io/x/periph/conn/conntest"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpiostream"
+	"periph.io/x/periph/conn/pin"
 )
 
 // InOp represents an expected replay StreamIn operation in PinIn.
@@ -65,7 +66,25 @@ func (p *PinIn) Number() int {
 
 // Function implements pin.Pin.
 func (p *PinIn) Function() string {
-	return "StreamIn"
+	return string(p.Func())
+}
+
+// Func implements pin.PinFunc.
+func (p *PinIn) Func() pin.Func {
+	return gpio.IN
+}
+
+// SupportedFuncs implements pin.PinFunc.
+func (p *PinIn) SupportedFuncs() []pin.Func {
+	return []pin.Func{gpio.IN}
+}
+
+// SetFunc implements pin.PinFunc.
+func (p *PinIn) SetFunc(f pin.Func) error {
+	if f == gpio.IN {
+		return nil
+	}
+	return errorf(p.DontPanic, "gpiostreamtest: not supported")
 }
 
 // Halt implements conn.Resource.
@@ -142,7 +161,25 @@ func (p *PinOutPlayback) Number() int {
 
 // Function implements pin.Pin.
 func (p *PinOutPlayback) Function() string {
-	return "StreamOutPlayback"
+	return string(p.Func())
+}
+
+// Func implements pin.PinFunc.
+func (p *PinOutPlayback) Func() pin.Func {
+	return gpio.OUT
+}
+
+// SupportedFuncs implements pin.PinFunc.
+func (p *PinOutPlayback) SupportedFuncs() []pin.Func {
+	return []pin.Func{gpio.OUT}
+}
+
+// SetFunc implements pin.PinFunc.
+func (p *PinOutPlayback) SetFunc(f pin.Func) error {
+	if f == gpio.OUT {
+		return nil
+	}
+	return errorf(p.DontPanic, "gpiostreamtest: not supported")
 }
 
 // Halt implements conn.Resource.
@@ -194,7 +231,25 @@ func (p *PinOutRecord) Number() int {
 
 // Function implements pin.Pin.
 func (p *PinOutRecord) Function() string {
-	return "StreamOutRecord"
+	return string(p.Func())
+}
+
+// Func implements pin.PinFunc.
+func (p *PinOutRecord) Func() pin.Func {
+	return gpio.OUT
+}
+
+// SupportedFuncs implements pin.PinFunc.
+func (p *PinOutRecord) SupportedFuncs() []pin.Func {
+	return []pin.Func{gpio.OUT}
+}
+
+// SetFunc implements pin.PinFunc.
+func (p *PinOutRecord) SetFunc(f pin.Func) error {
+	if f == gpio.OUT {
+		return nil
+	}
+	return errorf(p.DontPanic, "gpiostreamtest: not supported")
 }
 
 // Halt implements conn.Resource.
