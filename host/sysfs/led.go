@@ -78,35 +78,25 @@ func (l *LED) Number() int {
 
 // Function implements pin.Pin.
 func (l *LED) Function() string {
+	return string(l.Func())
+}
+
+// Func implements pin.PinFunc.
+func (l *LED) Func() pin.Func {
 	if l.Read() {
 		return "LED/On"
 	}
 	return "LED/Off"
 }
 
-// Func implements pin.PinFunc.
-func (l *LED) Func() pin.Func {
-	if l.Read() {
-		return gpio.OUT_HIGH
-	}
-	return gpio.OUT_LOW
-}
-
 // SupportedFuncs implements pin.PinFunc.
 func (l *LED) SupportedFuncs() []pin.Func {
-	return []pin.Func{gpio.OUT}
+	return []pin.Func{"LED"}
 }
 
 // SetFunc implements pin.PinFunc.
 func (l *LED) SetFunc(f pin.Func) error {
-	switch f {
-	case gpio.OUT_HIGH:
-		return l.Out(gpio.High)
-	case gpio.OUT, gpio.OUT_LOW:
-		return l.Out(gpio.Low)
-	default:
-		return errors.New("sysfs-led: unsupported function")
-	}
+	return errors.New("sysfs-led: not implemented")
 }
 
 // In implements gpio.PinIn.

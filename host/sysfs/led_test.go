@@ -32,7 +32,7 @@ func TestLED(t *testing.T) {
 
 func TestLEDMock(t *testing.T) {
 	l := LED{number: 42, name: "Glow", root: "/tmp/led/priv/"}
-	if s := l.Function(); s != "LED/Off" {
+	if s := l.Func(); s != "LED/Off" {
 		t.Fatal(s)
 	}
 	if err := l.In(gpio.PullNoChange, gpio.NoEdge); err != nil {
