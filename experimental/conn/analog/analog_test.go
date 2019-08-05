@@ -4,7 +4,11 @@
 
 package analog
 
-import "testing"
+import (
+	"testing"
+
+	"periph.io/x/periph/conn/pin"
+)
 
 func TestINVALID(t *testing.T) {
 	if INVALID.Number() != -1 {
@@ -18,6 +22,15 @@ func TestINVALID(t *testing.T) {
 	}
 	if INVALID.Function() != "" {
 		t.Fatal("Function")
+	}
+	if INVALID.Func() != pin.FuncNone {
+		t.Fatal("Func")
+	}
+	if v := INVALID.SupportedFuncs(); len(v) != 0 {
+		t.Fatal("SupportedFuncs")
+	}
+	if err := INVALID.SetFunc(pin.FuncNone); err == nil {
+		t.Fatal("SetFunc")
 	}
 	if INVALID.Halt() == nil {
 		t.Fatal("Halt")
