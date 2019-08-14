@@ -13,9 +13,11 @@ import (
 	"flag"
 	"fmt"
 	"reflect"
+	"regexp"
 	"time"
 
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/gpio/gpiostream"
 	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/pin"
@@ -35,11 +37,12 @@ func (s *SmokeTest) Name() string {
 
 // Description implements the SmokeTest interface.
 func (s *SmokeTest) Description() string {
-	return "Tests advanced bcm283x functionality"
+	return "Tests advanced bcm283x functionality with GPIO6 and GPIO13"
 }
 
 // Run implements the SmokeTest interface.
 func (s *SmokeTest) Run(f *flag.FlagSet, args []string) error {
+	quick := f.Bool("quick", false, "Skip tests requiring DMA")
 	if err := f.Parse(args); err != nil {
 		return err
 	}
@@ -50,6 +53,13 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) error {
 	if !bcm283x.Present() {
 		f.Usage()
 		return errors.New("this smoke test can only be run on a bcm283x based host")
+	}
+
+	if err := testAliases(); err != nil {
+		return err
+	}
+	if *quick {
+		return nil
 	}
 
 	start := time.Now()
@@ -230,6 +240,59 @@ func (s *SmokeTest) testStreamIn(p1, p2 *loggingPin) (err error) {
 }
 
 //
+
+// testAliases catches unexpected GPIO aliases.
+func testAliases() error {
+	expectedStr := []string{
+		`\d+`,
+		`GPIO\d+`,
+		`AUDIO_\d`,
+		`CLK\d`,
+		`GPCLK\d`,
+		`HDMI_\d`,
+		`I2C\d_SCL`,
+		`I2C\d_SDA`,
+		`I2S_DIN`,
+		`I2S_DOUT`,
+		`I2S_SCK`,
+		`I2S_WS`,
+		`P1_\d+`,
+		`P5_\d+`,
+		`PWM\d`,
+		`PWM\d_OUT`,
+		`SPI\d_CLK`,
+		`SPI\d_CS\d`,
+		`SPI\d_MISO`,
+		`SPI\d_MOSI`,
+		`UART\d_CTS`,
+		`UART\d_RTS`,
+		`UART\d_RX`,
+		`UART\d_TX`,
+	}
+	valid := make([]*regexp.Regexp, 0, len(expectedStr))
+	for i, v := range expectedStr {
+		r, err := regexp.Compile("^" + v + "$")
+		if err != nil {
+			return fmt.Errorf("Accepted #%d is invalid: %q", i, v)
+		}
+		valid = append(valid, r)
+	}
+
+	for _, p := range gpioreg.Aliases() {
+		n := p.Name()
+		ok := false
+		for _, r := range valid {
+			if r.MatchString(n) {
+				ok = true
+				break
+			}
+		}
+		if !ok {
+			return fmt.Errorf("Found unexpected alias %q", n)
+		}
+	}
+	return nil
+}
 
 func printPin(p gpio.PinIO) {
 	fmt.Printf("- %s: %s", p, p.Function())

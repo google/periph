@@ -1255,7 +1255,7 @@ func (d *driverGPIO) Init() (bool, error) {
 			return true, err
 		}
 		switch f := cpuPins[i].Func(); f {
-		case gpio.IN, gpio.OUT:
+		case gpio.IN, gpio.OUT, gpio.IN_LOW, gpio.IN_HIGH, gpio.OUT_LOW, gpio.OUT_HIGH, pin.FuncNone:
 		default:
 			// Registering the same alias twice fails. This can happen if two pins
 			// are configured with the same function. For example both pin #12, #18

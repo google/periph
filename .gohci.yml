@@ -226,6 +226,10 @@ workers:
     - P1_15
     - -pin2
     - P1_16
+  - cmd:
+    - periph-smoketest
+    - bcm283x
+    - -quick
 # Laptop on Windows 10.
 - name: win10
   checks:
