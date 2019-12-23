@@ -32,9 +32,9 @@ const (
 
 var borderColor = map[Color]byte{
 	Black:  0x00,
-	Red:    0x33,
+	Red:    0x73,
 	Yellow: 0x33,
-	White:  0xff,
+	White:  0x31,
 }
 
 // Model lists the supported e-ink display models.
