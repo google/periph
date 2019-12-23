@@ -117,6 +117,16 @@ func (d *Dev) SetBorder(c Color) {
 	d.border = c
 }
 
+// SetModelColor changes the model color. This will not take effect until the next Draw().
+// Useful if you want to switch between two-color and three-color drawing.
+func (d *Dev) SetModelColor(c Color) error {
+	if c != Black && c != Red && c != Yellow {
+		return fmt.Errorf("unsupported color: %v", c)
+	}
+	d.color = c
+	return nil
+}
+
 // String implements conn.Resource.
 func (d *Dev) String() string {
 	return "Inky pHAT"
@@ -199,6 +209,11 @@ func (d *Dev) Draw(dstRect image.Rectangle, src image.Image, srcPtrs image.Point
 	bufA, _ := pack(white)
 	bufB, _ := pack(red)
 	return d.update(borderColor[d.border], bufA, bufB)
+}
+
+// DrawAll redraws the whole display.
+func (d *Dev) DrawAll(src image.Image) error {
+	return d.Draw(d.Bounds(), src, image.ZP)
 }
 
 func (d *Dev) update(border byte, black []byte, red []byte) (err error) {
