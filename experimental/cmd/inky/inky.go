@@ -6,6 +6,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"image"
 	"image/png"
 	"log"
@@ -18,67 +19,50 @@ import (
 )
 
 var (
-	spiPort     = flag.String("spi", "SPI0.0", "Name or number of SPI port to open")
-	path        = flag.String("image", "", "Path to a png file to display on the inky")
-	dcPin       = flag.String("dc", "22", "Inky DC Pin")
-	resetPin    = flag.String("reset", "27", "Inky Reset Pin")
-	busyPin     = flag.String("busy", "17", "Inky Busy Pin")
-	model       = flag.String("model", "PHAT", "Inky model (PHAT or WHAT)")
-	modelColor  = flag.String("model-color", "red", "Inky model color (black, red or yellow)")
-	borderColor = flag.String("border-color", "black", "Border color (black, white, red or yellow)")
+	spiPort  = flag.String("spi", "SPI0.0", "Name or number of SPI port to open")
+	path     = flag.String("image", "", "Path to a png file to display on the inky")
+	dcPin    = flag.String("dc", "22", "Inky DC Pin")
+	resetPin = flag.String("reset", "27", "Inky Reset Pin")
+	busyPin  = flag.String("busy", "17", "Inky Busy Pin")
+
+	model       = inky.PHAT
+	modelColor  = inky.Red
+	borderColor = inky.Black
 )
 
-func parseModel(s string) inky.Model {
-	switch s {
-	case "PHAT":
-		return inky.PHAT
-	case "WHAT":
-		return inky.WHAT
-	default:
-		log.Fatalf("Unknown model %q: expected either PHAT or WHAT", s)
-		return inky.PHAT
-	}
-}
-
-func parseColor(s string) inky.Color {
-	switch s {
-	case "black":
-		return inky.Black
-	case "white":
-		return inky.White
-	case "red":
-		return inky.Red
-	case "yellow":
-		return inky.Yellow
-	default:
-		log.Fatalf("Unknown color %q: expected black, white, red or yellow", s)
-		return inky.Black
-	}
-}
-
 func main() {
+	if err := mainImpl(); err != nil {
+		fmt.Fprintf(os.Stderr, "inky: %s.\n", err)
+		os.Exit(1)
+	}
+}
+
+func mainImpl() error {
+	flag.Var(&model, "model", "Inky model (PHAT or WHAT)")
+	flag.Var(&modelColor, "model-color", "Inky model color (black, red or yellow)")
+	flag.Var(&borderColor, "border-color", "Border color (black, white, red or yellow)")
 	flag.Parse()
 
 	// Open and decode the image.
 	f, err := os.Open(*path)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer f.Close()
 
 	img, err := png.Decode(f)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	if _, err := host.Init(); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	log.Printf("Opening %s...", *spiPort)
 	b, err := spireg.Open(*spiPort)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	log.Printf("Opening pins...")
@@ -88,16 +72,14 @@ func main() {
 
 	log.Printf("Creating inky...")
 	dev, err := inky.New(b, dc, reset, busy, &inky.Opts{
-		Model:       parseModel(*model),
-		ModelColor:  parseColor(*modelColor),
-		BorderColor: parseColor(*borderColor),
+		Model:       model,
+		ModelColor:  modelColor,
+		BorderColor: borderColor,
 	})
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	log.Printf("Drawing image...")
-	if err := dev.Draw(img.Bounds(), img, image.ZP); err != nil {
-		log.Fatal(err)
-	}
+	return dev.Draw(img.Bounds(), img, image.ZP)
 }

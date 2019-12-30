@@ -30,11 +30,36 @@ const (
 	White
 )
 
-var borderColor = map[Color]byte{
-	Black:  0x00,
-	Red:    0x73,
-	Yellow: 0x33,
-	White:  0x31,
+func (c *Color) String() string {
+	switch *c {
+	case Black:
+		return "black"
+	case Red:
+		return "red"
+	case Yellow:
+		return "yellow"
+	case White:
+		return "white"
+	default:
+		return "Unknown"
+	}
+}
+
+// Set sets the Color to a value represented by the string s. Set implements the flag.Value interface.
+func (c *Color) Set(s string) error {
+	switch s {
+	case "black":
+		*c = (Color)(Black)
+	case "red":
+		*c = (Color)(Red)
+	case "yellow":
+		*c = (Color)(Yellow)
+	case "white":
+		*c = (Color)(White)
+	default:
+		return fmt.Errorf("Unknown color %q: expected either black, red, yellow or white", s)
+	}
+	return nil
 }
 
 // Model lists the supported e-ink display models.
@@ -45,6 +70,30 @@ const (
 	PHAT Model = iota
 	WHAT
 )
+
+func (m *Model) String() string {
+	switch *m {
+	case PHAT:
+		return "PHAT"
+	case WHAT:
+		return "WHAT"
+	default:
+		return "Unknown"
+	}
+}
+
+// Set sets the Model to a value represented by the string s. Set implements the flag.Value interface.
+func (m *Model) Set(s string) error {
+	switch s {
+	case "PHAT":
+		*m = (Model)(PHAT)
+	case "WHAT":
+		*m = (Model)(WHAT)
+	default:
+		return fmt.Errorf("Unknown model %q: expected either PHAT or WHAT", s)
+	}
+	return nil
+}
 
 // Opts is the options to specify which device is being controlled and its
 // default settings.
@@ -57,11 +106,16 @@ type Opts struct {
 	BorderColor Color
 }
 
-const (
-	spiChunkSize = 4096
-)
+const spiChunkSize = 4096
 
-// New opens a handle to an Inky pHAT.
+var borderColor = map[Color]byte{
+	Black:  0x00,
+	Red:    0x73,
+	Yellow: 0x33,
+	White:  0x31,
+}
+
+// New opens a handle to an Inky pHAT or wHAT.
 func New(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn, o *Opts) (*Dev, error) {
 	if o.ModelColor != Black && o.ModelColor != Red && o.ModelColor != Yellow {
 		return nil, fmt.Errorf("unsupported color: %v", o.ModelColor)
@@ -87,7 +141,6 @@ func New(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn, o *Opts
 		d.flipVertically = true
 	case WHAT:
 		d.bounds = image.Rect(0, 0, 400, 300)
-		d.flipVertically = false
 	}
 
 	return d, nil
@@ -102,14 +155,15 @@ type Dev struct {
 	r gpio.PinOut
 	// High when device is busy.
 	busy gpio.PinIn
+	// Size of this model's display.
+	bounds image.Rectangle
+	// Whether this model needs the image flipped vertically.
+	flipVertically bool
 
 	// Color of device screen (red, yellow or black).
 	color Color
 	// Modifiable color of border.
 	border Color
-
-	bounds         image.Rectangle
-	flipVertically bool
 }
 
 // SetBorder changes the border color. This will not take effect until the next Draw().
@@ -242,25 +296,20 @@ func (d *Dev) update(border byte, black []byte, red []byte) (err error) {
 		{0x2c, []byte{0x3c}},             // VCOM Register, 0x3c = -1.5v?
 		{0x3c, []byte{0x00}},
 		{0x3c, []byte{byte(border)}}, // Border colour
+		{0x32, modelLUT[d.color]},    // Set LUTs.
+		{0x44, []byte{0x00, byte(d.Bounds().Size().X/8) - 1}}, // Set RAM Y Start/End
+		{0x45, h},                  // Set RAM X Start/End
+		{0x4e, []byte{0x00}},       // Set RAM X Pointer Start
+		{0x4f, []byte{0x00, 0x00}}, // Set RAM Y Pointer Start
+		{0x24, black},
+		{0x4e, []byte{0x00}},       // Set RAM X Pointer Start
+		{0x4f, []byte{0x00, 0x00}}, // Set RAM Y Pointer Start
+		{0x26, red},
 	}
 	if d.color == Yellow {
 		cmds = append(cmds, cmdData{0x04, []byte{0x07, 0xac, 0x32}}) // Set voltage of VSH and VSL
 	}
-	cmds = append(cmds, cmdData{0x32, modelLUT[d.color]}) // Set LUTs
-	cmds = append(cmds, []cmdData{
-		{0x44, []byte{0x00, byte(d.Bounds().Size().X/8) - 1}}, // Set RAM Y Start/End
-		{0x45, h}, // Set RAM X Start/End
-
-		{0x4e, []byte{0x00}},       // Set RAM X Pointer Start
-		{0x4f, []byte{0x00, 0x00}}, // Set RAM Y Pointer Start
-		{0x24, black},
-
-		{0x4e, []byte{0x00}},       // Set RAM X Pointer Start
-		{0x4f, []byte{0x00, 0x00}}, // Set RAM Y Pointer Start
-		{0x26, red},
-
-		{0x22, []byte{0xc7}},
-	}...)
+	cmds = append(cmds, cmdData{0x22, []byte{0xc7}}) // Update the image.
 
 	for _, c := range cmds {
 		if err := d.sendCommand(c.cmd, c.data); err != nil {
@@ -289,9 +338,6 @@ func (d *Dev) update(border byte, black []byte, red []byte) (err error) {
 }
 
 func (d *Dev) reset() (err error) {
-	if err = d.busy.In(gpio.PullUp, gpio.FallingEdge); err != nil {
-		return err
-	}
 	if err = d.r.Out(gpio.Low); err != nil {
 		return err
 	}
@@ -301,6 +347,9 @@ func (d *Dev) reset() (err error) {
 	}
 	time.Sleep(100 * time.Millisecond)
 
+	if err = d.busy.In(gpio.PullUp, gpio.FallingEdge); err != nil {
+		return err
+	}
 	defer func() {
 		if err2 := d.busy.In(gpio.PullUp, gpio.NoEdge); err2 != nil {
 			err = err2
