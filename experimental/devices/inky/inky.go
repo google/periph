@@ -18,12 +18,6 @@ import (
 	"periph.io/x/periph/conn/spi"
 )
 
-const (
-	// Constants for an Inky pHAT
-	cols = 104
-	rows = 212
-)
-
 // Color is used to define which model of inky is being used, and also for
 // setting the border color.
 type Color int
@@ -36,11 +30,36 @@ const (
 	White
 )
 
-var borderColor = map[Color]byte{
-	Black:  0x00,
-	Red:    0x33,
-	Yellow: 0x33,
-	White:  0xff,
+func (c *Color) String() string {
+	switch *c {
+	case Black:
+		return "black"
+	case Red:
+		return "red"
+	case Yellow:
+		return "yellow"
+	case White:
+		return "white"
+	default:
+		return "Unknown"
+	}
+}
+
+// Set sets the Color to a value represented by the string s. Set implements the flag.Value interface.
+func (c *Color) Set(s string) error {
+	switch s {
+	case "black":
+		*c = (Color)(Black)
+	case "red":
+		*c = (Color)(Red)
+	case "yellow":
+		*c = (Color)(Yellow)
+	case "white":
+		*c = (Color)(White)
+	default:
+		return fmt.Errorf("Unknown color %q: expected either black, red, yellow or white", s)
+	}
+	return nil
 }
 
 // Model lists the supported e-ink display models.
@@ -49,8 +68,32 @@ type Model int
 // Supported Model.
 const (
 	PHAT Model = iota
-	// TODO: Add wHAT here when supported.
+	WHAT
 )
+
+func (m *Model) String() string {
+	switch *m {
+	case PHAT:
+		return "PHAT"
+	case WHAT:
+		return "WHAT"
+	default:
+		return "Unknown"
+	}
+}
+
+// Set sets the Model to a value represented by the string s. Set implements the flag.Value interface.
+func (m *Model) Set(s string) error {
+	switch s {
+	case "PHAT":
+		*m = (Model)(PHAT)
+	case "WHAT":
+		*m = (Model)(WHAT)
+	default:
+		return fmt.Errorf("Unknown model %q: expected either PHAT or WHAT", s)
+	}
+	return nil
+}
 
 // Opts is the options to specify which device is being controlled and its
 // default settings.
@@ -63,7 +106,16 @@ type Opts struct {
 	BorderColor Color
 }
 
-// New opens a handle to an Inky pHAT.
+const spiChunkSize = 4096
+
+var borderColor = map[Color]byte{
+	Black:  0x00,
+	Red:    0x73,
+	Yellow: 0x33,
+	White:  0x31,
+}
+
+// New opens a handle to an Inky pHAT or wHAT.
 func New(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn, o *Opts) (*Dev, error) {
 	if o.ModelColor != Black && o.ModelColor != Red && o.ModelColor != Yellow {
 		return nil, fmt.Errorf("unsupported color: %v", o.ModelColor)
@@ -83,6 +135,14 @@ func New(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn, o *Opts
 		border: o.BorderColor,
 	}
 
+	switch o.Model {
+	case PHAT:
+		d.bounds = image.Rect(0, 0, 104, 212)
+		d.flipVertically = true
+	case WHAT:
+		d.bounds = image.Rect(0, 0, 400, 300)
+	}
+
 	return d, nil
 }
 
@@ -95,6 +155,10 @@ type Dev struct {
 	r gpio.PinOut
 	// High when device is busy.
 	busy gpio.PinIn
+	// Size of this model's display.
+	bounds image.Rectangle
+	// Whether this model needs the image flipped vertically.
+	flipVertically bool
 
 	// Color of device screen (red, yellow or black).
 	color Color
@@ -105,6 +169,16 @@ type Dev struct {
 // SetBorder changes the border color. This will not take effect until the next Draw().
 func (d *Dev) SetBorder(c Color) {
 	d.border = c
+}
+
+// SetModelColor changes the model color. This will not take effect until the next Draw().
+// Useful if you want to switch between two-color and three-color drawing.
+func (d *Dev) SetModelColor(c Color) error {
+	if c != Black && c != Red && c != Yellow {
+		return fmt.Errorf("unsupported color: %v", c)
+	}
+	d.color = c
+	return nil
 }
 
 // String implements conn.Resource.
@@ -149,7 +223,7 @@ func (d *Dev) ColorModel() color.Model {
 
 // Bounds implements display.Drawer
 func (d *Dev) Bounds() image.Rectangle {
-	return image.Rect(0, 0, rows, cols)
+	return d.bounds
 }
 
 // Draw implements display.Drawer
@@ -164,14 +238,17 @@ func (d *Dev) Draw(dstRect image.Rectangle, src image.Image, srcPtrs image.Point
 
 	b := src.Bounds()
 	// Black/white pixels.
-	white := make([]bool, rows*cols)
+	white := make([]bool, b.Size().Y*b.Size().X)
 	// Red/Transparent pixels.
-	red := make([]bool, rows*cols)
+	red := make([]bool, b.Size().Y*b.Size().X)
 	for x := b.Min.X; x < b.Max.X; x++ {
 		for y := b.Min.Y; y < b.Max.Y; y++ {
-			i := x*cols + y
+			i := y*b.Size().X + x
 			srcX := x
-			srcY := b.Max.Y - y - 1
+			srcY := y
+			if d.flipVertically {
+				srcY = b.Max.Y - y - 1
+			}
 			r, g, b, _ := d.ColorModel().Convert(src.At(srcX, srcY)).RGBA()
 			if r >= 0x8000 && g >= 0x8000 && b >= 0x8000 {
 				white[i] = true
@@ -188,84 +265,53 @@ func (d *Dev) Draw(dstRect image.Rectangle, src image.Image, srcPtrs image.Point
 	return d.update(borderColor[d.border], bufA, bufB)
 }
 
+// DrawAll redraws the whole display.
+func (d *Dev) DrawAll(src image.Image) error {
+	return d.Draw(d.Bounds(), src, image.ZP)
+}
+
 func (d *Dev) update(border byte, black []byte, red []byte) (err error) {
 	if err := d.reset(); err != nil {
 		return err
 	}
 
-	if err := d.sendCommand(0x74, []byte{0x54}); err != nil { // Set Analog Block Control.
-		return err
-	}
-	if err := d.sendCommand(0x7e, []byte{0x3b}); err != nil { // Set Digital Block Control.
-		return err
-	}
-
 	r := make([]byte, 3)
-	binary.LittleEndian.PutUint16(r, rows)
-	if err := d.sendCommand(0x01, r); err != nil { // Gate setting
-		return err
-	}
+	binary.LittleEndian.PutUint16(r, uint16(d.Bounds().Size().Y))
+	h := make([]byte, 4)
+	binary.LittleEndian.PutUint16(h[2:], uint16(d.Bounds().Size().Y))
 
-	init := []struct {
+	type cmdData struct {
 		cmd  byte
 		data []byte
-	}{
-		{0x03, []byte{0x10, 0x01}}, // Gate Driving Voltage.
-		{0x3a, []byte{0x07}},       // Dummy line period
-		{0x3b, []byte{0x04}},       // Gate line width
-		{0x11, []byte{0x03}},       // Data entry mode setting 0x03 = X/Y increment
-		{0x04, nil},                // Power on
-		{0x2c, []byte{0x3c}},       // VCOM Register, 0x3c = -1.5v?
+	}
+	cmds := []cmdData{
+		{0x01, r},                        // Gate setting
+		{0x74, []byte{0x54}},             // Set Analog Block Control.
+		{0x7e, []byte{0x3b}},             // Set Digital Block Control.
+		{0x03, []byte{0x17}},             // Gate Driving Voltage.
+		{0x04, []byte{0x41, 0xac, 0x32}}, // Gate Driving Voltage.
+		{0x3a, []byte{0x07}},             // Dummy line period
+		{0x3b, []byte{0x04}},             // Gate line width
+		{0x11, []byte{0x03}},             // Data entry mode setting 0x03 = X/Y increment
+		{0x2c, []byte{0x3c}},             // VCOM Register, 0x3c = -1.5v?
 		{0x3c, []byte{0x00}},
 		{0x3c, []byte{byte(border)}}, // Border colour
-	}
-
-	for _, c := range init {
-		if err := d.sendCommand(c.cmd, c.data); err != nil {
-			return err
-		}
-	}
-
-	switch d.color {
-	case Black:
-		if err := d.sendCommand(0x32, blackLUT[:]); err != nil {
-			return err
-		}
-	case Red:
-		if err := d.sendCommand(0x32, redLUT[:]); err != nil {
-			return err
-		}
-	case Yellow:
-		if err := d.sendCommand(0x04, []byte{0x07}); err != nil { // Set voltage of VSH and VSL.
-			return err
-		}
-		if err := d.sendCommand(0x32, yellowLUT[:]); err != nil {
-			return err
-		}
-	}
-
-	h := make([]byte, 4)
-	binary.LittleEndian.PutUint16(h[2:], rows)
-	write := []struct {
-		cmd  byte
-		data []byte
-	}{
-		{0x44, []byte{0x00, cols/8 - 1}}, // Set RAM X Start/End
-		{0x45, h},                        // Set RAM Y Start/End
-		{0x43, []byte{0x00}},
-
-		{0x4e, []byte{0x00}},
-		{0x4f, []byte{0x00, 0x00}},
+		{0x32, modelLUT[d.color]},    // Set LUTs.
+		{0x44, []byte{0x00, byte(d.Bounds().Size().X/8) - 1}}, // Set RAM Y Start/End
+		{0x45, h},                  // Set RAM X Start/End
+		{0x4e, []byte{0x00}},       // Set RAM X Pointer Start
+		{0x4f, []byte{0x00, 0x00}}, // Set RAM Y Pointer Start
 		{0x24, black},
-
-		{0x43, []byte{0x00}},
-		{0x4f, []byte{0x00, 0x00}},
+		{0x4e, []byte{0x00}},       // Set RAM X Pointer Start
+		{0x4f, []byte{0x00, 0x00}}, // Set RAM Y Pointer Start
 		{0x26, red},
-
-		{0x22, []byte{0xc7}},
 	}
+	if d.color == Yellow {
+		cmds = append(cmds, cmdData{0x04, []byte{0x07, 0xac, 0x32}}) // Set voltage of VSH and VSL
+	}
+	cmds = append(cmds, cmdData{0x22, []byte{0xc7}}) // Update the image.
 
-	for _, c := range write {
+	for _, c := range cmds {
 		if err := d.sendCommand(c.cmd, c.data); err != nil {
 			return err
 		}
@@ -332,14 +378,19 @@ func (d *Dev) sendCommand(command byte, data []byte) error {
 }
 
 func (d *Dev) sendData(data []byte) error {
-	if len(data) > 4096 {
-		return fmt.Errorf("sending more data than chunk size: %d > 4096", len(data))
-	}
 	if err := d.dc.Out(gpio.High); err != nil {
 		return err
 	}
-	if err := d.c.Tx(data, nil); err != nil {
-		return fmt.Errorf("failed to send data to inky: %v", err)
+	for len(data) != 0 {
+		var chunk []byte
+		if len(data) > spiChunkSize {
+			chunk, data = data[:spiChunkSize], data[spiChunkSize:]
+		} else {
+			chunk, data = data, nil
+		}
+		if err := d.c.Tx(chunk, nil); err != nil {
+			return fmt.Errorf("failed to send data to inky: %v", err)
+		}
 	}
 	return nil
 }
