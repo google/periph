@@ -41,7 +41,7 @@ func (c *Color) String() string {
 	case White:
 		return "white"
 	default:
-		return "Unknown"
+		return "unknown"
 	}
 }
 
@@ -49,13 +49,13 @@ func (c *Color) String() string {
 func (c *Color) Set(s string) error {
 	switch s {
 	case "black":
-		*c = (Color)(Black)
+		*c = Black
 	case "red":
-		*c = (Color)(Red)
+		*c = Red
 	case "yellow":
-		*c = (Color)(Yellow)
+		*c = Yellow
 	case "white":
-		*c = (Color)(White)
+		*c = White
 	default:
 		return fmt.Errorf("Unknown color %q: expected either black, red, yellow or white", s)
 	}
@@ -86,9 +86,9 @@ func (m *Model) String() string {
 func (m *Model) Set(s string) error {
 	switch s {
 	case "PHAT":
-		*m = (Model)(PHAT)
+		*m = PHAT
 	case "WHAT":
-		*m = (Model)(WHAT)
+		*m = WHAT
 	default:
 		return fmt.Errorf("Unknown model %q: expected either PHAT or WHAT", s)
 	}
@@ -105,8 +105,6 @@ type Opts struct {
 	// Initial border color. Will be set on the first Draw().
 	BorderColor Color
 }
-
-const spiChunkSize = 4096
 
 var borderColor = map[Color]byte{
 	Black:  0x00,
@@ -126,13 +124,24 @@ func New(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn, o *Opts
 		return nil, fmt.Errorf("failed to connect to inky over spi: %v", err)
 	}
 
+	// Get the maxTxSize from the conn if it implements the conn.Limits interface,
+	// otherwise use 4096 bytes.
+	maxTxSize := 0
+	if limits, ok := c.(conn.Limits); ok {
+		maxTxSize = limits.MaxTxSize()
+	}
+	if maxTxSize == 0 {
+		maxTxSize = 4096 // Use a conservative default.
+	}
+
 	d := &Dev{
-		c:      c,
-		dc:     dc,
-		r:      reset,
-		busy:   busy,
-		color:  o.ModelColor,
-		border: o.BorderColor,
+		c:         c,
+		maxTxSize: maxTxSize,
+		dc:        dc,
+		r:         reset,
+		busy:      busy,
+		color:     o.ModelColor,
+		border:    o.BorderColor,
 	}
 
 	switch o.Model {
@@ -149,6 +158,8 @@ func New(p spi.Port, dc gpio.PinOut, reset gpio.PinOut, busy gpio.PinIn, o *Opts
 // Dev is a handle to an Inky.
 type Dev struct {
 	c conn.Conn
+	// Maximum number of bytes allowed to be sent as a single I/O on c.
+	maxTxSize int
 	// Low when sending a command, high when sending data.
 	dc gpio.PinOut
 	// Reset pin, active low.
@@ -383,8 +394,8 @@ func (d *Dev) sendData(data []byte) error {
 	}
 	for len(data) != 0 {
 		var chunk []byte
-		if len(data) > spiChunkSize {
-			chunk, data = data[:spiChunkSize], data[spiChunkSize:]
+		if len(data) > d.maxTxSize {
+			chunk, data = data[:d.maxTxSize], data[d.maxTxSize:]
 		} else {
 			chunk, data = data, nil
 		}

@@ -67,8 +67,19 @@ func mainImpl() error {
 
 	log.Printf("Opening pins...")
 	dc := gpioreg.ByName(*dcPin)
+	if dc == nil {
+		return fmt.Errorf("invalid DC pin name: %s", *dcPin)
+	}
+
 	reset := gpioreg.ByName(*resetPin)
+	if reset == nil {
+		return fmt.Errorf("invalid Reset pin name: %s", *resetPin)
+	}
+
 	busy := gpioreg.ByName(*busyPin)
+	if busy == nil {
+		return fmt.Errorf("invalid Busy pin name: %s", *busyPin)
+	}
 
 	log.Printf("Creating inky...")
 	dev, err := inky.New(b, dc, reset, busy, &inky.Opts{
