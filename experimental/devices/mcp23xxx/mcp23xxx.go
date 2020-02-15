@@ -69,39 +69,39 @@ func mcp23x178ports(devicename string, ra registerAccess) []*port {
 		name: devicename + "_PORTA",
 		// GPIO basic registers
 		iodir: ra.define(0x00),
-		gpio:  ra.define(0x09),
-		olat:  ra.define(0x0A),
+		gpio:  ra.define(0x12),
+		olat:  ra.define(0x14),
 
 		// polarity setting
-		ipol: ra.define(0x01),
+		ipol: ra.define(0x02),
 
 		// pull-up control register
-		gppu: ra.define(0x06),
+		gppu: ra.define(0x0C),
 
 		// interrupt handling registers
-		gpinten: ra.define(0x02),
-		intcon:  ra.define(0x04),
-		intf:    ra.define(0x07),
-		intcap:  ra.define(0x08),
+		gpinten: ra.define(0x04),
+		intcon:  ra.define(0x08),
+		intf:    ra.define(0x0E),
+		intcap:  ra.define(0x10),
 	},
 		&port{
 			name: devicename + "_PORTB",
 			// GPIO basic registers
-			iodir: ra.define(0x10),
-			gpio:  ra.define(0x19),
-			olat:  ra.define(0x1A),
+			iodir: ra.define(0x01),
+			gpio:  ra.define(0x13),
+			olat:  ra.define(0x15),
 
 			// polarity setting
-			ipol: ra.define(0x11),
+			ipol: ra.define(0x03),
 
 			// pull-up control register
-			gppu: ra.define(0x16),
+			gppu: ra.define(0x0D),
 
 			// interrupt handling registers
-			gpinten: ra.define(0x12),
-			intcon:  ra.define(0x14),
-			intf:    ra.define(0x17),
-			intcap:  ra.define(0x18),
+			gpinten: ra.define(0x05),
+			intcon:  ra.define(0x0B),
+			intf:    ra.define(0x0F),
+			intcap:  ra.define(0x11),
 		}}
 }
 

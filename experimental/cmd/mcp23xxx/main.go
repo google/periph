@@ -14,7 +14,7 @@ func mainImpl() error {
 	if _, err := host.Init(); err != nil {
 		return err
 	}
-	address := flag.Int("address", 0x18, "I²C address")
+	address := flag.Int("address", 0x20, "I²C address")
 	i2cbus := flag.String("bus", "", "I²C bus (/dev/i2c-1)")
 
 	flag.Parse()
@@ -38,7 +38,7 @@ func mainImpl() error {
 
 	for _, port := range device.Pins {
 		for _, pin := range port {
-			fmt.Printf("%s\t%s\t%d", pin.Name(), pin.Function(), pin.Read())
+			fmt.Printf("%s\t%s\t%s\n", pin.Name(), pin.Function(), pin.Read().String())
 		}
 	}
 
