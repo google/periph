@@ -15,7 +15,7 @@ type MCP23xxxPin interface {
 	gpio.PinIO
 	// SetPolarity if set to Inverted, GPIO register bit reflects the same logic state of the input pin
 	SetPolarity(p Polarity) error
-	Polarity() Polarity
+	Polarity() (Polarity, error)
 }
 
 type Polarity bool
@@ -187,13 +187,15 @@ func (p *portpin) SetFunc(f pin.Func) error {
 	return p.port.iodir.getAndSetBit(p.pinbit, v, true)
 }
 
-func (_ *portpin) SetPolarity(p Polarity) error {
-	// TODO support polarity
-	return nil
+func (p *portpin) SetPolarity(pol Polarity) error {
+	return p.port.ipol.getAndSetBit(p.pinbit, pol == Inverted, true)
 }
-func (_ *portpin) Polarity() Polarity {
-	// TODO support polarity
-	return Normal
+func (p *portpin) Polarity() (Polarity, error) {
+	value, err := p.port.ipol.getBit(p.pinbit, true)
+	if value {
+		return Inverted, err
+	}
+	return Normal, err
 }
 
 var supportedFuncs = [...]pin.Func{gpio.IN, gpio.OUT}

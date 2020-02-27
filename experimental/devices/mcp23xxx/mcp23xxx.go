@@ -85,7 +85,7 @@ func makeDev(ra registerAccess, variant Variant, devicename string) (*Dev, error
 }
 
 func mcp23x178ports(devicename string, ra registerAccess) []*port {
-	return []*port{&port{
+	return []*port{{
 		name: devicename + "_PORTA",
 		// GPIO basic registers
 		iodir: ra.define(0x00),
@@ -103,7 +103,7 @@ func mcp23x178ports(devicename string, ra registerAccess) []*port {
 		intcon:  ra.define(0x08),
 		intf:    ra.define(0x0E),
 		intcap:  ra.define(0x10),
-	}, &port{
+	}, {
 		name: devicename + "_PORTB",
 		// GPIO basic registers
 		iodir: ra.define(0x01),
@@ -125,7 +125,7 @@ func mcp23x178ports(devicename string, ra registerAccess) []*port {
 }
 
 func mcp23x089port(devicename string, ra registerAccess) []*port {
-	return []*port{&port{
+	return []*port{{
 		name: devicename,
 		// GPIO basic registers
 		iodir: ra.define(0x00),
@@ -147,7 +147,7 @@ func mcp23x089port(devicename string, ra registerAccess) []*port {
 }
 
 func mcp23x16ports(devicename string, ra registerAccess) []*port {
-	return []*port{&port{
+	return []*port{{
 		name: devicename + "_PORT0",
 		// GPIO basic registers
 		iodir: ra.define(0x06),
@@ -165,7 +165,7 @@ func mcp23x16ports(devicename string, ra registerAccess) []*port {
 		intcon:  nil,
 		intf:    nil,
 		intcap:  ra.define(0x08),
-	}, &port{
+	}, {
 		name: devicename + "_PORT1",
 		// GPIO basic registers
 		iodir: ra.define(0x07),

@@ -16,15 +16,15 @@ func TestMCP23017_out(t *testing.T) {
 	scenario := &i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// iodir is read on creation
-			i2ctest.IO{Addr: address, W: []byte{0x00}, R: []byte{0xFF}},
-			i2ctest.IO{Addr: address, W: []byte{0x01}, R: []byte{0xFF}},
+			{Addr: address, W: []byte{0x00}, R: []byte{0xFF}},
+			{Addr: address, W: []byte{0x01}, R: []byte{0xFF}},
 			// iodira is set to output
-			i2ctest.IO{Addr: address, W: []byte{0x00, 0xFE}, R: nil},
+			{Addr: address, W: []byte{0x00, 0xFE}, R: nil},
 			// olata is read
-			i2ctest.IO{Addr: address, W: []byte{0x14}, R: []byte{0x00}},
+			{Addr: address, W: []byte{0x14}, R: []byte{0x00}},
 			// writing back unchanged value is omitted
 			// writing high output
-			i2ctest.IO{Addr: address, W: []byte{0x14, 0x01}, R: nil},
+			{Addr: address, W: []byte{0x14, 0x01}, R: nil},
 		},
 	}
 
@@ -45,15 +45,15 @@ func TestMCP23S17_out(t *testing.T) {
 		Playback: conntest.Playback{
 			Ops: []conntest.IO{
 				// iodira is read
-				conntest.IO{W: []byte{0x41, 0x00}, R: []byte{0xFF}},
-				conntest.IO{W: []byte{0x41, 0x01}, R: []byte{0xFF}},
+				{W: []byte{0x41, 0x00}, R: []byte{0xFF}},
+				{W: []byte{0x41, 0x01}, R: []byte{0xFF}},
 				// iodira is set to output
-				conntest.IO{W: []byte{0x40, 0x00, 0xFE}, R: nil},
+				{W: []byte{0x40, 0x00, 0xFE}, R: nil},
 				// olata is read
-				conntest.IO{W: []byte{0x41, 0x14}, R: []byte{0x00}},
+				{W: []byte{0x41, 0x14}, R: []byte{0x00}},
 				// writing back unchanged value is omitted
 				// writing high output
-				conntest.IO{W: []byte{0x40, 0x14, 0x01}, R: nil},
+				{W: []byte{0x40, 0x14, 0x01}, R: nil},
 			},
 		},
 	}
@@ -79,14 +79,14 @@ func TestMCP23017_in(t *testing.T) {
 	scenario := &i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// iodir is read on creation
-			i2ctest.IO{Addr: address, W: []byte{0x00}, R: []byte{0xFF}},
-			i2ctest.IO{Addr: address, W: []byte{0x01}, R: []byte{0xFF}},
+			{Addr: address, W: []byte{0x00}, R: []byte{0xFF}},
+			{Addr: address, W: []byte{0x01}, R: []byte{0xFF}},
 			// not written, since it didn't change
 			// gppua is read
-			i2ctest.IO{Addr: address, W: []byte{0x0C}, R: []byte{0x00}},
+			{Addr: address, W: []byte{0x0C}, R: []byte{0x00}},
 			// not written, since it didn't change
 			// gpio is read
-			i2ctest.IO{Addr: address, W: []byte{0x12}, R: []byte{0x01}},
+			{Addr: address, W: []byte{0x12}, R: []byte{0x01}},
 		},
 	}
 
@@ -105,20 +105,54 @@ func TestMCP23017_in(t *testing.T) {
 	}
 }
 
+func TestMCP23017_inInverted(t *testing.T) {
+	const address uint16 = 0x20
+	scenario := &i2ctest.Playback{
+		Ops: []i2ctest.IO{
+			// iodir is read on creation
+			{Addr: address, W: []byte{0x00}, R: []byte{0xFF}},
+			{Addr: address, W: []byte{0x01}, R: []byte{0xFF}},
+			// not written, since it didn't change
+			// gppua is read
+			{Addr: address, W: []byte{0x0C}, R: []byte{0x00}},
+			// not written, since it didn't change
+			// polarity is set
+			{Addr: address, W: []byte{0x02}, R: []byte{0x01}},
+			// gpio is read
+			{Addr: address, W: []byte{0x12}, R: []byte{0x01}},
+		},
+	}
+
+	dev, err := NewI2C(scenario, MCP23x17, address)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer dev.Close()
+
+	pA0 := gpioreg.ByName("MCP23017_20_PORTA_0").(MCP23xxxPin)
+
+	pA0.In(gpio.Float, gpio.NoEdge)
+	pA0.SetPolarity(Inverted)
+	l := pA0.Read()
+	if l != gpio.High {
+		t.Errorf("Input should be High")
+	}
+}
+
 func TestMCP23017_inPullUp(t *testing.T) {
 	const address uint16 = 0x20
 	scenario := &i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// iodir is read on creation
-			i2ctest.IO{Addr: address, W: []byte{0x00}, R: []byte{0xFF}},
-			i2ctest.IO{Addr: address, W: []byte{0x01}, R: []byte{0xFF}},
+			{Addr: address, W: []byte{0x00}, R: []byte{0xFF}},
+			{Addr: address, W: []byte{0x01}, R: []byte{0xFF}},
 			// not written, since it didn't change
 			// gppua is read and written
-			i2ctest.IO{Addr: address, W: []byte{0x0C}, R: []byte{0x00}},
-			i2ctest.IO{Addr: address, W: []byte{0x0C, 0x01}, R: nil},
+			{Addr: address, W: []byte{0x0C}, R: []byte{0x00}},
+			{Addr: address, W: []byte{0x0C, 0x01}, R: nil},
 			// not written, since it didn't change
 			// gpio is read
-			i2ctest.IO{Addr: address, W: []byte{0x12}, R: []byte{0x01}},
+			{Addr: address, W: []byte{0x12}, R: []byte{0x01}},
 		},
 	}
 
