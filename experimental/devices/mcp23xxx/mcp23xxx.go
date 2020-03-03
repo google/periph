@@ -7,7 +7,6 @@ package mcp23xxx
 import (
 	"fmt"
 	"strconv"
-	"strings"
 
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/i2c"
@@ -57,7 +56,7 @@ func NewI2C(b i2c.Bus, variant Variant, addr uint16) (*Dev, error) {
 	if addr&0xFFF8 != 0x20 {
 		return nil, fmt.Errorf("%s: Supported address range is 0x20 - 0x27", variant)
 	}
-	devicename := strings.ReplaceAll(string(variant), "x", "0") + "_" + strconv.FormatInt(int64(addr), 16)
+	devicename := string(variant) + "_" + strconv.FormatInt(int64(addr), 16)
 	ra := &i2cRegisterAccess{
 		Dev: &i2c.Dev{Bus: b, Addr: addr},
 	}
@@ -66,7 +65,7 @@ func NewI2C(b i2c.Bus, variant Variant, addr uint16) (*Dev, error) {
 
 // NewSPI initializes an IO extender through I2C connection.
 func NewSPI(b spi.Conn, variant Variant) (*Dev, error) {
-	devicename := strings.ReplaceAll(string(variant), "x", "S")
+	devicename := string(variant)
 	ra := &spiRegisterAccess{
 		Conn: b,
 	}
