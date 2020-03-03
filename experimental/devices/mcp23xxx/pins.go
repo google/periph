@@ -2,7 +2,6 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package mcp23xxx provides driver for the MCP23 family of IO extenders
 package mcp23xxx
 
 import (
@@ -18,38 +17,34 @@ import (
 // MCP23xxxPin extends gpio.PinIO interface with features supported by MCP23xxx devices
 type MCP23xxxPin interface {
 	gpio.PinIO
-	// SetPolarity if set to Inverted, GPIO register bit reflects the same logic state of the input pin
-	SetPolarity(p Polarity) error
-	Polarity() (Polarity, error)
+	// SetPolarityInverted if set to true, GPIO register bit reflects the same logic state of the input pin
+	SetPolarityInverted(p bool) error
+	// IsPolarityInverted returns true if the value of the input pin reflects inverted logic state
+	IsPolarityInverted() (bool, error)
 }
-
-type Polarity bool
-
-const (
-	Normal   Polarity = false
-	Inverted Polarity = true
-)
 
 type port struct {
 	name string
 
 	// GPIO basic registers
-	iodir *registerCache
-	gpio  *registerCache
-	olat  *registerCache
+	iodir registerCache
+	gpio  registerCache
+	olat  registerCache
 
 	// polarity setting
-	ipol *registerCache
+	ipol registerCache
 
 	// pull-up control register
-	// Not present in device
-	gppu *registerCache
+	// Not present in all devices
+	gppu          registerCache
+	supportPullup bool
 
 	// interrupt handling registers
-	gpinten *registerCache
-	intcon  *registerCache
-	intf    *registerCache
-	intcap  *registerCache
+	supportInterrupt bool
+	gpinten          registerCache
+	intcon           registerCache
+	intf             registerCache
+	intcap           registerCache
 }
 
 type portpin struct {
@@ -104,7 +99,7 @@ func (p *portpin) In(pull gpio.Pull, edge gpio.Edge) error {
 		// pull down is not supported by any device
 		return errors.New("MCP23xxx: PullDown is not supported")
 	case gpio.PullUp:
-		if p.port.gppu == nil {
+		if !p.port.supportPullup {
 			return errors.New("MCP23xxx: PullUp is not supported by this device")
 		}
 		err = p.port.gppu.getAndSetBit(p.pinbit, true, true)
@@ -112,7 +107,7 @@ func (p *portpin) In(pull gpio.Pull, edge gpio.Edge) error {
 			return err
 		}
 	case gpio.Float:
-		if p.port.gppu != nil {
+		if p.port.supportPullup {
 			err = p.port.gppu.getAndSetBit(p.pinbit, false, true)
 			if err != nil {
 				return err
@@ -138,7 +133,7 @@ func (p *portpin) WaitForEdge(timeout time.Duration) bool {
 }
 
 func (p *portpin) Pull() gpio.Pull {
-	if p.port.gppu == nil {
+	if !p.port.supportPullup {
 		return gpio.Float
 	}
 	v, err := p.port.gppu.getBit(p.pinbit, true)
@@ -192,15 +187,11 @@ func (p *portpin) SetFunc(f pin.Func) error {
 	return p.port.iodir.getAndSetBit(p.pinbit, v, true)
 }
 
-func (p *portpin) SetPolarity(pol Polarity) error {
-	return p.port.ipol.getAndSetBit(p.pinbit, pol == Inverted, true)
+func (p *portpin) SetPolarityInverted(pol bool) error {
+	return p.port.ipol.getAndSetBit(p.pinbit, pol, true)
 }
-func (p *portpin) Polarity() (Polarity, error) {
-	value, err := p.port.ipol.getBit(p.pinbit, true)
-	if value {
-		return Inverted, err
-	}
-	return Normal, err
+func (p *portpin) IsPolarityInverted() (bool, error) {
+	return p.port.ipol.getBit(p.pinbit, true)
 }
 
 var supportedFuncs = [...]pin.Func{gpio.IN, gpio.OUT}

@@ -2,7 +2,6 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package mcp23xxx provides driver for the MCP23 family of IO extenders
 package mcp23xxx
 
 import (
@@ -11,7 +10,7 @@ import (
 )
 
 type registerAccess interface {
-	define(address uint8) *registerCache
+	define(address uint8) registerCache
 	readRegister(address uint8) (uint8, error)
 	writeRegister(address uint8, value uint8) error
 }
@@ -30,7 +29,7 @@ func (ra *i2cRegisterAccess) writeRegister(address uint8, value uint8) error {
 	return ra.Tx([]byte{address, value}, nil)
 }
 
-func (ra *i2cRegisterAccess) define(address uint8) *registerCache {
+func (ra *i2cRegisterAccess) define(address uint8) registerCache {
 	return newRegister(ra, address)
 }
 
@@ -48,7 +47,7 @@ func (ra *spiRegisterAccess) writeRegister(address uint8, value uint8) error {
 	return ra.Tx([]byte{0x40, address, value}, nil)
 }
 
-func (ra *spiRegisterAccess) define(address uint8) *registerCache {
+func (ra *spiRegisterAccess) define(address uint8) registerCache {
 	return newRegister(ra, address)
 }
 
@@ -59,8 +58,8 @@ type registerCache struct {
 	cache   uint8
 }
 
-func newRegister(ra registerAccess, address uint8) *registerCache {
-	return &registerCache{
+func newRegister(ra registerAccess, address uint8) registerCache {
+	return registerCache{
 		registerAccess: ra,
 		address:        address,
 		got:            false,

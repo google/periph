@@ -2,7 +2,6 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// Package mcp23xxx provides driver for the MCP23 family of IO extenders
 package mcp23xxx
 
 import (
@@ -33,7 +32,7 @@ func TestMCP23017_out(t *testing.T) {
 		},
 	}
 
-	dev, err := NewI2C(scenario, MCP23x17, address)
+	dev, err := NewI2C(scenario, MCP23017, address)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +66,7 @@ func TestMCP23S17_out(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dev, err := NewSPI(conn, MCP23x17)
+	dev, err := NewSPI(conn, MCP23S17)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -95,7 +94,7 @@ func TestMCP23017_in(t *testing.T) {
 		},
 	}
 
-	dev, err := NewI2C(scenario, MCP23x17, address)
+	dev, err := NewI2C(scenario, MCP23017, address)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,7 +127,7 @@ func TestMCP23017_inInverted(t *testing.T) {
 		},
 	}
 
-	dev, err := NewI2C(scenario, MCP23x17, address)
+	dev, err := NewI2C(scenario, MCP23017, address)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -137,7 +136,7 @@ func TestMCP23017_inInverted(t *testing.T) {
 	pA0 := gpioreg.ByName("MCP23017_20_PORTA_0").(MCP23xxxPin)
 
 	pA0.In(gpio.Float, gpio.NoEdge)
-	pA0.SetPolarity(Inverted)
+	pA0.SetPolarityInverted(true)
 	l := pA0.Read()
 	if l != gpio.High {
 		t.Errorf("Input should be High")
@@ -161,7 +160,7 @@ func TestMCP23017_inPullUp(t *testing.T) {
 		},
 	}
 
-	dev, err := NewI2C(scenario, MCP23x17, address)
+	dev, err := NewI2C(scenario, MCP23017, address)
 	if err != nil {
 		t.Fatal(err)
 	}
