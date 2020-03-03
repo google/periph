@@ -133,7 +133,7 @@ func TestMCP23017_inInverted(t *testing.T) {
 	}
 	defer dev.Close()
 
-	pA0 := gpioreg.ByName("MCP23017_20_PORTA_0").(MCP23xxxPin)
+	pA0 := gpioreg.ByName("MCP23017_20_PORTA_0").(Pin)
 
 	pA0.In(gpio.Float, gpio.NoEdge)
 	pA0.SetPolarityInverted(true)

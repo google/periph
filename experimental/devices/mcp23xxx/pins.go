@@ -14,12 +14,12 @@ import (
 	"periph.io/x/periph/conn/pin"
 )
 
-// MCP23xxxPin extends gpio.PinIO interface with features supported by MCP23xxx devices
-type MCP23xxxPin interface {
+// Pin extends gpio.PinIO interface with features supported by MCP23xxx devices.
+type Pin interface {
 	gpio.PinIO
-	// SetPolarityInverted if set to true, GPIO register bit reflects the same logic state of the input pin
+	// SetPolarityInverted if set to true, GPIO register bit reflects the same logic state of the input pin.
 	SetPolarityInverted(p bool) error
-	// IsPolarityInverted returns true if the value of the input pin reflects inverted logic state
+	// IsPolarityInverted returns true if the value of the input pin reflects inverted logic state.
 	IsPolarityInverted() (bool, error)
 }
 
@@ -52,8 +52,8 @@ type portpin struct {
 	pinbit uint8
 }
 
-func (p *port) pins() []MCP23xxxPin {
-	result := make([]MCP23xxxPin, 8)
+func (p *port) pins() []Pin {
+	result := make([]Pin, 8)
 	var i uint8
 	for i = 0; i < 8; i++ {
 		result[i] = &portpin{
