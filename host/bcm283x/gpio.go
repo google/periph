@@ -80,8 +80,11 @@ var (
 // Present returns true if running on a Broadcom bcm283x based CPU.
 func Present() bool {
 	if isArm {
-		hardware, ok := distro.CPUInfo()["Hardware"]
-		return ok && strings.HasPrefix(hardware, "BCM")
+		for _, line := range distro.DTCompatible() {
+			if strings.HasPrefix(line, "brcm,bcm") {
+				return true
+			}
+		}
 	}
 	return false
 }
