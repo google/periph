@@ -4,6 +4,11 @@
 
 package distro
 
+import (
+	"encoding/binary"
+	"io/ioutil"
+)
+
 // DTModel returns platform model info from the Linux device tree (/proc/device-tree/model), and
 // returns "unknown" on non-linux systems or if the file is missing.
 func DTModel() string {
@@ -35,11 +40,29 @@ func DTCompatible() []string {
 	return dtCompatible
 }
 
+// DTRevision returns the device revision (e.g. a02082 for the Raspberry Pi 3)
+// from the Linux device tree, or 0 if the file is missing or malformed.
+func DTRevision() uint32 {
+	mu.Lock()
+	defer mu.Unlock()
+
+	if dtRevisionRead {
+		return dtRevision
+	}
+	dtRevisionRead = true
+	if b, _ := ioutil.ReadFile("/proc/device-tree/system/linux,revision"); len(b) >= 4 {
+		dtRevision = binary.BigEndian.Uint32(b[:4])
+	}
+	return dtRevision
+}
+
 //
 
 var (
-	dtModel      string   // cached /proc/device-tree/model
-	dtCompatible []string // cached /proc/device-tree/compatible
+	dtModel        string   // cached /proc/device-tree/model
+	dtCompatible   []string // cached /proc/device-tree/compatible
+	dtRevision     uint32   // cached /proc/device-tree/system/linux,revision
+	dtRevisionRead bool
 )
 
 func makeDTModelLinux() string {
