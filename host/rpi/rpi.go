@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strconv"
 
 	"periph.io/x/periph"
 	"periph.io/x/periph/conn/gpio"
@@ -794,13 +793,12 @@ func (d *driver) Init() (bool, error) {
 	// whenever it comes out.
 	// Revision codes from: http://elinux.org/RPi_HardwareHistory
 	f := features{}
-	rev := distro.CPUInfo()["Revision"]
-	if v, err := strconv.ParseUint(rev, 16, 32); err == nil {
-		if err := f.init(uint32(v)); err != nil {
-			return true, err
-		}
-	} else {
-		return true, fmt.Errorf("rpi: failed to read cpu_info: %v", err)
+	rev := distro.DTRevision()
+	if rev == 0 {
+		return true, fmt.Errorf("rpi: failed to obtain revision")
+	}
+	if err := f.init(rev); err != nil {
+		return true, err
 	}
 
 	return true, f.registerHeaders()
