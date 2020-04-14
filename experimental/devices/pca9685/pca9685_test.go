@@ -1,3 +1,7 @@
+// Copyright 2020 The Periph Authors. All rights reserved.
+// Use of this source code is governed under the Apache License, Version 2.0
+// that can be found in the LICENSE file.
+
 package pca9685
 
 import (
@@ -44,8 +48,7 @@ func TestPCA9685_pin(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = dev.RegisterPins()
-	if err != nil {
+	if err = dev.RegisterPins(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -88,8 +91,7 @@ func TestPCA9685(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = dev.SetPwm(0, 0, 0x8000)
-	if err != nil {
+	if err = dev.SetPwm(0, 0, 0x8000); err != nil {
 		t.Fatal(err)
 	}
 }

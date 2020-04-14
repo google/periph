@@ -1,3 +1,7 @@
+// Copyright 2020 The Periph Authors. All rights reserved.
+// Use of this source code is governed under the Apache License, Version 2.0
+// that can be found in the LICENSE file.
+
 package pca9685
 
 import (
@@ -22,11 +26,14 @@ type pin struct {
 }
 
 // CreatePin creates a gpio handle for the given channel.
-func (d *Dev) CreatePin(channel int) gpio.PinIO {
+func (d *Dev) CreatePin(channel int) (gpio.PinIO, error) {
+	if channel < 0 || channel >= 16 {
+		return nil, errors.New("PCA9685: Valid channel range is 0..15")
+	}
 	return &pin{
 		dev:     d,
 		channel: channel,
-	}
+	}, nil
 }
 
 // RegisterPins makes PWM channels available as PWM pins in the pin registry
@@ -34,8 +41,11 @@ func (d *Dev) CreatePin(channel int) gpio.PinIO {
 // Pin names have the following format: PCA9685_<HexAddress>_<channel> (e.g. PCA9685_40_11)
 func (d *Dev) RegisterPins() error {
 	for i := 0; i < 16; i++ {
-		err := gpioreg.Register(d.CreatePin(i))
+		pin, err := d.CreatePin(i)
 		if err != nil {
+			return err
+		}
+		if err = gpioreg.Register(pin); err != nil {
 			return err
 		}
 	}
@@ -87,8 +97,7 @@ func (p *pin) Out(l gpio.Level) error {
 }
 
 func (p *pin) PWM(duty gpio.Duty, freq physic.Frequency) error {
-	err := p.dev.SetPwmFreq(freq)
-	if err != nil {
+	if err := p.dev.SetPwmFreq(freq); err != nil {
 		return err
 	}
 	// PWM duty scaled down from 24 to 16 bits
