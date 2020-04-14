@@ -41,7 +41,8 @@ const (
 
 // Dev is a handler to pca9685 controller.
 type Dev struct {
-	dev *i2c.Dev
+	dev  *i2c.Dev
+	freq physic.Frequency
 }
 
 // NewI2C returns a Dev object that communicates over I2C.
@@ -90,6 +91,13 @@ func (d *Dev) init() error {
 
 // SetPwmFreq set the PWM frequency.
 func (d *Dev) SetPwmFreq(freqHz physic.Frequency) error {
+	if d.freq == freqHz {
+		// Don't need to write frequency if it's not changed.
+		// Note: this is required to avoid setting it each time
+		// when PWM value is changed via gpio.PinOut.PWM() API
+		return nil
+	}
+
 	p := (25*physic.MegaHertz/4096 + freqHz/2) / freqHz
 
 	modeRead := [1]byte{}
@@ -111,6 +119,7 @@ func (d *Dev) SetPwmFreq(freqHz physic.Frequency) error {
 	time.Sleep(100 * time.Millisecond)
 
 	_, err := d.dev.Write([]byte{mode1, oldmode | restart})
+	d.freq = freqHz
 	return err
 }
 
