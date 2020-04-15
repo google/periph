@@ -140,8 +140,8 @@ func (i *BitPlane) SetGray(x, y int, b Gray) {
 	i.PixLSB[byteIndex] = byte((i.PixLSB[byteIndex] & mask) | (byte(b&1) << bitIndex))
 }
 
-func (i *BitPlane) getOffset(x, y int) (byteIndex, bitIndex int, mask byte) {
-	bitIndex = (y*i.Stride + x)
+func (i *BitPlane) getOffset(x, y int) (byteIndex, bitIndex uint, mask byte) {
+	bitIndex = uint(y*i.Stride + x)
 	byteIndex = bitIndex / 8
 	bitIndex = 7 - (bitIndex % 8)
 	mask = byte(0xff ^ (0x01 << bitIndex))

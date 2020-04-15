@@ -18,7 +18,7 @@ func TestGetOffset(t *testing.T) {
 		name string
 		x, y int
 
-		byteIndex, bitIndex int
+		byteIndex, bitIndex uint
 		mask                byte
 	}{
 		{
