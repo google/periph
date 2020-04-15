@@ -8,9 +8,7 @@ import (
 )
 
 func Test_getOffset(t *testing.T) {
-	tb := BitPlane{
-		Rect: image.Rect(0, 0, 16, 16),
-	}
+	tb := NewBitPlane(image.Rect(0, 0, 16, 16))
 
 	for _, test := range []struct {
 		name string
@@ -64,6 +62,16 @@ func Test_getOffset(t *testing.T) {
 					test.byteIndex, test.bitIndex, test.mask)
 			}
 		})
+	}
+}
+
+func TestStride(t *testing.T) {
+	var strides = []int{0, 8, 8, 8, 8, 8, 8, 8, 8, 16, 16, 16, 16, 16, 16, 16, 16, 24}
+	for width, stride := range strides {
+		b := NewBitPlane(image.Rect(0, 0, width, 2))
+		if b.Stride != stride {
+			t.Errorf("Unexpected stride %v for width %v, expected %v", b.Stride, width, stride)
+		}
 	}
 }
 

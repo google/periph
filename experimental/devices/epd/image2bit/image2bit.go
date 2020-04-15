@@ -78,17 +78,18 @@ type BitPlane struct {
 	PixLSB []byte
 	// Rect is the image's bounds.
 	Rect image.Rectangle
+
+	// Stride is the number of pixels on each horizontal line, including padding
+	Stride int
 }
 
 // NewBitPlane returns an initialized BitPlane instance, all black. TODO: Find a better name.
 func NewBitPlane(r image.Rectangle) *BitPlane {
-	// TODO: If any display has a width % 8 != 0, there might be
-	// padding involved. Is there such a display?
-	w := r.Dx()
-	h := r.Dy()
+	// stride is width rounded up to the next byte
+	stride := ((r.Dx() + 7) &^ 7)
 
-	size := (w * h) / 8
-	return &BitPlane{PixMSB: make([]byte, size), PixLSB: make([]byte, size), Rect: r}
+	size := (r.Dy() * stride) / 8
+	return &BitPlane{PixMSB: make([]byte, size), PixLSB: make([]byte, size), Rect: r, Stride: stride}
 }
 
 // ColorModel implements image.Image.
@@ -127,14 +128,6 @@ func (i *BitPlane) Set(x, y int, c color.Color) {
 	i.SetGray(x, y, convertGray(c))
 }
 
-func (i *BitPlane) getOffset(x, y int) (byteIndex, bitIndex int, mask byte) {
-	bitIndex = (y*i.Rect.Dx() + x)
-	byteIndex = bitIndex / 8
-	bitIndex = 7 - (bitIndex % 8)
-	mask = byte(0xff ^ (0x01 << bitIndex))
-	return
-}
-
 // SetGray is the optimized version of Set().
 func (i *BitPlane) SetGray(x, y int, b Gray) {
 	if !(image.Point{x, y}.In(i.Rect)) {
@@ -147,8 +140,13 @@ func (i *BitPlane) SetGray(x, y int, b Gray) {
 	i.PixLSB[byteIndex] = byte((i.PixLSB[byteIndex] & mask) | (byte(b&0b01) << bitIndex))
 }
 
-// verify that we satisfy the draw.Image interface
-var _ draw.Image = &BitPlane{}
+func (i *BitPlane) getOffset(x, y int) (byteIndex, bitIndex int, mask byte) {
+	bitIndex = (y*i.Stride + x)
+	byteIndex = bitIndex / 8
+	bitIndex = 7 - (bitIndex % 8)
+	mask = byte(0xff ^ (0x01 << bitIndex))
+	return
+}
 
 // convert color to gray as color.Color
 func convert(c color.Color) color.Color {
@@ -166,3 +164,6 @@ func convertGray(c color.Color) Gray {
 		return Gray((r | g | b) >> 14) // Use two most significant bits.
 	}
 }
+
+// verify that we satisfy the draw.Image interface
+var _ draw.Image = &BitPlane{}
