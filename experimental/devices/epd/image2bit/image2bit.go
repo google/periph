@@ -83,7 +83,7 @@ type BitPlane struct {
 	Stride int
 }
 
-// NewBitPlane returns an initialized BitPlane instance, all black. TODO: Find a better name.
+// NewBitPlane returns an initialized BitPlane instance, all black.
 func NewBitPlane(r image.Rectangle) *BitPlane {
 	// stride is width rounded up to the next byte
 	stride := ((r.Dx() + 7) &^ 7)
