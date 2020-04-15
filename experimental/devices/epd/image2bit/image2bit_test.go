@@ -100,7 +100,7 @@ func TestBitPlaneEncoding(t *testing.T) {
 
 	// "golden image" test for a black image with two pixels set
 	tb.Set(0, 0, White)
-	tb.Set(2, 0, LigthGray)
+	tb.Set(2, 0, LightGray)
 
 	expectedMSB := []byte{0b10100000}
 	expectedLSB := []byte{0b10000000}
@@ -148,7 +148,7 @@ func TestGrayAt(t *testing.T) {
 }
 
 func TestConvertGrayToSelf(t *testing.T) {
-	for _, c := range []Gray{White, LigthGray, DarkGray, Black} {
+	for _, c := range []Gray{White, LightGray, DarkGray, Black} {
 		r, g, b, a := c.RGBA()
 		gray := convert(color.RGBA64{uint16(r), uint16(g), uint16(b), uint16(a)})
 		if gray != c {

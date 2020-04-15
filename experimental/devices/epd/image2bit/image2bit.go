@@ -50,7 +50,7 @@ func (b Gray) String() string {
 // All possible colors
 const (
 	White     Gray = 3
-	LigthGray Gray = 2
+	LightGray Gray = 2
 	DarkGray  Gray = 1
 	Black     Gray = 0
 )
