@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-func Test_getOffset(t *testing.T) {
+func TestGetOffset(t *testing.T) {
 	tb := NewBitPlane(image.Rect(0, 0, 16, 16))
 
 	for _, test := range []struct {
