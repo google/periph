@@ -14,7 +14,7 @@ import (
 func TestGetOffset(t *testing.T) {
 	tb := NewBitPlane(image.Rect(0, 0, 16, 16))
 
-	for _, test := range []struct {
+	tests := []struct {
 		name string
 		x, y int
 
@@ -56,7 +56,9 @@ func TestGetOffset(t *testing.T) {
 
 			byteIndex: 16/8 + 1, bitIndex: 6, mask: 0b10111111,
 		},
-	} {
+	}
+
+	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			byteIndex, bitIndex, mask := tb.getOffset(test.x, test.y)
 			if byteIndex != test.byteIndex || bitIndex != test.bitIndex || mask != test.mask {
