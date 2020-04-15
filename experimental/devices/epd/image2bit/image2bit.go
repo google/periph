@@ -115,7 +115,7 @@ func (i *BitPlane) GrayAt(x, y int) Gray {
 
 	byteIndex, bitIndex, _ := i.getOffset(x, y)
 
-	return Gray(((i.PixMSB[byteIndex]>>bitIndex)&0b1)<<1 | i.PixLSB[byteIndex]>>bitIndex&0b1)
+	return Gray(((i.PixMSB[byteIndex]>>bitIndex)&1)<<1 | i.PixLSB[byteIndex]>>bitIndex&1)
 }
 
 // Opaque scans the entire image and reports whether it is fully opaque.
@@ -136,8 +136,8 @@ func (i *BitPlane) SetGray(x, y int, b Gray) {
 
 	byteIndex, bitIndex, mask := i.getOffset(x, y)
 
-	i.PixMSB[byteIndex] = byte((i.PixMSB[byteIndex] & mask) | ((byte(b&0b10) >> 1) << bitIndex))
-	i.PixLSB[byteIndex] = byte((i.PixLSB[byteIndex] & mask) | (byte(b&0b01) << bitIndex))
+	i.PixMSB[byteIndex] = byte((i.PixMSB[byteIndex] & mask) | (byte(b>>1) << bitIndex))
+	i.PixLSB[byteIndex] = byte((i.PixLSB[byteIndex] & mask) | (byte(b&1) << bitIndex))
 }
 
 func (i *BitPlane) getOffset(x, y int) (byteIndex, bitIndex int, mask byte) {

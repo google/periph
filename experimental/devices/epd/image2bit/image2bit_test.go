@@ -26,35 +26,35 @@ func TestGetOffset(t *testing.T) {
 
 			x: 0, y: 0,
 
-			byteIndex: 0, bitIndex: 7, mask: 0b01111111,
+			byteIndex: 0, bitIndex: 7, mask: 0x7f, // 0b01111111
 		},
 		{
 			name: "bit order 2",
 
 			x: 1, y: 0,
 
-			byteIndex: 0, bitIndex: 6, mask: 0b10111111,
+			byteIndex: 0, bitIndex: 6, mask: 0xbf, // 0b10111111
 		},
 		{
 			name: "bit order, last, edge",
 
 			x: 7, y: 0,
 
-			byteIndex: 0, bitIndex: 0, mask: 0b11111110,
+			byteIndex: 0, bitIndex: 0, mask: 0xfe, // 0b11111110
 		},
 		{
 			name: "byte index",
 
 			x: 1 + 8, y: 0,
 
-			byteIndex: 1, bitIndex: 6, mask: 0b10111111,
+			byteIndex: 1, bitIndex: 6, mask: 0xbf, // 0b10111111
 		},
 		{
 			name: "byte index + row",
 			x:    1 + 8,
 			y:    1,
 
-			byteIndex: 16/8 + 1, bitIndex: 6, mask: 0b10111111,
+			byteIndex: 16/8 + 1, bitIndex: 6, mask: 0xbf, // 0b10111111
 		},
 	}
 
@@ -116,8 +116,8 @@ func TestBitPlaneEncoding(t *testing.T) {
 	tb.Set(0, 0, White)
 	tb.Set(2, 0, LightGray)
 
-	expectedMSB := []byte{0b10100000}
-	expectedLSB := []byte{0b10000000}
+	expectedMSB := []byte{0xa0} // 0b10100000
+	expectedLSB := []byte{0x80} // 0b10000000
 
 	if !bytes.Equal(tb.PixMSB, expectedMSB) || !bytes.Equal(tb.PixLSB, expectedLSB) {
 		t.Errorf("Golden image test failed, got %02x %02x, expected %02x %02x", tb.PixMSB, tb.PixLSB, expectedMSB, expectedLSB)
@@ -144,7 +144,7 @@ func TestGrayAt(t *testing.T) {
 	var grays []Gray
 	for y := 0; y < tb.Rect.Dy(); y++ {
 		for x := 0; x < tb.Rect.Dx(); x++ {
-			g := Gray((x ^ y) & 0b11)
+			g := Gray((x ^ y) & 3)
 			tb.Set(x, y, g)
 			grays = append(grays, g)
 		}
