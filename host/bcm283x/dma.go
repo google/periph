@@ -743,13 +743,15 @@ func startPWMbyDMA(p *Pin, rng, data uint32) (*dmaChannel, *videocore.Mem, error
 	if drvDMA.dmaMemory == nil {
 		return nil, nil, errors.New("bcm283x-dma is not initialized; try running as root?")
 	}
-	cb, buf, err := allocateCB(2*32 + 4) // 2 CBs + mask
+
+	// Hardcoded len(controlBlock) == 32
+	cbBytes := uint32(32)
+	cb, buf, err := allocateCB(int(rng*cbBytes + 4)) // rng CBs + mask
 	if err != nil {
 		return nil, nil, err
 	}
 	u := buf.Uint32()
-	cbBytes := uint32(32)
-	offsetBytes := cbBytes * 2
+	offsetBytes := cbBytes * rng
 	u[offsetBytes/4] = uint32(1) << uint(p.number&31)
 	physBuf := uint32(buf.PhysAddr())
 	physBit := physBuf + offsetBytes
@@ -758,20 +760,30 @@ func startPWMbyDMA(p *Pin, rng, data uint32) (*dmaChannel, *videocore.Mem, error
 		drvGPIO.gpioBaseAddr + 0x1C + 4*uint32(p.number/32), // set
 	}
 	// High
-	if err := cb[0].initBlock(physBit, dest[1], data*4, false, true, false, false, dmaPWM); err != nil {
-		_ = buf.Close()
-		return nil, nil, err
+	ptr := physBuf
+	for i := uint32(0); i < data; i++ {
+		if err := cb[i].initBlock(physBit, dest[1], 4, false, true, false, false, dmaPWM); err != nil {
+			_ = buf.Close()
+			return nil, nil, err
+		}
+		ptr += cbBytes
+		cb[i].nextCB = ptr
 	}
-	cb[0].nextCB = physBuf + cbBytes
 	// Low
-	if err := cb[1].initBlock(physBit, dest[0], (rng-data)*4, false, true, false, false, dmaPWM); err != nil {
-		_ = buf.Close()
-		return nil, nil, err
+	for i := data; i < rng; i++ {
+
+		if err := cb[i].initBlock(physBit, dest[0], 4, false, true, false, false, dmaPWM); err != nil {
+			_ = buf.Close()
+			return nil, nil, err
+		}
+		ptr += cbBytes
+		cb[i].nextCB = ptr
+
 	}
-	cb[1].nextCB = physBuf // Loop back to cb[0]
+	cb[rng].nextCB = physBuf // Loop back to cb[0]
 
 	var blacklist []int
-	if data*4 >= 1<<16 || (rng-data)*4 >= 1<<16 {
+	if rng*4 >= 1<<16 {
 		// Don't use lite channels.
 		blacklist = []int{7, 8, 9, 10, 11, 12, 13, 14, 15}
 	}
