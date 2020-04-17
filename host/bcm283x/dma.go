@@ -412,6 +412,8 @@ type controlBlock struct {
 	reserved [2]uint32 // 0x18+0x1C
 }
 
+const controlBlockSize uint32 = 32
+
 // initBlock initializes a controlBlock for any valid DMA operation.
 //
 // l is in bytes, not in words.
@@ -713,12 +715,12 @@ func dmaWritePWMFIFO() (*dmaChannel, *videocore.Mem, error) {
 	if drvDMA.dmaMemory == nil {
 		return nil, nil, errors.New("bcm283x-dma is not initialized; try running as root?")
 	}
-	cb, buf, err := allocateCB(32 + 4) // CB + data
+	cb, buf, err := allocateCB(int(controlBlockSize + 4)) // CB + data
 	if err != nil {
 		return nil, nil, err
 	}
 	u := buf.Uint32()
-	offsetBytes := uint32(32)
+	offsetBytes := controlBlockSize
 	u[offsetBytes/4] = 0x0
 	physBuf := uint32(buf.PhysAddr())
 	physBit := physBuf + offsetBytes
@@ -744,14 +746,12 @@ func startPWMbyDMA(p *Pin, rng, data uint32) (*dmaChannel, *videocore.Mem, error
 		return nil, nil, errors.New("bcm283x-dma is not initialized; try running as root?")
 	}
 
-	// Hardcoded len(controlBlock) == 32
-	cbBytes := uint32(32)
-	cb, buf, err := allocateCB(int(rng*cbBytes + 4)) // rng CBs + mask
+	cb, buf, err := allocateCB(int(rng*controlBlockSize + 4)) // rng CBs + mask
 	if err != nil {
 		return nil, nil, err
 	}
 	u := buf.Uint32()
-	offsetBytes := cbBytes * rng
+	offsetBytes := controlBlockSize * rng
 	u[offsetBytes/4] = uint32(1) << uint(p.number&31)
 	physBuf := uint32(buf.PhysAddr())
 	physBit := physBuf + offsetBytes
@@ -766,7 +766,7 @@ func startPWMbyDMA(p *Pin, rng, data uint32) (*dmaChannel, *videocore.Mem, error
 			_ = buf.Close()
 			return nil, nil, err
 		}
-		ptr += cbBytes
+		ptr += controlBlockSize
 		cb[i].nextCB = ptr
 	}
 	// Low
@@ -776,7 +776,7 @@ func startPWMbyDMA(p *Pin, rng, data uint32) (*dmaChannel, *videocore.Mem, error
 			_ = buf.Close()
 			return nil, nil, err
 		}
-		ptr += cbBytes
+		ptr += controlBlockSize
 		cb[i].nextCB = ptr
 
 	}
@@ -898,7 +898,7 @@ func dmaWriteStreamEdges(p *Pin, w gpiostream.Stream) error {
 		stride += uint32(skip)
 	}
 	// 32 bytes for each CB and 4 bytes for the mask.
-	bufBytes := count*32 + 4
+	bufBytes := count*int(controlBlockSize) + 4
 	cb, buf, err := allocateCB((bufBytes + 0xFFF) &^ 0xFFF)
 	if err != nil {
 		return err
@@ -931,9 +931,8 @@ func dmaWriteStreamEdges(p *Pin, w gpiostream.Stream) error {
 			if err := cb[index].initBlock(physBit, dest[last], stride*4, false, true, false, false, dmaPWM); err != nil {
 				return err
 			}
-			// Hardcoded len(controlBlock) == 32. It is not necessary to use
-			// physToUncachedPhys() here.
-			cb[index].nextCB = uint32(buf.PhysAddr()) + uint32(32*(index+1))
+			// It is not necessary to use physToUncachedPhys() here.
+			cb[index].nextCB = uint32(buf.PhysAddr()) + controlBlockSize*uint32(index+1)
 			index++
 			stride = 0
 			last = v
@@ -1020,8 +1019,8 @@ func dmaWriteStreamDualChannel(p *Pin, w gpiostream.Stream) error {
 	defer chClear.reset()
 
 	// Two channel need to be synchronized but there is not such a mechanism.
-	chSet.startIO(uint32(pCB.PhysAddr()))        // cb[0]
-	chClear.startIO(uint32(pCB.PhysAddr()) + 32) // cb[1]
+	chSet.startIO(uint32(pCB.PhysAddr()))                      // cb[0]
+	chClear.startIO(uint32(pCB.PhysAddr()) + controlBlockSize) // cb[1]
 
 	err1 := chSet.wait()
 	err2 := chClear.wait()
