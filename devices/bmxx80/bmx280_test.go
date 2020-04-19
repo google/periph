@@ -6,6 +6,7 @@ package bmxx80
 
 import (
 	"errors"
+	"flag"
 	"io/ioutil"
 	"log"
 	"os"
@@ -610,10 +611,6 @@ func TestI2CSenseContinuous280_command_fail(t *testing.T) {
 }
 
 func TestI2CSenseContinuous280_sense_fail(t *testing.T) {
-	if !testing.Verbose() {
-		log.SetOutput(ioutil.Discard)
-		defer log.SetOutput(os.Stderr)
-	}
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Chip ID detection.
@@ -1026,4 +1023,12 @@ type spiFail struct {
 
 func (s *spiFail) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, error) {
 	return nil, errors.New("failing")
+}
+
+func TestMain(m *testing.M) {
+	flag.Parse()
+	if !testing.Verbose() {
+		log.SetOutput(ioutil.Discard)
+	}
+	os.Exit(m.Run())
 }

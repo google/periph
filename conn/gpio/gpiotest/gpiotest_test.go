@@ -5,6 +5,7 @@
 package gpiotest
 
 import (
+	"flag"
 	"io/ioutil"
 	"log"
 	"os"
@@ -105,10 +106,6 @@ func TestPin_fail(t *testing.T) {
 }
 
 func TestLogPinIO(t *testing.T) {
-	if !testing.Verbose() {
-		log.SetOutput(ioutil.Discard)
-		defer log.SetOutput(os.Stderr)
-	}
 	p := &Pin{}
 	l := &LogPinIO{p}
 	if l.Real() != p {
@@ -202,4 +199,12 @@ func init() {
 	if err := gpioreg.RegisterAlias(string(gpio3.Func()), gpio3.Name()); err != nil {
 		panic(err)
 	}
+}
+
+func TestMain(m *testing.M) {
+	flag.Parse()
+	if !testing.Verbose() {
+		log.SetOutput(ioutil.Discard)
+	}
+	os.Exit(m.Run())
 }

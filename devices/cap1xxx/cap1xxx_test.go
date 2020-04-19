@@ -8,6 +8,7 @@ import (
 	"flag"
 	"io/ioutil"
 	"log"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -230,8 +231,12 @@ func setupPlaybackIO() []i2ctest.IO {
 
 func init() {
 	sleep = func(time.Duration) {}
+}
+
+func TestMain(m *testing.M) {
 	flag.Parse()
 	if !testing.Verbose() {
 		log.SetOutput(ioutil.Discard)
 	}
+	os.Exit(m.Run())
 }
