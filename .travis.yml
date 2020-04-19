@@ -2,52 +2,69 @@
 # Use of this source code is governed under the Apache License, Version 2.0
 # that can be found in the LICENSE file.
 
+os: linux
+dist: bionic
 language: go
-sudo: false
-dist: xenial
 go_import_path: periph.io/x/periph
 
-matrix:
+jobs:
   include:
-  - go: 1.12.x
-    env: GO111MODULE=on
+  - go: 1.14.x
     cache:
       directories:
-        # go1.10+ 'go test' cache on linux (macOS and Windows are # different).
-        - $HOME/.cache/go-build
-        # go1.11+ with GO111MODULE=on
-        - $GOPATH/pkg/mod
-        # Cache tools sources. Manually verified that both misspell and ineffassign
-        # only depend on the stdlib.
-        - $GOPATH/src/github\.com
-        # For shadow.
-        - $GOPATH/src/golang\.org
-    # Dear future me: if you touch this line, don't forget to update the
-    # conditions below!
+      - $GOPATH/pkg/mod
+      # Cache tools sources.
+      - $GOPATH/src/github\.com/client9
+      - $GOPATH/src/github\.com/gordonklaus
+      - $GOPATH/src/golang\.org
+    before_script:
+    - echo $TRAVIS_GO_VERSION
+    - go get -t -v periph.io/x/periph/...
+    - >
+      go get -u -v github.com/client9/misspell/cmd/misspell github.com/gordonklaus/ineffassign golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow
+    script:
+    - >
+      echo 'Check Code is well formatted';
+      ! gofmt -s -d . | read
+    - >
+      echo 'Looking for external dependencies:';
+      go list -f '{{join .Imports "\n"}}' periph.io/x/periph/... | sort | uniq | grep -v ^periph.io/x/periph | xargs go list -f '{{if not .Standard}}- {{.ImportPath}}{{end}}'
+    - >
+      echo 'Erroring on external dependencies:';
+      ! go list -f '{{join .Imports "\n"}}' periph.io/x/periph/... | sort | uniq | grep -v ^periph.io/x/periph | xargs go list -f '{{if not .Standard}}Remove {{.ImportPath}}{{end}}' | grep -q Remove
+    - >
+      echo 'Erroring on /host depending on /devices:';
+      ! go list -f '{{.ImportPath}} depends on {{join .Imports ", "}}' periph.io/x/periph/host/... | sort | uniq | grep periph.io/x/periph/devices
+    - >
+      echo 'Erroring on /conn depending on /devices:';
+      ! go list -f '{{.ImportPath}} depends on {{join .Imports ", "}}' periph.io/x/periph/conn/... | sort | uniq | grep periph.io/x/periph/devices
+    - >
+      echo 'Erroring on /conn depending on /host:';
+      ! go list -f '{{.ImportPath}} depends on {{join .Imports ", "}}' periph.io/x/periph/conn/... | sort | uniq | grep periph.io/x/periph/host
+    - >
+      echo 'Erroring on misspelling';
+      ! misspell . | grep a
+    - >
+      echo 'Erroring on inefficient variable assignment:';
+      ineffassign .
+    - >
+      echo 'Erroring on shadowed variables:';
+      ! go vet -vettool=$(which shadow) ./... |& grep -v '"err"' | grep -e '^[^#]'
+    - >
+      echo 'Running tests with code coverage:';
+      go test -covermode=count -coverprofile=coverage.txt ./...
+    - >
+      echo 'Running tests with race detector:';
+      go test -race ./...
+    - >
+      echo 'Erroring if an executable was committed:';
+      if find . -path ./.git -prune -o -type f -executable -print | grep -e . ; then echo 'Do not commit executables'; false; fi
+    after_success:
+    - bash <(curl -s https://codecov.io/bash)
+
   - go: 1.7.6
-
-before_script:
-  - echo $TRAVIS_GO_VERSION
-  - go get -t -v periph.io/x/periph/...
-  - if [[ $TRAVIS_GO_VERSION != 1.7.6 ]]; then go get -u -v github.com/client9/misspell/cmd/misspell github.com/gordonklaus/ineffassign golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow; fi
-
-script:
-  # Checks run on latest version.
-  - if [[ $TRAVIS_GO_VERSION != 1.7.6 ]]; then echo 'Check Code is well formatted'; ! gofmt -s -d . | read; fi
-  - if [[ $TRAVIS_GO_VERSION != 1.7.6 ]]; then echo 'Looking for external dependencies:'; go list -f '{{join .Imports "\n"}}' periph.io/x/periph/... | sort | uniq | grep -v ^periph.io/x/periph | xargs go list -f '{{if not .Standard}}- {{.ImportPath}}{{end}}'; fi
-  - if [[ $TRAVIS_GO_VERSION != 1.7.6 ]]; then echo 'Erroring on external dependencies:'; ! go list -f '{{join .Imports "\n"}}' periph.io/x/periph/... | sort | uniq | grep -v ^periph.io/x/periph | xargs go list -f '{{if not .Standard}}Remove {{.ImportPath}}{{end}}' | grep -q Remove; fi
-  - if [[ $TRAVIS_GO_VERSION != 1.7.6 ]]; then echo 'Erroring on /host depending on /devices:'; ! go list -f '{{.ImportPath}} depends on {{join .Imports ", "}}' periph.io/x/periph/host/... | sort | uniq | grep periph.io/x/periph/devices; fi
-  - if [[ $TRAVIS_GO_VERSION != 1.7.6 ]]; then echo 'Erroring on /conn depending on /devices:'; ! go list -f '{{.ImportPath}} depends on {{join .Imports ", "}}' periph.io/x/periph/conn/... | sort | uniq | grep periph.io/x/periph/devices; fi
-  - if [[ $TRAVIS_GO_VERSION != 1.7.6 ]]; then echo 'Erroring on /conn depending on /host:'; ! go list -f '{{.ImportPath}} depends on {{join .Imports ", "}}' periph.io/x/periph/conn/... | sort | uniq | grep periph.io/x/periph/host; fi
-  - if [[ $TRAVIS_GO_VERSION != 1.7.6 ]]; then echo 'Erroring on misspelling'; ! misspell . | grep a; fi
-  - if [[ $TRAVIS_GO_VERSION != 1.7.6 ]]; then ineffassign .; fi
-  - if [[ $TRAVIS_GO_VERSION != 1.7.6 ]]; then ! go vet -vettool=$(which shadow) ./... |& grep -v '"err"' | grep -e '^[^#]'; fi
-  - if [[ $TRAVIS_GO_VERSION != 1.7.6 ]]; then bash -c 'set -e; echo "" > coverage.txt; for d in $(go list ./...); do go test -covermode=count -coverprofile=p.out $d; if [ -f p.out ]; then cat p.out >> coverage.txt; rm p.out; fi; done'; fi
-  - if [[ $TRAVIS_GO_VERSION != 1.7.6 ]]; then go test -race ./...; fi
-
-  # Checks run on older version.
-  - if [[ $TRAVIS_GO_VERSION == 1.7.6 ]]; then go test ./...; fi
-  - if [[ $TRAVIS_GO_VERSION == 1.7.6 ]]; then if find . -path ./.git -prune -o -type f -executable -print | grep -e . ; then echo 'Do not commit executables'; false; fi; fi
-
-after_success:
-  - if [[ $TRAVIS_GO_VERSION != 1.7.6 ]]; then bash <(curl -s https://codecov.io/bash); fi
+    before_script:
+    - echo $TRAVIS_GO_VERSION
+    - go get -t -v periph.io/x/periph/...
+    script:
+    - go test ./...
