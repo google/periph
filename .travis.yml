@@ -14,14 +14,19 @@ jobs:
       directories:
       - $GOPATH/pkg/mod
       # Cache tools sources.
-      - $GOPATH/src/github\.com/client9
-      - $GOPATH/src/github\.com/gordonklaus
-      - $GOPATH/src/golang\.org
+      #- $GOPATH/src/github\.com/client9
+      #- $GOPATH/src/github\.com/google/addlicense
+      #- $GOPATH/src/github\.com/gordonklaus
+      #- $GOPATH/src/golang\.org
     before_script:
     - echo $TRAVIS_GO_VERSION
     - go get -t -v periph.io/x/periph/...
     - >
-      go get -u -v github.com/client9/misspell/cmd/misspell github.com/gordonklaus/ineffassign golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow
+      go get -u -v
+      github.com/client9/misspell/cmd/misspell
+      github.com/google/addlicense
+      github.com/gordonklaus/ineffassign
+      golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow
     script:
     - >
       echo 'Check Code is well formatted';
@@ -48,6 +53,9 @@ jobs:
       echo 'Erroring on inefficient variable assignment:';
       ineffassign .
     - >
+      echo 'Erroring on go vet:';
+      go vet ./...
+    - >
       echo 'Erroring on shadowed variables:';
       ! go vet -vettool=$(which shadow) ./... |& grep -v '"err"' | grep -e '^[^#]'
     - >
@@ -59,6 +67,9 @@ jobs:
     - >
       echo 'Erroring if an executable was committed:';
       if find . -path ./.git -prune -o -type f -executable -print | grep -e . ; then echo 'Do not commit executables'; false; fi
+    - >
+      echo 'Erroring if a license header is missing:';
+      ! addlicense -check . | grep -v '\(cmd/ssd1306/font7x13.go\|conn/duplex_string.go\|devices/lepton/cci/strings_gen.go\|experimental/cmd/periph-web/static/index.html\|experimental/cmd/periph-web/static_prod.go\)' | read
     after_success:
     - bash <(curl -s https://codecov.io/bash)
 
