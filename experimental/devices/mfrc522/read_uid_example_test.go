@@ -71,6 +71,7 @@ func ReadUIDExample() {
 			}
 
 			cb <- uid
+			return
 		}
 	}()
 
