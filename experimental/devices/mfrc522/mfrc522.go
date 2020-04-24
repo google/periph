@@ -134,7 +134,7 @@ func (r *Dev) SetAntennaGain(gain int) error {
 	return nil
 }
 
-// ReadUID  reads the card UID with IRQ event timeout.
+// ReadUID reads the card UID with IRQ event timeout.
 //
 //  timeout   the operation timeout
 func (r *Dev) ReadUID(timeout time.Duration) (uid []byte, err error) {
