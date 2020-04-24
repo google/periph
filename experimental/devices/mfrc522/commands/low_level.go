@@ -35,18 +35,18 @@ type AuthStatus byte
 
 // NewLowLevelSPI creates and initializes the RFID card reader attached to SPI.
 //
-// 	spiPort - the SPI device to use.
-// 	resetPin - reset GPIO pin.
-// 	irqPin - irq GPIO pin.
+//  spiPort - the SPI device to use.
+//  resetPin - reset GPIO pin.
+//  irqPin - irq GPIO pin.
 func NewLowLevelSPI(spiPort spi.Port, resetPin gpio.PinOut, irqPin gpio.PinIn) (*LowLevel, error) {
 	return NewLowLevelSPIFrequency(spiPort, resetPin, irqPin, 10*physic.MegaHertz)
 }
 
 // NewLowLevelSPIFrequency creates and initializes the RFID card reader attached to SPI.
 //
-// 	spiPort - the SPI device to use.
-// 	resetPin - reset GPIO pin.
-// 	irqPin - irq GPIO pin.
+//  spiPort - the SPI device to use.
+//  resetPin - reset GPIO pin.
+//  irqPin - irq GPIO pin.
 //  frequency - the SPI frequency
 func NewLowLevelSPIFrequency(spiPort spi.Port, resetPin gpio.PinOut, irqPin gpio.PinIn, frequency physic.Frequency) (*LowLevel, error) {
 	if resetPin == nil {

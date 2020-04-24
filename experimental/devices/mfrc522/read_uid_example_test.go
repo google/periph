@@ -81,7 +81,7 @@ func ReadUIDExample() {
 			log.Fatal("Didn't receive device data")
 			return
 		case data := <-cb:
-			log.Println("UID: ", hex.EncodeToString(data))
+			log.Println("UID:", hex.EncodeToString(data))
 			return
 		}
 	}
