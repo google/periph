@@ -35,9 +35,9 @@ type AuthStatus byte
 
 // NewLowLevelSPI creates and initializes the RFID card reader attached to SPI.
 //
-// 	spiPort - the SPI device to use.
-// 	resetPin - reset GPIO pin.
-// 	irqPin - irq GPIO pin.
+//  spiPort - the SPI device to use.
+//  resetPin - reset GPIO pin.
+//  irqPin - irq GPIO pin.
 func NewLowLevelSPI(spiPort spi.Port, resetPin gpio.PinOut, irqPin gpio.PinIn) (*LowLevel, error) {
 	if resetPin == nil {
 		return nil, wrapf("reset pin is not set")
