@@ -39,20 +39,10 @@ type AuthStatus byte
 //  resetPin - reset GPIO pin.
 //  irqPin - irq GPIO pin.
 func NewLowLevelSPI(spiPort spi.Port, resetPin gpio.PinOut, irqPin gpio.PinIn) (*LowLevel, error) {
-	return NewLowLevelSPIFrequency(spiPort, resetPin, irqPin, 10*physic.MegaHertz)
-}
-
-// NewLowLevelSPIFrequency creates and initializes the RFID card reader attached to SPI.
-//
-//  spiPort - the SPI device to use.
-//  resetPin - reset GPIO pin.
-//  irqPin - irq GPIO pin.
-//  frequency - the SPI frequency
-func NewLowLevelSPIFrequency(spiPort spi.Port, resetPin gpio.PinOut, irqPin gpio.PinIn, frequency physic.Frequency) (*LowLevel, error) {
 	if resetPin == nil {
 		return nil, wrapf("reset pin is not set")
 	}
-	spiDev, err := spiPort.Connect(frequency, spi.Mode0, 8)
+	spiDev, err := spiPort.Connect(10*physic.MegaHertz, spi.Mode0, 8)
 	if err != nil {
 		return nil, err
 	}

@@ -16,7 +16,6 @@ import (
 
 	"periph.io/x/periph/conn"
 	"periph.io/x/periph/conn/gpio"
-	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/spi"
 	"periph.io/x/periph/experimental/devices/mfrc522/commands"
 )
@@ -72,16 +71,6 @@ func noop() {}
 //  resetPin    reset GPIO pin.
 //  irqPin      irq GPIO pin.
 func NewSPI(spiPort spi.Port, resetPin gpio.PinOut, irqPin gpio.PinIn, configs ...configF) (*Dev, error) {
-	return NewSPIFrequency(spiPort, resetPin, irqPin, 10*physic.MegaHertz, configs...)
-}
-
-// NewSPI creates and initializes the RFID card reader attached to SPI.
-//
-//  spiPort     the SPI device to use.
-//  resetPin    reset GPIO pin.
-//  irqPin      irq GPIO pin.
-//  frequency   the SPI frequency
-func NewSPIFrequency(spiPort spi.Port, resetPin gpio.PinOut, irqPin gpio.PinIn, frequency physic.Frequency, configs ...configF) (*Dev, error) {
 	cfg := &config{
 		defaultTimeout: 30 * time.Second,
 		beforeCall:     noop,
@@ -90,7 +79,7 @@ func NewSPIFrequency(spiPort spi.Port, resetPin gpio.PinOut, irqPin gpio.PinIn, 
 	for _, cf := range configs {
 		cfg = cf(cfg)
 	}
-	raw, err := commands.NewLowLevelSPIFrequency(spiPort, resetPin, irqPin, frequency)
+	raw, err := commands.NewLowLevelSPI(spiPort, resetPin, irqPin)
 	if err != nil {
 		return nil, err
 	}

@@ -23,7 +23,7 @@ func Example() {
 		log.Fatal(err)
 	}
 
-	// Using SPI as an example. See package ./spi/spireg for more details.
+	// Using SPI as an example. See package "periph.io/x/periph/conn/spi/spireg" for more details.
 	p, err := spireg.Open("")
 	if err != nil {
 		log.Fatal(err)
@@ -109,7 +109,7 @@ func ExampleDev_ReadUID() {
 		log.Fatal(err)
 	}
 
-	// Using SPI as an example. See package ./spi/spireg for more details.
+	// Using SPI as an example. See package "periph.io/x/periph/conn/spi/spireg" for more details.
 	p, err := spireg.Open("")
 	if err != nil {
 		log.Fatal(err)
