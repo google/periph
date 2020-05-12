@@ -7,7 +7,6 @@ package pca9685
 import (
 	"errors"
 	"fmt"
-	"math"
 	"time"
 
 	"periph.io/x/periph/conn/gpio"
@@ -17,7 +16,7 @@ import (
 )
 
 const (
-	dutyMax gpio.Duty = math.MaxUint16
+	dutyMax gpio.Duty = 1<<12 - 1
 )
 
 type pin struct {
@@ -27,8 +26,9 @@ type pin struct {
 
 // CreatePin creates a gpio handle for the given channel.
 func (d *Dev) CreatePin(channel int) (gpio.PinIO, error) {
-	if channel < 0 || channel >= 16 {
-		return nil, errors.New("PCA9685: Valid channel range is 0..15")
+	err := verifyChannel(channel)
+	if err != nil {
+		return nil, err
 	}
 	return &pin{
 		dev:     d,
