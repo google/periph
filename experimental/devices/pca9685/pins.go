@@ -52,6 +52,17 @@ func (d *Dev) RegisterPins() error {
 	return nil
 }
 
+// UnregisterPins remove all previously created pin handles of this device from the GPIO registry
+func (d *Dev) UnregisterPins() error {
+	for i := 0; i < 16; i++ {
+		err := gpioreg.Unregister(d.pinName(i))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (p *pin) String() string {
 	return p.Name()
 }
@@ -60,8 +71,12 @@ func (p *pin) Halt() error {
 	return p.Out(gpio.Low)
 }
 
+func (d *Dev) pinName(channel int) string {
+	return fmt.Sprintf("PCA9685_%x_%d", d.dev.Addr, channel)
+}
+
 func (p *pin) Name() string {
-	return fmt.Sprintf("PCA9685_%x_%d", p.dev.dev.Addr, p.channel)
+	return p.dev.pinName(p.channel)
 }
 
 func (p *pin) Number() int {
@@ -100,8 +115,17 @@ func (p *pin) PWM(duty gpio.Duty, freq physic.Frequency) error {
 	if err := p.dev.SetPwmFreq(freq); err != nil {
 		return err
 	}
-	// PWM duty scaled down from 24 to 16 bits
-	scaled := duty >> 8
+
+	if duty == gpio.DutyMax {
+		return p.dev.SetFullOn(p.channel)
+	}
+
+	if duty == 0 {
+		return p.dev.SetFullOff(p.channel)
+	}
+
+	// PWM duty scaled down from 24 to 12 bits
+	scaled := duty >> 12
 	if scaled > dutyMax {
 		scaled = dutyMax
 	}

@@ -39,7 +39,7 @@ func TestPCA9685_pin(t *testing.T) {
 			{Addr: I2CAddr, W: []byte{0x00, allCall | ai | restart}, R: nil},
 
 			// Set PWM value of pin 0 to 50%
-			{Addr: I2CAddr, W: []byte{led0OnL, 0, 0, 0, 128}, R: nil},
+			{Addr: I2CAddr, W: []byte{led0OnL, 0, 0, 0, 0x08}, R: nil},
 		},
 	}
 
@@ -51,9 +51,98 @@ func TestPCA9685_pin(t *testing.T) {
 	if err = dev.RegisterPins(); err != nil {
 		t.Fatal(err)
 	}
+	defer dev.UnregisterPins()
 
 	pin := gpioreg.ByName("PCA9685_40_0")
 	pin.PWM(gpio.DutyHalf, 50*physic.Hertz)
+}
+
+func TestPCA9685_pin_fullOff(t *testing.T) {
+	scenario := &i2ctest.Playback{
+		Ops: []i2ctest.IO{
+			// All leds cleared by init
+			{Addr: I2CAddr, W: []byte{allLedOnL, 0, 0, 0, 0}, R: nil},
+			// mode2 is set
+			{Addr: I2CAddr, W: []byte{mode2, outDrv}, R: nil},
+			// mode1 is set
+			{Addr: I2CAddr, W: []byte{mode1, allCall}, R: nil},
+			// mode1 is read and sleep bit is cleared
+			{Addr: I2CAddr, W: []byte{mode1}, R: []byte{allCall | sleep}},
+			{Addr: I2CAddr, W: []byte{mode1, allCall | ai}, R: nil},
+
+			// SetPwmFreq 50 Hz
+			// Read mode
+			{Addr: I2CAddr, W: []byte{0x00}, R: []byte{allCall | ai}},
+			// Set sleep
+			{Addr: I2CAddr, W: []byte{0x00, allCall | ai | sleep}, R: nil},
+			// Set prescale
+			{Addr: I2CAddr, W: []byte{prescale, 122}, R: nil},
+			// Clear sleep
+			{Addr: I2CAddr, W: []byte{0x00, allCall | ai}, R: nil},
+			// Set Restart
+			{Addr: I2CAddr, W: []byte{0x00, allCall | ai | restart}, R: nil},
+
+			// Set PWM value of pin 0 to 0%
+			{Addr: I2CAddr, W: []byte{led0OnL + 3, 0x10}, R: nil},
+		},
+	}
+
+	dev, err := NewI2C(scenario, I2CAddr)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err = dev.RegisterPins(); err != nil {
+		t.Fatal(err)
+	}
+	defer dev.UnregisterPins()
+
+	pin := gpioreg.ByName("PCA9685_40_0")
+	pin.PWM(0, 50*physic.Hertz)
+}
+
+func TestPCA9685_pin_fullOn(t *testing.T) {
+	scenario := &i2ctest.Playback{
+		Ops: []i2ctest.IO{
+			// All leds cleared by init
+			{Addr: I2CAddr, W: []byte{allLedOnL, 0, 0, 0, 0}, R: nil},
+			// mode2 is set
+			{Addr: I2CAddr, W: []byte{mode2, outDrv}, R: nil},
+			// mode1 is set
+			{Addr: I2CAddr, W: []byte{mode1, allCall}, R: nil},
+			// mode1 is read and sleep bit is cleared
+			{Addr: I2CAddr, W: []byte{mode1}, R: []byte{allCall | sleep}},
+			{Addr: I2CAddr, W: []byte{mode1, allCall | ai}, R: nil},
+
+			// SetPwmFreq 50 Hz
+			// Read mode
+			{Addr: I2CAddr, W: []byte{0x00}, R: []byte{allCall | ai}},
+			// Set sleep
+			{Addr: I2CAddr, W: []byte{0x00, allCall | ai | sleep}, R: nil},
+			// Set prescale
+			{Addr: I2CAddr, W: []byte{prescale, 122}, R: nil},
+			// Clear sleep
+			{Addr: I2CAddr, W: []byte{0x00, allCall | ai}, R: nil},
+			// Set Restart
+			{Addr: I2CAddr, W: []byte{0x00, allCall | ai | restart}, R: nil},
+
+			// Set PWM value of pin 0 to 100%
+			{Addr: I2CAddr, W: []byte{led0OnL + 1, 0x10, 0, 0}, R: nil},
+		},
+	}
+
+	dev, err := NewI2C(scenario, I2CAddr)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err = dev.RegisterPins(); err != nil {
+		t.Fatal(err)
+	}
+	defer dev.UnregisterPins()
+
+	pin := gpioreg.ByName("PCA9685_40_0")
+	pin.PWM(gpio.DutyMax, 50*physic.Hertz)
 }
 
 func TestPCA9685(t *testing.T) {
@@ -82,7 +171,7 @@ func TestPCA9685(t *testing.T) {
 			{Addr: I2CAddr, W: []byte{0x00, allCall | ai | restart}, R: nil},
 
 			// Set PWM value of pin 0 to 50%
-			{Addr: I2CAddr, W: []byte{led0OnL, 0, 0, 0, 128}, R: nil},
+			{Addr: I2CAddr, W: []byte{led0OnL, 0, 0, 0, 0x08}, R: nil},
 		},
 	}
 
@@ -91,7 +180,7 @@ func TestPCA9685(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err = dev.SetPwm(0, 0, 0x8000); err != nil {
+	if err = dev.SetPwm(0, 0, 0x800); err != nil {
 		t.Fatal(err)
 	}
 }

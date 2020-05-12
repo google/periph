@@ -145,3 +145,27 @@ func (d *Dev) SetAllPwm(on, off gpio.Duty) error {
 func (d *Dev) SetPwm(channel int, on, off gpio.Duty) error {
 	return d.setPWM(led0OnL+byte(4*channel), on, off)
 }
+
+// SetFullOff sets PWM duty to 0%.
+//
+// This function uses the dedicated bit to reduce bus traffic.
+func (d *Dev) SetFullOff(channel int) error {
+	_, err := d.dev.Write([]byte{
+		led0OnL + byte(4*channel) + 3, // LEDX_OFF_H
+		0x10,                          // bit 4 is full-off
+	})
+	return err
+}
+
+// SetFullOn sets PWM duty to 100%.
+//
+// This function uses the dedicated FULL_ON bit.
+func (d *Dev) SetFullOn(channel int) error {
+	_, err := d.dev.Write([]byte{
+		led0OnL + byte(4*channel) + 1, // LEDX_ON_H
+		0x10,                          // bit 4 is full-on
+		0,
+		0, // LEDX_OFF_H is cleared because full-off has a priority over full-on
+	})
+	return err
+}
