@@ -5,6 +5,7 @@
 package pca9685
 
 import (
+	"fmt"
 	"time"
 
 	"periph.io/x/periph/conn/gpio"
@@ -143,5 +144,48 @@ func (d *Dev) SetAllPwm(on, off gpio.Duty) error {
 
 // SetPwm set a PWM value for a given PCA9685 channel.
 func (d *Dev) SetPwm(channel int, on, off gpio.Duty) error {
+	err := verifyChannel(channel)
+	if err != nil {
+		return err
+	}
 	return d.setPWM(led0OnL+byte(4*channel), on, off)
+}
+
+// SetFullOff sets PWM duty to 0%.
+//
+// This function uses the dedicated bit to reduce bus traffic.
+func (d *Dev) SetFullOff(channel int) error {
+	err := verifyChannel(channel)
+	if err != nil {
+		return err
+	}
+	_, err = d.dev.Write([]byte{
+		led0OnL + byte(4*channel) + 3, // LEDX_OFF_H
+		0x10,                          // bit 4 is full-off
+	})
+	return err
+}
+
+// SetFullOn sets PWM duty to 100%.
+//
+// This function uses the dedicated FULL_ON bit.
+func (d *Dev) SetFullOn(channel int) error {
+	err := verifyChannel(channel)
+	if err != nil {
+		return err
+	}
+	_, err = d.dev.Write([]byte{
+		led0OnL + byte(4*channel) + 1, // LEDX_ON_H
+		0x10,                          // bit 4 is full-on
+		0,
+		0, // LEDX_OFF_H is cleared because full-off has a priority over full-on
+	})
+	return err
+}
+
+func verifyChannel(channel int) error {
+	if channel < 0 || channel > 15 {
+		return fmt.Errorf("PCA9685: invalid channel: %d", channel)
+	}
+	return nil
 }
