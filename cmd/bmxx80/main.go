@@ -56,7 +56,7 @@ func run(dev physic.SenseEnv, interval time.Duration) error {
 	if err != nil {
 		return err
 	}
-	chanSignal := make(chan os.Signal)
+	chanSignal := make(chan os.Signal, 1)
 	signal.Notify(chanSignal, os.Interrupt)
 	for {
 		select {

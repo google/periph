@@ -43,7 +43,7 @@ func All() map[string][][]pin.Pin {
 func Position(p pin.Pin) (string, int) {
 	mu.Lock()
 	defer mu.Unlock()
-	pos, _ := byPin[realPin(p).Name()]
+	pos := byPin[realPin(p).Name()]
 	return pos.name, pos.number
 }
 

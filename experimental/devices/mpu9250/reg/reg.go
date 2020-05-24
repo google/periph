@@ -2,6 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Package reg defines constants for the MPU9250.
 package reg
 
 // Unsorted mix of register addresses, commands and constants.

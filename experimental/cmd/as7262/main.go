@@ -9,6 +9,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"periph.io/x/periph/conn/i2c/i2creg"
@@ -46,6 +48,9 @@ func mainImpl() error {
 	defer sensor.Halt()
 
 	fmt.Println("ctrl+c to quit")
+	var halt = make(chan os.Signal, 1)
+	signal.Notify(halt, syscall.SIGTERM)
+	signal.Notify(halt, syscall.SIGINT)
 
 	senseTime := time.Millisecond * 300
 
@@ -57,6 +62,8 @@ func mainImpl() error {
 				return fmt.Errorf("sensor reading error: %v", err)
 			}
 			fmt.Println(spectrum)
+		case <-halt:
+			return nil
 		}
 	}
 }

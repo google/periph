@@ -164,7 +164,7 @@ func TestDrawWritesBlackImageToSpi(t *testing.T) {
 	buf := bytes.Buffer{}
 	dev, _ := New(spitest.NewRecordRaw(&buf))
 	black := color.RGBA{0, 0, 0, 0}
-	if err := dev.Draw(dev.Bounds(), &image.Uniform{black}, image.ZP); err != nil {
+	if err := dev.Draw(dev.Bounds(), &image.Uniform{black}, image.Point{}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -219,7 +219,7 @@ func TestDrawWritesWhiteImageToSpi(t *testing.T) {
 	buf := bytes.Buffer{}
 	dev, _ := New(spitest.NewRecordRaw(&buf))
 	white := color.RGBA{255, 255, 255, 255}
-	if err := dev.Draw(dev.Bounds(), &image.Uniform{white}, image.ZP); err != nil {
+	if err := dev.Draw(dev.Bounds(), &image.Uniform{white}, image.Point{}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -291,7 +291,7 @@ func TestDrawWritesSequenceImageToSpi(t *testing.T) {
 			img.Set(x, y, clr)
 		}
 	}
-	if err := dev.Draw(dev.Bounds(), img, image.ZP); err != nil {
+	if err := dev.Draw(dev.Bounds(), img, image.Point{}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -354,7 +354,7 @@ func TestDrawSupportsPartialUpdates(t *testing.T) {
 	buf := bytes.Buffer{}
 	dev, _ := New(spitest.NewRecordRaw(&buf))
 	white := color.RGBA{0xFF, 0xFF, 0xFF, 0xFF}
-	if err := dev.Draw(image.Rect(0, 0, 3, 3), &image.Uniform{white}, image.ZP); err != nil {
+	if err := dev.Draw(image.Rect(0, 0, 3, 3), &image.Uniform{white}, image.Point{}); err != nil {
 		t.Fatal(err)
 	}
 

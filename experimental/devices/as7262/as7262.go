@@ -240,12 +240,12 @@ func (d *Dev) Halt() error {
 	d.cancel()
 	// A receive can always proceed on a closed channel we can use that
 	// to signal that the running process has been canceled correctly.
-	_, _ = <-d.done
+	<-d.done
 	return nil
 }
 
 func (d *Dev) String() string {
-	return fmt.Sprintf("AMS AS7262 6 channel visible spectrum sensor")
+	return "AMS AS7262 6 channel visible spectrum sensor"
 }
 
 // Gain is the sensor gain for all bands

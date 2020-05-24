@@ -2,6 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Package accelerometer contains constants for the MPU9250.
 package accelerometer
 
 // Valid accelerator values.

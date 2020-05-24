@@ -1923,12 +1923,10 @@ func dtoi(d decimal, scale int) (int64, bool) {
 	switch {
 	case d.exp+scale < 0:
 		u = (u + powerOf10[mag]/2) / powerOf10[mag]
-		break
 	case mag == 0:
 		if u > maxInt64 {
 			return 0, true
 		}
-		break
 	default:
 		check := u * powerOf10[mag]
 		if check/powerOf10[mag] != u || check > maxInt64 {
@@ -2020,7 +2018,6 @@ func atod(s string) (decimal, int, error) {
 				return decimal{}, 0, &parseError{errNotANumber}
 			}
 			end = i
-			break
 		}
 	}
 

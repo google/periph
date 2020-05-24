@@ -146,11 +146,13 @@ func (d *Dev) NextFrame(f *Frame) error {
 		if err := d.readFrame(f); err != nil {
 			return err
 		}
-		if f.Metadata.FFCDesired {
-			// TODO(maruel): Automatically trigger FFC when applicable, only do if
-			// the camera has a shutter.
-			//go d.RunFFC()
-		}
+		/*
+			if f.Metadata.FFCDesired {
+				// TODO(maruel): Automatically trigger FFC when applicable, only do if
+				// the camera has a shutter.
+				go d.RunFFC()
+			}
+		*/
 		// Sadly the Lepton will unconditionally send 27fps, even if the effective
 		// rate is 9fps.
 		if !equalUint16(d.prevImg.Pix, f.Gray14.Pix) {

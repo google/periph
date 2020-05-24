@@ -92,5 +92,5 @@ func mainImpl() error {
 	}
 
 	log.Printf("Drawing image...")
-	return dev.Draw(img.Bounds(), img, image.ZP)
+	return dev.Draw(img.Bounds(), img, image.Point{})
 }

@@ -57,7 +57,7 @@ func (c *Color) Set(s string) error {
 	case "white":
 		*c = White
 	default:
-		return fmt.Errorf("Unknown color %q: expected either black, red, yellow or white", s)
+		return fmt.Errorf("unknown color %q: expected either black, red, yellow or white", s)
 	}
 	return nil
 }
@@ -90,7 +90,7 @@ func (m *Model) Set(s string) error {
 	case "WHAT":
 		*m = WHAT
 	default:
-		return fmt.Errorf("Unknown model %q: expected either PHAT or WHAT", s)
+		return fmt.Errorf("unknown model %q: expected either PHAT or WHAT", s)
 	}
 	return nil
 }
@@ -278,7 +278,7 @@ func (d *Dev) Draw(dstRect image.Rectangle, src image.Image, srcPtrs image.Point
 
 // DrawAll redraws the whole display.
 func (d *Dev) DrawAll(src image.Image) error {
-	return d.Draw(d.Bounds(), src, image.ZP)
+	return d.Draw(d.Bounds(), src, image.Point{})
 }
 
 func (d *Dev) update(border byte, black []byte, red []byte) (err error) {

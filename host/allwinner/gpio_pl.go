@@ -478,7 +478,7 @@ func (d *driverGPIOPL) After() []string {
 func (d *driverGPIOPL) Init() (bool, error) {
 	// BUG(maruel): H3 supports group PL too.
 	if !IsA64() {
-		return false, errors.New("A64 CPU not detected")
+		return false, errors.New("no A64 CPU detected")
 	}
 
 	// Mark the right pins as available even if the memory map fails so they can

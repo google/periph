@@ -127,8 +127,12 @@ func (e *eventsListener) init() error {
 		return err
 	}
 	e.r, e.w, err = os.Pipe()
+	if err != nil {
+		e.mu.Unlock()
+		return err
+	}
 	// Only need epollIN. epollPRI has no effect on pipes.
-	if err := e.addFdInner(e.r.Fd(), epollET|epollIN); err != nil {
+	if err = e.addFdInner(e.r.Fd(), epollET|epollIN); err != nil {
 		// This object will not be reusable at this point.
 		e.mu.Unlock()
 		return err

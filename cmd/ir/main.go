@@ -42,7 +42,7 @@ func mainImpl() error {
 	}
 	c := i.Channel()
 
-	ctrlC := make(chan os.Signal)
+	ctrlC := make(chan os.Signal, 1)
 	signal.Notify(ctrlC, os.Interrupt)
 
 	first := true

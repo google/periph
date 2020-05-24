@@ -107,5 +107,5 @@ func (r *registerCache) getAndSetBit(bit uint8, value bool, cached bool) error {
 
 func (r *registerCache) getBit(bit uint8, cached bool) (bool, error) {
 	v, err := r.readValue(cached)
-	return 0 != (v & (1 << bit)), err
+	return (v & (1 << bit)) != 0, err
 }

@@ -124,7 +124,7 @@ func (d *driver) After() []string {
 
 func (d *driver) Init() (bool, error) {
 	if !Present() {
-		return false, errors.New("Hardkernel ODROID-C0/C1/C1+ board not detected")
+		return false, errors.New("board Hardkernel ODROID-C0/C1/C1+ not detected")
 	}
 	J2_3 = sysfsPin(74)
 	J2_5 = sysfsPin(75)

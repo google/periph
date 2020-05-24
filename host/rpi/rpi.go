@@ -784,7 +784,7 @@ func (d *driver) After() []string {
 
 func (d *driver) Init() (bool, error) {
 	if !Present() {
-		return false, errors.New("Raspberry Pi board not detected")
+		return false, errors.New("board Raspberry Pi not detected")
 	}
 
 	// Setup headers based on board revision.

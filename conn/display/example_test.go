@@ -28,9 +28,9 @@ func ExampleDrawer() {
 
 	// Render the image. The normal use case is:
 	// - Use d.Bounds() as the dstRect, to cover the whole screen.
-	// - Use image.ZP/image.Point{} as 'srcPts' unless you want to offset inside
+	// - Use image.Point{} as 'srcPts' unless you want to offset inside
 	//   the image.
-	if err := d.Draw(d.Bounds(), img, image.ZP); err != nil {
+	if err := d.Draw(d.Bounds(), img, image.Point{}); err != nil {
 		log.Fatal(err)
 	}
 }

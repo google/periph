@@ -125,7 +125,7 @@ func TestPCA9685(t *testing.T) {
 
 func TestPCA9685_invalidCh(t *testing.T) {
 	scenario := &i2ctest.Playback{
-		Ops: append(initializationSequence()),
+		Ops: initializationSequence(),
 	}
 
 	dev, err := NewI2C(scenario, I2CAddr)

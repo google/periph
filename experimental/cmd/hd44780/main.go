@@ -51,7 +51,7 @@ func mainFunc() error {
 		return fmt.Errorf("register select pin %s can not be found", *rsPin)
 	}
 	ePinReg := gpioreg.ByName(*ePin)
-	if ePin == nil {
+	if ePinReg == nil {
 		return fmt.Errorf("strobe pin %s can not be found", *ePin)
 	}
 

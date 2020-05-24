@@ -137,7 +137,7 @@ func TestLogPinIO(t *testing.T) {
 }
 
 func TestAll(t *testing.T) {
-	if 2 != len(gpioreg.All()) {
+	if len(gpioreg.All()) != 2 {
 		t.Fatal("expected two pins registered for test")
 	}
 }

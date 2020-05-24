@@ -67,10 +67,7 @@ func (d *debounced) Read() gpio.Level {
 //
 // It is the smoothed out value from the underlying gpio.PinIO.
 func (d *debounced) WaitForEdge(timeout time.Duration) bool {
-	if !d.PinIO.WaitForEdge(timeout) {
-		return false
-	}
-	return true
+	return d.PinIO.WaitForEdge(timeout)
 }
 
 // Halt implements gpio.PinIO.

@@ -60,7 +60,7 @@ func (device *Dev) String() string {
 // Halt sets all the pixels to black. Error is always nil.
 func (device *Dev) Halt() error {
 	black := color.RGBA{0, 0, 0, 0}
-	return device.Draw(device.Bounds(), &image.Uniform{black}, image.ZP)
+	return device.Draw(device.Bounds(), &image.Uniform{black}, image.Point{})
 }
 
 // ColorModel implements devices.Display. There's no surprise, it is

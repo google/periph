@@ -180,7 +180,7 @@ func (s *SmokeTest) testPWM(p1, p2 *loggingPin) error {
 // testFunc tests .Func(), .SetFunc().
 func (s *SmokeTest) testFunc(p *loggingPin) error {
 	if string(p.Func()) != p.Function() {
-		return fmt.Errorf("Func %q != Function %q", p.Func(), p.Function())
+		return fmt.Errorf("unexpected Func %q != Function %q", p.Func(), p.Function())
 	}
 	// This is dependent on testPWM() succeeding.
 	if p.Func() != gpio.IN_LOW {
@@ -273,7 +273,7 @@ func testAliases() error {
 	for i, v := range expectedStr {
 		r, err := regexp.Compile("^" + v + "$")
 		if err != nil {
-			return fmt.Errorf("Accepted #%d is invalid: %q", i, v)
+			return fmt.Errorf("accepted #%d is invalid: %q", i, v)
 		}
 		valid = append(valid, r)
 	}
@@ -288,7 +288,7 @@ func testAliases() error {
 			}
 		}
 		if !ok {
-			return fmt.Errorf("Found unexpected alias %q", n)
+			return fmt.Errorf("found unexpected alias %q", n)
 		}
 	}
 	return nil

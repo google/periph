@@ -41,7 +41,7 @@ func mainImpl() error {
 
 	opts := cap1xxx.DefaultOpts
 	if *i2cAddr != 0 {
-		if *i2cAddr < 0 || *i2cAddr > 65535 {
+		if *i2cAddr > 65535 {
 			return errors.New("invlaid -i2c value")
 		}
 		opts.I2CAddr = uint16(*i2cAddr)
