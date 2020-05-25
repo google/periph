@@ -23,13 +23,13 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        gover: ['1.14.3']
     runs-on: "${{matrix.os}}"
-    name: "go${{matrix.gover}} on ${{matrix.os}}"
+    name: "go on ${{matrix.os}}"
     steps:
     - uses: actions/setup-go@v2
+      # A version must be specified. Ask for the latest.
       with:
-        go-version: "^${{matrix.gover}}"
+        go-version: "^1.14.0"
     - name: 'Cache: pkg/mod'
       uses: actions/cache@v1
       with:
@@ -96,9 +96,9 @@ jobs:
         dir /a %GOPATH%\bin
 
       # Now run proper checks.
-    - name: 'Check: go vet (disabled)'
-      # TODO(maruel): Enable back.
-      if: false
+    - name: 'Check: go vet'
+      # TODO(maruel): Unnecessary with v4.
+      working-directory: src/periph.io/x/periph
       run: go vet ./...
     - name: 'Check: go vet shadow; shadowed variables (posix) (disabled)'
       # TODO(maruel): Enable back.
@@ -115,33 +115,31 @@ jobs:
       run: golint -set_exit_status ./...
     - name: 'Check: inefficient variable assignment'
       if: always()
-      # TODO(maruel): cd is unnecessary with v4.
-      run: |
-        cd src/periph.io/x/periph
-        ineffassign .
+      # TODO(maruel): Unnecessary with v4.
+      working-directory: src/periph.io/x/periph
+      run: ineffassign .
     - name: 'Check: staticcheck'
+      # TODO(maruel): Unnecessary with v4.
+      working-directory: src/periph.io/x/periph
       # TODO(maruel): Enable more checks.
-      # TODO(maruel): cd is unnecessary with v4.
-      run: |
-        cd src/periph.io/x/periph
-        staticcheck -checks all,-U1000,-ST1003,-SA5002,-SA1019 ./...
+      run: staticcheck -checks all,-U1000,-ST1003,-SA5002,-SA1019 ./...
 
       # The following checks are not dependent on the OS or go build tags. Only
       # run them on ubuntu-latest since it's the fastest one.
     - name: 'Check: no executable was committed (ubuntu)'
       if: always() && matrix.os == 'ubuntu-latest'
-      # TODO(maruel): cd is unnecessary with v4.
+      # TODO(maruel): Unnecessary with v4.
+      working-directory: src/periph.io/x/periph
       run: |
-        cd src/periph.io/x/periph
         if find . -path ./.git -prune -o -type f -executable -print | grep -e . ; then
           echo 'Do not commit executables'
           false
         fi
     - name: 'Check: gofmt; code is well formatted (ubuntu)'
       if: always() && matrix.os == 'ubuntu-latest'
-      # TODO(maruel): cd is unnecessary with v4.
+      # TODO(maruel): Unnecessary with v4.
+      working-directory: src/periph.io/x/periph
       run: |
-        cd src/periph.io/x/periph
         FILES=$(gofmt -s -l .)
         if ! test -z "$FILES"; then
           echo 'Please run `gofmt -s -w` on the following files:' >> _gofmt.txt
@@ -158,15 +156,14 @@ jobs:
         fi
     - name: 'Check: addlicense; all sources have a license header (ubuntu)'
       if: always() && matrix.os == 'ubuntu-latest'
-      # TODO(maruel): cd is unnecessary with v4.
-      run: |
-        cd src/periph.io/x/periph
-        addlicense -check .
+      # TODO(maruel): Unnecessary with v4.
+      working-directory: src/periph.io/x/periph
+      run: addlicense -check .
     - name: "Check: misspelling; code doesn't contain misspelling (ubuntu)"
       if: always() && matrix.os == 'ubuntu-latest'
-      # TODO(maruel): cd is unnecessary with v4.
+      # TODO(maruel): Unnecessary with v4.
+      working-directory: src/periph.io/x/periph
       run: |
-        cd src/periph.io/x/periph
         ERR=$(misspell .)
         if ! test -z "$ERR"; then
           echo "$ERR"
@@ -180,35 +177,32 @@ jobs:
       # Run tests last since it's potentially the slowest step.
     - name: 'Check: go test -cover (posix)'
       if: always() && matrix.os != 'windows-latest'
-      # TODO(maruel): cd is unnecessary with v4.
-      run: |
-        cd src/periph.io/x/periph
-        go test -covermode=count -coverprofile=coverage.txt ./...
+      # TODO(maruel): Unnecessary with v4.
+      working-directory: src/periph.io/x/periph
+      run: go test -covermode=count -coverprofile=coverage.txt ./...
     - name: 'Check: go test -cover (windows)'
       if: always() && matrix.os == 'windows-latest'
       # Powershell messes things up.
       shell: cmd
-      # TODO(maruel): cd is unnecessary with v4.
-      run: |
-        cd src\periph.io\x\periph
-        go test -covermode=count -coverprofile=coverage.txt ./...
+      # TODO(maruel): Unnecessary with v4.
+      working-directory: src/periph.io/x/periph
+      run: go test -covermode=count -coverprofile=coverage.txt ./...
       # Don't send code coverage if anything failed to reduce spam.
     - uses: codecov/codecov-action@v1
     - name: 'Cleanup'
       run: rm src/periph.io/x/periph/coverage.txt
       # Don't run go test -race if anything failed, to speed up the results.
     - name: 'Check: go test -race'
-      # TODO(maruel): cd is unnecessary with v4.
-      run: |
-        cd src/periph.io/x/periph
-        go test -race ./...
+      # TODO(maruel): Unnecessary with v4.
+      working-directory: src/periph.io/x/periph
+      run: go test -race ./...
 
     - name: "Check: go generate doesn't modify files (posix)"
       # TODO(maruel): Find a way to enable this check on Windows.
       if: matrix.os != 'windows-latest'
-      # TODO(maruel): cd is unnecessary with v4.
+      # TODO(maruel): Unnecessary with v4.
+      working-directory: src/periph.io/x/periph
       run: |
-        cd src/periph.io/x/periph
         go generate ./...
         TOUCHED=$(git status --porcelain --ignored)
         if ! test -z "$TOUCHED"; then
@@ -220,9 +214,9 @@ jobs:
 
     - name: 'Send comments (posix)'
       if: failure() && matrix.os != 'windows-latest' && github.event_name == 'pull_request'
-      # TODO(maruel): cd is unnecessary with v4.
+      # TODO(maruel): Unnecessary with v4.
+      working-directory: src/periph.io/x/periph
       run: |
-        cd src/periph.io/x/periph
         if [ -f _comments.txt ]; then
           URL=$(cat ${GITHUB_EVENT_PATH} | jq -r .pull_request.comments_url)
           echo "Sending $(cat _comments.txt|wc -l) lines of comments to ${URL}"
@@ -232,3 +226,30 @@ jobs:
             --header "Content-Type: application/json" \
             --data "${PAYLOAD}" "${URL}" > /dev/null
         fi
+
+    # Run on older Go versions while inside GOPATH.
+  test_short:
+    env:
+      GOPATH: ${{github.workspace}}
+      GO111MODULE: auto
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        gover: ['1.7.6']
+    runs-on: "${{matrix.os}}"
+    name: "go${{matrix.gover}} on ${{matrix.os}} (quick)"
+    steps:
+    - uses: actions/setup-go@v2
+      with:
+        go-version: "${{matrix.gover}}"
+    - uses: actions/checkout@v2
+      with:
+        path: src/periph.io/x/periph
+    - name: 'Check: go get -d -t'
+      working-directory: src/periph.io/x/periph
+      run: go get -d -t ./...
+    - name: 'Check: go test'
+      working-directory: src/periph.io/x/periph
+      run: go test ./...

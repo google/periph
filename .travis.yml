@@ -38,15 +38,5 @@ jobs:
       echo 'Erroring on /conn depending on /host:';
       ! go list -f '{{.ImportPath}} depends on {{join .Imports ", "}}' periph.io/x/periph/conn/... | sort | uniq | grep periph.io/x/periph/host
     - >
-      echo 'Erroring on go vet:';
-      go vet ./...
-    - >
       echo 'Erroring on shadowed variables:';
       ! go vet -vettool=$(which shadow) ./... |& grep -v '"err"' | grep -e '^[^#]'
-
-  - go: 1.7.6
-    before_script:
-    - echo $TRAVIS_GO_VERSION
-    - go get -t -v periph.io/x/periph/...
-    script:
-    - go test ./...
