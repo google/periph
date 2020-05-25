@@ -2,6 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+//go:generate go get github.com/tdewolff/minify/cmd/minify
 //go:generate go run internal/static_gen.go -o static_prod.go
 
 package main

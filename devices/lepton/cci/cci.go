@@ -2,7 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-// "stringer" can be installed with "go get golang.org/x/tools/cmd/stringer"
+//go:generate go get golang.org/x/tools/cmd/stringer
 //go:generate stringer -output=strings_gen.go -type=CameraStatus,command,FFCShutterMode,FFCState,ShutterPos,ShutterTempLockoutState
 
 package cci
