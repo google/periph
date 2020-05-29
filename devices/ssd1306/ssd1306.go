@@ -25,6 +25,36 @@ import (
 	"periph.io/x/periph/devices/ssd1306/image1bit"
 )
 
+const (
+	_CHARGEPUMP          = 0x8D
+	_COLUMNADDR          = 0x21
+	_COMSCANDEC          = 0xC8
+	_COMSCANINC          = 0xC0
+	_DISPLAYALLON        = 0xA5
+	_DISPLAYALLON_RESUME = 0xA4
+	_DISPLAYOFF          = 0xAE
+	_DISPLAYON           = 0xAF
+	_EXTERNALVCC         = 0x1
+	_INVERTDISPLAY       = 0xA7
+	_MEMORYMODE          = 0x20
+	_NORMALDISPLAY       = 0xA6
+	_PAGEADDR            = 0x22
+	_PAGESTARTADDRESS    = 0xB0
+	_SEGREMAP            = 0xA0
+	_SETCOMPINS          = 0xDA
+	_SETCONTRAST         = 0x81
+	_SETDISPLAYCLOCKDIV  = 0xD5
+	_SETDISPLAYOFFSET    = 0xD3
+	_SETHIGHCOLUMN       = 0x10
+	_SETLOWCOLUMN        = 0x00
+	_SETMULTIPLEX        = 0xA8
+	_SETPRECHARGE        = 0xD9
+	_SETSEGMENTREMAP     = 0xA1
+	_SETSTARTLINE        = 0x40
+	_SETVCOMDETECT       = 0xDB
+	_SWITCHCAPVCC        = 0x2
+)
+
 // FrameRate determines scrolling speed.
 type FrameRate byte
 
@@ -387,30 +417,28 @@ func (d *Dev) calculateSubset(next []byte) (int, int, int, int, bool) {
 			// Early exit, the image is exactly the same.
 			return 0, 0, 0, 0, true
 		}
-		// TODO(maruel): This currently corrupts the screen. Likely a small error
-		// in the way the commands are sent.
-		/*
-				// Left.
-				for ; startCol < endCol; startCol++ {
-					for i := startPage; i < endPage; i++ {
-						x := i*pageSize + startCol
-						if d.buffer[x] != next[x] {
-							goto breakLeft
-						}
-					}
+
+		// Left.
+		for ; startCol < endCol; startCol++ {
+			for i := startPage; i < endPage; i++ {
+				x := i*pageSize + startCol
+				if d.buffer[x] != next[x] {
+					goto breakLeft
 				}
-			breakLeft:
-				// Right.
-				for ; endCol > startCol; endCol-- {
-					for i := startPage; i < endPage; i++ {
-						x := i*pageSize + endCol - 1
-						if d.buffer[x] != next[x] {
-							goto breakRight
-						}
-					}
+			}
+		}
+	breakLeft:
+
+		// Right.
+		for ; endCol > startCol; endCol-- {
+			for i := startPage; i < endPage; i++ {
+				x := i*pageSize + endCol - 1
+				if d.buffer[x] != next[x] {
+					goto breakRight
 				}
-			breakRight:
-		*/
+			}
+		}
+	breakRight:
 	}
 	return startPage, endPage, startCol, endCol, false
 }
@@ -428,18 +456,25 @@ func (d *Dev) drawInternal(next []byte) error {
 		d.endPage = endPage
 		d.startCol = startCol
 		d.endCol = endCol
-		cmd := []byte{
-			0x21, uint8(d.startCol), uint8(d.endCol - 1), // Set column address (Width)
-			0x22, uint8(d.startPage), uint8(d.endPage - 1), // Set page address (Pages)
+	}
+
+	pageSize := d.rect.Dx()
+	for page := d.startPage; page < d.endPage; page++ {
+		err := d.sendCommand([]byte{
+			_PAGESTARTADDRESS | byte(page),
+			_SETLOWCOLUMN | (byte(d.startCol) & 0x0F),
+			_SETHIGHCOLUMN | (byte(d.startCol) >> 4),
+		})
+		if err != nil {
+			return err
 		}
-		if err := d.sendCommand(cmd); err != nil {
+		pageStart := page * pageSize
+		err = d.sendData(d.buffer[pageStart+d.startCol : pageStart+d.endCol])
+		if err != nil {
 			return err
 		}
 	}
-
-	// Write the subset of the data as needed.
-	pageSize := d.rect.Dx()
-	return d.sendData(d.buffer[startPage*pageSize+startCol : (endPage-1)*pageSize+endCol])
+	return nil
 }
 
 func (d *Dev) sendData(c []byte) error {
