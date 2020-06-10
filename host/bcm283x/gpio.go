@@ -75,6 +75,8 @@ var (
 	GPIO46 *Pin //
 	// Pins 47~53 are not exposed because using them would lead to immediate SD
 	// Card corruption.
+	// Check whether we are running on a bcm2711.
+	is2711 bool
 )
 
 // Present returns true if running on a Broadcom bcm283x based CPU.
@@ -89,8 +91,8 @@ func Present() bool {
 	return false
 }
 
-// Is2711 returns true if running on a Broadcom bcm2711 CPU.
-func Is2711() bool {
+// isOn2711 returns true if running on a Broadcom bcm2711 CPU.
+func isOn2711() bool {
 	if isArm {
 		for _, line := range distro.DTCompatible() {
 			if strings.Contains(line, "bcm2711") {
@@ -422,7 +424,7 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 		// page 84 and 95 ~ 98.
 
 		// If we are running on a BCM2711, set Pull directly.
-		if Is2711() {
+		if is2711 {
 			// GPIO_PUP_PDN_CNTRL_REG0 for GPIO0-15
 			// GPIO_PUP_PDN_CNTRL_REG1 for GPIO16-31
 			// GPIO_PUP_PDN_CNTRL_REG2 for GPIO32-47
@@ -443,11 +445,7 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 			case gpio.Float:
 				pullState = 0
 			}
-			// In compliance with "Write as 0, read as don't care".
-			if p.number > 57 {
-			} else {
-				drvGPIO.gpioMemory.pullRegister[offset] = pullState << uint(2*(p.number%16))
-			}
+			drvGPIO.gpioMemory.pullRegister[offset] = pullState << uint((p.number%16)<<1)
 		} else {
 			// Set Pull
 			switch pull {
@@ -1217,6 +1215,7 @@ func init() {
 	GPIO44 = &cpuPins[44]
 	GPIO45 = &cpuPins[45]
 	GPIO46 = &cpuPins[46]
+	is2711 = isOn2711()
 }
 
 // Changing pull resistor require a 150 cycles sleep.
@@ -1278,7 +1277,7 @@ func (d *driverGPIO) Init() (bool, error) {
 	if strings.Contains(model, "ARMv6") {
 		d.baseAddr = 0x20000000
 		d.dramBus = 0x40000000
-	} else if Is2711() {
+	} else if is2711 {
 		// RPi4B
 		d.baseAddr = 0xFE000000
 		d.dramBus = 0xC0000000
