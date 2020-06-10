@@ -89,6 +89,18 @@ func Present() bool {
 	return false
 }
 
+// Is2711 returns true if running on a Broadcom bcm2711 CPU.
+func Is2711() bool {
+	if isArm {
+		for _, line := range distro.DTCompatible() {
+			if strings.Contains(line, "bcm2711") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // PinsRead0To31 returns the value of all GPIO0 to GPIO31 at their corresponding
 // bit as a single read operation.
 //
@@ -405,25 +417,57 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 		// Changing pull resistor requires a specific dance as described at
 		// https://www.raspberrypi.org/wp-content/uploads/2012/02/BCM2835-ARM-Peripherals.pdf
 		// page 101.
+		// However, BCM2711 uses a simpler way of setting pull resistors, reference at
+		// https://github.com/raspberrypi/documentation/blob/master/hardware/raspberrypi/bcm2711/rpi_DATA_2711_1p0.pdf
+		// page 84 and 95 ~ 98.
 
-		// Set Pull
-		switch pull {
-		case gpio.PullDown:
-			drvGPIO.gpioMemory.pullEnable = 1
-		case gpio.PullUp:
-			drvGPIO.gpioMemory.pullEnable = 2
-		case gpio.Float:
+		// If we are running on a BCM2711, set Pull directly.
+		if Is2711() {
+			// GPIO_PUP_PDN_CNTRL_REG0 for GPIO0-15
+			// GPIO_PUP_PDN_CNTRL_REG1 for GPIO16-31
+			// GPIO_PUP_PDN_CNTRL_REG2 for GPIO32-47
+			// GPIO_PUP_PDN_CNTRL_REG3 for GPIO48-57
+			offset := p.number / 16
+			// Check page 94.
+			// Resistor Select for GPIOXX
+			// 00 = No resistor is selected
+			// 01 = Pull up resistor is selected
+			// 10 = Pull down resistor is selected
+			// 11 = Reserved
+			var pullState uint32
+			switch pull {
+			case gpio.PullDown:
+				pullState = 2
+			case gpio.PullUp:
+				pullState = 1
+			case gpio.Float:
+				pullState = 0
+			}
+			// In compliance with "Write as 0, read as don't care".
+			if p.number > 57 {
+			} else {
+				drvGPIO.gpioMemory.pullRegister[offset] = pullState << uint(2*(p.number%16))
+			}
+		} else {
+			// Set Pull
+			switch pull {
+			case gpio.PullDown:
+				drvGPIO.gpioMemory.pullEnable = 1
+			case gpio.PullUp:
+				drvGPIO.gpioMemory.pullEnable = 2
+			case gpio.Float:
+				drvGPIO.gpioMemory.pullEnable = 0
+			}
+
+			// Datasheet states caller needs to sleep 150 cycles.
+			sleep150cycles()
+			offset := p.number / 32
+			drvGPIO.gpioMemory.pullEnableClock[offset] = 1 << uint(p.number%32)
+
+			sleep150cycles()
 			drvGPIO.gpioMemory.pullEnable = 0
+			drvGPIO.gpioMemory.pullEnableClock[offset] = 0
 		}
-
-		// Datasheet states caller needs to sleep 150 cycles.
-		sleep150cycles()
-		offset := p.number / 32
-		drvGPIO.gpioMemory.pullEnableClock[offset] = 1 << uint(p.number%32)
-
-		sleep150cycles()
-		drvGPIO.gpioMemory.pullEnable = 0
-		drvGPIO.gpioMemory.pullEnableClock[offset] = 0
 	}
 	if edge != gpio.NoEdge {
 		if p.sysfsPin == nil {
@@ -979,6 +1023,9 @@ type function uint8
 // Mapping as
 // https://www.raspberrypi.org/wp-content/uploads/2012/02/BCM2835-ARM-Peripherals.pdf
 // pages 90-91.
+// And
+// https://github.com/raspberrypi/documentation/blob/master/hardware/raspberrypi/bcm2711/rpi_DATA_2711_1p0.pdf
+// pages 83-84.
 type gpioMap struct {
 	// 0x00    RW   GPIO Function Select 0 (GPIO0-9)
 	// 0x04    RW   GPIO Function Select 1 (GPIO10-19)
@@ -1046,7 +1093,18 @@ type gpioMap struct {
 	pullEnableClock [2]uint32 // GPPUDCLK0-GPPUDCLK1
 	// 0xA0    -    Reserved
 	dummy uint32
+	// padding
+	dummy11 [3]uint32
 	// 0xB0    -    Test (byte)
+	test uint32
+	// padding
+	dummy12 [12]uint32
+	// New in BCM2711
+	// 0xE4    RW   GPIO Pull-up / Pull-down Register 0 (GPIO0-15)
+	// 0xE8    RW   GPIO Pull-up / Pull-down Register 1 (GPIO16-31)
+	// 0xEC    RW   GPIO Pull-up / Pull-down Register 2 (GPIO32-47)
+	// 0xF0    RW   GPIO Pull-up / Pull-down Register 3 (GPIO48-57)
+	pullRegister [4]uint32 // GPIO_PUP_PDN_CNTRL_REG0-GPIO_PUP_PDN_CNTRL_REG3
 }
 
 // pad defines the settings for a GPIO pad group.
@@ -1220,6 +1278,10 @@ func (d *driverGPIO) Init() (bool, error) {
 	if strings.Contains(model, "ARMv6") {
 		d.baseAddr = 0x20000000
 		d.dramBus = 0x40000000
+	} else if Is2711() {
+		// RPi4B
+		d.baseAddr = 0xFE000000
+		d.dramBus = 0xC0000000
 	} else {
 		// RPi2+
 		d.baseAddr = 0x3F000000
