@@ -75,8 +75,8 @@ var (
 	GPIO46 *Pin //
 	// Pins 47~53 are not exposed because using them would lead to immediate SD
 	// Card corruption.
-	// Check whether we are running on a bcm2711.
-	is2711 bool
+	// Whether uses the old pull resistor setup method before bcm2711.
+	useLegacyPull bool
 )
 
 // Present returns true if running on a Broadcom bcm283x based CPU.
@@ -84,18 +84,6 @@ func Present() bool {
 	if isArm {
 		for _, line := range distro.DTCompatible() {
 			if strings.HasPrefix(line, "brcm,bcm") {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-// isOn2711 returns true if running on a Broadcom bcm2711 CPU.
-func isOn2711() bool {
-	if isArm {
-		for _, line := range distro.DTCompatible() {
-			if strings.Contains(line, "bcm2711") {
 				return true
 			}
 		}
@@ -423,8 +411,8 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 		// https://github.com/raspberrypi/documentation/blob/master/hardware/raspberrypi/bcm2711/rpi_DATA_2711_1p0.pdf
 		// page 84 and 95 ~ 98.
 
-		// If we are running on a BCM2711, set Pull directly.
-		if is2711 {
+		// If we are running on a newer chip such as BCM2711, set Pull directly.
+		if !useLegacyPull {
 			// GPIO_PUP_PDN_CNTRL_REG0 for GPIO0-15
 			// GPIO_PUP_PDN_CNTRL_REG1 for GPIO16-31
 			// GPIO_PUP_PDN_CNTRL_REG2 for GPIO32-47
@@ -1215,7 +1203,6 @@ func init() {
 	GPIO44 = &cpuPins[44]
 	GPIO45 = &cpuPins[45]
 	GPIO46 = &cpuPins[46]
-	is2711 = isOn2711()
 }
 
 // Changing pull resistor require a 150 cycles sleep.
@@ -1273,18 +1260,24 @@ func (d *driverGPIO) Init() (bool, error) {
 	if !Present() {
 		return false, errors.New("bcm283x CPU not detected")
 	}
-	model := distro.CPUInfo()["model name"]
-	if strings.Contains(model, "ARMv6") {
+	dTCompatible := strings.Join(distro.DTCompatible(), " ")
+	if strings.Contains(dTCompatible, "bcm2708") {
+		// RPi0/1.
 		d.baseAddr = 0x20000000
 		d.dramBus = 0x40000000
-	} else if is2711 {
-		// RPi4B
-		d.baseAddr = 0xFE000000
-		d.dramBus = 0xC0000000
-	} else {
+		useLegacyPull = true
+	} else if strings.Contains(dTCompatible, "bcm2709") {
 		// RPi2+
 		d.baseAddr = 0x3F000000
 		d.dramBus = 0xC0000000
+		useLegacyPull = true
+	} else {
+		// RPi4B+
+		d.baseAddr = 0xFE000000
+		d.dramBus = 0xC0000000
+		// BCM2711 (and perhaps future versions?) uses a simpler way to
+		// setup internal pull resistors.
+		useLegacyPull = false
 	}
 	// Page 6.
 	// Virtual addresses in kernel mode will range between 0xC0000000 and
