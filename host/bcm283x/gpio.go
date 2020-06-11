@@ -519,8 +519,7 @@ func (p *Pin) Pull() gpio.Pull {
 		return gpio.PullNoChange
 	} else {
 		offset := p.number / 16
-		var pullState uint32
-		pullState = (drvGPIO.gpioMemory.pullRegister[offset] >> uint((p.number%16)<<1)) % 4
+		pullState := (drvGPIO.gpioMemory.pullRegister[offset] >> uint((p.number%16)<<1)) % 4
 		switch pullState {
 		case 0:
 			return gpio.Float
