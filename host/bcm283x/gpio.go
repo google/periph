@@ -78,7 +78,7 @@ var (
 
 	// Whether uses the old pull resistor setup method before bcm2711.
 	// If true, older method is used, and Pull() won't give useful information.
-	UseLegacyPull bool
+	UseLegacyPull = true
 )
 
 // Present returns true if running on a Broadcom bcm283x based CPU.
@@ -1221,7 +1221,6 @@ func init() {
 	GPIO44 = &cpuPins[44]
 	GPIO45 = &cpuPins[45]
 	GPIO46 = &cpuPins[46]
-	UseLegacyPull = true
 }
 
 // Changing pull resistor require a 150 cycles sleep.
