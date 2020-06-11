@@ -130,6 +130,19 @@ func TestPin(t *testing.T) {
 	if d := p.Read(); d != gpio.Low {
 		t.Fatal(d)
 	}
+	// gpio.PinIn.Pull()
+	if !UseLegacyPull {
+		if err := p.In(gpio.PullDown, gpio.NoEdge); err != nil {
+			t.Fatal(err)
+		}
+		if d := p.Pull(); d != gpio.PullDown {
+			t.Fatal(d)
+		}
+		// Recover pull state.
+		if err := p.In(gpio.Float, gpio.NoEdge); err != nil {
+			t.Fatal(err)
+		}
+	}
 
 	// gpio.PinOut
 	if err := p.Out(gpio.Low); err != nil {
