@@ -506,8 +506,8 @@ func (p *Pin) WaitForEdge(timeout time.Duration) bool {
 
 // Pull implements gpio.PinIn.
 //
-// bcm2711/bcm2838 support querying the pull resistor of all GPIO pins.
-// Prior to it, bcm283x doesn't support querying the pull resistor of any GPIO pin.
+// bcm2711/bcm2838 support querying the pull resistor of all GPIO pins. Prior
+// to it, bcm283x doesn't support querying the pull resistor of any GPIO pin.
 func (p *Pin) Pull() gpio.Pull {
 	// sysfs does not have the capability to read pull resistor.
 	if drvGPIO.gpioMemory != nil {
@@ -515,17 +515,16 @@ func (p *Pin) Pull() gpio.Pull {
 			// TODO(maruel): The best that could be added is to cache the last set value
 			// and return it.
 			return gpio.PullNoChange
-		} else {
-			offset := p.number / 16
-			pullState := (drvGPIO.gpioMemory.pullRegister[offset] >> uint((p.number%16)<<1)) % 4
-			switch pullState {
-			case 0:
-				return gpio.Float
-			case 1:
-				return gpio.PullUp
-			case 2:
-				return gpio.PullDown
-			}
+		}
+		offset := p.number / 16
+		pullState := (drvGPIO.gpioMemory.pullRegister[offset] >> uint((p.number%16)<<1)) % 4
+		switch pullState {
+		case 0:
+			return gpio.Float
+		case 1:
+			return gpio.PullUp
+		case 2:
+			return gpio.PullDown
 		}
 	}
 	return gpio.PullNoChange
@@ -1251,9 +1250,8 @@ type driverGPIO struct {
 	gpioMemory *gpioMap
 	// gpioBaseAddr is needed for DMA transfers.
 	gpioBaseAddr uint32
-	// Whether uses the old pull resistor setup method before bcm2711.
-	//
-	// If true, older method is used, and Pull() won't give useful information.
+	// useLegacyPull is set when the old slow pull resistor setup method before
+	// bcm2711 must be used.
 	useLegacyPull bool
 }
 
