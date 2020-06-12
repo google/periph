@@ -130,6 +130,13 @@ func TestPin(t *testing.T) {
 	if d := p.Read(); d != gpio.Low {
 		t.Fatal(d)
 	}
+	// gpio.PinIn.Pull()
+	if d := p.Pull(); d != gpio.Float {
+		// If it uses legacy pull method, we can't do anything about it.
+		if !drvGPIO.useLegacyPull {
+			t.Fatal(d)
+		}
+	}
 
 	// gpio.PinOut
 	if err := p.Out(gpio.Low); err != nil {
