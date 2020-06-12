@@ -75,10 +75,6 @@ var (
 	GPIO46 *Pin //
 	// Pins 47~53 are not exposed because using them would lead to immediate SD
 	// Card corruption.
-
-	// Whether uses the old pull resistor setup method before bcm2711.
-	// If true, older method is used, and Pull() won't give useful information.
-	UseLegacyPull = true
 )
 
 // Present returns true if running on a Broadcom bcm283x based CPU.
@@ -414,7 +410,7 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 		// page 84 and 95 ~ 98.
 
 		// If we are running on a newer chip such as BCM2711, set Pull directly.
-		if !UseLegacyPull {
+		if !drvGPIO.useLegacyPull {
 			// GPIO_PUP_PDN_CNTRL_REG0 for GPIO0-15
 			// GPIO_PUP_PDN_CNTRL_REG1 for GPIO16-31
 			// GPIO_PUP_PDN_CNTRL_REG2 for GPIO32-47
@@ -510,23 +506,26 @@ func (p *Pin) WaitForEdge(timeout time.Duration) bool {
 
 // Pull implements gpio.PinIn.
 //
-// bcm283x doesn't support querying the pull resistor of any GPIO pin.
-// bcm2711 support querying the pull resistor of all exported GPIO pins.
+// bcm2711/bcm2838 support querying the pull resistor of all GPIO pins.
+// Prior to it, bcm283x doesn't support querying the pull resistor of any GPIO pin.
 func (p *Pin) Pull() gpio.Pull {
-	if UseLegacyPull {
-		// TODO(maruel): The best that could be added is to cache the last set value
-		// and return it.
-		return gpio.PullNoChange
-	} else {
-		offset := p.number / 16
-		pullState := (drvGPIO.gpioMemory.pullRegister[offset] >> uint((p.number%16)<<1)) % 4
-		switch pullState {
-		case 0:
-			return gpio.Float
-		case 1:
-			return gpio.PullUp
-		case 2:
-			return gpio.PullDown
+	// sysfs does not have the capability to read pull resistor.
+	if drvGPIO.gpioMemory != nil {
+		if drvGPIO.useLegacyPull {
+			// TODO(maruel): The best that could be added is to cache the last set value
+			// and return it.
+			return gpio.PullNoChange
+		} else {
+			offset := p.number / 16
+			pullState := (drvGPIO.gpioMemory.pullRegister[offset] >> uint((p.number%16)<<1)) % 4
+			switch pullState {
+			case 0:
+				return gpio.Float
+			case 1:
+				return gpio.PullUp
+			case 2:
+				return gpio.PullDown
+			}
 		}
 	}
 	return gpio.PullNoChange
@@ -1252,6 +1251,10 @@ type driverGPIO struct {
 	gpioMemory *gpioMap
 	// gpioBaseAddr is needed for DMA transfers.
 	gpioBaseAddr uint32
+	// Whether uses the old pull resistor setup method before bcm2711.
+	//
+	// If true, older method is used, and Pull() won't give useful information.
+	useLegacyPull bool
 }
 
 func (d *driverGPIO) Close() {
@@ -1277,24 +1280,31 @@ func (d *driverGPIO) Init() (bool, error) {
 	if !Present() {
 		return false, errors.New("bcm283x CPU not detected")
 	}
+	// It's kind of messy, some report bcm283x while others show bcm27xx.
+	// Let's play safe here.
 	dTCompatible := strings.Join(distro.DTCompatible(), " ")
-	if strings.Contains(dTCompatible, "bcm2708") {
+	// Reference: https://www.raspberrypi.org/documentation/hardware/raspberrypi/peripheral_addresses.md
+	if strings.Contains(dTCompatible, "bcm2708") ||
+		strings.Contains(dTCompatible, "bcm2835") {
 		// RPi0/1.
 		d.baseAddr = 0x20000000
 		d.dramBus = 0x40000000
-		UseLegacyPull = true
-	} else if strings.Contains(dTCompatible, "bcm2709") {
+		d.useLegacyPull = true
+	} else if strings.Contains(dTCompatible, "bcm2709") ||
+		strings.Contains(dTCompatible, "bcm2836") ||
+		strings.Contains(dTCompatible, "bcm2710") ||
+		strings.Contains(dTCompatible, "bcm2837") {
 		// RPi2+
 		d.baseAddr = 0x3F000000
 		d.dramBus = 0xC0000000
-		UseLegacyPull = true
+		d.useLegacyPull = true
 	} else {
 		// RPi4B+
 		d.baseAddr = 0xFE000000
 		d.dramBus = 0xC0000000
 		// BCM2711 (and perhaps future versions?) uses a simpler way to
 		// setup internal pull resistors.
-		UseLegacyPull = false
+		d.useLegacyPull = false
 	}
 	// Page 6.
 	// Virtual addresses in kernel mode will range between 0xC0000000 and
