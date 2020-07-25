@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/pin"
 	"periph.io/x/periph/experimental/conn/analog"
 )
 
@@ -30,6 +31,7 @@ var (
 // with a gain of 32.
 type InputMode int
 
+// Valid InputMode.
 const (
 	CHANNEL_A_GAIN_128 InputMode = 1
 	CHANNEL_A_GAIN_64  InputMode = 3
@@ -86,7 +88,25 @@ func (d *Dev) Number() int {
 
 // Function implements analog.PinADC.
 func (d *Dev) Function() string {
-	return "ADC"
+	return string(d.Func())
+}
+
+// Func implements analog.PinADC.
+func (d *Dev) Func() pin.Func {
+	return analog.ADC
+}
+
+// SupportedFuncs implements analog.PinADC.
+func (d *Dev) SupportedFuncs() []pin.Func {
+	return []pin.Func{analog.ADC}
+}
+
+// SetFunc implements analog.PinADC.
+func (d *Dev) SetFunc(f pin.Func) error {
+	if f == analog.ADC {
+		return nil
+	}
+	return errors.New("pin function cannot be changed")
 }
 
 // SetInputMode changes the voltage gain and channel multiplexer mode.

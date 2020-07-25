@@ -20,7 +20,7 @@ func ExampleLEDByName() {
 	}
 
 	for _, led := range sysfs.LEDs {
-		fmt.Printf("- %s: %s\n", led, led.Function())
+		fmt.Printf("- %s: %s\n", led, led.Func())
 	}
 	led, err := sysfs.LEDByName("LED0")
 	if err != nil {

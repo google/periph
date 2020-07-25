@@ -72,7 +72,7 @@ func (d *Dev) Switch(channel int, state bool) error {
 	return d.updateStates()
 }
 
-// SwitchAll switches all channels accoring to the state (on/off).
+// SwitchAll switches all channels according to the state (on/off).
 func (d *Dev) SwitchAll(state bool) error {
 	for i := 0; i < 18; i++ {
 		d.on[i] = state
@@ -124,7 +124,7 @@ func (d *Dev) update() error {
 
 func (d *Dev) updateStates() error {
 	mask := d.stateArrayToInt()
-	cmd := [...]byte{cmdEnableLeds, byte(mask & 0x3F), byte((mask >> 6) & 0x3F), byte((mask >> 12) & 0X3F)}
+	cmd := [...]byte{cmdEnableLeds, byte(mask & 0x3F), byte((mask >> 6) & 0x3F), byte((mask >> 12) & 0x3F)}
 	if _, err := d.i2c.Write(cmd[:]); err != nil {
 		return err
 	}

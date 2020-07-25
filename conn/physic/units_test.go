@@ -3675,7 +3675,7 @@ func BenchmarkDecimal(b *testing.B) {
 
 func BenchmarkDecimal2Int(b *testing.B) {
 	d := decimal{1234, 5, false}
-	overflow := false
+	var overflow bool
 	var v int64
 	for i := 0; i < b.N; i++ {
 		if v, overflow = dtoi(d, 0); overflow {
@@ -3690,7 +3690,7 @@ func BenchmarkString2Decimal2Int(b *testing.B) {
 	var d decimal
 	var n int
 	var err error
-	overflow := false
+	var overflow bool
 	var v int64
 	for i := 0; i < b.N; i++ {
 		if d, n, err = atod("337.2m"); err != nil {
@@ -3721,7 +3721,7 @@ func BenchmarkString2Decimal2IntNeg(b *testing.B) {
 	var d decimal
 	var n int
 	var err error
-	overflow := false
+	var overflow bool
 	var v int64
 	for i := 0; i < b.N; i++ {
 		if d, n, err = atod("-337.2m"); err != nil {

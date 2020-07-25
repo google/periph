@@ -46,7 +46,7 @@ func TestPollEdge_Halt(t *testing.T) {
 		// inside WaitForEdge().
 		<-f.wait
 		if err := p.Halt(); err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 	}()
 	// p.die triggers.

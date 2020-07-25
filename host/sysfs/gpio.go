@@ -47,7 +47,7 @@ type Pin struct {
 	fEdge      fileIO    // handle to /sys/class/gpio/gpio*/edge; never closed
 	fValue     fileIO    // handle to /sys/class/gpio/gpio*/value; never closed
 	event      fs.Event  // Initialized once
-	buf        [4]byte   // scratch buffer for Function(), Read() and Out()
+	buf        [4]byte   // scratch buffer for Func(), Read() and Out()
 }
 
 // String implements conn.Resource.
@@ -86,10 +86,10 @@ func (p *Pin) Func() pin.Func {
 	// TODO(maruel): There's an internal bug which causes p.direction to be
 	// invalid (!?) Need to figure it out ASAP.
 	if err := p.open(); err != nil {
-		return pin.Func("ERR")
+		return pin.FuncNone
 	}
 	if _, err := seekRead(p.fDirection, p.buf[:]); err != nil {
-		return pin.Func("ERR")
+		return pin.FuncNone
 	}
 	if p.buf[0] == 'i' && p.buf[1] == 'n' {
 		p.direction = dIn
@@ -107,7 +107,7 @@ func (p *Pin) Func() pin.Func {
 		}
 		return gpio.OUT_LOW
 	}
-	return pin.Func("ERR")
+	return pin.FuncNone
 }
 
 // SupportedFuncs implements pin.PinFunc.

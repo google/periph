@@ -10,6 +10,7 @@ import (
 
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/physic"
+	"periph.io/x/periph/conn/pin"
 )
 
 func TestPin_String(t *testing.T) {
@@ -33,10 +34,10 @@ func TestPin_Number(t *testing.T) {
 	}
 }
 
-func TestPin_Function(t *testing.T) {
+func TestPin_Func(t *testing.T) {
 	p := Pin{number: 42, name: "foo", root: "/tmp/gpio/priv/"}
 	// Fails because open is not mocked.
-	if s := p.Function(); s != "ERR" {
+	if s := p.Func(); s != pin.FuncNone {
 		t.Fatal(s)
 	}
 	p = Pin{
@@ -45,19 +46,19 @@ func TestPin_Function(t *testing.T) {
 		root:       "/tmp/gpio/priv/",
 		fDirection: &fakeGPIOFile{},
 	}
-	if s := p.Function(); s != "ERR" {
+	if s := p.Func(); s != pin.FuncNone {
 		t.Fatal(s)
 	}
 	p.fDirection = &fakeGPIOFile{data: []byte("foo")}
-	if s := p.Function(); s != "ERR" {
+	if s := p.Func(); s != pin.FuncNone {
 		t.Fatal(s)
 	}
 	p.fDirection = &fakeGPIOFile{data: []byte("in")}
-	if s := p.Function(); s != string(gpio.IN_LOW) {
+	if s := p.Func(); s != gpio.IN_LOW {
 		t.Fatal(s)
 	}
 	p.fDirection = &fakeGPIOFile{data: []byte("out")}
-	if s := p.Function(); s != string(gpio.OUT_LOW) {
+	if s := p.Func(); s != gpio.OUT_LOW {
 		t.Fatal(s)
 	}
 }

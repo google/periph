@@ -74,6 +74,18 @@ func (invalidPin) Function() string {
 	return ""
 }
 
+func (invalidPin) Func() pin.Func {
+	return pin.FuncNone
+}
+
+func (invalidPin) SupportedFuncs() []pin.Func {
+	return nil
+}
+
+func (invalidPin) SetFunc(f pin.Func) error {
+	return errInvalidPin
+}
+
 func (invalidPin) Halt() error {
 	return errInvalidPin
 }
@@ -92,3 +104,4 @@ func (invalidPin) Out(v int32) error {
 
 var _ PinADC = &INVALID
 var _ PinDAC = &INVALID
+var _ pin.PinFunc = &INVALID

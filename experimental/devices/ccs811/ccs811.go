@@ -86,7 +86,7 @@ func (d *Dev) errorCodeToError(errorCode SensorErrorID) error {
 	default:
 		errorText = fmt.Sprintf("Uknwown error, code: %d", errorCode)
 	}
-	return fmt.Errorf("Sensor error: %s", errorText)
+	return fmt.Errorf("sensor error: %s", errorText)
 }
 
 // Opts holds the configuration options. The address must be 0x5A or 0x5B.
@@ -108,11 +108,11 @@ var DefaultOpts = Opts{
 // New creates a new driver for CCS811 VOC sensor.
 func New(bus i2c.Bus, opts *Opts) (*Dev, error) {
 	if opts.Addr != 0x5A && opts.Addr != 0x5B {
-		return nil, fmt.Errorf("Invalid device address, only 0x5A or 0x5B are allowed")
+		return nil, fmt.Errorf("invalid device address, only 0x5A or 0x5B are allowed")
 	}
 
 	if opts.MeasurementMode > MeasurementModeConstant250 {
-		return nil, fmt.Errorf("Invalid measurement mode")
+		return nil, fmt.Errorf("invalid measurement mode")
 	}
 
 	dev := &Dev{
@@ -122,14 +122,14 @@ func New(bus i2c.Bus, opts *Opts) (*Dev, error) {
 
 	// From boot mode to measurement mode.
 	if err := dev.StartSensorApp(); err != nil {
-		return nil, fmt.Errorf("Error transitioning from boot do app mode: %v", err)
+		return nil, fmt.Errorf("error transitioning from boot do app mode: %v", err)
 	}
 	mmp := &MeasurementModeParams{MeasurementMode: opts.MeasurementMode,
 		GenerateInterrupt: opts.InterruptWhenReady,
 		UseThreshold:      opts.UseThreshold}
 
 	if err := dev.SetMeasurementModeRegister(*mmp); err != nil {
-		return nil, fmt.Errorf("Error setting measurement mode: %v", err)
+		return nil, fmt.Errorf("error setting measurement mode: %v", err)
 	}
 
 	return dev, nil
@@ -197,10 +197,7 @@ func (d *Dev) GetMeasurementModeRegister() (MeasurementModeParams, error) {
 
 // Reset sets device into the BOOT mode.
 func (d *Dev) Reset() error {
-	if err := d.c.Tx([]byte{resetReg, 0x11, 0xE5, 0x72, 0x8A}, nil); err != nil {
-		return err
-	}
-	return nil
+	return d.c.Tx([]byte{resetReg, 0x11, 0xE5, 0x72, 0x8A}, nil)
 }
 
 // ReadStatus returns value of status register.
@@ -234,14 +231,12 @@ func (d *Dev) SetEnvironmentData(temp, humidity float32) error {
 		byte(rawTemp >> 8),
 		byte(rawTemp)}
 
-	if err := d.c.Tx(w, nil); err != nil {
-		return err
-	}
-	return nil
+	return d.c.Tx(w, nil)
 }
 
-// GetBaseline provides current baseline used by internal measurement alogrithm.
-// For better understanding how to use this value, check the SetBaseline and documentation.
+// GetBaseline provides current baseline used by internal measurement algorithm.
+// For better understanding how to use this value, check the SetBaseline and
+// documentation.
 func (d *Dev) GetBaseline() ([]byte, error) {
 	r := make([]byte, 2)
 	if err := d.c.Tx([]byte{baselineReg}, r); err != nil {
@@ -287,10 +282,7 @@ func (d *Dev) GetBaseline() ([]byte, error) {
 // 2) The baseline must be written after the conditioning period
 func (d *Dev) SetBaseline(baseline []byte) error {
 	w := []byte{baselineReg, baseline[0], baseline[1]}
-	if err := d.c.Tx(w, nil); err != nil {
-		return err
-	}
-	return nil
+	return d.c.Tx(w, nil)
 }
 
 // SensorValues represents data read from the sensor.
@@ -330,7 +322,7 @@ func (d *Dev) Sense(values *SensorValues) error {
 	return d.SensePartial(ReadAll, values)
 }
 
-// SensePartial provides marginaly more efficient reading from the sensor.
+// SensePartial provides marginally more efficient reading from the sensor.
 // You can specify what subset of data you want through NeededData constants.
 func (d *Dev) SensePartial(requested NeededData, values *SensorValues) error {
 	read := make([]byte, requested)

@@ -23,15 +23,15 @@ func TestInitSimple(t *testing.T) {
 	if len(byName) != 1 {
 		t.Fatal(byName)
 	}
-	state, err := Init()
-	if err != nil || len(state.Loaded) != 1 {
-		t.Fatal(state, err)
+	s, err := Init()
+	if err != nil || len(s.Loaded) != 1 {
+		t.Fatal(s, err)
 	}
 
 	// Call a second time, should return the same data.
-	state2, err2 := Init()
-	if err2 != nil || len(state2.Loaded) != len(state.Loaded) || state2.Loaded[0] != state.Loaded[0] {
-		t.Fatal(state2, err2)
+	s2, err2 := Init()
+	if err2 != nil || len(s2.Loaded) != len(s.Loaded) || s2.Loaded[0] != s.Loaded[0] {
+		t.Fatal(s2, err2)
 	}
 }
 
@@ -46,11 +46,11 @@ func TestInitSkip(t *testing.T) {
 			err:     nil,
 		},
 	})
-	state, err := Init()
-	if err != nil || len(state.Skipped) != 1 {
-		t.Fatal(state, err)
+	s, err := Init()
+	if err != nil || len(s.Skipped) != 1 {
+		t.Fatal(s, err)
 	}
-	if s := state.Skipped[0].String(); s != "CPU: <nil>" {
+	if s := s.Skipped[0].String(); s != "CPU: <nil>" {
 		t.Fatal(s)
 	}
 }
@@ -66,11 +66,11 @@ func TestInitErr(t *testing.T) {
 			err:     errors.New("oops"),
 		},
 	})
-	state, err := Init()
-	if err != nil || len(state.Loaded) != 0 || len(state.Failed) != 1 {
-		t.Fatal(state, err)
+	s, err := Init()
+	if err != nil || len(s.Loaded) != 0 || len(s.Failed) != 1 {
+		t.Fatal(s, err)
 	}
-	if s := state.Failed[0].String(); s != "CPU: oops" {
+	if s := s.Failed[0].String(); s != "CPU: oops" {
 		t.Fatal(s)
 	}
 }
@@ -92,9 +92,9 @@ func TestInitPrerequisitesCircular(t *testing.T) {
 			err:     nil,
 		},
 	})
-	state, err := Init()
-	if err == nil || len(state.Loaded) != 0 {
-		t.Fatal(state, err)
+	s, err := Init()
+	if err == nil || len(s.Loaded) != 0 {
+		t.Fatal(s, err)
 	}
 	if err.Error() != "periph: found cycle(s) in drivers dependencies:\nBoard: CPU\nCPU: Board" {
 		t.Fatal(err)
@@ -112,9 +112,9 @@ func TestInitPrerequisitesMissing(t *testing.T) {
 			err:     nil,
 		},
 	})
-	state, err := Init()
-	if err == nil || len(state.Loaded) != 0 {
-		t.Fatal(state, err)
+	s, err := Init()
+	if err == nil || len(s.Loaded) != 0 {
+		t.Fatal(s, err)
 	}
 }
 
@@ -129,9 +129,9 @@ func TestInitAfterMissing(t *testing.T) {
 			err:   nil,
 		},
 	})
-	state, err := Init()
-	if err != nil || len(state.Loaded) != 1 {
-		t.Fatal(state, err)
+	s, err := Init()
+	if err != nil || len(s.Loaded) != 1 {
+		t.Fatal(s, err)
 	}
 }
 
@@ -152,9 +152,9 @@ func TestDependencySkipped(t *testing.T) {
 			err:     nil,
 		},
 	})
-	state, err := Init()
-	if err != nil || len(state.Skipped) != 2 {
-		t.Fatal(state, err)
+	s, err := Init()
+	if err != nil || len(s.Skipped) != 2 {
+		t.Fatal(s, err)
 	}
 }
 

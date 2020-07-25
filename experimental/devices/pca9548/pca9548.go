@@ -42,7 +42,7 @@ type Dev struct {
 // New creates a new handle to a pca9548 I²C multiplexer.
 func New(bus i2c.Bus, opts *Opts) (*Dev, error) {
 	if opts.Addr < 0x70 || opts.Addr > 0x77 {
-		return nil, errors.New("Address outside valid range of 0x70-0x77")
+		return nil, errors.New("address outside valid range of 0x70-0x77")
 	}
 	d := &Dev{
 		c:          bus,

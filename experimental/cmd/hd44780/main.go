@@ -48,17 +48,17 @@ func mainFunc() error {
 
 	rsPinReg := gpioreg.ByName(*rsPin)
 	if rsPinReg == nil {
-		return fmt.Errorf("Register select pin %s can not be found", *rsPin)
+		return fmt.Errorf("register select pin %s can not be found", *rsPin)
 	}
 	ePinReg := gpioreg.ByName(*ePin)
-	if ePin == nil {
-		return fmt.Errorf("Strobe pin %s can not be found", *ePin)
+	if ePinReg == nil {
+		return fmt.Errorf("strobe pin %s can not be found", *ePin)
 	}
 
 	var dataPins [4]gpio.PinOut
 	for i, pinName := range pinsStr {
 		if dataPins[i] = gpioreg.ByName(pinName); dataPins[i] == nil {
-			return fmt.Errorf("Data pin %s can not be found", pinName)
+			return fmt.Errorf("data pin %s can not be found", pinName)
 		}
 	}
 

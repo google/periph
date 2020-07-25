@@ -71,11 +71,7 @@ func (r *Dev) Reset() error {
 		return err
 	}
 
-	if err := r.bulkSendData(initSequence, r.writeInstruction); err != nil {
-		return err
-	}
-
-	return nil
+	return r.bulkSendData(initSequence, r.writeInstruction)
 }
 
 func (r *Dev) String() string {
@@ -95,10 +91,7 @@ func (r *Dev) Halt() error {
 //	line - screen line, 0-based
 //	column - column, 0-based
 func (r *Dev) SetCursor(line uint8, column uint8) error {
-	if err := r.writeInstruction(0x80 | (line*lineTwo + column)); err != nil {
-		return err
-	}
-	return nil
+	return r.writeInstruction(0x80 | (line*lineTwo + column))
 }
 
 // Print the data string
@@ -187,20 +180,14 @@ func (r *Dev) sendInstruction() error {
 	if err := r.rsPin.Out(gpio.Low); err != nil {
 		return err
 	}
-	if err := r.enablePin.Out(gpio.Low); err != nil {
-		return err
-	}
-	return nil
+	return r.enablePin.Out(gpio.Low)
 }
 
 func (r *Dev) sendData() error {
 	if err := r.rsPin.Out(gpio.High); err != nil {
 		return err
 	}
-	if err := r.enablePin.Out(gpio.Low); err != nil {
-		return err
-	}
-	return nil
+	return r.enablePin.Out(gpio.Low)
 }
 
 func (r *Dev) writeInstruction(data uint8) error {
@@ -224,10 +211,7 @@ func (r *Dev) strobe() error {
 		return err
 	}
 	delayUs(2)
-	if err := r.enablePin.Out(gpio.Low); err != nil {
-		return err
-	}
-	return nil
+	return r.enablePin.Out(gpio.Low)
 }
 
 func delayUs(ms uint) {

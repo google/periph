@@ -20,7 +20,7 @@ import (
 // The meaning of the return value is documented at
 // https://www.kernel.org/doc/Documentation/vm/pagemap.txt
 func ReadPageMap(virtAddr uintptr) (uint64, error) {
-	if !isLinux {
+	if !isLinux || isWSL() {
 		return 0, errors.New("pmem: pagemap is not supported on this platform")
 	}
 	return readPageMapLinux(virtAddr)

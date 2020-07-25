@@ -6,11 +6,14 @@ package hx711
 
 import (
 	"errors"
+	"reflect"
 	"testing"
 	"time"
 
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpiotest"
+	"periph.io/x/periph/conn/pin"
+	"periph.io/x/periph/experimental/conn/analog"
 )
 
 func TestNew(t *testing.T) {
@@ -31,6 +34,18 @@ func TestNew(t *testing.T) {
 	}
 	if f := d.Function(); f != "ADC" {
 		t.Fatal(f)
+	}
+	if f := d.Func(); f != analog.ADC {
+		t.Fatal(f)
+	}
+	if v := d.SupportedFuncs(); !reflect.DeepEqual(v, []pin.Func{analog.ADC}) {
+		t.Fatal(v)
+	}
+	if err := d.SetFunc(analog.ADC); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.SetFunc(pin.FuncNone); err == nil {
+		t.Fatal("expected failure")
 	}
 	min, max := d.Range()
 	// TODO(davidsansome): Is that the right values?

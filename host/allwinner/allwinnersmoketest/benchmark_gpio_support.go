@@ -390,7 +390,7 @@ func toHz(r *testing.BenchmarkResult) physic.Frequency {
 		timeRes = time.Millisecond
 	}
 
-	// Leverage the fact that the number of occurences is generally a large
+	// Leverage the fact that the number of occurrences is generally a large
 	// base10. Still, make sure to keep at least 6 digits of resolution.
 	factor := int64(1)
 	for (n%10) == 0 && n > 1000000 {

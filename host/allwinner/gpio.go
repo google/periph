@@ -111,7 +111,7 @@ func (p *Pin) Func() pin.Func {
 	}
 	if drvGPIO.gpioMemory == nil {
 		if p.sysfsPin == nil {
-			return pin.Func("ERR")
+			return pin.FuncNone
 		}
 		return p.sysfsPin.Func()
 	}
@@ -994,7 +994,7 @@ func (d *driverGPIO) After() []string {
 // for the exact processor model detected.
 func (d *driverGPIO) Init() (bool, error) {
 	if !Present() {
-		return false, errors.New("Allwinner CPU not detected")
+		return false, errors.New("no Allwinner CPU detected")
 	}
 
 	// Mark the right pins as available even if the memory map fails so they can

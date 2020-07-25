@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strconv"
 
 	"periph.io/x/periph"
 	"periph.io/x/periph/conn/gpio"
@@ -311,92 +310,208 @@ var (
 	SO_200 pin.Pin    = pin.DC_IN      // VBAT
 )
 
-// driver implements periph.Driver.
-type driver struct {
+//
+
+// revisionCode processes the CPU revision code based on documentation at
+// https://www.raspberrypi.org/documentation/hardware/raspberrypi/revision-codes/README.md
+//
+//    Format is: uuuuuuuuFMMMCCCCPPPPTTTTTTTTRRRR
+//                       2  2   1   1       0   0
+//                       3  0   6   2       4   0
+type revisionCode uint32
+
+// parseRevision processes the old style revision codes to new style bitpacked
+// format.
+func parseRevision(v uint32) (revisionCode, error) {
+	w := revisionCode(v) & warrantyVoid
+	switch v &^ uint32(warrantyVoid) {
+	case 0x2, 0x3:
+		return w | newFormat | memory256MB | egoman | bcm2835 | board1B, nil
+	case 0x4:
+		return w | newFormat | memory256MB | sonyUK | bcm2835 | board1B | 2, nil // v2.0
+	case 0x5:
+		return w | newFormat | memory256MB | bcm2835 | board1B | 2, nil // v2.0 Qisda
+	case 0x6:
+		return w | newFormat | memory256MB | egoman | bcm2835 | board1B | 2, nil // v2.0
+	case 0x7:
+		return w | newFormat | memory256MB | egoman | bcm2835 | board1A | 2, nil // v2.0
+	case 0x8:
+		return w | newFormat | memory256MB | sonyUK | bcm2835 | board1A | 2, nil // v2.0
+	case 0x9:
+		return w | newFormat | memory256MB | bcm2835 | board1A | 2, nil // v2.0 Qisda
+	case 0xd:
+		return w | newFormat | memory512MB | egoman | bcm2835 | board1B | 2, nil // v2.0
+	case 0xe:
+		return w | newFormat | memory512MB | sonyUK | bcm2835 | board1B | 2, nil // v2.0
+	case 0xf:
+		return w | newFormat | memory512MB | egoman | bcm2835 | board1B | 2, nil // v2.0
+	case 0x10:
+		return w | newFormat | memory512MB | sonyUK | bcm2835 | board1BPlus | 2, nil // v1.2
+	case 0x11:
+		return w | newFormat | memory512MB | sonyUK | bcm2835 | boardCM1, nil
+	case 0x12:
+		return w | newFormat | memory256MB | sonyUK | bcm2835 | board1APlus | 1, nil // v1.1
+	case 0x13:
+		return w | newFormat | memory512MB | embest | bcm2835 | board1BPlus | 2, nil // v1.2
+	case 0x14:
+		return w | newFormat | memory512MB | embest | bcm2835 | boardCM1, nil
+	case 0x15:
+		// Can be either 256MB or 512MB.
+		return w | newFormat | memory256MB | embest | bcm2835 | board1APlus | 1, nil // v1.1
+	default:
+		if v&uint32(newFormat) == 0 {
+			return 0, fmt.Errorf("rpi: unknown hardware version: 0x%x", v)
+		}
+		return revisionCode(v), nil
+	}
 }
 
-func (d *driver) String() string {
-	return "rpi"
+const (
+	warrantyVoid      revisionCode = 1 << 24
+	newFormat         revisionCode = 1 << 23
+	memoryShift                    = 20
+	memoryMask        revisionCode = 0x7 << memoryShift
+	manufacturerShift              = 16
+	manufacturerMask  revisionCode = 0xf << manufacturerShift
+	processorShift                 = 12
+	processorMask     revisionCode = 0xf << processorShift
+	boardShift                     = 4
+	boardMask         revisionCode = 0xff << boardShift
+	revisionMask      revisionCode = 0xf << 0
+
+	memory256MB revisionCode = 0 << memoryShift
+	memory512MB revisionCode = 1 << memoryShift
+	memory1GB   revisionCode = 2 << memoryShift
+	memory2GB   revisionCode = 3 << memoryShift
+	memory4GB   revisionCode = 4 << memoryShift
+
+	sonyUK    revisionCode = 0 << manufacturerShift
+	egoman    revisionCode = 1 << manufacturerShift
+	embest    revisionCode = 2 << manufacturerShift
+	sonyJapan revisionCode = 3 << manufacturerShift
+	embest2   revisionCode = 4 << manufacturerShift
+	stadium   revisionCode = 5 << manufacturerShift
+
+	bcm2835 revisionCode = 0 << processorShift
+	bcm2836 revisionCode = 1 << processorShift
+	bcm2837 revisionCode = 2 << processorShift
+	bcm2711 revisionCode = 3 << processorShift
+
+	board1A       revisionCode = 0x0 << boardShift
+	board1B       revisionCode = 0x1 << boardShift
+	board1APlus   revisionCode = 0x2 << boardShift
+	board1BPlus   revisionCode = 0x3 << boardShift
+	board2B       revisionCode = 0x4 << boardShift
+	boardAlpha    revisionCode = 0x5 << boardShift
+	boardCM1      revisionCode = 0x6 << boardShift
+	board3B       revisionCode = 0x8 << boardShift
+	boardZero     revisionCode = 0x9 << boardShift
+	boardCM3      revisionCode = 0xa << boardShift
+	boardZeroW    revisionCode = 0xc << boardShift
+	board3BPlus   revisionCode = 0xd << boardShift
+	board3APlus   revisionCode = 0xe << boardShift
+	boardReserved revisionCode = 0xf << boardShift
+	boardCM3Plus  revisionCode = 0x10 << boardShift
+	board4B       revisionCode = 0x11 << boardShift
+)
+
+// features represents the different features on various Raspberry Pi boards.
+//
+// See https://github.com/raspberrypi/firmware/blob/master/extra/dt-blob.dts
+// for the official mapping.
+type features struct {
+	hdrP1P26    bool // P1 has 26 pins
+	hdrP1P40    bool // P1 has 40 pins
+	hdrP5       bool // P5 is present
+	hdrAudio    bool // Audio header is present
+	audioLeft41 bool // AUDIO_LEFT uses GPIO41 (RPi3 and later) instead of GPIO45 (old boards)
+	hdrHDMI     bool // At least one HDMI port is present
+	hdrSODIMM   bool // SODIMM port is present
 }
 
-func (d *driver) Prerequisites() []string {
+func (f *features) init(v uint32) error {
+	r, err := parseRevision(v)
+	if err != nil {
+		return err
+	}
+	// Ignore the overclock bit.
+	r &^= warrantyVoid
+	switch r & boardMask {
+	case board1A:
+		f.hdrP1P26 = true
+		f.hdrAudio = true
+		// Only the v2 PCB has the P5 header.
+		if r&revisionMask == 2 {
+			f.hdrP5 = true
+			f.hdrHDMI = true
+		}
+	case board1B:
+		f.hdrP1P26 = true
+		f.hdrAudio = true
+		// Only the v2 PCB has the P5 header.
+		if r&revisionMask == 2 {
+			f.hdrP5 = true
+			f.hdrHDMI = true
+		}
+	case board1APlus:
+		f.hdrP1P40 = true
+		f.hdrAudio = true
+		f.hdrHDMI = true
+	case board1BPlus:
+		f.hdrP1P40 = true
+		f.hdrAudio = true
+		f.hdrHDMI = true
+	case board2B:
+		f.hdrP1P40 = true
+		f.hdrAudio = true
+		f.hdrHDMI = true
+	case boardAlpha:
+	case boardCM1:
+		// TODO: define CM1 SODIMM header if anyone ever needs it. Please file an
+		// issue at https://github.com/google/periph/issues/new/choose
+	case board3B:
+		f.hdrP1P40 = true
+		f.hdrAudio = true
+		f.audioLeft41 = true
+		f.hdrHDMI = true
+	case boardZero:
+		f.hdrP1P40 = true
+		f.hdrHDMI = true
+	case boardCM3:
+		// Tell CM3 and CM3-Lite apart, if possible.
+		f.hdrSODIMM = true
+	case boardZeroW:
+		f.hdrP1P40 = true
+		f.hdrHDMI = true
+	case board3BPlus:
+		f.hdrP1P40 = true
+		f.hdrAudio = true
+		f.audioLeft41 = true
+		f.hdrHDMI = true
+	case board3APlus:
+		f.hdrP1P40 = true
+		f.hdrAudio = true
+		f.audioLeft41 = true
+		f.hdrHDMI = true
+	case boardReserved:
+	case boardCM3Plus:
+		// Tell CM3 and CM3-Lite apart, if possible.
+		f.hdrSODIMM = true
+	case board4B:
+		f.hdrP1P40 = true
+		f.hdrAudio = true
+		f.audioLeft41 = true
+		f.hdrHDMI = true
+	default:
+		return fmt.Errorf("rpi: unknown hardware version: 0x%x", r)
+	}
 	return nil
 }
 
-func (d *driver) After() []string {
-	return []string{"bcm283x-gpio"}
-}
-
-func (d *driver) Init() (bool, error) {
-	if !Present() {
-		return false, errors.New("Raspberry Pi board not detected")
-	}
-
-	// Setup headers based on board revision.
-	//
-	// This code is not futureproof, it will error out on a Raspberry Pi 4
-	// whenever it comes out.
-	// Revision codes from: http://elinux.org/RPi_HardwareHistory
-	has26PinP1Header := false
-	has40PinP1Header := false
-	hasP5Header := false
-	hasAudio := false
-	hasNewAudio := false
-	hasHDMI := false
-	hasSODimm := false
-	rev := distro.CPUInfo()["Revision"]
-	if i, err := strconv.ParseInt(rev, 16, 32); err == nil {
-		// Ignore the overclock bit.
-		i &= 0xFFFFFF
-		switch i {
-		case 0x0002, 0x0003: // B v1.0
-			has26PinP1Header = true
-			hasAudio = true
-		case 0x0004, 0x0005, 0x0006, // B v2.0
-			0x0007, 0x0008, 0x0009, // A v2.0
-			0x000d, 0x000e, 0x000f: // B v2.0
-			has26PinP1Header = true
-			// Only the v2 PCB has the P5 header.
-			hasP5Header = true
-			hasAudio = true
-			hasHDMI = true
-		case 0x0010, // B+ v1.0
-			0x0012,             // A+ v1.1
-			0x0013,             // B+ v1.2
-			0x0015,             // A+ v1.1
-			0x90021,            // A+ v1.1
-			0x90032,            // B+ v1.2
-			0xa01040,           // 2 Model B v1.0
-			0xa01041, 0xa21041, // 2 Model B v1.1
-			0xa22042: // 2 Model B v1.2
-			has40PinP1Header = true
-			hasAudio = true
-			hasHDMI = true
-		case 0x900092, // Zero v1.2
-			0x900093, // Zero v1.3
-			0x920093, // Zero v1.3
-			0x9000c1: // Zero W v1.1
-			has40PinP1Header = true
-			hasHDMI = true
-		case 0x0011, // Compute Module 1
-			0x0014: // Compute Module 1
-			// SODIMM not defined
-		case 0xa020a0: // Compute Module 3 v1.0
-			hasSODimm = true
-			// tell CM3 and CM3-Lite apart, if possible
-		case 0xa02082, 0xa22082, 0xa32082, 0xa020d3: // 3 Model B v1.2, B+
-			has40PinP1Header = true
-			hasAudio = true
-			hasNewAudio = true
-			hasHDMI = true
-		default:
-			return true, fmt.Errorf("rpi: unknown hardware version: 0x%x", i)
-		}
-	} else {
-		return true, fmt.Errorf("rpi: failed to read cpu_info: %v", err)
-	}
-
-	if has26PinP1Header {
+// registerHeaders registers the headers for this board and fixes the GPIO
+// global variables.
+func (f *features) registerHeaders() error {
+	if f.hdrP1P26 {
 		if err := pinreg.Register("P1", [][]pin.Pin{
 			{P1_1, P1_2},
 			{P1_3, P1_4},
@@ -412,7 +527,7 @@ func (d *driver) Init() (bool, error) {
 			{P1_23, P1_24},
 			{P1_25, P1_26},
 		}); err != nil {
-			return true, err
+			return err
 		}
 
 		// TODO(maruel): Models from 2012 and earlier have P1_3=GPIO0, P1_5=GPIO1 and P1_13=GPIO21.
@@ -432,7 +547,7 @@ func (d *driver) Init() (bool, error) {
 		P1_38 = gpio.INVALID
 		P1_39 = pin.INVALID
 		P1_40 = gpio.INVALID
-	} else if has40PinP1Header {
+	} else if f.hdrP1P40 {
 		if err := pinreg.Register("P1", [][]pin.Pin{
 			{P1_1, P1_2},
 			{P1_3, P1_4},
@@ -455,7 +570,7 @@ func (d *driver) Init() (bool, error) {
 			{P1_37, P1_38},
 			{P1_39, P1_40},
 		}); err != nil {
-			return true, err
+			return err
 		}
 	} else {
 		P1_1 = pin.INVALID
@@ -501,14 +616,14 @@ func (d *driver) Init() (bool, error) {
 	}
 
 	// Only the A and B v2 PCB has the P5 header.
-	if hasP5Header {
+	if f.hdrP5 {
 		if err := pinreg.Register("P5", [][]pin.Pin{
 			{P5_1, P5_2},
 			{P5_3, P5_4},
 			{P5_5, P5_6},
 			{P5_7, P5_8},
 		}); err != nil {
-			return true, err
+			return err
 		}
 	} else {
 		P5_1 = pin.INVALID
@@ -521,7 +636,7 @@ func (d *driver) Init() (bool, error) {
 		P5_8 = pin.INVALID
 	}
 
-	if hasSODimm {
+	if f.hdrSODIMM {
 		if err := pinreg.Register("SO", [][]pin.Pin{
 			{SO_1, SO_2},
 			{SO_3, SO_4},
@@ -624,28 +739,69 @@ func (d *driver) Init() (bool, error) {
 			{SO_197, SO_198},
 			{SO_199, SO_200},
 		}); err != nil {
-			return true, err
+			return err
 		}
 	}
 
-	if hasAudio {
-		if !hasNewAudio {
-			AUDIO_LEFT = bcm283x.GPIO45 // PWM1
+	if f.hdrAudio {
+		// Two early versions of RPi1 had left and right reversed but we don't
+		// bother handling this here.
+		// https://github.com/raspberrypi/firmware/blob/master/extra/dt-blob.dts
+		if !f.audioLeft41 {
+			AUDIO_LEFT = bcm283x.GPIO45 // PWM1 for older boards
 		}
 		if err := pinreg.Register("AUDIO", [][]pin.Pin{
 			{AUDIO_LEFT},
 			{AUDIO_RIGHT},
 		}); err != nil {
-			return true, err
+			return err
 		}
 	}
 
-	if hasHDMI {
+	if f.hdrHDMI {
 		if err := pinreg.Register("HDMI", [][]pin.Pin{{HDMI_HOTPLUG_DETECT}}); err != nil {
-			return true, err
+			return err
 		}
 	}
-	return true, nil
+	return nil
+}
+
+// driver implements periph.Driver.
+type driver struct {
+}
+
+func (d *driver) String() string {
+	return "rpi"
+}
+
+func (d *driver) Prerequisites() []string {
+	return nil
+}
+
+func (d *driver) After() []string {
+	return []string{"bcm283x-gpio"}
+}
+
+func (d *driver) Init() (bool, error) {
+	if !Present() {
+		return false, errors.New("board Raspberry Pi not detected")
+	}
+
+	// Setup headers based on board revision.
+	//
+	// This code is not futureproof, it will error out on a Raspberry Pi 4
+	// whenever it comes out.
+	// Revision codes from: http://elinux.org/RPi_HardwareHistory
+	f := features{}
+	rev := distro.DTRevision()
+	if rev == 0 {
+		return true, fmt.Errorf("rpi: failed to obtain revision")
+	}
+	if err := f.init(rev); err != nil {
+		return true, err
+	}
+
+	return true, f.registerHeaders()
 }
 
 func init() {

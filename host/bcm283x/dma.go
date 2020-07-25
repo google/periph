@@ -10,9 +10,31 @@
 // The way it works under the hood is that the bcm283x has two registers, one
 // to set a bit and one to clear a bit.
 //
-// So two DMA controllers are used, one writing a "clear bit" stream and one
-// for the "set bit" stream. This requires two independent 32 bits wide streams
-// per period for write but only one for read.
+// Each pin using PWM will get its own DMA channel. Each channel writes a
+// stream of "set bit" followed by "clear bit".
+//
+//      <--------------- PWM period --------------->
+//      <-- Duty cycle -->
+// High __________________                          ______
+//      |                |                          |
+//      |                |                          |
+//      |                |                          |
+// Low  |                |__________________________|
+//      **************************************************
+//      ^each * is a DMA cycle
+//
+// For each DMA cycle, a control block (size 32 bytes) sets or clears the bit.
+// Control blocks are chained together, with the last one looping back to the
+// first. The number of control blocks is:
+// # control block = frequency of the DMA channel / requested PWM frequency
+//
+// Important: those control blocks are allocated in the video memory. On a
+// Raspberry Pi, this can configured, with a default at 64 MB.
+// For each PWM signal, the memory usage is:
+// size = 32 * frequency of the DMA channel / requested PWM frequency
+// Example, for 1 Hz:
+// size = 32 * 200 000 / 1 = 6400000, so around 6MB
+//
 //
 // References
 //
@@ -412,6 +434,11 @@ type controlBlock struct {
 	reserved [2]uint32 // 0x18+0x1C
 }
 
+const (
+	controlBlockSize = 32
+	uint32Size       = 4
+)
+
 // initBlock initializes a controlBlock for any valid DMA operation.
 //
 // l is in bytes, not in words.
@@ -494,16 +521,16 @@ func (c *controlBlock) GoString() string {
 //
 // Page 39.
 type dmaChannel struct {
-	cs           dmaStatus                  // 0x00 CS
-	cbAddr       uint32                     // 0x04 CONNBLK_AD *controlBlock in physical address space; rounded to 32 bytes
-	transferInfo dmaTransferInfo            // 0x08 TI (RO) Copyied by DMA on start from cbAddr
-	srcAddr      uint32                     // 0x0C SOURCE_AD (RO) Copyied by DMA on start from cbAddr
-	dstAddr      uint32                     // 0x10 DEST_AD (RO) Copyied by DMA on start from cbAddr
-	txLen        dmaTransferLen             // 0x14 TXFR_LEN (RO) Copyied by DMA on start from cbAddr
-	stride       dmaStride                  // 0x18 STRIDE (RO) Copyied by DMA on start from cbAddr
-	nextCB       uint32                     // 0x1C NEXTCONBK Only safe to edit when DMA is paused
-	debug        dmaDebug                   // 0x20 DEBUG
-	reserved     [(0x100 - 0x24) / 4]uint32 // 0x24
+	cs           dmaStatus                           // 0x00 CS
+	cbAddr       uint32                              // 0x04 CONNBLK_AD *controlBlock in physical address space; rounded to 32 bytes
+	transferInfo dmaTransferInfo                     // 0x08 TI (RO) Copyied by DMA on start from cbAddr
+	srcAddr      uint32                              // 0x0C SOURCE_AD (RO) Copyied by DMA on start from cbAddr
+	dstAddr      uint32                              // 0x10 DEST_AD (RO) Copyied by DMA on start from cbAddr
+	txLen        dmaTransferLen                      // 0x14 TXFR_LEN (RO) Copyied by DMA on start from cbAddr
+	stride       dmaStride                           // 0x18 STRIDE (RO) Copyied by DMA on start from cbAddr
+	nextCB       uint32                              // 0x1C NEXTCONBK Only safe to edit when DMA is paused
+	debug        dmaDebug                            // 0x20 DEBUG
+	reserved     [(0x100 - 0x24) / uint32Size]uint32 // 0x24
 }
 
 func (d *dmaChannel) isAvailable() bool {
@@ -713,17 +740,17 @@ func dmaWritePWMFIFO() (*dmaChannel, *videocore.Mem, error) {
 	if drvDMA.dmaMemory == nil {
 		return nil, nil, errors.New("bcm283x-dma is not initialized; try running as root?")
 	}
-	cb, buf, err := allocateCB(32 + 4) // CB + data
+	cb, buf, err := allocateCB(controlBlockSize + uint32Size) // CB + data
 	if err != nil {
 		return nil, nil, err
 	}
 	u := buf.Uint32()
-	offsetBytes := uint32(32)
-	u[offsetBytes/4] = 0x0
+	offsetBytes := uint32(controlBlockSize)
+	u[offsetBytes/uint32Size] = 0x0
 	physBuf := uint32(buf.PhysAddr())
 	physBit := physBuf + offsetBytes
 	dest := drvDMA.pwmBaseAddr + 0x18 // PWM FIFO
-	if err := cb[0].initBlock(physBit, dest, 4, false, true, false, false, dmaPWM); err != nil {
+	if err := cb[0].initBlock(physBit, dest, uint32Size, false, true, false, false, dmaPWM); err != nil {
 		_ = buf.Close()
 		return nil, nil, err
 	}
@@ -743,35 +770,45 @@ func startPWMbyDMA(p *Pin, rng, data uint32) (*dmaChannel, *videocore.Mem, error
 	if drvDMA.dmaMemory == nil {
 		return nil, nil, errors.New("bcm283x-dma is not initialized; try running as root?")
 	}
-	cb, buf, err := allocateCB(2*32 + 4) // 2 CBs + mask
+
+	cb, buf, err := allocateCB(int(rng)*controlBlockSize + uint32Size) // rng CBs + mask
 	if err != nil {
 		return nil, nil, err
 	}
 	u := buf.Uint32()
-	cbBytes := uint32(32)
-	offsetBytes := cbBytes * 2
-	u[offsetBytes/4] = uint32(1) << uint(p.number&31)
+	offsetBytes := controlBlockSize * rng
+	u[offsetBytes/uint32Size] = uint32(1) << uint(p.number&31)
 	physBuf := uint32(buf.PhysAddr())
 	physBit := physBuf + offsetBytes
 	dest := [2]uint32{
-		drvGPIO.gpioBaseAddr + 0x28 + 4*uint32(p.number/32), // clear
-		drvGPIO.gpioBaseAddr + 0x1C + 4*uint32(p.number/32), // set
+		drvGPIO.gpioBaseAddr + 0x28 + uint32Size*uint32(p.number/32), // clear
+		drvGPIO.gpioBaseAddr + 0x1C + uint32Size*uint32(p.number/32), // set
 	}
 	// High
-	if err := cb[0].initBlock(physBit, dest[1], data*4, false, true, false, false, dmaPWM); err != nil {
-		_ = buf.Close()
-		return nil, nil, err
+	ptr := physBuf
+	for i := uint32(0); i < data; i++ {
+		if err := cb[i].initBlock(physBit, dest[1], uint32Size, false, true, false, false, dmaPWM); err != nil {
+			_ = buf.Close()
+			return nil, nil, err
+		}
+		ptr += controlBlockSize
+		cb[i].nextCB = ptr
 	}
-	cb[0].nextCB = physBuf + cbBytes
 	// Low
-	if err := cb[1].initBlock(physBit, dest[0], (rng-data)*4, false, true, false, false, dmaPWM); err != nil {
-		_ = buf.Close()
-		return nil, nil, err
+	for i := data; i < rng; i++ {
+
+		if err := cb[i].initBlock(physBit, dest[0], uint32Size, false, true, false, false, dmaPWM); err != nil {
+			_ = buf.Close()
+			return nil, nil, err
+		}
+		ptr += controlBlockSize
+		cb[i].nextCB = ptr
+
 	}
-	cb[1].nextCB = physBuf // Loop back to cb[0]
+	cb[rng].nextCB = physBuf // Loop back to cb[0]
 
 	var blacklist []int
-	if data*4 >= 1<<16 || (rng-data)*4 >= 1<<16 {
+	if rng*uint32Size >= 1<<16 {
 		// Don't use lite channels.
 		blacklist = []int{7, 8, 9, 10, 11, 12, 13, 14, 15}
 	}
@@ -816,25 +853,25 @@ func dmaReadStream(p *Pin, b *gpiostream.BitStream) error {
 	// hand one could read 32 contiguous pins simultaneously at no cost.
 	// TODO(simokawa): Implement a function to get number of bits for all type of
 	// Stream
-	l := len(b.Bits) * 8 * 4 * int(skip)
+	l := len(b.Bits) * 8 * uint32Size * int(skip)
 	// TODO(simokawa): Allocate multiple pages and CBs for huge buffer.
 	buf, err := drvDMA.dmaBufAllocator((l + 0xFFF) &^ 0xFFF)
 	if err != nil {
 		return err
 	}
 	defer buf.Close()
-	cb, pCB, err := allocateCB(4)
+	cb, pCB, err := allocateCB(uint32Size)
 	if err != nil {
 		return err
 	}
 	defer pCB.Close()
 
-	reg := drvGPIO.gpioBaseAddr + 0x34 + 4*uint32(p.number/32) // GPIO Pin Level 0
+	reg := drvGPIO.gpioBaseAddr + 0x34 + uint32Size*uint32(p.number/32) // GPIO Pin Level 0
 	if err := cb[0].initBlock(reg, uint32(buf.PhysAddr()), uint32(l), true, false, false, true, dmaPWM); err != nil {
 		return err
 	}
 	err = runIO(pCB, l <= maxLite)
-	uint32ToBitLSBF(b.Bits, buf.Bytes(), uint8(p.number&31), skip*4)
+	uint32ToBitLSBF(b.Bits, buf.Bytes(), uint8(p.number&31), skip*uint32Size)
 	return err
 }
 
@@ -865,7 +902,7 @@ func dmaWriteStreamEdges(p *Pin, w gpiostream.Stream) error {
 		bits = v.Bits
 		msb = !v.LSBF
 	default:
-		return fmt.Errorf("Unknown type: %T", v)
+		return fmt.Errorf("unknown type: %T", v)
 	}
 	skip, err := overSamples(w)
 	if err != nil {
@@ -886,7 +923,7 @@ func dmaWriteStreamEdges(p *Pin, w gpiostream.Stream) error {
 		stride += uint32(skip)
 	}
 	// 32 bytes for each CB and 4 bytes for the mask.
-	bufBytes := count*32 + 4
+	bufBytes := count*controlBlockSize + uint32Size
 	cb, buf, err := allocateCB((bufBytes + 0xFFF) &^ 0xFFF)
 	if err != nil {
 		return err
@@ -896,8 +933,8 @@ func dmaWriteStreamEdges(p *Pin, w gpiostream.Stream) error {
 	// Setup the single mask buffer of 4Kb.
 	mask := uint32(1) << uint(p.number&31)
 	u := buf.Uint32()
-	offset := (len(buf.Bytes()) - 4)
-	u[offset/4] = mask
+	offset := (len(buf.Bytes()) - uint32Size)
+	u[offset/uint32Size] = mask
 	physBit := uint32(buf.PhysAddr()) + uint32(offset)
 
 	// Other constants during the loop.
@@ -905,8 +942,8 @@ func dmaWriteStreamEdges(p *Pin, w gpiostream.Stream) error {
 	// Use PWM's rng1 instead for this.
 	//waits := divs - 1
 	dest := [2]uint32{
-		drvGPIO.gpioBaseAddr + 0x28 + 4*uint32(p.number/32), // clear
-		drvGPIO.gpioBaseAddr + 0x1C + 4*uint32(p.number/32), // set
+		drvGPIO.gpioBaseAddr + 0x28 + uint32Size*uint32(p.number/32), // clear
+		drvGPIO.gpioBaseAddr + 0x1C + uint32Size*uint32(p.number/32), // set
 	}
 
 	// Render the controlBlock's to trigger the bit trigger for either Set or
@@ -916,19 +953,18 @@ func dmaWriteStreamEdges(p *Pin, w gpiostream.Stream) error {
 	stride = uint32(skip)
 	for i := 1; i < l; i++ {
 		if v := getBit(bits[i/8], i%8, msb); v != last || stride == maxLite {
-			if err := cb[index].initBlock(physBit, dest[last], stride*4, false, true, false, false, dmaPWM); err != nil {
+			if err := cb[index].initBlock(physBit, dest[last], stride*uint32Size, false, true, false, false, dmaPWM); err != nil {
 				return err
 			}
-			// Hardcoded len(controlBlock) == 32. It is not necessary to use
-			// physToUncachedPhys() here.
-			cb[index].nextCB = uint32(buf.PhysAddr()) + uint32(32*(index+1))
+			// It is not necessary to use physToUncachedPhys() here.
+			cb[index].nextCB = uint32(buf.PhysAddr()) + controlBlockSize*uint32(index+1)
 			index++
 			stride = 0
 			last = v
 		}
 		stride += uint32(skip)
 	}
-	if err := cb[index].initBlock(physBit, dest[last], stride*4, false, true, false, false, dmaPWM); err != nil {
+	if err := cb[index].initBlock(physBit, dest[last], stride*uint32Size, false, true, false, false, dmaPWM); err != nil {
 		return err
 	}
 
@@ -953,7 +989,7 @@ func dmaWriteStreamDualChannel(p *Pin, w gpiostream.Stream) error {
 		return err
 	}
 	// Calculates the number of needed bytes.
-	l := int(int64(w.Duration())*int64(w.Frequency())/int64(physic.Hertz)) * skip * 4
+	l := int(int64(w.Duration())*int64(w.Frequency())/int64(physic.Hertz)) * skip * uint32Size
 	bufLen := (l + 0xFFF) &^ 0xFFF
 	bufSet, err := drvDMA.dmaBufAllocator(bufLen)
 	if err != nil {
@@ -984,11 +1020,11 @@ func dmaWriteStreamDualChannel(p *Pin, w gpiostream.Stream) error {
 		return err
 	}
 
-	regSet := drvGPIO.gpioBaseAddr + 0x1C + 4*uint32(p.number/32)
+	regSet := drvGPIO.gpioBaseAddr + 0x1C + uint32Size*uint32(p.number/32)
 	if err := cb[0].initBlock(uint32(bufSet.PhysAddr()), regSet, uint32(l), false, true, true, false, dmaPWM); err != nil {
 		return err
 	}
-	regClear := drvGPIO.gpioBaseAddr + 0x28 + 4*uint32(p.number/32)
+	regClear := drvGPIO.gpioBaseAddr + 0x28 + uint32Size*uint32(p.number/32)
 	if err := cb[1].initBlock(uint32(bufClear.PhysAddr()), regClear, uint32(l), false, true, true, false, dmaPWM); err != nil {
 		return err
 	}
@@ -1008,8 +1044,8 @@ func dmaWriteStreamDualChannel(p *Pin, w gpiostream.Stream) error {
 	defer chClear.reset()
 
 	// Two channel need to be synchronized but there is not such a mechanism.
-	chSet.startIO(uint32(pCB.PhysAddr()))        // cb[0]
-	chClear.startIO(uint32(pCB.PhysAddr()) + 32) // cb[1]
+	chSet.startIO(uint32(pCB.PhysAddr()))                      // cb[0]
+	chClear.startIO(uint32(pCB.PhysAddr()) + controlBlockSize) // cb[1]
 
 	err1 := chSet.wait()
 	err2 := chClear.wait()
@@ -1050,8 +1086,8 @@ func smokeTest() error {
 		return errors.New("unexpected hardware: DMA enable is not fully set")
 	}
 
-	const size = 4096 * 4 // 16kb
-	const holeSize = 1    // Minimum DMA alignment
+	const size = 4096 * uint32Size // 16kb
+	const holeSize = 1             // Minimum DMA alignment
 
 	alloc := func(s int) (pmem.Mem, error) {
 		return videocore.Alloc(s)
@@ -1113,8 +1149,8 @@ type driverDMA struct {
 	// - Load data from a FIFO storage block, to extent to 8 32-bit words (256
 	//   bits).
 	//
-	// Author note: 100Mhz base resolution with a 256 bits 1-bit stream is actually
-	// good enough to generate a DAC.
+	// Author note: 100Mhz base resolution with a 256 bits 1-bit stream is
+	// actually good enough to generate a DAC.
 	pwmMemory *pwmMap
 
 	// These clocks are shared with hardware PWM, DMA driven PWM and BitStream.
@@ -1123,7 +1159,7 @@ type driverDMA struct {
 	pwmDMACh    *dmaChannel
 	pwmDMABuf   *videocore.Mem
 
-	// dmaBufAllocator is overriden for unit testing.
+	// dmaBufAllocator is overridden for unit testing.
 	dmaBufAllocator func(s int) (*videocore.Mem, error) // Set to videocore.Alloc
 }
 

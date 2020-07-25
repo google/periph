@@ -35,9 +35,9 @@ type AuthStatus byte
 
 // NewLowLevelSPI creates and initializes the RFID card reader attached to SPI.
 //
-// 	spiPort - the SPI device to use.
-// 	resetPin - reset GPIO pin.
-// 	irqPin - irq GPIO pin.
+//  spiPort - the SPI device to use.
+//  resetPin - reset GPIO pin.
+//  irqPin - irq GPIO pin.
 func NewLowLevelSPI(spiPort spi.Port, resetPin gpio.PinOut, irqPin gpio.PinIn) (*LowLevel, error) {
 	if resetPin == nil {
 		return nil, wrapf("reset pin is not set")
@@ -96,7 +96,7 @@ func (r *LowLevel) Init() error {
 	return r.SetAntenna(true)
 }
 
-// setAntenna configures the antenna state, on/off.
+// SetAntenna configures the antenna state, on/off.
 func (r *LowLevel) SetAntenna(state bool) error {
 	if state {
 		current, err := r.DevRead(TxControlReg)
@@ -301,8 +301,8 @@ func (r *LowLevel) CardWrite(command byte, data []byte) ([]byte, int, error) {
 	n := byte(0)
 
 	for ; i > 0; i-- {
-		n, err := r.DevRead(CommIrqReg)
-		if err != nil {
+		var err error
+		if n, err = r.DevRead(CommIrqReg); err != nil {
 			return nil, -1, err
 		}
 		if n&(irqWait|1) != 0 {

@@ -57,7 +57,7 @@ func (d *driver) String() string {
 }
 
 func (d *driver) Prerequisites() []string {
-	return []string{"am335x"}
+	return []string{"am335x", "sysfs-gpio"}
 }
 
 func (d *driver) After() []string {

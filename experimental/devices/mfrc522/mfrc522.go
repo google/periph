@@ -35,6 +35,7 @@ type Key [6]byte
 // DefaultKey  provides the default bytes for card authentication for method B.
 var DefaultKey = Key{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
 
+// TODO(maruel): Move to Opts pattern. Even golint complains about this.
 type config struct {
 	defaultTimeout time.Duration
 	beforeCall     func()
@@ -51,7 +52,7 @@ func WithTimeout(timeout time.Duration) configF {
 	}
 }
 
-// WithSyncsets the synchronization for the entire device, using internal mutex.
+// WithSync sets the synchronization for the entire device, using internal mutex.
 func WithSync() configF {
 	var mu sync.Mutex
 	return func(c *config) *config {
@@ -120,6 +121,20 @@ func (r *Dev) SetAntennaGain(gain int) error {
 	}
 	r.LowLevel.SetAntennaGain(gain)
 	return nil
+}
+
+// ReadUID reads the card UID with IRQ event timeout.
+//
+//  timeout   the operation timeout
+func (r *Dev) ReadUID(timeout time.Duration) (uid []byte, err error) {
+	r.beforeCall()
+	defer func() {
+		r.afterCall()
+		if err == nil {
+			err = r.LowLevel.StopCrypto()
+		}
+	}()
+	return r.selectCard(timeout)
 }
 
 // ReadCard  reads the card sector/block with IRQ event timeout.
@@ -302,6 +317,35 @@ func (r *Dev) antiColl() ([]byte, error) {
 	return backData, nil
 }
 
+// antiColl2 performs additional anticollision check for UIDs with more than 4 bytes.
+func (r *Dev) antiColl2() ([]byte, error) {
+	if err := r.LowLevel.DevWrite(commands.BitFramingReg, 0x00); err != nil {
+		return nil, err
+	}
+
+	serial := []byte{commands.PICC_ANTICOLL2, 0x20}
+	check := byte(0)
+
+	backData, _, err := r.LowLevel.CardWrite(commands.PCD_TRANSCEIVE, serial)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(backData) != 5 {
+		return nil, wrapf("Anticoll2 error, response is %d bytes-long, expected 5", len(backData))
+	}
+
+	for i := 0; i < 4; i++ {
+		check ^= backData[i]
+	}
+
+	if check != backData[4] {
+		return nil, wrapf("Anticoll2 error, check failed")
+	}
+
+	return backData, nil
+}
+
 // selectTag selects the FOB device by device UUID.
 func (r *Dev) selectTag(serial []byte) (byte, error) {
 	dataBuf := make([]byte, len(serial)+2)
@@ -354,6 +398,17 @@ func (r *Dev) selectCard(timeout time.Duration) ([]byte, error) {
 	if _, err := r.selectTag(uuid); err != nil {
 		return nil, err
 	}
+
+	if uuid[0] == 0x88 { // Incomplete UID
+		// Get remaining bytes
+		uuidEnd, err := r.antiColl2()
+		if err != nil {
+			return nil, err
+		}
+
+		uuid = uuid[1 : len(uuid)-1]
+		uuid = append(uuid, uuidEnd[:len(uuidEnd)-1]...)
+	}
 	return uuid, nil
 }
 
@@ -384,7 +439,7 @@ func (r *Dev) write(blockAddr byte, data []byte) error {
 	if backLen != 4 || read[0]&0x0F != 0x0A {
 		err = wrapf("can't write data")
 	}
-	return nil
+	return err
 }
 
 // preAccess  calculates CRC of the block address to be accessed and sends it to the device for verification.

@@ -134,6 +134,7 @@ func (a *Angle) Set(s string) error {
 	return nil
 }
 
+// Well known Angle constants.
 const (
 	NanoRadian  Angle = 1
 	MicroRadian Angle = 1000 * NanoRadian
@@ -165,7 +166,7 @@ func (d Distance) String() string {
 // be provided in "m", "Mile", "Yard", "in", or "ft" with an optional SI
 // prefix: "p", "n", "u", "µ", "m", "k", "M", "G" or "T".
 func (d *Distance) Set(s string) error {
-	decimal, n, err := atod(s)
+	dc, n, err := atod(s)
 	if err != nil {
 		if e, ok := err.(*parseError); ok {
 			switch e.error {
@@ -202,9 +203,9 @@ func (d *Distance) Set(s string) error {
 			n += siSize
 		}
 	}
-	v, overflow := dtoi(decimal, int(si-nano))
+	v, overflow := dtoi(dc, int(si-nano))
 	if overflow {
-		if decimal.neg {
+		if dc.neg {
 			return minValueErr(minDistance.String())
 		}
 		return maxValueErr(maxDistance.String())
@@ -267,6 +268,7 @@ func (d *Distance) Set(s string) error {
 	return nil
 }
 
+// Well known Distance constants.
 const (
 	NanoMetre  Distance = 1
 	MicroMetre Distance = 1000 * NanoMetre
@@ -345,6 +347,7 @@ func (c *ElectricCurrent) Set(s string) error {
 	return nil
 }
 
+// Well known ElectricCurrent constants.
 const (
 	NanoAmpere  ElectricCurrent = 1
 	MicroAmpere ElectricCurrent = 1000 * NanoAmpere
@@ -404,6 +407,7 @@ func (p *ElectricPotential) Set(s string) error {
 	return nil
 }
 
+// Well known ElectricPotential constants.
 const (
 	// Volt is W/A, kg⋅m²/s³/A.
 	NanoVolt  ElectricPotential = 1
@@ -465,6 +469,7 @@ func (r *ElectricResistance) Set(s string) error {
 	return nil
 }
 
+// Well known ElectricResistance constants.
 const (
 	// Ohm is V/A, kg⋅m²/s³/A².
 	NanoOhm  ElectricResistance = 1
@@ -569,6 +574,7 @@ func (f *Force) Set(s string) error {
 	return nil
 }
 
+// Well known Force constants.
 const (
 	// Newton is kg⋅m/s².
 	NanoNewton  Force = 1
@@ -672,6 +678,7 @@ func PeriodToFrequency(p time.Duration) Frequency {
 	return (Frequency(time.Second)*Hertz + Frequency(p/2)) / Frequency(p)
 }
 
+// Well known Frequency constants.
 const (
 	// Hertz is 1/s.
 	MicroHertz Frequency = 1
@@ -787,6 +794,7 @@ func (m *Mass) Set(s string) error {
 	return nil
 }
 
+// Well known Mass constants.
 const (
 	NanoGram  Mass = 1
 	MicroGram Mass = 1000 * NanoGram
@@ -867,6 +875,7 @@ func (p *Pressure) Set(s string) error {
 	return nil
 }
 
+// Well known Pressure constants.
 const (
 	// Pascal is N/m², kg/m/s².
 	NanoPascal  Pressure = 1
@@ -888,16 +897,16 @@ const (
 type RelativeHumidity int32
 
 // String returns the humidity formatted as a string.
-func (h RelativeHumidity) String() string {
-	h /= MilliRH
-	frac := int(h % 10)
+func (r RelativeHumidity) String() string {
+	r /= MilliRH
+	frac := int(r % 10)
 	if frac == 0 {
-		return strconv.Itoa(int(h)/10) + "%rH"
+		return strconv.Itoa(int(r)/10) + "%rH"
 	}
 	if frac < 0 {
 		frac = -frac
 	}
-	return strconv.Itoa(int(h)/10) + "." + strconv.Itoa(frac) + "%rH"
+	return strconv.Itoa(int(r)/10) + "." + strconv.Itoa(frac) + "%rH"
 }
 
 // Set sets the RelativeHumidity to the value represented by s. Units are to
@@ -946,6 +955,7 @@ func (r *RelativeHumidity) Set(s string) error {
 	return nil
 }
 
+// Well known RelativeHumidity constants.
 const (
 	TenthMicroRH RelativeHumidity = 1                 // 0.00001%rH
 	MicroRH      RelativeHumidity = 10 * TenthMicroRH // 0.0001%rH
@@ -963,8 +973,8 @@ const (
 type Speed int64
 
 // String returns the speed formatted as a string in m/s.
-func (s Speed) String() string {
-	return nanoAsString(int64(s)) + "m/s"
+func (sp Speed) String() string {
+	return nanoAsString(int64(sp)) + "m/s"
 }
 
 // Set sets the Speed to the value represented by s. Units are to be provided in
@@ -1081,6 +1091,7 @@ func (sp *Speed) Set(s string) error {
 	return nil
 }
 
+// Well known Speed constants.
 const (
 	// MetrePerSecond is m/s.
 	NanoMetrePerSecond  Speed = 1
@@ -1237,6 +1248,7 @@ func (t Temperature) Fahrenheit() float64 {
 	return float64(t-ZeroFahrenheit) / float64(Fahrenheit)
 }
 
+// Well known Temperature constants.
 const (
 	NanoKelvin  Temperature = 1
 	MicroKelvin Temperature = 1000 * NanoKelvin
@@ -1313,6 +1325,7 @@ func (p *Power) Set(s string) error {
 	return nil
 }
 
+// Well known Power constants.
 const (
 	// Watt is unit of power J/s, kg⋅m²⋅s⁻³
 	NanoWatt  Power = 1
@@ -1374,6 +1387,7 @@ func (e *Energy) Set(s string) error {
 	return nil
 }
 
+// Well known Energy constants.
 const (
 	// Joule is a unit of work. kg⋅m²⋅s⁻²
 	NanoJoule  Energy = 1
@@ -1443,6 +1457,7 @@ func (c *ElectricalCapacitance) Set(s string) error {
 	return nil
 }
 
+// Well known ElectricalCapacitance constants.
 const (
 	// Farad is a unit of capacitance. kg⁻¹⋅m⁻²⋅s⁴A²
 	PicoFarad  ElectricalCapacitance = 1
@@ -1511,6 +1526,7 @@ func (i *LuminousIntensity) Set(s string) error {
 	return nil
 }
 
+// Well known LuminousIntensity constants.
 const (
 	// Candela is a unit of luminous intensity. cd
 	NanoCandela  LuminousIntensity = 1
@@ -1577,6 +1593,7 @@ func (f *LuminousFlux) Set(s string) error {
 	return nil
 }
 
+// Well known LuminousFlux constants.
 const (
 	// Lumen is a unit of luminous flux. cd⋅sr
 	NanoLumen  LuminousFlux = 1
@@ -1906,12 +1923,10 @@ func dtoi(d decimal, scale int) (int64, bool) {
 	switch {
 	case d.exp+scale < 0:
 		u = (u + powerOf10[mag]/2) / powerOf10[mag]
-		break
 	case mag == 0:
 		if u > maxInt64 {
 			return 0, true
 		}
-		break
 	default:
 		check := u * powerOf10[mag]
 		if check/powerOf10[mag] != u || check > maxInt64 {
@@ -2003,7 +2018,6 @@ func atod(s string) (decimal, int, error) {
 				return decimal{}, 0, &parseError{errNotANumber}
 			}
 			end = i
-			break
 		}
 	}
 

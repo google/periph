@@ -54,7 +54,7 @@ func Example() {
 		log.Fatal(err)
 	}
 
-	if err := dev.Draw(img.Bounds(), img, image.ZP); err != nil {
+	if err := dev.Draw(img.Bounds(), img, image.Point{}); err != nil {
 		log.Fatal(err)
 	}
 }

@@ -5,6 +5,7 @@
 package gpiotest
 
 import (
+	"flag"
 	"io/ioutil"
 	"log"
 	"os"
@@ -105,10 +106,6 @@ func TestPin_fail(t *testing.T) {
 }
 
 func TestLogPinIO(t *testing.T) {
-	if !testing.Verbose() {
-		log.SetOutput(ioutil.Discard)
-		defer log.SetOutput(os.Stderr)
-	}
 	p := &Pin{}
 	l := &LogPinIO{p}
 	if l.Real() != p {
@@ -140,7 +137,7 @@ func TestLogPinIO(t *testing.T) {
 }
 
 func TestAll(t *testing.T) {
-	if 2 != len(gpioreg.All()) {
+	if len(gpioreg.All()) != 2 {
 		t.Fatal("expected two pins registered for test")
 	}
 }
@@ -196,10 +193,18 @@ func init() {
 	if err := gpioreg.RegisterAlias("3", "GPIO3"); err != nil {
 		panic(err)
 	}
-	if err := gpioreg.RegisterAlias(gpio2.Function(), gpio2.Name()); err != nil {
+	if err := gpioreg.RegisterAlias(string(gpio2.Func()), gpio2.Name()); err != nil {
 		panic(err)
 	}
-	if err := gpioreg.RegisterAlias(gpio3.Function(), gpio3.Name()); err != nil {
+	if err := gpioreg.RegisterAlias(string(gpio3.Func()), gpio3.Name()); err != nil {
 		panic(err)
 	}
+}
+
+func TestMain(m *testing.M) {
+	flag.Parse()
+	if !testing.Verbose() {
+		log.SetOutput(ioutil.Discard)
+	}
+	os.Exit(m.Run())
 }

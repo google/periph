@@ -5,7 +5,11 @@
 package mt7688
 
 import (
+	"errors"
+	"time"
+
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/pin"
 	"periph.io/x/periph/host/sysfs"
 )
@@ -119,7 +123,7 @@ func (p *Pin) Function() string {
 func (p *Pin) Func() pin.Func {
 	if drvGPIO.gpioMemory == nil {
 		if p.sysfsPin == nil {
-			return pin.Func("ERR")
+			return pin.FuncNone
 		}
 		return p.sysfsPin.Func()
 	}
@@ -151,8 +155,69 @@ func (p *Pin) Func() pin.Func {
 		}
 		return pin.Func("ALT2")
 	default:
-		return pin.Func("ERR")
+		return pin.FuncNone
 	}
+}
+
+// SupportedFuncs implements pin.PinFunc.
+//
+// Not fully implemented yet.
+func (p *Pin) SupportedFuncs() []pin.Func {
+	return []pin.Func{gpio.IN, gpio.OUT}
+}
+
+// SetFunc implements pin.PinFunc.
+//
+// Not implemented yet.
+func (p *Pin) SetFunc(pin.Func) error {
+	return errors.New("not implemented")
+}
+
+// In implements gpio.PinIn.
+//
+// Not implemented yet.
+func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
+	return errors.New("not implemented")
+}
+
+// Read implements gpio.PinIn.
+//
+// Not implemented yet.
+func (p *Pin) Read() gpio.Level {
+	return gpio.Low
+}
+
+// WaitForEdge implements gpio.PinIn.
+//
+// Not implemented yet.
+func (p *Pin) WaitForEdge(timeout time.Duration) bool {
+	return false
+}
+
+// Pull implements gpio.PinIn.
+//
+// Not implemented yet.
+func (p *Pin) Pull() gpio.Pull {
+	return p.defaultPull
+}
+
+// DefaultPull implements gpio.PinIn.
+func (p *Pin) DefaultPull() gpio.Pull {
+	return p.defaultPull
+}
+
+// Out implements gpio.PinOut.
+//
+// Not implemented yet.
+func (p *Pin) Out(l gpio.Level) error {
+	return errors.New("not implemented")
+}
+
+// PWM implements gpio.PinOut.
+//
+// Not implemented yet.
+func (p *Pin) PWM(duty gpio.Duty, f physic.Frequency) error {
+	return errors.New("not implemented")
 }
 
 // function returns the current GPIO pin function.
@@ -161,7 +226,5 @@ func (p *Pin) function() function {
 	return out
 }
 
-var _ pin.Pin = &Pin{}
-
-// TODO: implement required interfaces
-//var _ gpio.PinIO = &Pin{}
+var _ gpio.PinIO = &Pin{}
+var _ pin.PinFunc = &Pin{}

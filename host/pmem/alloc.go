@@ -5,8 +5,11 @@
 package pmem
 
 import (
+	"bytes"
 	"io"
+	"io/ioutil"
 	"reflect"
+	"sync"
 	"unsafe"
 )
 
@@ -77,13 +80,18 @@ func Alloc(size int) (*MemAlloc, error) {
 	if size == 0 || size&(pageSize-1) != 0 {
 		return nil, wrapf("allocated memory must be rounded to %d bytes", pageSize)
 	}
-	if isLinux {
+	if isLinux && !isWSL() {
 		return allocLinux(size)
 	}
 	return nil, wrapf("memory allocation is not supported on this platform")
 }
 
 //
+
+var (
+	wslOnce    sync.Once
+	isWSLValue bool
+)
 
 // uallocMemLocked allocates user space memory and requests the OS to have the
 // chunk to be locked into physical memory.
@@ -159,6 +167,16 @@ func virtToPhys(virt uintptr) (uint64, error) {
 func toRaw(b []byte) uintptr {
 	header := *(*reflect.SliceHeader)(unsafe.Pointer(&b))
 	return header.Data
+}
+
+// isWSL returns true if running under Windows Subsystem for Linux.
+func isWSL() bool {
+	wslOnce.Do(func() {
+		if c, err := ioutil.ReadFile("/proc/sys/kernel/osrelease"); err == nil {
+			isWSLValue = bytes.Contains(c, []byte("Microsoft"))
+		}
+	})
+	return isWSLValue
 }
 
 var _ Mem = &MemAlloc{}

@@ -2,6 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Package mt7688 interfaces with the MediaTek MT7688 MIPS CPU used on low cost board.
 package mt7688
 
 import (

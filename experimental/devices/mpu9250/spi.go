@@ -1,3 +1,7 @@
+// Copyright 2020 The Periph Authors. All rights reserved.
+// Use of this source code is governed under the Apache License, Version 2.0
+// that can be found in the LICENSE file.
+
 package mpu9250
 
 import (
@@ -49,10 +53,7 @@ func (s *SpiTransport) writeByte(address byte, value byte) error {
 	if err := s.device.Tx(buf[:], res[:]); err != nil {
 		return err
 	}
-	if err := s.cs.Out(gpio.High); err != nil {
-		return err
-	}
-	return nil
+	return s.cs.Out(gpio.High)
 }
 
 func (s *SpiTransport) writeMagReg(address byte, value byte) error {
@@ -104,7 +105,7 @@ func (s *SpiTransport) readByte(address byte) (byte, error) {
 
 func (s *SpiTransport) readUint16(address ...byte) (uint16, error) {
 	if len(address) != 2 {
-		return 0, fmt.Errorf("Only 2 bytes per read")
+		return 0, fmt.Errorf("only 2 bytes per read")
 	}
 	h, err := s.readByte(address[0])
 	if err != nil {

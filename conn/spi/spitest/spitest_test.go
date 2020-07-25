@@ -7,8 +7,10 @@ package spitest
 import (
 	"bytes"
 	"errors"
+	"flag"
 	"io/ioutil"
 	"log"
+	"os"
 	"testing"
 
 	"periph.io/x/periph/conn"
@@ -334,6 +336,10 @@ func TestLog_Playback(t *testing.T) {
 
 //
 
-func init() {
-	log.SetOutput(ioutil.Discard)
+func TestMain(m *testing.M) {
+	flag.Parse()
+	if !testing.Verbose() {
+		log.SetOutput(ioutil.Discard)
+	}
+	os.Exit(m.Run())
 }

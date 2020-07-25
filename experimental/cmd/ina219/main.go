@@ -48,7 +48,7 @@ func mainImpl() error {
 
 	// Read values from sensor every second.
 	everySecond := time.NewTicker(time.Second).C
-	var halt = make(chan os.Signal)
+	var halt = make(chan os.Signal, 1)
 	signal.Notify(halt, syscall.SIGTERM)
 	signal.Notify(halt, syscall.SIGINT)
 

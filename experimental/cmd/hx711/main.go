@@ -45,7 +45,7 @@ func mainFunc() error {
 		return fmt.Errorf("clock pin %s can not be found", *clkPin)
 	}
 	dataPinReg := gpioreg.ByName(*dataPin)
-	if dataPin == nil {
+	if dataPinReg == nil {
 		return fmt.Errorf("data pin %s can not be found", *dataPin)
 	}
 

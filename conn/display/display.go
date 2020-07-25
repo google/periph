@@ -41,6 +41,6 @@ type Drawer interface {
 	// update.
 	//
 	// srcPts aligns the image at this offset, enabling using a subset of the
-	// source image. use image.ZP/image.Point{} to take the image at its origin.
+	// source image. use image.Point{} to take the image at its origin.
 	Draw(dstRect image.Rectangle, src image.Image, srcPts image.Point) error
 }

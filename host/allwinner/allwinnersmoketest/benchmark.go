@@ -58,7 +58,7 @@ func (s *Benchmark) Run(f *flag.FlagSet, args []string) error {
 	if r, ok := p.(gpio.RealPin); ok {
 		p = r.Real()
 	}
-	ok := false
+	var ok bool
 	if s.p, ok = p.(*allwinner.Pin); !ok {
 		return fmt.Errorf("pin is not allwinner %q", *name)
 	}

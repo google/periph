@@ -26,7 +26,7 @@ func main() {
 	rawData := flag.Bool("rawdata", false, "command displays current and voltage of sensors measurement resistor")
 	baseline := flag.Bool("baseline", false, "command displays value used for correction of measurement")
 	sense := flag.Bool("sense", false, "command performs one time measurement")
-	readContinuously := flag.Bool("readcontinuously", false, "command performs continous measuremnt with interval of one second")
+	readContinuously := flag.Bool("readcontinuously", false, "command performs continuous measuremnt with interval of one second")
 	fwInfo := flag.Bool("fwinfo", false, "command displays different versions of hardware, boot and firmware")
 	appStart := flag.Bool("appstart", false, "command starts sensor's application - move it from boot to application mode")
 	printMeasureMode := flag.Bool("printmeasuremode", false, "command shows current measurement mode")
@@ -97,7 +97,7 @@ func main() {
 		} else {
 			fmt.Println("Yes")
 		}
-		fmt.Print("Error occured: ")
+		fmt.Print("Error occurred: ")
 		if status&0x01 == 0 {
 			fmt.Println("No")
 		} else {

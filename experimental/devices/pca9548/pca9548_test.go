@@ -116,7 +116,7 @@ func TestRegisterPorts(t *testing.T) {
 			t.Fatalf("failed to create I²C mux: %v", err)
 		}
 		if _, err := mux.RegisterPorts(tt.alias); err == nil {
-			t.Fatal("expected second registraion to fail", err)
+			t.Fatal("expected second registration to fail", err)
 		}
 		for i, port := range tt.expect {
 			if err := i2creg.Unregister(port); err != nil {

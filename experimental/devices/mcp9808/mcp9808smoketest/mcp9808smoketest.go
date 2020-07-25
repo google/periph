@@ -2,6 +2,7 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
+// Package mcp9808smoketest implements a smoke test for the mcp9808.
 package mcp9808smoketest
 
 import (

@@ -83,8 +83,6 @@ func TestDriver_Init(t *testing.T) {
 	if d.Prerequisites() != nil {
 		t.Fatal("unexpected prerequisite")
 	}
-	drvI2C.mu.Lock()
-	drvI2C.mu.Unlock()
 	if drvI2C.setSpeed != nil {
 		t.Fatal("unexpected setSpeed")
 	}
