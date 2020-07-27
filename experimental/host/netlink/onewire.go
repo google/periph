@@ -282,20 +282,29 @@ func (ws *w1Socket) sendAndRecv(seq uint32, m *w1Msg) ([]byte, error) {
 	}
 
 	var data []byte
+	var err1 error
+
+	// Read responses and acks for all commands. It is important to keep
+	// reading in case of an error to flush the netlink socket for future
+	// commands.
 	for _, cmd := range m.cmds {
 		if cmd.wantResponse {
 			d, err := ws.recvCmd(seq, seq+1, m.typ, cmd.typ)
-			if err != nil {
-				return nil, fmt.Errorf("failed to receive command payload: %v", err)
+			if err1 == nil {
+				err1 = err
 			}
 			data = d
 		}
 
 		// Every command is ack'ed with a separate message, including commands
-		// for which a response has already been returned.
-		if _, err := ws.recvCmd(seq, 0, m.typ, cmd.typ); err != nil {
-			return nil, fmt.Errorf("failed to receive command ack message: %v", err)
+		// for which a response has already been received.
+		if _, err := ws.recvCmd(seq, 0, m.typ, cmd.typ); err1 == nil {
+			err1 = err
 		}
+	}
+
+	if err1 != nil {
+		return nil, fmt.Errorf("failed to receive response / acks: %v", err1)
 	}
 
 	return data, nil
