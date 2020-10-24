@@ -159,7 +159,8 @@ func (d *Dev) InputStatus(t []TouchStatus) error {
 		// deltas[i] > int(thresholds[i])
 
 		// If the bit is set, it was touched.
-		if status&(1<<(7-i)) != 0 {
+		idx := len(d.inputStatuses) - 1
+		if status&(1<<(uint8(idx)-i)) != 0 {
 			if d.inputStatuses[i] == PressedStatus {
 				if d.opts.RetriggerOnHold {
 					d.inputStatuses[i] = HeldStatus
