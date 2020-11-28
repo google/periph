@@ -152,7 +152,7 @@ func mcp23x178ports(devicename string, ra registerAccess) []port {
 
 		// interrupt handling registers
 		gpinten:          ra.define(0x05),
-		intcon:           ra.define(0x0B),
+		intcon:           ra.define(0x09),
 		intf:             ra.define(0x0F),
 		intcap:           ra.define(0x11),
 		supportInterrupt: true,
