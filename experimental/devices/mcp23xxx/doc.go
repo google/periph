@@ -3,4 +3,8 @@
 // that can be found in the LICENSE file.
 
 // Package mcp23xxx provides driver for the MCP23 family of IO extenders
+//
+// Datasheet
+//
+// https://ww1.microchip.com/downloads/en/DeviceDoc/20001952C.pdf
 package mcp23xxx
