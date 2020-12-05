@@ -245,7 +245,7 @@ func (rr *RegulationResistor) String() string {
 type RegulationRatio []RegulationResistor
 
 func (rrs *RegulationRatio) String() string {
-	return "regulation resistor ratios"
+	return "Regulation resistor ratio"
 }
 
 func (rrs *RegulationRatio) Set(value string) error {
@@ -278,7 +278,7 @@ type Opts struct {
 	Bias Bias
 	// SegmentDirection is the direction of the segments.
 	SegmentDirection SegmentDirection
-	// CommonDirection is the direction of the segments.
+	// CommonDirection controls the common output status which changes the vertical display direction.
 	CommonDirection CommonDirection
 	// Display changes the selected and non-selected voltage of SEG.
 	Display Display
