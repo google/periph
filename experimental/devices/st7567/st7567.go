@@ -305,7 +305,7 @@ func New(p spi.Port, dc gpio.PinOut, rst gpio.PinOut, cs gpio.PinIn, o *Opts) (*
 		cs:  cs,
 	}
 
-	cmd := make([]byte, 9)
+	var cmd []byte
 	cmd = append(cmd, byte(o.Bias))
 	cmd = append(cmd, byte(o.SegmentDirection))
 	cmd = append(cmd, byte(o.CommonDirection))
