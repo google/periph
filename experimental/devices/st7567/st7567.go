@@ -305,19 +305,20 @@ func New(p spi.Port, dc gpio.PinOut, rst gpio.PinOut, cs gpio.PinIn, o *Opts) (*
 		cs:  cs,
 	}
 
-	var cmd []byte
-	cmd = append(cmd, byte(o.Bias))
-	cmd = append(cmd, byte(o.SegmentDirection))
-	cmd = append(cmd, byte(o.CommonDirection))
-	cmd = append(cmd, byte(o.Display))
-	cmd = append(cmd, setStartLine|o.StartLine)
-	cmd = append(cmd, powerControl)
-	cmd = append(cmd, byte(o.RegulationRatio.getValue()))
-	cmd = append(cmd, displayOn)
-	cmd = append(cmd, setContrast)
-	cmd = append(cmd, o.Contrast)
+	cmd := [...]byte{
+		byte(o.Bias),
+		byte(o.SegmentDirection),
+		byte(o.CommonDirection),
+		byte(o.Display),
+		setStartLine | o.StartLine,
+		powerControl,
+		byte(o.RegulationRatio.getValue()),
+		displayOn,
+		setContrast,
+		o.Contrast,
+	}
 
-	if err := d.sendCommand(cmd); err != nil {
+	if err := d.sendCommand(cmd[:]); err != nil {
 		return nil, err
 	}
 
