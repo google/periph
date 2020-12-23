@@ -39,8 +39,7 @@ func mainImpl() error {
 	go func() { <-c }()
 	signal.Notify(c, os.Interrupt)
 	<-c
-	s.Close()
-	return nil
+	return s.Close()
 }
 
 func main() {

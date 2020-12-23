@@ -152,7 +152,7 @@ func localOnly(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if host, _, err := net.SplitHostPort(r.RemoteAddr); err != nil || !isLocalhost(host) {
 			http.Error(w, "permission denied", http.StatusForbidden)
-			r.Body.Close()
+			_ = r.Body.Close()
 			return
 		}
 		h.ServeHTTP(w, r)
@@ -168,13 +168,13 @@ func (s *webServer) enforceXSRF(h http.HandlerFunc) http.HandlerFunc {
 		if c == nil {
 			log.Printf("Missing XSRF-TOKEN cookie")
 			http.Error(w, "Missing XSRF-TOKEN cookie", 400)
-			r.Body.Close()
+			_ = r.Body.Close()
 			return
 		}
 		if !s.validateToken(c.Value, strings.SplitN(r.RemoteAddr, ":", 2)[0]) {
 			log.Printf("Invalid XSRF-TOKEN cookie %q", c.Value)
 			http.Error(w, "Invalid XSRF-TOKEN cookie", 400)
-			r.Body.Close()
+			_ = r.Body.Close()
 			return
 		}
 		h(w, r)
@@ -198,7 +198,7 @@ func getOnly(h http.HandlerFunc) http.HandlerFunc {
 func noContent(h http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		n, err := io.Copy(ioutil.Discard, r.Body)
-		r.Body.Close()
+		_ = r.Body.Close()
 		if n != 0 {
 			http.Error(w, "Unexpected content", 400)
 			return

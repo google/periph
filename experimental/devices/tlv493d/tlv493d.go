@@ -379,7 +379,9 @@ func (d *Dev) ReadContinuous(frequency physic.Frequency, precision Precision) (<
 	}
 
 	previousMode := d.mode
-	d.SetMode(newMode)
+	if err := d.SetMode(newMode); err != nil {
+		return nil, err
+	}
 
 	t := time.NewTicker(frequency.Period())
 

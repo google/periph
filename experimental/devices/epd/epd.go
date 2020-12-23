@@ -199,13 +199,17 @@ func (d *Dev) Draw(r image.Rectangle, src image.Image, sp image.Point) error {
 		yEnd = h - 1
 	}
 
-	d.setMemoryArea(xStart, yStart, xEnd, yEnd)
+	if err := d.setMemoryArea(xStart, yStart, xEnd, yEnd); err != nil {
+		return err
+	}
 
 	next := image1bit.NewVerticalLSB(d.rect)
 	draw.Src.Draw(next, r, src, sp)
 	var byteToSend byte = 0x00
 	for y := yStart; y < yEnd+1; y++ {
-		d.setMemoryPointer(xStart, y)
+		if err := d.setMemoryPointer(xStart, y); err != nil {
+			return err
+		}
 		if err := d.sendCommand([]byte{writeRAM}); err != nil {
 			return err
 		}
@@ -231,8 +235,12 @@ func (d *Dev) Draw(r image.Rectangle, src image.Image, sp image.Point) error {
 func (d *Dev) ClearFrameMemory(color byte) error {
 	w := d.rect.Dx()
 	h := d.rect.Dy()
-	d.setMemoryArea(0, 0, w-1, h-1)
-	d.setMemoryPointer(0, 0)
+	if err := d.setMemoryArea(0, 0, w-1, h-1); err != nil {
+		return err
+	}
+	if err := d.setMemoryPointer(0, 0); err != nil {
+		return err
+	}
 	if err := d.sendCommand([]byte{writeRAM}); err != nil {
 		return err
 	}
@@ -440,7 +448,9 @@ func (d *Dev) setLut(update PartialUpdate) error {
 	}
 
 	for i := range lut {
-		d.sendData([]byte{lut[i]})
+		if err := d.sendData([]byte{lut[i]}); err != nil {
+			return err
+		}
 	}
 	return nil
 }
