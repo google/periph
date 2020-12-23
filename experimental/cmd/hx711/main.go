@@ -60,11 +60,17 @@ func mainFunc() error {
 
 	switch *gain {
 	case 128:
-		dev.SetInputMode(hx711.CHANNEL_A_GAIN_128)
+		if err := dev.SetInputMode(hx711.CHANNEL_A_GAIN_128); err != nil {
+			return err
+		}
 	case 64:
-		dev.SetInputMode(hx711.CHANNEL_A_GAIN_64)
+		if err := dev.SetInputMode(hx711.CHANNEL_A_GAIN_64); err != nil {
+			return err
+		}
 	case 32:
-		dev.SetInputMode(hx711.CHANNEL_B_GAIN_32)
+		if err := dev.SetInputMode(hx711.CHANNEL_B_GAIN_32); err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("invalid gain '%d', must be either 128, 64 or 32", *gain)
 	}

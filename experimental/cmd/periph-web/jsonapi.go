@@ -217,7 +217,7 @@ func (j *jsonAPI) apiI2CList() ([]i2cRef, int) {
 				h.SCL = p.SCL().Name()
 				h.SDA = p.SDA().Name()
 			}
-			bus.Close()
+			_ = bus.Close()
 		} else {
 			h.Err = err.Error()
 		}
@@ -251,7 +251,7 @@ func (j *jsonAPI) apiSPIList() ([]spiRef, int) {
 				h.MISO = p.MISO().Name()
 				h.CS = p.CS().Name()
 			}
-			bus.Close()
+			_ = bus.Close()
 		} else {
 			h.Err = err.Error()
 		}

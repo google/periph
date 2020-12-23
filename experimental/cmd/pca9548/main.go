@@ -62,7 +62,7 @@ func mainImpl() error {
 				results[m.String()] = append(results[m.String()], addr)
 			}
 		}
-		m.Close()
+		_ = m.Close()
 	}
 
 	fmt.Println("Scan Results:")

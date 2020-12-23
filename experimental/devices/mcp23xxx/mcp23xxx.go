@@ -107,7 +107,8 @@ func makeDev(ra registerAccess, variant Variant, devicename string) (*Dev, error
 		}
 		pins[i] = ports[i].pins()
 		for _, pin := range pins[i] {
-			gpioreg.Register(pin)
+			// Ignore registration failure.
+			_ = gpioreg.Register(pin)
 		}
 	}
 	return &Dev{

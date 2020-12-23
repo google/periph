@@ -158,8 +158,7 @@ func main() {
 		fmt.Printf("Versions: %+v\n", fw)
 	}
 	if *appStart {
-		err := d.StartSensorApp()
-		if err != nil {
+		if err := d.StartSensorApp(); err != nil {
 			fmt.Println("Error starting sensor app:", err)
 		}
 	}
@@ -183,7 +182,9 @@ func main() {
 		}
 
 		mmp := ccs811.MeasurementModeParams{MeasurementMode: ccs811.MeasurementMode(i)}
-		d.SetMeasurementModeRegister(mmp)
+		if err := d.SetMeasurementModeRegister(mmp); err != nil {
+			fmt.Println("Error configuring measurements:", err)
+		}
 	}
 
 }

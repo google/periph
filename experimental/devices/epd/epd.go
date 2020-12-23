@@ -372,9 +372,9 @@ func (d *Dev) Init() error {
 
 // Reset can be also used to awaken the device
 func (d *Dev) Reset() {
-	d.rst.Out(gpio.Low)
+	_ = d.rst.Out(gpio.Low)
 	time.Sleep(200 * time.Millisecond)
-	d.rst.Out(gpio.High)
+	_ = d.rst.Out(gpio.High)
 	time.Sleep(200 * time.Millisecond)
 }
 

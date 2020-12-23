@@ -36,7 +36,9 @@ func main() {
 	defer tlv.Halt()
 
 	// Read a single value.
-	tlv.SetMode(tlv493d.LowPowerMode)
+	if err := tlv.SetMode(tlv493d.LowPowerMode); err != nil {
+		log.Fatalln(err)
+	}
 	fmt.Println("Single reading")
 	reading, err := tlv.Read(tlv493d.HighPrecisionWithTemperature)
 
