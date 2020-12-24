@@ -66,7 +66,7 @@ func fillData(base string, content, raw []string) ([][2]string, error) {
 			}
 			return nil, err
 		}
-		data = append(data, [2]string{strconv.Quote(p), fmt.Sprintf("[]byte(%q)", r)})
+		data = append(data, [2]string{strconv.Quote(strings.Replace(p, "\\", "/", -1)), fmt.Sprintf("[]byte(%q)", r)})
 	}
 	for _, n := range raw {
 		p := filepath.Join(base, n)
@@ -74,7 +74,7 @@ func fillData(base string, content, raw []string) ([][2]string, error) {
 		if err != nil {
 			return nil, err
 		}
-		data = append(data, [2]string{strconv.Quote(p), fmt.Sprintf("[]byte(%q)", r)})
+		data = append(data, [2]string{strconv.Quote(strings.Replace(p, "\\", "/", -1)), fmt.Sprintf("[]byte(%q)", r)})
 	}
 	return data, nil
 }
