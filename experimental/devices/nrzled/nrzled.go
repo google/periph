@@ -90,7 +90,7 @@ func NewSPI(p spi.Port, opts *Opts) (*Dev, error) {
 			return nil, errors.New("spi port buffer is too short for the specified number of pixels")
 		}
 	}
-	c, err := p.Connect(spiFreq, spi.Mode3|spi.NoCS, 8)
+	c, err := p.Connect(spiFreq, spi.Mode3, 8)
 	if err != nil {
 		return nil, err
 	}
