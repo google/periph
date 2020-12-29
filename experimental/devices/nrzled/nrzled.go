@@ -309,8 +309,8 @@ func (d *Dev) rasterSPI(dst []byte, src []byte, srcHasAlpha bool) {
 		dOff := 3 * stride * i //3 channels * stride
 		r, g, b := src[sOff], src[sOff+1], src[sOff+2]
 		//grb color order, msb first
-		copy(dst[dOff+stride*0:dOff+stride*1], nrzMSB4[r][:])
-		copy(dst[dOff+stride*1:dOff+stride*2], nrzMSB4[g][:])
+		copy(dst[dOff+stride*0:dOff+stride*1], nrzMSB4[g][:])
+		copy(dst[dOff+stride*1:dOff+stride*2], nrzMSB4[r][:])
 		copy(dst[dOff+stride*2:dOff+stride*3], nrzMSB4[b][:])
 	}
 }
