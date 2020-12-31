@@ -4,7 +4,7 @@
 
 // Package host defines the host itself.
 //
-// The host is the machine where this code is running.
+// Is it now superseded by https://periph.io/x/host/v3 (or later).
 //
-// Subpackages contain the drivers that are loaded automatically.
+// See https://periph.io/news/2020/a_new_start/ for more details.
 package host

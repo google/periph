@@ -4,6 +4,7 @@
 
 // Package devices is a container for device drivers.
 //
-// Subpackages contain the concrete implementations. Devices accept port
-// interface, constructors return concrete type.
+// Is it now superseded by https://periph.io/x/devices/v3 (or later).
+//
+// See https://periph.io/news/2020/a_new_start/ for more details.
 package devices

@@ -4,6 +4,7 @@
 
 // Package cmd contains tools.
 //
-// Visit https://github.com/google/periph/blob/master/cmd/README.md for more
-// information about how to use the tools provided.
+// Is it now superseded by https://periph.io/x/cmd.
+//
+// See https://periph.io/news/2020/a_new_start/ for more details.
 package cmd
