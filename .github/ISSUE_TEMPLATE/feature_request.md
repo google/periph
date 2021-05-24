@@ -1,24 +1,15 @@
 ---
 name: Feature request
 about: What new do you want to see supported?
-
 ---
 
-**What kind of new feature are you looking for?**
-(Keep the one that applies, please describe)
-- Hardware: [new chip]
-- Software: [new OS support, new integration, new logic package, etc]
+**This repository is deprecated.**
 
-**Do you plan to:**
-- contribute an initial driver in experimental: [Yes/No]
-- do all the work needed to get the driver promoted to _stable_¹: [Yes/No]
+Please see https://periph.io/news/2020/a_new_start/ for more information.
 
-We know the second question looks scary. Do not worry if you reply _No_ to the
-_stable_ question. It's still useful. It's still possible someone else will pick
-it up and finish the work.
+You likely want to file an issue to one of these repositories:
 
-¹ Wonder what it takes to promote a driver as _stable_? See
-https://periph.io/project/#driver-lifetime-management. A stable driver requires
-the smallest API surface, good unit test code coverage, good documentation and a
-page in
-[https://periph.io/device/](https://github.com/periph/website/tree/master/site/content/device)
+- https://github.com/periph/cmd
+- https://github.com/periph/conn
+- https://github.com/periph/devices
+- https://github.com/periph/host

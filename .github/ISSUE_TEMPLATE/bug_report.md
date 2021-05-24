@@ -1,35 +1,15 @@
 ---
 name: Bug report
 about: Create a report to help us improve
-
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+**This repository is deprecated.**
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Run program
-```go
-package main
+Please see https://periph.io/news/2020/a_new_start/ for more information.
 
-import (
-  "periph.io/x/periph/host"
-)
+You likely want to file an issue to one of these repositories:
 
-func main() {
-  host.Init()
-}
-```
-2. Run it.
-3. See error
-
-**Expected behavior**
-A clear and concise description of what you expected to happen.
-
-**Platform (please complete the following information):**
- - OS: [e.g. Raspbian Stretch Lite]
- - Board [e.g. Raspberry Pi Zero Wireless]
-
-**Additional context**
-Add any other context about the problem here.
+- https://github.com/periph/cmd
+- https://github.com/periph/conn
+- https://github.com/periph/devices
+- https://github.com/periph/host
