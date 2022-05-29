@@ -1,19 +1,17 @@
 # periph - Peripherals I/O in Go
 
-[![mascot](https://raw.githubusercontent.com/periph/website/master/site/static/img/periph-mascot-280.png)](https://periph.io/)
-
 Documentation is at https://periph.io
-
-Join us for a chat on
-[gophers.slack.com/messages/periph](https://gophers.slack.com/messages/periph),
-get an [invite here](https://invite.slack.golangbridge.org/).
 
 
 ## New home
 
 The source code is now hosted in multiple repositories at
-[github.com/periph](https://github.com/periph). See
-https://periph.io/news/2020/a_new_start/ for more details.
+[github.com/periph](https://github.com/periph). See the announcements:
+
+* Migration (2020): https://periph.io/news/2020/a_new_start/
+* Removal (2022): https://periph.io/news/2022/removal/
+
+It is still possibly to use this code base by pinning version v3.6.8.
 
 
 ## Authors
